@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-> **75% Complete** | `███████████████░░░░░` | Models, handler, keyboards, states, i18n done. Wiring into main router + tests remaining.
+> **100% Complete** | `████████████████████` | Models, handler, keyboards, states, i18n, router wiring, and tests all done.
 
 **Phase:** 4 — Delivery Experience
 **Priority:** High
@@ -181,8 +181,11 @@ def is_chat_active(order: Order) -> bool:
 - [x] All chat messages logged with full metadata
 - [x] Admin can retrieve full chat + location history via `get_chat_history()`
 - [x] i18n strings for 5 main locales (ru, en, th, ar, fa — ps/fr fallback to en)
-- [ ] Wire into main router (edited_message handler for live location updates)
-- [ ] Unit tests
+- [x] Wire into main router (edited_message handler for live location updates)
+- [x] GPS choice callback handlers (static/live/skip)
+- [x] Rider group edited_message listener for driver live location updates
+- [x] Customer private chat edited_message listener with relay to rider group
+- [x] Unit tests (19 tests passing)
 
 ## Test Plan
 
