@@ -1,3 +1,5 @@
+import logging
+
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
@@ -10,6 +12,9 @@ from bot.keyboards.inline import back, settings_management_keyboard, timezone_se
 from bot.filters import HasPermissionFilter
 from bot.config import timezone
 from bot.config.env import EnvKeys
+from bot.i18n.strings import localize
+
+logger = logging.getLogger(__name__)
 
 router = Router()
 
@@ -376,7 +381,7 @@ def get_promptpay_name() -> str:
 
 @router.callback_query(F.data == "setting_promptpay", HasPermissionFilter(Permission.SETTINGS_MANAGE))
 async def set_promptpay_start(call: CallbackQuery, state: FSMContext):
-    """Show current PromptPay recipient account and prompt for new ID."""
+    """Show current PromptPay recipient account and offer setup options."""
     current_id = get_promptpay_id()
     current_name = get_promptpay_name()
 
@@ -390,14 +395,143 @@ async def set_promptpay_start(call: CallbackQuery, state: FSMContext):
         f"<b>Current Configuration:</b>\n"
         f"• PromptPay ID: {id_display}\n"
         f"• Account Name: {name_display}\n\n"
-        f"<b>Enter your PromptPay ID:</b>\n"
-        f"• Phone number (10 digits): <code>0812345678</code>\n"
-        f"• National ID (13 digits): <code>1234567890123</code>\n\n"
-        f"<i>This is the phone number or national ID registered with PromptPay at your bank.</i>",
-        reply_markup=back("settings_management"),
+        f"Choose how to set up your account:",
+        reply_markup=_promptpay_setup_keyboard(),
+        parse_mode='HTML'
+    )
+
+
+def _promptpay_setup_keyboard():
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    kb = InlineKeyboardBuilder()
+    kb.button(text="📷 Upload QR Code Image", callback_data="promptpay_upload_qr")
+    kb.button(text="✍️ Enter ID Manually", callback_data="promptpay_manual_id")
+    kb.button(text=localize("btn.back"), callback_data="settings_management")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+# --- Option 1: Upload QR code image ---
+
+@router.callback_query(F.data == "promptpay_upload_qr", HasPermissionFilter(Permission.SETTINGS_MANAGE))
+async def promptpay_upload_qr_start(call: CallbackQuery, state: FSMContext):
+    """Ask admin to upload their PromptPay QR code image."""
+    await call.message.edit_text(
+        "📷 <b>Upload PromptPay QR Code</b>\n\n"
+        "Send a photo or screenshot of your PromptPay QR code.\n\n"
+        "This can be:\n"
+        "• A screenshot from your banking app (KBank, SCB, etc.)\n"
+        "• A photo of your printed PromptPay QR\n"
+        "• A QR image saved on your phone\n\n"
+        "<i>The bot will automatically extract your PromptPay ID from the QR code.</i>",
+        reply_markup=back("setting_promptpay"),
         parse_mode='HTML'
     )
     await state.set_state(SettingsFSM.waiting_promptpay_id)
+    await state.update_data(promptpay_input_mode="qr_upload")
+
+
+@router.message(SettingsFSM.waiting_promptpay_id, F.photo)
+async def process_promptpay_qr_photo(message: Message, state: FSMContext):
+    """Decode uploaded QR image and extract PromptPay ID."""
+    data = await state.get_data()
+    if data.get("promptpay_input_mode") != "qr_upload":
+        # Photo received but we're in manual mode — ignore
+        await message.answer(
+            "❌ Please enter your PromptPay ID as text, not a photo.\n"
+            "Or go back and choose 'Upload QR Code Image' instead.",
+            reply_markup=back("setting_promptpay"),
+            parse_mode='HTML'
+        )
+        return
+
+    try:
+        from bot.payments.promptpay import extract_promptpay_from_image
+
+        # Download photo from Telegram
+        photo_file_id = message.photo[-1].file_id
+        file_obj = await message.bot.get_file(photo_file_id)
+        photo_io = await message.bot.download_file(file_obj.file_path)
+        image_bytes = photo_io.read()
+
+        # Extract PromptPay info
+        info = extract_promptpay_from_image(image_bytes)
+
+        id_type_display = "phone number" if info.id_type == "phone" else "national ID"
+        amount_display = f"\nDefault Amount: <b>{info.amount} THB</b>" if info.amount else ""
+
+        await state.update_data(
+            new_promptpay_id=info.promptpay_id,
+            promptpay_id_type=id_type_display,
+        )
+
+        current_name = get_promptpay_name()
+        name_hint = f"\nCurrent name: <b>{current_name}</b>" if current_name else ""
+
+        await message.answer(
+            f"✅ <b>QR Code Decoded Successfully!</b>\n\n"
+            f"<b>Extracted Info:</b>\n"
+            f"• PromptPay ID: <code>{info.promptpay_id}</code> ({id_type_display}){amount_display}\n"
+            f"• Country: {info.country_code or 'TH'}\n\n"
+            f"<b>Now enter the account holder name:</b>{name_hint}\n\n"
+            f"Enter the name exactly as it appears on your bank account.\n"
+            f"This is used to verify customer payments go to the right recipient.\n\n"
+            f"• Example: <code>Somchai Jaidee</code>\n"
+            f"• Example: <code>My Restaurant Co Ltd</code>",
+            reply_markup=back("settings_management"),
+            parse_mode='HTML'
+        )
+        await state.set_state(SettingsFSM.waiting_promptpay_name)
+
+    except ImportError:
+        await message.answer(
+            "❌ <b>QR decoding not available</b>\n\n"
+            "The <code>pyzbar</code> library is not installed.\n"
+            "Install it with: <code>pip install pyzbar</code>\n\n"
+            "You can still enter your PromptPay ID manually.",
+            reply_markup=_promptpay_setup_keyboard(),
+            parse_mode='HTML'
+        )
+        await state.clear()
+
+    except ValueError as e:
+        await message.answer(
+            f"❌ <b>Could not read QR code</b>\n\n"
+            f"{e}\n\n"
+            f"Please try again with a clearer image, or enter your ID manually.",
+            reply_markup=_promptpay_setup_keyboard(),
+            parse_mode='HTML'
+        )
+        await state.clear()
+
+    except Exception as e:
+        logger.error("QR decode error: %s", e)
+        await message.answer(
+            "❌ <b>Error processing image</b>\n\n"
+            "Could not extract PromptPay info from the image.\n"
+            "Please try a different image or enter your ID manually.",
+            reply_markup=_promptpay_setup_keyboard(),
+            parse_mode='HTML'
+        )
+        await state.clear()
+
+
+# --- Option 2: Manual entry ---
+
+@router.callback_query(F.data == "promptpay_manual_id", HasPermissionFilter(Permission.SETTINGS_MANAGE))
+async def promptpay_manual_start(call: CallbackQuery, state: FSMContext):
+    """Start manual PromptPay ID entry."""
+    await call.message.edit_text(
+        "✍️ <b>Enter PromptPay ID</b>\n\n"
+        "Enter your PromptPay ID:\n"
+        "• Phone number (10 digits): <code>0812345678</code>\n"
+        "• National ID (13 digits): <code>1234567890123</code>\n\n"
+        "<i>This is the phone number or national ID registered with PromptPay at your bank.</i>",
+        reply_markup=back("setting_promptpay"),
+        parse_mode='HTML'
+    )
+    await state.set_state(SettingsFSM.waiting_promptpay_id)
+    await state.update_data(promptpay_input_mode="manual")
 
 
 @router.message(SettingsFSM.waiting_promptpay_id, F.text)

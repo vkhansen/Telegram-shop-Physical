@@ -1,5 +1,29 @@
 DEFAULT_LOCALE = "th"
 
+
+def localize(key: str, locale: str = None, **kwargs) -> str:
+    """
+    Get a localized string by key.
+
+    Args:
+        key: The translation key (e.g. "btn.back")
+        locale: Language code (defaults to DEFAULT_LOCALE)
+        **kwargs: Format arguments for the string
+
+    Returns:
+        Translated string, or the key itself if not found
+    """
+    lang = locale or DEFAULT_LOCALE
+    translations = TRANSLATIONS.get(lang, {})
+    text = translations.get(key, key)
+    if kwargs and isinstance(text, str):
+        try:
+            return text.format(**kwargs)
+        except (KeyError, IndexError):
+            return text
+    return text
+
+
 # Language picker — add new languages here + their translations in TRANSLATIONS
 AVAILABLE_LOCALES: dict[str, str] = {
     "th": "🇹🇭 ไทย",

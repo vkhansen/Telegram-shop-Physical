@@ -19,6 +19,7 @@ pytz~=2025.2
 
 # PromptPay QR (Card 1)
 qrcode[pil]~=8.0
+pyzbar~=0.1.9
 
 # Testing
 pytest~=8.4.2

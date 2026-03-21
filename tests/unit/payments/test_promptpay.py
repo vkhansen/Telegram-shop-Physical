@@ -1,8 +1,13 @@
-"""Tests for PromptPay QR generation (Card 1)"""
+"""Tests for PromptPay QR generation and parsing (Card 1)"""
 import pytest
 from decimal import Decimal
 
-from bot.payments.promptpay import generate_promptpay_payload, _crc16
+from bot.payments.promptpay import (
+    generate_promptpay_payload,
+    _crc16,
+    parse_emvco_tlv,
+    parse_promptpay_payload,
+)
 
 
 @pytest.mark.unit
@@ -277,3 +282,82 @@ class TestPromptPayPayloadEdgeCases:
         p1 = generate_promptpay_payload("0812345678", Decimal("250.00"))
         p2 = generate_promptpay_payload("0812345678", Decimal("250.00"))
         assert p1 == p2
+
+
+@pytest.mark.unit
+class TestEMVCoTLVParser:
+    """Test EMVCo TLV payload parsing."""
+
+    def test_parse_simple_tlv(self):
+        """Parse a simple TLV string."""
+        # tag=00, length=02, value="01"
+        result = parse_emvco_tlv("000201")
+        assert result["00"] == "01"
+
+    def test_parse_multiple_tags(self):
+        """Parse multiple TLV fields."""
+        # 00:02:"01" + 01:02:"11" + 58:02:"TH"
+        result = parse_emvco_tlv("00020101021158025448")
+        assert result["00"] == "01"
+        assert result["01"] == "11"
+
+    def test_parse_empty_string(self):
+        result = parse_emvco_tlv("")
+        assert result == {}
+
+    def test_parse_truncated_data(self):
+        """Gracefully handle truncated payload."""
+        # tag=00, length=05, but only 2 chars of value
+        result = parse_emvco_tlv("000501")
+        assert result == {}
+
+
+@pytest.mark.unit
+class TestPromptPayPayloadParsing:
+    """Test round-trip: generate → parse PromptPay payloads."""
+
+    def test_roundtrip_phone_number(self):
+        """Generate payload with phone, parse it back, get same phone."""
+        payload = generate_promptpay_payload("0812345678", Decimal("450.00"))
+        info = parse_promptpay_payload(payload)
+
+        assert info.promptpay_id == "0812345678"
+        assert info.id_type == "phone"
+        assert info.amount == Decimal("450.00")
+        assert info.country_code == "TH"
+        assert info.currency_code == "764"
+
+    def test_roundtrip_national_id(self):
+        """Generate payload with national ID, parse it back."""
+        payload = generate_promptpay_payload("1234567890123", Decimal("100"))
+        info = parse_promptpay_payload(payload)
+
+        assert info.promptpay_id == "1234567890123"
+        assert info.id_type == "national_id"
+        assert info.amount == Decimal("100")
+
+    def test_roundtrip_various_amounts(self):
+        """Different amounts should round-trip correctly."""
+        for amount_str in ("1", "50.50", "9999.99", "0.01"):
+            amount = Decimal(amount_str)
+            payload = generate_promptpay_payload("0898765432", amount)
+            info = parse_promptpay_payload(payload)
+            assert info.amount == amount
+
+    def test_parse_invalid_short_payload(self):
+        with pytest.raises(ValueError, match="too short"):
+            parse_promptpay_payload("0002")
+
+    def test_parse_no_merchant_info(self):
+        """Payload without tag 29 should raise."""
+        # Valid TLV but no tag 29/30
+        with pytest.raises(ValueError, match="merchant"):
+            parse_promptpay_payload("000201010211530376458025448" + "6304" + "0000")
+
+    def test_parse_empty_payload(self):
+        with pytest.raises(ValueError):
+            parse_promptpay_payload("")
+
+    def test_parse_none_payload(self):
+        with pytest.raises(ValueError):
+            parse_promptpay_payload(None)
