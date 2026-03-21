@@ -8,6 +8,7 @@ from .update_position_states import router as update_position_router
 from .user_management_states import router as user_management_router
 from .reference_code_management import router as reference_code_management_router
 from .settings_management import router as settings_management_router
+from .order_management import router as order_management_router
 
 from aiogram import Router
 
@@ -22,3 +23,4 @@ router.include_router(goods_management_router)
 router.include_router(shop_management_router)
 router.include_router(update_position_router)
 router.include_router(user_management_router)
+router.include_router(order_management_router)

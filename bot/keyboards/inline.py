@@ -47,6 +47,7 @@ def admin_console_keyboard() -> InlineKeyboardMarkup:
     kb.button(text=localize("admin.menu.shop"), callback_data="shop_management")
     kb.button(text=localize("admin.menu.goods"), callback_data="goods_management")
     kb.button(text=localize("admin.menu.categories"), callback_data="categories_management")
+    kb.button(text=localize("admin.menu.orders"), callback_data="order_management")
     kb.button(text=localize("admin.menu.users"), callback_data="user_management")
     kb.button(text=localize("btn.reference_codes"), callback_data="admin_refcode_management")
     kb.button(text=localize("btn.settings"), callback_data="settings_management")
@@ -234,6 +235,42 @@ def referral_system_keyboard(has_referrals: bool = False, has_earnings: bool = F
     kb.button(text=localize("btn.create_reference_code"), callback_data="create_my_refcode")
 
     kb.button(text=localize("btn.back"), callback_data="profile")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def kitchen_order_keyboard(order_id: int) -> InlineKeyboardMarkup:
+    """
+    Kitchen group buttons: Start Preparing / Mark Ready.
+    """
+    kb = InlineKeyboardBuilder()
+    kb.button(text=localize("kitchen.btn.start_preparing"), callback_data=f"kitchen_preparing_{order_id}")
+    kb.button(text=localize("kitchen.btn.mark_ready"), callback_data=f"kitchen_ready_{order_id}")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def rider_order_keyboard(order_id: int) -> InlineKeyboardMarkup:
+    """
+    Rider group buttons: Picked Up / Delivered.
+    """
+    kb = InlineKeyboardBuilder()
+    kb.button(text=localize("rider.btn.picked_up"), callback_data=f"rider_picked_{order_id}")
+    kb.button(text=localize("rider.btn.delivered"), callback_data=f"rider_delivered_{order_id}")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def admin_order_status_keyboard(order_id: int, current_status: str) -> InlineKeyboardMarkup:
+    """
+    Admin order management: shows all valid next statuses as buttons.
+    """
+    from bot.utils.order_status import get_allowed_transitions
+    kb = InlineKeyboardBuilder()
+    allowed = get_allowed_transitions(current_status)
+    for status in sorted(allowed):
+        kb.button(text=status.replace("_", " ").title(), callback_data=f"order_status_{order_id}_{status}")
+    kb.button(text=localize("btn.back"), callback_data="order_management")
     kb.adjust(1)
     return kb.as_markup()
 

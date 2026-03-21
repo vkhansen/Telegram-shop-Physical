@@ -580,6 +580,53 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.order_label": "📋 <b>Заказ: {code}</b>",
         "order.payment.subtotal_label": "Подытог: <b>{amount} {currency}</b>",
         "order.payment.total_amount_label": "<b>Сумма к оплате: {amount} {currency}</b>",
+
+        # === Card 9: Kitchen & Delivery Workflow ===
+        "admin.menu.orders": "📋 Заказы",
+        "admin.orders.list_title": "📋 <b>Заказы</b>",
+        "admin.orders.empty": "Заказов не найдено",
+        "admin.orders.filter_status": "Фильтр по статусу",
+        "admin.orders.filter_all": "📋 Все заказы",
+        "admin.orders.filter_active": "🔄 Активные",
+        "admin.orders.detail": (
+            "📋 <b>Заказ #{order_id}</b> ({order_code})\n"
+            "👤 Покупатель: {buyer_id}\n"
+            "💰 Сумма: {total}\n"
+            "📦 Статус: {status}\n"
+            "📅 Создан: {created_at}\n"
+            "📍 Адрес: {address}\n"
+            "📞 Телефон: {phone}"
+        ),
+        "admin.orders.status_changed": "Статус заказа #{order_id} изменён на <b>{new_status}</b>",
+        "admin.orders.invalid_transition": "Невозможно изменить статус с {current} на {new}",
+        "kitchen.order_received": (
+            "🍳 <b>Новый заказ #{order_id}</b> ({order_code})\n\n"
+            "{items}\n\n"
+            "💰 Сумма: {total}\n"
+            "📍 Адрес: {address}\n"
+            "📞 Телефон: {phone}"
+        ),
+        "rider.order_ready": (
+            "🚗 <b>Заказ готов #{order_id}</b> ({order_code})\n\n"
+            "💰 Сумма: {total}\n"
+            "📍 Адрес: {address}\n"
+            "📞 Телефон: {phone}"
+        ),
+        "order.status.preparing": "🍳 Ваш заказ #{order_code} готовится",
+        "order.status.ready": "✅ Ваш заказ #{order_code} готов к забору",
+        "order.status.out_for_delivery": "🚗 Ваш заказ #{order_code} в пути",
+        "order.status.delivered_notify": "📦 Ваш заказ #{order_code} доставлен",
+        "kitchen.btn.start_preparing": "🍳 Начать приготовление",
+        "kitchen.btn.mark_ready": "✅ Готов",
+        "rider.btn.picked_up": "📦 Забрал",
+        "rider.btn.delivered": "✅ Доставлен",
+
+        # Delivery Photo Proof (Card 4)
+        "delivery.photo.required": "Для доставки с оставлением в указанном месте требуется фото",
+        "delivery.photo.upload_prompt": "Пожалуйста, загрузите фото доставки",
+        "delivery.photo.received": "Фото доставки сохранено",
+        "delivery.photo.sent_to_customer": "Фото доставки отправлено клиенту",
+        "delivery.photo.customer_notification": "Ваш заказ {order_code} доставлен! Вот фото подтверждения.",
     },
 
     "en": {
@@ -1147,6 +1194,53 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.order_label": "📋 <b>Order: {code}</b>",
         "order.payment.subtotal_label": "Subtotal: <b>{amount} {currency}</b>",
         "order.payment.total_amount_label": "<b>Total Amount: {amount} {currency}</b>",
+
+        # === Card 9: Kitchen & Delivery Workflow ===
+        "admin.menu.orders": "📋 Orders",
+        "admin.orders.list_title": "📋 <b>Orders</b>",
+        "admin.orders.empty": "No orders found",
+        "admin.orders.filter_status": "Filter by status",
+        "admin.orders.filter_all": "📋 All Orders",
+        "admin.orders.filter_active": "🔄 Active",
+        "admin.orders.detail": (
+            "📋 <b>Order #{order_id}</b> ({order_code})\n"
+            "👤 Buyer: {buyer_id}\n"
+            "💰 Total: {total}\n"
+            "📦 Status: {status}\n"
+            "📅 Created: {created_at}\n"
+            "📍 Address: {address}\n"
+            "📞 Phone: {phone}"
+        ),
+        "admin.orders.status_changed": "Order #{order_id} status changed to <b>{new_status}</b>",
+        "admin.orders.invalid_transition": "Cannot change status from {current} to {new}",
+        "kitchen.order_received": (
+            "🍳 <b>New Order #{order_id}</b> ({order_code})\n\n"
+            "{items}\n\n"
+            "💰 Total: {total}\n"
+            "📍 Address: {address}\n"
+            "📞 Phone: {phone}"
+        ),
+        "rider.order_ready": (
+            "🚗 <b>Order Ready #{order_id}</b> ({order_code})\n\n"
+            "💰 Total: {total}\n"
+            "📍 Address: {address}\n"
+            "📞 Phone: {phone}"
+        ),
+        "order.status.preparing": "🍳 Your order #{order_code} is being prepared",
+        "order.status.ready": "✅ Your order #{order_code} is ready for pickup",
+        "order.status.out_for_delivery": "🚗 Your order #{order_code} is on the way",
+        "order.status.delivered_notify": "📦 Your order #{order_code} has been delivered",
+        "kitchen.btn.start_preparing": "🍳 Start Preparing",
+        "kitchen.btn.mark_ready": "✅ Mark Ready",
+        "rider.btn.picked_up": "📦 Picked Up",
+        "rider.btn.delivered": "✅ Mark Delivered",
+
+        # Delivery Photo Proof (Card 4)
+        "delivery.photo.required": "Photo required for dead drop delivery",
+        "delivery.photo.upload_prompt": "Please upload delivery photo",
+        "delivery.photo.received": "Delivery photo saved",
+        "delivery.photo.sent_to_customer": "Delivery photo sent to customer",
+        "delivery.photo.customer_notification": "Your order {order_code} has been delivered! Here is the delivery photo.",
     },
 
     "th": {
@@ -1714,6 +1808,53 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.order_label": "📋 <b>คำสั่งซื้อ: {code}</b>",
         "order.payment.subtotal_label": "ยอดรวมย่อย: <b>{amount} {currency}</b>",
         "order.payment.total_amount_label": "<b>ยอดรวม: {amount} {currency}</b>",
+
+        # === Card 9: Kitchen & Delivery Workflow ===
+        "admin.menu.orders": "📋 คำสั่งซื้อ",
+        "admin.orders.list_title": "📋 <b>คำสั่งซื้อ</b>",
+        "admin.orders.empty": "ไม่พบคำสั่งซื้อ",
+        "admin.orders.filter_status": "กรองตามสถานะ",
+        "admin.orders.filter_all": "📋 คำสั่งซื้อทั้งหมด",
+        "admin.orders.filter_active": "🔄 ที่ใช้งาน",
+        "admin.orders.detail": (
+            "📋 <b>คำสั่งซื้อ #{order_id}</b> ({order_code})\n"
+            "👤 ผู้ซื้อ: {buyer_id}\n"
+            "💰 ยอดรวม: {total}\n"
+            "📦 สถานะ: {status}\n"
+            "📅 สร้างเมื่อ: {created_at}\n"
+            "📍 ที่อยู่: {address}\n"
+            "📞 โทรศัพท์: {phone}"
+        ),
+        "admin.orders.status_changed": "สถานะคำสั่งซื้อ #{order_id} เปลี่ยนเป็น <b>{new_status}</b>",
+        "admin.orders.invalid_transition": "ไม่สามารถเปลี่ยนสถานะจาก {current} เป็น {new}",
+        "kitchen.order_received": (
+            "🍳 <b>คำสั่งซื้อใหม่ #{order_id}</b> ({order_code})\n\n"
+            "{items}\n\n"
+            "💰 ยอดรวม: {total}\n"
+            "📍 ที่อยู่: {address}\n"
+            "📞 โทรศัพท์: {phone}"
+        ),
+        "rider.order_ready": (
+            "🚗 <b>คำสั่งซื้อพร้อมแล้ว #{order_id}</b> ({order_code})\n\n"
+            "💰 ยอดรวม: {total}\n"
+            "📍 ที่อยู่: {address}\n"
+            "📞 โทรศัพท์: {phone}"
+        ),
+        "order.status.preparing": "🍳 คำสั่งซื้อ #{order_code} กำลังเตรียม",
+        "order.status.ready": "✅ คำสั่งซื้อ #{order_code} พร้อมรับแล้ว",
+        "order.status.out_for_delivery": "🚗 คำสั่งซื้อ #{order_code} กำลังจัดส่ง",
+        "order.status.delivered_notify": "📦 คำสั่งซื้อ #{order_code} จัดส่งแล้ว",
+        "kitchen.btn.start_preparing": "🍳 เริ่มเตรียม",
+        "kitchen.btn.mark_ready": "✅ พร้อมแล้ว",
+        "rider.btn.picked_up": "📦 รับแล้ว",
+        "rider.btn.delivered": "✅ จัดส่งแล้ว",
+
+        # Delivery Photo Proof (Card 4)
+        "delivery.photo.required": "ต้องถ่ายรูปสำหรับการจัดส่งแบบฝากไว้ที่จุดนัด",
+        "delivery.photo.upload_prompt": "กรุณาอัปโหลดรูปถ่ายการจัดส่ง",
+        "delivery.photo.received": "บันทึกรูปถ่ายการจัดส่งแล้ว",
+        "delivery.photo.sent_to_customer": "ส่งรูปถ่ายการจัดส่งให้ลูกค้าแล้ว",
+        "delivery.photo.customer_notification": "คำสั่งซื้อ {order_code} ของคุณถูกจัดส่งแล้ว! นี่คือรูปถ่ายยืนยันการจัดส่ง",
     },
 
     "ar": {
@@ -2281,562 +2422,55 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.order_label": "📋 <b>الطلب: {code}</b>",
         "order.payment.subtotal_label": "المجموع الفرعي: <b>{amount} {currency}</b>",
         "order.payment.total_amount_label": "<b>المبلغ الإجمالي: {amount} {currency}</b>",
+
+        # === Card 9: Kitchen & Delivery Workflow ===
+        "admin.menu.orders": "📋 الطلبات",
+        "admin.orders.list_title": "📋 <b>الطلبات</b>",
+        "admin.orders.empty": "لم يتم العثور على طلبات",
+        "admin.orders.filter_status": "تصفية حسب الحالة",
+        "admin.orders.filter_all": "📋 جميع الطلبات",
+        "admin.orders.filter_active": "🔄 النشطة",
+        "admin.orders.detail": (
+            "📋 <b>الطلب #{order_id}</b> ({order_code})\n"
+            "👤 المشتري: {buyer_id}\n"
+            "💰 الإجمالي: {total}\n"
+            "📦 الحالة: {status}\n"
+            "📅 تاريخ الإنشاء: {created_at}\n"
+            "📍 العنوان: {address}\n"
+            "📞 الهاتف: {phone}"
+        ),
+        "admin.orders.status_changed": "تم تغيير حالة الطلب #{order_id} إلى <b>{new_status}</b>",
+        "admin.orders.invalid_transition": "لا يمكن تغيير الحالة من {current} إلى {new}",
+        "kitchen.order_received": (
+            "🍳 <b>طلب جديد #{order_id}</b> ({order_code})\n\n"
+            "{items}\n\n"
+            "💰 الإجمالي: {total}\n"
+            "📍 العنوان: {address}\n"
+            "📞 الهاتف: {phone}"
+        ),
+        "rider.order_ready": (
+            "🚗 <b>الطلب جاهز #{order_id}</b> ({order_code})\n\n"
+            "💰 الإجمالي: {total}\n"
+            "📍 العنوان: {address}\n"
+            "📞 الهاتف: {phone}"
+        ),
+        "order.status.preparing": "🍳 طلبك #{order_code} قيد التحضير",
+        "order.status.ready": "✅ طلبك #{order_code} جاهز للاستلام",
+        "order.status.out_for_delivery": "🚗 طلبك #{order_code} في الطريق",
+        "order.status.delivered_notify": "📦 تم تسليم طلبك #{order_code}",
+        "kitchen.btn.start_preparing": "🍳 بدء التحضير",
+        "kitchen.btn.mark_ready": "✅ جاهز",
+        "rider.btn.picked_up": "📦 تم الاستلام",
+        "rider.btn.delivered": "✅ تم التسليم",
+
+        # Delivery Photo Proof (Card 4)
+        "delivery.photo.required": "مطلوب صورة للتسليم في نقطة التسليم",
+        "delivery.photo.upload_prompt": "يرجى تحميل صورة التسليم",
+        "delivery.photo.received": "تم حفظ صورة التسليم",
+        "delivery.photo.sent_to_customer": "تم إرسال صورة التسليم للعميل",
+        "delivery.photo.customer_notification": "تم تسليم طلبك {order_code}! إليك صورة التأكيد.",
     },
 
-    "fa": {
-        # === Common Buttons ===
-        "btn.shop": "🏪 فروشگاه",
-        "btn.rules": "📜 قوانین",
-        "btn.profile": "👤 پروفایل",
-        "btn.support": "🆘 پشتیبانی",
-        "btn.channel": "ℹ کانال اخبار",
-        "btn.admin_menu": "🎛 پنل مدیریت",
-        "btn.back": "⬅️ بازگشت",
-        "btn.close": "✖ بستن",
-        "btn.yes": "✅ بله",
-        "btn.no": "❌ خیر",
-        "btn.check_subscription": "🔄 بررسی عضویت",
-        "btn.admin.ban_user": "🚫 مسدود کردن کاربر",
-        "btn.admin.unban_user": "✅ رفع مسدودیت کاربر",
-
-        # === Admin Buttons (user management shortcuts) ===
-        "btn.admin.promote": "⬆️ ارتقا به مدیر",
-        "btn.admin.demote": "⬇️ حذف مدیریت",
-        "btn.admin.add_user_bonus": "🎁 افزودن پاداش معرفی",
-
-        # === Titles / Generic Texts ===
-        "menu.title": "⛩️ منوی اصلی",
-        "admin.goods.add.stock.error": "❌ خطا در افزودن موجودی اولیه: {error}",
-        "admin.goods.stock.add_success": "✅ {quantity} واحد به \"{item}\" اضافه شد",
-        "admin.goods.stock.add_units": "➕ افزودن واحد",
-        "admin.goods.stock.current_status": "وضعیت فعلی",
-        "admin.goods.stock.error": "❌ خطا در مدیریت موجودی: {error}",
-        "admin.goods.stock.insufficient": "❌ موجودی کافی نیست. فقط {available} واحد موجود است.",
-        "admin.goods.stock.invalid_quantity": "⚠️ تعداد نامعتبر. یک عدد صحیح وارد کنید.",
-        "admin.goods.stock.management_title": "مدیریت موجودی: {item}",
-        "admin.goods.stock.negative_quantity": "⚠️ تعداد نمی‌تواند منفی باشد.",
-        "admin.goods.stock.no_products": "❌ هنوز محصولی در فروشگاه وجود ندارد",
-        "admin.goods.stock.prompt.add_units": "تعداد واحدهایی که می‌خواهید اضافه کنید را وارد کنید:",
-        "admin.goods.stock.prompt.item_name": "نام محصول را برای مدیریت موجودی وارد کنید:",
-        "admin.goods.stock.prompt.remove_units": "تعداد واحدهایی که می‌خواهید حذف کنید را وارد کنید:",
-        "admin.goods.stock.prompt.set_exact": "مقدار دقیق موجودی را وارد کنید:",
-        "admin.goods.stock.redirect_message": "ℹ️ مدیریت موجودی اکنون از طریق منوی \"مدیریت موجودی\" در دسترس است",
-        "admin.goods.stock.remove_success": "✅ {quantity} واحد از \"{item}\" حذف شد",
-        "admin.goods.stock.remove_units": "➖ حذف واحد",
-        "admin.goods.stock.select_action": "عملیات را انتخاب کنید",
-        "admin.goods.stock.set_exact": "⚖️ تنظیم مقدار دقیق",
-        "admin.goods.stock.set_success": "✅ موجودی \"{item}\" به {quantity} واحد تنظیم شد",
-        "admin.goods.stock.status_title": "📊 وضعیت موجودی:",
-        "errors.invalid_item_name": "❌ نام محصول نامعتبر است",
-        "profile.caption": "👤 <b>پروفایل</b> — <a href='tg://user?id={id}'>{name}</a>",
-        "rules.not_set": "❌ قوانین هنوز اضافه نشده‌اند",
-        "admin.users.cannot_ban_owner": "❌ امکان مسدود کردن مالک وجود ندارد",
-        "admin.users.ban.success": "✅ کاربر {name} با موفقیت مسدود شد",
-        "admin.users.ban.failed": "❌ مسدود کردن کاربر ناموفق بود",
-        "admin.users.ban.notify": "⛔ شما توسط مدیر مسدود شدید",
-        "admin.users.unban.success": "✅ مسدودیت کاربر {name} با موفقیت رفع شد",
-        "admin.users.unban.failed": "❌ رفع مسدودیت کاربر ناموفق بود",
-        "admin.users.unban.notify": "✅ مسدودیت شما توسط مدیر رفع شد",
-
-        # === Profile ===
-        "btn.referral": "🎲 سیستم معرفی",
-        "btn.purchased": "🎁 خریدهای انجام شده",
-        "profile.referral_id": "👤 <b>معرفی</b> — <code>{id}</code>",
-
-        # === Subscription Flow ===
-        "subscribe.prompt": "ابتدا در کانال اخبار عضو شوید",
-
-        # === Profile Info Lines ===
-        "profile.id": "🆔 <b>ID</b> — <code>{id}</code>",
-        "profile.bonus_balance": "💰 <b>پاداش معرفی:</b> ${bonus_balance}",
-        "profile.purchased_count": "🎁 <b>محصولات خریداری شده</b> — {count} عدد",
-        "profile.registration_date": "🕢 <b>تاریخ ثبت‌نام</b> — <code>{dt}</code>",
-
-        # === Referral ===
-        "referral.title": "💚 سیستم معرفی",
-        "referral.count": "تعداد معرفی‌ها: {count}",
-        "referral.description": (
-            "📔 سیستم معرفی به شما امکان کسب درآمد بدون هیچ سرمایه‌گذاری را می‌دهد. "
-            "لینک معرفی خود را به اشتراک بگذارید و {percent}% از "
-            "شارژهای معرفی‌شدگان خود را در موجودی ربات دریافت کنید."
-        ),
-        "btn.view_referrals": "👥 معرفی‌شدگان من",
-        "btn.view_earnings": "💰 درآمدهای من",
-
-        "referrals.list.title": "👥 معرفی‌شدگان شما:",
-        "referrals.list.empty": "شما هنوز معرفی‌شده فعالی ندارید",
-        "referrals.item.format": "ID: {telegram_id} | درآمد: {total_earned} {currency}",
-
-        "referral.earnings.title": "💰 درآمد از معرفی‌شده <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>):",
-        "referral.earnings.empty": "هنوز درآمدی از این معرفی‌شده <code>{id}</code> (<a href='tg://user?id={id}'>{name}</a>) وجود ندارد",
-        "referral.earning.format": "{amount} {currency} | {date} | (از {original_amount} {currency})",
-        "referral.item.info": ("💰 شماره درآمد: <code>{id}</code>\n"
-                               "👤 معرفی‌شده: <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>)\n"
-                               "🔢 مبلغ: {amount} {currency}\n"
-                               "🕘 تاریخ: <code>{date}</code>\n"
-                               "💵 از واریز به مبلغ {original_amount} {currency}"),
-
-        "referral.admin_bonus.info": ("💰 شماره درآمد: <code>{id}</code>\n"
-                                      "🎁 <b>پاداش از مدیر</b>\n"
-                                      "🔢 مبلغ: {amount} {currency}\n"
-                                      "🕘 تاریخ: <code>{date}</code>"),
-
-        "all.earnings.title": "💰 تمام درآمدهای معرفی شما:",
-        "all.earnings.empty": "شما هنوز درآمد معرفی ندارید",
-        "all.earning.format.admin": "{amount} {currency} از مدیر | {date}",
-
-        "referrals.stats.template": (
-            "📊 آمار سیستم معرفی:\n\n"
-            "👥 معرفی‌شدگان فعال: {active_count}\n"
-            "💰 کل درآمد: {total_earned} {currency}\n"
-            "📈 کل شارژهای معرفی‌شدگان: {total_original} {currency}\n"
-            "🔢 تعداد درآمدها: {earnings_count}"
-        ),
-
-        # === Admin: Main Menu ===
-        "admin.menu.main": "⛩️ منوی مدیریت",
-        "admin.menu.shop": "🛒 مدیریت فروشگاه",
-        "admin.menu.goods": "📦 مدیریت محصولات",
-        "admin.menu.categories": "📂 مدیریت دسته‌بندی‌ها",
-        "admin.menu.users": "👥 مدیریت کاربران",
-        "admin.menu.broadcast": "📝 ارسال همگانی",
-        "admin.menu.rights": "دسترسی کافی نیست",
-
-        # === Admin: User Management ===
-        "admin.users.prompt_enter_id": "👤 شناسه کاربر را برای مشاهده / ویرایش اطلاعات وارد کنید",
-        "admin.users.invalid_id": "⚠️ لطفاً یک شناسه کاربری عددی معتبر وارد کنید.",
-        "admin.users.profile_unavailable": "❌ پروفایل در دسترس نیست (چنین کاربری هرگز وجود نداشته است)",
-        "admin.users.not_found": "❌ کاربر یافت نشد",
-        "admin.users.cannot_change_owner": "امکان تغییر نقش مالک وجود ندارد",
-        "admin.users.referrals": "👥 <b>معرفی‌شدگان کاربر</b> — {count}",
-        "admin.users.btn.view_referrals": "👥 معرفی‌شدگان کاربر",
-        "admin.users.btn.view_earnings": "💰 درآمدهای کاربر",
-        "admin.users.role": "🎛 <b>نقش</b> — {role}",
-        "admin.users.set_admin.success": "✅ نقش به {name} اختصاص داده شد",
-        "admin.users.set_admin.notify": "✅ نقش مدیر به شما اعطا شد",
-        "admin.users.remove_admin.success": "✅ نقش مدیر از {name} لغو شد",
-        "admin.users.remove_admin.notify": "❌ نقش مدیر شما لغو شد",
-        "admin.users.bonus.prompt": "مبلغ پاداش را به {currency} وارد کنید:",
-        "admin.users.bonus.added": "✅ پاداش معرفی {name} به مبلغ {amount} {currency} شارژ شد",
-        "admin.users.bonus.added.notify": "🎁 پاداش معرفی به مبلغ {amount} {currency} به حساب شما واریز شد",
-        "admin.users.bonus.invalid": "❌ مبلغ نامعتبر. عددی از {min_amount} تا {max_amount} {currency} وارد کنید.",
-
-        # === Admin: Shop Management Menu ===
-        "admin.shop.menu.title": "⛩️ مدیریت فروشگاه",
-        "admin.shop.menu.statistics": "📊 آمار",
-        "admin.shop.menu.logs": "📁 نمایش گزارش‌ها",
-        "admin.shop.menu.admins": "👮 مدیران",
-        "admin.shop.menu.users": "👤 کاربران",
-
-        # === Admin: Categories Management ===
-        "admin.categories.menu.title": "⛩️ مدیریت دسته‌بندی‌ها",
-        "admin.categories.add": "➕ افزودن دسته‌بندی",
-        "admin.categories.rename": "✏️ تغییر نام دسته‌بندی",
-        "admin.categories.delete": "🗑 حذف دسته‌بندی",
-        "admin.categories.prompt.add": "نام دسته‌بندی جدید را وارد کنید:",
-        "admin.categories.prompt.delete": "نام دسته‌بندی برای حذف را وارد کنید:",
-        "admin.categories.prompt.rename.old": "نام فعلی دسته‌بندی برای تغییر نام را وارد کنید:",
-        "admin.categories.prompt.rename.new": "نام جدید دسته‌بندی را وارد کنید:",
-        "admin.categories.add.exist": "❌ دسته‌بندی ایجاد نشد (از قبل وجود دارد)",
-        "admin.categories.add.success": "✅ دسته‌بندی ایجاد شد",
-        "admin.categories.delete.not_found": "❌ دسته‌بندی حذف نشد (وجود ندارد)",
-        "admin.categories.delete.success": "✅ دسته‌بندی حذف شد",
-        "admin.categories.rename.not_found": "❌ دسته‌بندی قابل به‌روزرسانی نیست (وجود ندارد)",
-        "admin.categories.rename.exist": "❌ تغییر نام ممکن نیست (دسته‌بندی با این نام از قبل وجود دارد)",
-        "admin.categories.rename.success": "✅ دسته‌بندی \"{old}\" به \"{new}\" تغییر نام یافت",
-
-        # === Admin: Goods / Items Management (Add / List / Item Info) ===
-        "admin.goods.add_position": "➕ افزودن محصول",
-        "admin.goods.manage_stock": "➕ افزودن کالا به محصول",
-        "admin.goods.update_position": "📝 ویرایش محصول",
-        "admin.goods.delete_position": "❌ حذف محصول",
-        "admin.goods.add.prompt.name": "نام محصول را وارد کنید",
-        "admin.goods.add.name.exists": "❌ محصول قابل ایجاد نیست (از قبل وجود دارد)",
-        "admin.goods.add.prompt.description": "توضیحات محصول را وارد کنید:",
-        "admin.goods.add.prompt.price": "قیمت محصول را وارد کنید (عدد به {currency}):",
-        "admin.goods.add.price.invalid": "⚠️ قیمت نامعتبر. لطفاً یک عدد وارد کنید.",
-        "admin.goods.add.prompt.category": "دسته‌بندی محصول را وارد کنید:",
-        "admin.goods.add.category.not_found": "❌ محصول قابل ایجاد نیست (دسته‌بندی نامعتبر است)",
-        "admin.goods.position.not_found": "❌ کالایی وجود ندارد (این محصول موجود نیست)",
-        "admin.goods.menu.title": "⛩️ منوی مدیریت محصولات",
-        "admin.goods.add.stock.prompt": "تعداد کالای مورد نظر برای افزودن را وارد کنید",
-        "admin.goods.add.stock.invalid": "⚠️ مقدار تعداد نادرست. لطفاً یک عدد وارد کنید.",
-        "admin.goods.add.stock.negative": "⚠️ مقدار تعداد نادرست. یک عدد مثبت وارد کنید.",
-        "admin.goods.add.result.created_with_stock": "✅ محصول {item_name} ایجاد شد، {stock_quantity} به تعداد کالا اضافه شد.",
-
-        # === Admin: Goods / Items Update Flow ===
-        "admin.goods.update.position.invalid": "محصول یافت نشد.",
-        "admin.goods.update.position.exists": "محصولی با این نام از قبل وجود دارد.",
-        "admin.goods.update.prompt.name": "نام محصول را وارد کنید",
-        "admin.goods.update.not_exists": "❌ محصول قابل به‌روزرسانی نیست (وجود ندارد)",
-        "admin.goods.update.prompt.new_name": "نام جدید محصول را وارد کنید:",
-        "admin.goods.update.prompt.description": "توضیحات محصول را وارد کنید:",
-        "admin.goods.update.success": "✅ محصول به‌روزرسانی شد",
-
-        # === Admin: Goods / Items Delete Flow ===
-        "admin.goods.delete.prompt.name": "نام محصول را وارد کنید",
-        "admin.goods.delete.position.not_found": "❌ محصول حذف نشد (وجود ندارد)",
-        "admin.goods.delete.position.success": "✅ محصول حذف شد",
-
-        # === Admin: Item Info ===
-        "admin.goods.view_stock": "مشاهده محصولات",
-
-        # === Admin: Logs ===
-        "admin.shop.logs.caption": "گزارش‌های ربات",
-        "admin.shop.logs.empty": "❗️ هنوز گزارشی وجود ندارد",
-
-        # === Group Notifications ===
-        "shop.group.new_upload": "موجودی جدید",
-        "shop.group.item": "محصول",
-        "shop.group.stock": "تعداد",
-
-        # === Admin: Statistics ===
-        "admin.shop.stats.template": (
-            "آمار فروشگاه:\n"
-            "➖➖➖➖➖➖➖➖➖➖➖➖➖\n"
-            "<b>◽کاربران</b>\n"
-            "◾️کاربران در ۲۴ ساعت گذشته: {today_users}\n"
-            "◾️کل مدیران: {admins}\n"
-            "◾️کل کاربران: {users}\n"
-            "➖➖➖➖➖➖➖➖➖➖➖➖➖\n"
-            "◽<b>متفرقه</b>\n"
-            "◾محصولات: {items} عدد\n"
-            "◾آیتم‌ها: {goods} عدد\n"
-            "◾دسته‌بندی‌ها: {categories} عدد\n"
-        ),
-
-        # === Admin: Lists & Broadcast ===
-        "admin.shop.admins.title": "👮 مدیران ربات:",
-        "admin.shop.users.title": "کاربران ربات:",
-        "broadcast.prompt": "پیام ارسال همگانی را بفرستید:",
-        "broadcast.creating": "📤 شروع ارسال همگانی...\n👥 کل کاربران: {ids}",
-        "broadcast.progress": (
-            "📤 ارسال همگانی در حال انجام...\n\n\n"
-            "📊 پیشرفت: {progress:.1f}%{n}"
-            "✅ ارسال شده: {sent}/{total}\n"
-            "❌ خطاها: {failed}\n"
-            "⏱ زمان سپری شده: {time} ثانیه"),
-        "broadcast.done": (
-            "✅ ارسال همگانی کامل شد!\n\n"
-            "📊 آمار:📊\n"
-            "👥 کل: {total}\n"
-            "✅ تحویل شده: {sent}\n"
-            "❌ تحویل نشده: {failed}\n"
-            "🚫 ربات را مسدود کردند: ~{blocked}\n"
-            "📈 نرخ موفقیت: {success}%\n"
-            "⏱ زمان: {duration} ثانیه"
-        ),
-        "broadcast.cancel": "❌ ارسال همگانی لغو شد.",
-        "broadcast.warning": "ارسال همگانی فعالی وجود ندارد",
-
-        # === Shop Browsing (Categories / Goods / Item Page) ===
-        "shop.categories.title": "🏪 دسته‌بندی‌های فروشگاه",
-        "shop.goods.choose": "🏪 محصول مورد نظر را انتخاب کنید",
-        "shop.item.not_found": "محصول یافت نشد",
-        "shop.item.title": "🏪 محصول {name}",
-        "shop.item.description": "توضیحات: {description}",
-        "shop.item.price": "قیمت — {amount} {currency}",
-        "shop.item.quantity_unlimited": "تعداد — نامحدود",
-        "shop.item.quantity_left": "تعداد — {count} عدد",
-        "shop.item.quantity_detailed": "📦 کل موجودی: {total} عدد\n🔒 رزرو شده: {reserved} عدد\n✅ قابل سفارش: {available} عدد",
-
-        # === Purchases ===
-        "purchases.title": "محصولات خریداری شده:",
-        "purchases.pagination.invalid": "داده‌های صفحه‌بندی نامعتبر",
-        "purchases.item.not_found": "خرید یافت نشد",
-        "purchases.item.name": "<b>🧾 محصول</b>: <code>{name}</code>",
-        "purchases.item.price": "<b>💵 قیمت</b>: <code>{amount}</code> {currency}",
-        "purchases.item.datetime": "<b>🕒 تاریخ خرید</b>: <code>{dt}</code>",
-        "purchases.item.unique_id": "<b>🧾 شناسه یکتا</b>: <code>{uid}</code>",
-        "purchases.item.value": "<b>🔑 مقدار</b>:\n<code>{value}</code>",
-
-        # === Middleware ===
-        "middleware.ban": "⏳ شما موقتاً مسدود هستید. {time} ثانیه صبر کنید.",
-        "middleware.above_limits": "⚠️ درخواست‌های بیش از حد! شما موقتاً مسدود شدید.",
-        "middleware.waiting": "⏳ {time} ثانیه قبل از اقدام بعدی صبر کنید.",
-        "middleware.security.session_outdated": "⚠️ نشست منقضی شده است. لطفاً دوباره شروع کنید.",
-        "middleware.security.invalid_data": "❌ داده نامعتبر",
-        "middleware.security.blocked": "❌ دسترسی مسدود شد",
-        "middleware.security.not_admin": "⛔ دسترسی کافی نیست",
-        "middleware.security.banned": "⛔ <b>شما مسدود شدید</b>\n\nدلیل: {reason}",
-        "middleware.security.banned_no_reason": "⛔ <b>شما مسدود شدید</b>\n\nبرای اطلاعات بیشتر با مدیر تماس بگیرید.",
-        "middleware.security.rate_limit": "⚠️ درخواست‌های بیش از حد! لطفاً کمی صبر کنید.",
-
-        # === Errors ===
-        "errors.not_subscribed": "شما عضو نشدید",
-        "errors.pagination_invalid": "داده‌های صفحه‌بندی نامعتبر",
-        "errors.invalid_data": "❌ داده نامعتبر",
-        "errors.channel.telegram_not_found": "قادر به نوشتن در کانال نیستم. من را به عنوان مدیر کانال آپلود @{channel} با حق انتشار پیام اضافه کنید.",
-        "errors.channel.telegram_forbidden_error": "کانال یافت نشد. نام کاربری کانال آپلود @{channel} را بررسی کنید.",
-        "errors.channel.telegram_bad_request": "ارسال به کانال آپلود ناموفق بود: {e}",
-
-        # === Orders ===
-        "order.payment_method.choose": "💳 روش پرداخت را انتخاب کنید:",
-        "order.payment_method.bitcoin": "💳 Bitcoin",
-        "order.payment_method.cash": "💵 پرداخت در محل",
-        "order.status.notify_order_confirmed": (
-            "سفارش {order_code} تأیید شد! 🎉\n\n"
-            "سفارش شما تحویل داده خواهد شد: {delivery_time}\n\n"
-            "محصولات:\n{items}\n\n"
-            "مجموع: {total}\n\n"
-            "منتظر تحویل باشید!"
-        ),
-        "order.status.notify_order_delivered": (
-            "سفارش {order_code} تحویل داده شد! ✅\n\n"
-            "از خرید شما متشکریم! امیدواریم دوباره ببینیمتان! 🙏"
-        ),
-        "order.status.notify_order_modified": (
-            "سفارش {order_code} توسط مدیر ویرایش شد 📝\n\n"
-            "تغییرات:\n{changes}\n\n"
-            "مجموع جدید: {total}"
-        ),
-
-        # === Additional Common Buttons ===
-        "btn.cart": "🛒 سبد خرید",
-        "btn.my_orders": "📦 سفارشات من",
-        "btn.reference_codes": "🔑 کدهای معرفی",
-        "btn.settings": "⚙️ تنظیمات",
-        "btn.referral_bonus_percent": "💰 درصد پاداش معرفی",
-        "btn.order_timeout": "⏱️ مهلت سفارش",
-        "btn.timezone": "🌍 منطقه زمانی",
-        "btn.skip": "⏭️ رد شدن",
-        "btn.use_saved_info": "✅ استفاده از اطلاعات ذخیره شده",
-        "btn.update_info": "✏️ به‌روزرسانی اطلاعات",
-        "btn.back_to_cart": "◀️ بازگشت به سبد خرید",
-        "btn.clear_cart": "🗑️ خالی کردن سبد خرید",
-        "btn.proceed_checkout": "💳 ادامه خرید",
-        "btn.remove_item": "❌ حذف {item_name}",
-        "btn.use_all_bonus": "استفاده از کل ${amount}",
-        "btn.apply_bonus_yes": "✅ بله، پاداش را اعمال کن",
-        "btn.apply_bonus_no": "❌ خیر، برای بعد نگه دار",
-        "btn.cancel": "❌ لغو",
-        "btn.add_to_cart": "🛒 افزودن به سبد خرید",
-
-        # === Cart Management ===
-        "cart.add_success": "✅ {item_name} به سبد خرید اضافه شد!",
-        "cart.add_error": "❌ {message}",
-        "cart.empty": "🛒 سبد خرید شما خالی است.\n\nفروشگاه را مرور کنید تا محصولات اضافه کنید!",
-        "cart.title": "🛒 <b>سبد خرید شما</b>\n\n",
-        "cart.removed_success": "محصول از سبد خرید حذف شد",
-        "cart.cleared_success": "✅ سبد خرید با موفقیت خالی شد!",
-        "cart.empty_alert": "سبد خرید خالی است!",
-        "cart.summary_title": "📦 <b>خلاصه سفارش</b>\n\n",
-        "cart.saved_delivery_info": "اطلاعات ارسال ذخیره شده شما:\n\n",
-        "cart.delivery_address": "📍 آدرس: {address}\n",
-        "cart.delivery_phone": "📞 تلفن: {phone}\n",
-        "cart.delivery_note": "📝 یادداشت: {note}\n",
-        "cart.use_info_question": "\n\nآیا می‌خواهید از این اطلاعات استفاده کنید یا آن را به‌روزرسانی کنید؟",
-        "cart.no_saved_info": "❌ اطلاعات ارسال ذخیره شده یافت نشد. لطفاً به صورت دستی وارد کنید.",
-
-        # === Order/Delivery Flow ===
-        "order.delivery.address_prompt": "📍 لطفاً آدرس تحویل خود را وارد کنید:",
-        "order.delivery.address_invalid": "❌ لطفاً یک آدرس تحویل معتبر وارد کنید (حداقل ۵ کاراکتر).",
-        "order.delivery.phone_prompt": "📞 لطفاً شماره تلفن خود را وارد کنید (با کد کشور):",
-        "order.delivery.phone_invalid": "❌ لطفاً یک شماره تلفن معتبر وارد کنید (حداقل ۸ رقم).",
-        "order.delivery.note_prompt": "📝 آیا دستورالعمل خاصی برای تحویل دارید؟ (اختیاری)\n\nمی‌توانید با کلیک بر دکمه زیر رد شوید.",
-        "order.delivery.info_save_error": "❌ خطا در ذخیره اطلاعات ارسال. لطفاً دوباره تلاش کنید.",
-
-        # GPS Location (Card 2)
-        "order.delivery.location_prompt": "📍 آیا می‌خواهید موقعیت GPS خود را برای تحویل دقیق‌تر به اشتراک بگذارید؟\n\nدکمه زیر را بزنید یا این مرحله را رد کنید.",
-        "order.delivery.location_saved": "✅ موقعیت ذخیره شد!",
-        "btn.share_location": "📍 اشتراک‌گذاری موقعیت",
-        "btn.skip_location": "⏭ رد شدن",
-
-        # Delivery Type (Card 3)
-        "order.delivery.type_prompt": "🚚 نوع تحویل را انتخاب کنید:",
-        "btn.delivery.door": "🚪 تحویل درب منزل",
-        "btn.delivery.dead_drop": "📦 گذاشتن در محل مشخص",
-        "btn.delivery.pickup": "🏪 تحویل حضوری",
-        "order.delivery.drop_instructions_prompt": "📝 محل گذاشتن سفارش را توضیح دهید (مثلاً 'نزد نگهبان در لابی'، 'زیر پادری اتاق 405'):",
-        "order.delivery.drop_gps_prompt": "📍 موقعیت GPS محل تحویل را با زدن دکمه زیر ارسال کنید:",
-        "btn.share_drop_location": "📍 اشتراک‌گذاری موقعیت",
-        "order.delivery.drop_gps_saved": "✅ موقعیت GPS ذخیره شد!",
-        "order.delivery.drop_media_prompt": "📸 عکس یا ویدیو از محل تحویل بفرستید (چند فایل مجاز است). وقتی تمام شد 'تمام' را بزنید:",
-        "order.delivery.drop_media_saved": "✅ {count} فایل ذخیره شد. بیشتر بفرستید یا 'تمام' را بزنید.",
-        "btn.drop_media_done": "✅ تمام",
-        "btn.skip_drop_media": "⏭ رد شدن",
-        "order.delivery.drop_photo_prompt": "📸 آیا می‌خواهید عکسی از محل تحویل بفرستید؟ (اختیاری)",
-        "order.delivery.drop_photo_saved": "✅ عکس محل تحویل ذخیره شد!",
-        "btn.skip_drop_photo": "⏭ رد شدن از عکس",
-
-        # PromptPay (Card 1)
-        "order.payment_method.promptpay": "💳 PromptPay QR",
-        "order.payment.promptpay.title": "💳 <b>پرداخت از طریق PromptPay</b>",
-        "order.payment.promptpay.scan": "📱 کد QR را برای پرداخت اسکن کنید:",
-        "order.payment.promptpay.upload_receipt": "📸 پس از پرداخت، لطفاً رسید خود را آپلود کنید:",
-        "order.payment.promptpay.receipt_received": "✅ رسید دریافت شد! در انتظار تأیید مدیر.",
-        "order.payment.promptpay.receipt_invalid": "❌ لطفاً عکس رسید پرداخت را ارسال کنید.",
-        "admin.order.verify_payment": "✅ تأیید پرداخت",
-        "admin.order.payment_verified": "✅ پرداخت تأیید شد",
-
-        # Delivery Chat (Card 13)
-        "order.delivery.chat_unavailable": "❌ گفتگو با راننده در دسترس نیست. گروه پیک تنظیم نشده است.",
-        "order.delivery.chat_started": "💬 می‌توانید به راننده پیام دهید. متن، عکس یا موقعیت ارسال کنید.\n\nبرای پایان گفتگو /endchat بفرستید.",
-        "order.delivery.live_location_shared": "📍 راننده موقعیت زنده را به اشتراک گذاشته است! می‌توانید تحویل را پیگیری کنید.",
-        "order.delivery.chat_no_active_delivery": "❌ شما هیچ تحویل فعالی برای گفتگو ندارید.",
-        "order.delivery.chat_ended": "✅ گفتگو با راننده پایان یافت.",
-        "order.delivery.chat_message_sent": "✅ پیام به راننده ارسال شد.",
-        "order.delivery.driver_no_active_order": "⚠️ هیچ سفارش فعالی برای ارسال این پیام وجود ندارد.",
-        "btn.chat_with_driver": "💬 گفتگو با راننده",
-        "btn.end_chat": "❌ پایان گفتگو",
-
-        # === Bonus/Referral Application ===
-        "order.bonus.available": "💰 <b>شما ${bonus_balance} پاداش معرفی دارید!</b>\n\n",
-        "order.bonus.apply_question": "آیا می‌خواهید پاداش معرفی را در این سفارش اعمال کنید؟",
-        "order.bonus.amount_positive_error": "❌ لطفاً مبلغ مثبت وارد کنید.",
-        "order.bonus.amount_too_high": "❌ مبلغ بیش از حد بالاست. حداکثر قابل اعمال: ${max_applicable}\nلطفاً مبلغ معتبر وارد کنید:",
-        "order.bonus.invalid_amount": "❌ مبلغ نامعتبر. لطفاً یک عدد وارد کنید (مثلاً 5.50):",
-        "order.bonus.insufficient": "❌ موجودی پاداش کافی نیست. لطفاً دوباره تلاش کنید.",
-        "order.bonus.enter_amount": "مبلغ پاداشی که می‌خواهید اعمال کنید را وارد کنید (حداکثر ${max_applicable}):\n\nیا با کلیک بر دکمه زیر از تمام پاداش موجود استفاده کنید.",
-
-        # === Payment Instructions ===
-        "order.payment.system_unavailable": "❌ <b>سیستم پرداخت موقتاً در دسترس نیست</b>\n\nآدرس Bitcoin موجود نیست. لطفاً با پشتیبانی تماس بگیرید.",
-        "order.payment.customer_not_found": "❌ اطلاعات مشتری یافت نشد. لطفاً دوباره تلاش کنید.",
-        "order.payment.creation_error": "❌ خطا در ایجاد سفارشات. لطفاً دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.",
-
-        # === Order Summary/Total ===
-        "order.summary.title": "📦 <b>خلاصه سفارش</b>\n\n",
-        "order.summary.cart_total": "مجموع سبد خرید: ${cart_total}",
-        "order.summary.bonus_applied": "پاداش اعمال شده: -${bonus_applied}",
-        "order.summary.final_amount": "مبلغ نهایی: ${final_amount}",
-
-        # === Inventory/Reservation ===
-        "order.inventory.unable_to_reserve": "❌ <b>امکان رزرو محصولات وجود ندارد</b>\n\nمحصولات زیر در تعداد درخواستی موجود نیستند:\n\n{unavailable_items}\n\nلطفاً سبد خرید خود را تنظیم کنید و دوباره تلاش کنید.",
-
-        # === My Orders View ===
-        "myorders.title": "📦 <b>سفارشات من</b>\n\n",
-        "myorders.total": "کل سفارشات: {count}",
-        "myorders.active": "⏳ سفارشات فعال: {count}",
-        "myorders.delivered": "✅ تحویل داده شده: {count}",
-        "myorders.select_category": "دسته‌بندی را برای مشاهده سفارشات انتخاب کنید:",
-        "myorders.active_orders": "⏳ سفارشات فعال",
-        "myorders.delivered_orders": "✅ سفارشات تحویل شده",
-        "myorders.all_orders": "📋 همه سفارشات",
-        "myorders.no_orders_yet": "شما هنوز سفارشی ثبت نکردید.\n\nفروشگاه را مرور کنید تا خرید را شروع کنید!",
-        "myorders.browse_shop": "🛍️ رفتن به فروشگاه",
-        "myorders.back": "◀️ بازگشت",
-        "myorders.all_title": "📋 همه سفارشات",
-        "myorders.active_title": "⏳ سفارشات فعال",
-        "myorders.delivered_title": "✅ سفارشات تحویل شده",
-        "myorders.invalid_filter": "فیلتر نامعتبر",
-        "myorders.not_found": "سفارشی یافت نشد.",
-        "myorders.back_to_menu": "◀️ بازگشت به منوی سفارشات",
-        "myorders.select_details": "سفارشی را برای مشاهده جزئیات انتخاب کنید:",
-        "myorders.order_not_found": "سفارش یافت نشد",
-
-        # === Order Details Display ===
-        "myorders.detail.title": "📦 <b>جزئیات سفارش #{order_code}</b>\n\n",
-        "myorders.detail.status": "📊 <b>وضعیت:</b> {status}\n",
-        "myorders.detail.subtotal": "💵 <b>جمع فرعی:</b> ${subtotal}\n",
-        "myorders.detail.bonus_applied": "🎁 <b>پاداش اعمال شده:</b> ${bonus}\n",
-        "myorders.detail.final_price": "💰 <b>قیمت نهایی:</b> ${total}\n",
-        "myorders.detail.total_price": "💰 <b>قیمت کل:</b> ${total}\n",
-        "myorders.detail.payment_method": "💳 <b>روش پرداخت:</b> {method}\n",
-        "myorders.detail.ordered": "📅 <b>تاریخ سفارش:</b> {date}\n",
-        "myorders.detail.delivery_time": "🚚 <b>تحویل برنامه‌ریزی شده:</b> {time}\n",
-        "myorders.detail.completed": "✅ <b>تکمیل شده:</b> {date}\n",
-        "myorders.detail.items": "\n📦 <b>محصولات:</b>\n{items}\n",
-        "myorders.detail.delivery_info": "\n📍 <b>اطلاعات تحویل:</b>\n{address}\n{phone}\n{note}",
-
-        # === Help System ===
-        "help.prompt": "📧 <b>به کمک نیاز دارید؟</b>\n\n",
-        "help.describe_issue": "لطفاً مشکل یا سؤال خود را شرح دهید و مستقیماً به مدیر ارسال خواهد شد.\n\nپیام خود را در زیر بنویسید:",
-        "help.admin_not_configured": "❌ متأسفانه، ارتباط با مدیر تنظیم نشده است. لطفاً بعداً دوباره تلاش کنید.",
-        "help.admin_notification_title": "📧 <b>درخواست کمک جدید</b>\n\n",
-        "help.admin_notification_from": "<b>از:</b> @{username} (ID: {user_id})\n",
-        "help.admin_notification_message": "<b>پیام:</b>\n{message}",
-        "help.sent_success": "✅ {auto_message}",
-        "help.sent_error": "❌ ارسال پیام به مدیر ناموفق بود: {error}\n\nلطفاً بعداً دوباره تلاش کنید.",
-        "help.cancelled": "درخواست کمک لغو شد.",
-
-        # === Admin Order Notifications ===
-        "admin.order.action_required_title": "⏳ <b>اقدام لازم است:</b>",
-        "admin.order.address_label": "آدرس: {address}",
-        "admin.order.amount_to_collect_label": "<b>مبلغ قابل دریافت: ${amount} {currency}</b>",
-        "admin.order.amount_to_receive_label": "<b>مبلغ قابل دریافت: ${amount} {currency}</b>",
-        "admin.order.awaiting_payment_status": "⏳ در انتظار تأیید پرداخت...",
-        "admin.order.bitcoin_address_label": "آدرس Bitcoin: <code>{address}</code>",
-        "admin.order.bonus_applied_label": "پاداش اعمال شده: <b>-${amount}</b>",
-        "admin.order.customer_label": "مشتری: {username} (ID: {id})",
-        "admin.order.delivery_info_title": "<b>اطلاعات تحویل:</b>",
-        "admin.order.items_title": "<b>محصولات:</b>",
-        "admin.order.new_bitcoin_order": "🔔 <b>سفارش Bitcoin جدید دریافت شد</b>",
-        "admin.order.new_cash_order": "🔔 <b>سفارش نقدی جدید دریافت شد</b> 💵",
-        "admin.order.note_label": "یادداشت: {note}",
-        "admin.order.order_label": "سفارش: <b>{code}</b>",
-        "admin.order.payment_cash": "پرداخت در محل",
-        "admin.order.payment_method_label": "روش پرداخت: <b>{method}</b>",
-        "admin.order.phone_label": "تلفن: {phone}",
-        "admin.order.subtotal_label": "جمع فرعی: <b>${amount} {currency}</b>",
-        "admin.order.use_cli_confirm": "برای تأیید سفارش و تنظیم زمان تحویل از CLI استفاده کنید:\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time \"YYYY-MM-DD HH:MM\"</code>",
-        "btn.admin.back_to_panel": "🔙 بازگشت به پنل مدیریت",
-        "btn.admin.create_refcode": "➕ ایجاد کد معرفی",
-        "btn.admin.list_refcodes": "📋 فهرست همه کدها",
-        "btn.back_to_orders": "◀️ بازگشت به سفارشات",
-        "btn.create_reference_code": "➕ ایجاد کد معرفی",
-        "btn.my_reference_codes": "🔑 کدهای معرفی من",
-        "btn.need_help": "❓ به کمک نیاز دارید؟",
-        "cart.item.price_format": "  قیمت: {price} {currency} × {quantity}",
-        "cart.item.subtotal_format": "  جمع فرعی: {subtotal} {currency}",
-        "cart.total_format": "<b>مجموع: {total} {currency}</b>",
-        "help.pending_order.contact_support": "از دستور /help برای تماس با پشتیبانی استفاده کنید.",
-        "help.pending_order.issues_title": "<b>مشکلی دارید؟</b>",
-        "help.pending_order.status": "سفارش شما در حال حاضر در انتظار پرداخت است.",
-        "help.pending_order.step1": "1. مبلغ دقیق را به آدرس Bitcoin نمایش داده شده ارسال کنید",
-        "help.pending_order.step2": "2. منتظر تأیید بلاکچین باشید (معمولاً ۱۰ تا ۶۰ دقیقه)",
-        "help.pending_order.step3": "3. مدیر پرداخت شما را تأیید و زمان تحویل را تعیین خواهد کرد",
-        "help.pending_order.step4": "4. کالاهای شما توسط پیک تحویل داده خواهد شد.",
-        "help.pending_order.title": "❓ <b>به کمک در مورد سفارش نیاز دارید؟</b>",
-        "help.pending_order.what_to_do_title": "<b>چه کاری باید انجام دهید:</b>",
-        "myorders.detail.bitcoin_address_label": "آدرس Bitcoin:",
-        "myorders.detail.bitcoin_admin_confirm": "پس از پرداخت، مدیر سفارش شما را تأیید خواهد کرد.",
-        "myorders.detail.bitcoin_send_instruction": "⚠️ لطفاً <b>{amount} {currency}</b> Bitcoin به این آدرس ارسال کنید.",
-        "myorders.detail.cash_awaiting_confirm": "سفارش شما در انتظار تأیید مدیر است.",
-        "myorders.detail.cash_payment_courier": "پرداخت هنگام تحویل به پیک انجام خواهد شد.",
-        "myorders.detail.cash_title": "💵 پرداخت در محل",
-        "myorders.detail.cash_will_notify": "هنگامی که سفارش تأیید و زمان تحویل تعیین شود، به شما اطلاع داده خواهد شد.",
-        "myorders.detail.confirmed_title": "✅ <b>سفارش تأیید شد!</b>",
-        "myorders.detail.delivered_thanks_message": "از خرید شما متشکریم! امیدواریم دوباره ببینیمتان! 🙏",
-        "myorders.detail.delivered_title": "📦 <b>سفارش تحویل داده شد!</b>",
-        "myorders.detail.payment_info_title": "<b>اطلاعات پرداخت:</b>",
-        "myorders.detail.preparing_message": "سفارش شما در حال آماده‌سازی برای تحویل است.",
-        "myorders.detail.scheduled_delivery_label": "تحویل برنامه‌ریزی شده: <b>{time}</b>",
-        "myorders.order_summary_format": "{status_emoji} {code} - {items_count} محصول - {total} {currency}",
-        "order.bonus.available_label": "پاداش موجود: <b>${amount}</b>",
-        "order.bonus.choose_amount_hint": "می‌توانید مقدار استفاده را انتخاب کنید (تا ${max_amount})",
-        "order.bonus.enter_amount_title": "💵 <b>مبلغ پاداش برای اعمال را وارد کنید</b>",
-        "order.bonus.max_applicable_label": "حداکثر قابل اعمال: <b>${amount}</b>",
-        "order.bonus.order_total_label": "مجموع سفارش: <b>${amount} {currency}</b>",
-        "order.info.view_status_hint": "💡 می‌توانید وضعیت سفارش خود را در هر زمان با دستور /orders مشاهده کنید.",
-        "order.payment.bitcoin.address_title": "<b>آدرس پرداخت Bitcoin:</b>",
-        "order.payment.bitcoin.admin_confirm": "• پس از پرداخت، مدیر سفارش شما را تأیید خواهد کرد",
-        "order.payment.bitcoin.delivery_title": "<b>تحویل:</b>",
-        "order.payment.bitcoin.important_title": "⚠️ <b>مهم:</b>",
-        "order.payment.bitcoin.items_title": "<b>محصولات:</b>",
-        "order.payment.bitcoin.need_help": "به کمک نیاز دارید؟ از /help برای تماس با پشتیبانی استفاده کنید.",
-        "order.payment.bitcoin.one_time_address": "• این آدرس فقط برای یک بار استفاده است",
-        "order.payment.bitcoin.order_code": "سفارش: <b>{code}</b>",
-        "order.payment.bitcoin.send_exact": "• مبلغ دقیق نمایش داده شده در بالا را ارسال کنید",
-        "order.payment.bitcoin.title": "💳 <b>دستورالعمل پرداخت Bitcoin</b>",
-        "order.payment.bitcoin.total_amount": "مبلغ کل: <b>{amount} {currency}</b>",
-        "order.payment.cash.admin_contact": "مدیر به زودی با شما تماس خواهد گرفت.",
-        "order.payment.cash.after_confirm": "پس از تأیید، از زمان تحویل مطلع خواهید شد.",
-        "order.payment.cash.created": "سفارش {code} شما ایجاد شد و در انتظار تأیید مدیر است.",
-        "order.payment.cash.important": "⏳ <b>مهم:</b> سفارش برای مدت محدودی رزرو شده است.",
-        "order.payment.cash.items_title": "محصولات:",
-        "order.payment.cash.payment_to_courier": "پرداخت هنگام تحویل به پیک انجام خواهد شد.",
-        "order.payment.cash.title": "💵 <b>پرداخت در محل</b>",
-        "order.payment.cash.total": "مجموع: {amount}",
-        "order.payment.error_general": "❌ خطا در ایجاد سفارش. لطفاً دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.",
-        "order.summary.total_label": "<b>مجموع: {amount} {currency}</b>",
-        "order.payment.bonus_applied_label": "پاداش اعمال شده: <b>-{amount} {currency}</b>",
-        "order.payment.cash.amount_with_bonus": "<b>مبلغ قابل پرداخت هنگام تحویل: {amount} {currency}</b>",
-        "order.payment.cash.total_label": "<b>مجموع قابل پرداخت هنگام تحویل: {amount} {currency}</b>",
-        "order.payment.final_amount_label": "<b>مبلغ نهایی قابل پرداخت: {amount} {currency}</b>",
-        "order.payment.order_label": "📋 <b>سفارش: {code}</b>",
-        "order.payment.subtotal_label": "جمع فرعی: <b>{amount} {currency}</b>",
-        "order.payment.total_amount_label": "<b>مبلغ کل: {amount} {currency}</b>",
-    },
     "fa": {
         # === Common Buttons ===
         "btn.shop": "🏪 فروشگاه",
@@ -3323,6 +2957,65 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.order_label": "📋 <b>سفارش: {code}</b>",
         "order.payment.subtotal_label": "جمع فرعی: <b>{amount} {currency}</b>",
         "order.payment.total_amount_label": "<b>مبلغ کل: {amount} {currency}</b>",
+
+        # === Card 9: Kitchen & Delivery Workflow ===
+        "admin.menu.orders": "📋 سفارشات",
+        "admin.orders.list_title": "📋 <b>سفارشات</b>",
+        "admin.orders.empty": "سفارشی یافت نشد",
+        "admin.orders.filter_status": "فیلتر بر اساس وضعیت",
+        "admin.orders.filter_all": "📋 همه سفارشات",
+        "admin.orders.filter_active": "🔄 فعال",
+        "admin.orders.detail": (
+            "📋 <b>سفارش #{order_id}</b> ({order_code})\n"
+            "👤 خریدار: {buyer_id}\n"
+            "💰 مجموع: {total}\n"
+            "📦 وضعیت: {status}\n"
+            "📅 ایجاد شده: {created_at}\n"
+            "📍 آدرس: {address}\n"
+            "📞 تلفن: {phone}"
+        ),
+        "admin.orders.status_changed": "وضعیت سفارش #{order_id} به <b>{new_status}</b> تغییر کرد",
+        "admin.orders.invalid_transition": "امکان تغییر وضعیت از {current} به {new} وجود ندارد",
+        "kitchen.order_received": (
+            "🍳 <b>سفارش جدید #{order_id}</b> ({order_code})\n\n"
+            "{items}\n\n"
+            "💰 مجموع: {total}\n"
+            "📍 آدرس: {address}\n"
+            "📞 تلفن: {phone}"
+        ),
+        "rider.order_ready": (
+            "🚗 <b>سفارش آماده #{order_id}</b> ({order_code})\n\n"
+            "💰 مجموع: {total}\n"
+            "📍 آدرس: {address}\n"
+            "📞 تلفن: {phone}"
+        ),
+        "order.status.preparing": "🍳 سفارش #{order_code} شما در حال آماده‌سازی است",
+        "order.status.ready": "✅ سفارش #{order_code} شما آماده تحویل است",
+        "order.status.out_for_delivery": "🚗 سفارش #{order_code} شما در راه است",
+        "order.status.delivered_notify": "📦 سفارش #{order_code} شما تحویل داده شد",
+        "kitchen.btn.start_preparing": "🍳 شروع آماده‌سازی",
+        "kitchen.btn.mark_ready": "✅ آماده",
+        "rider.btn.picked_up": "📦 تحویل گرفته شد",
+        "rider.btn.delivered": "✅ تحویل داده شد",
+
+        # Delivery Photo Proof (Card 4)
+        "delivery.photo.required": "برای تحویل در نقطه تحویل عکس لازم است",
+        "delivery.photo.upload_prompt": "لطفاً عکس تحویل را آپلود کنید",
+        "delivery.photo.received": "عکس تحویل ذخیره شد",
+        "delivery.photo.sent_to_customer": "عکس تحویل به مشتری ارسال شد",
+        "delivery.photo.customer_notification": "سفارش {order_code} شما تحویل داده شد! این عکس تأیید تحویل است.",
+
+        # Delivery GPS (Card 15)
+        "delivery.gps.prompt": "📍 سفارش {order_code} شما در راه است!\n\nبه راننده کمک کنید سریع‌تر شما را پیدا کند — موقعیت خود را به اشتراک بگذارید:",
+        "delivery.gps.btn_static": "📍 ارسال موقعیت",
+        "delivery.gps.btn_live": "📡 موقعیت زنده",
+        "delivery.gps.btn_skip": "⏭ رد شدن",
+        "delivery.gps.static_sent": "✅ موقعیت شما به راننده ارسال شد.",
+        "delivery.gps.live_started": "📡 موقعیت زنده فعال شد! راننده شما را در لحظه ردیابی می‌کند.",
+        "delivery.gps.skipped": "⏭ موقعیت رد شد. راننده از آدرس سفارش استفاده خواهد کرد.",
+        "delivery.chat.session_closed": "⏹ این جلسه چت پایان یافته است. برای کمک با پشتیبانی تماس بگیرید.",
+        "delivery.chat.post_delivery_open": "✅ تحویل داده شد! چت برای {minutes} دقیقه دیگر باز می‌ماند.",
+        "delivery.chat.post_delivery_closed": "⏹ پنجره چت پس از تحویل بسته شد.",
     },
     "ps": {
         # === Common Buttons ===
@@ -3810,6 +3503,65 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.order_label": "📋 <b>سفارش: {code}</b>",
         "order.payment.subtotal_label": "فرعي مجموعه: <b>{amount} {currency}</b>",
         "order.payment.total_amount_label": "<b>ټول مبلغ: {amount} {currency}</b>",
+
+        # Delivery Photo Proof (Card 4)
+        "delivery.photo.required": "د ځای پر ځای تحویل لپاره عکس اړین دی",
+        "delivery.photo.upload_prompt": "مهرباني وکړئ د تحویل عکس اپلوډ کړئ",
+        "delivery.photo.received": "د تحویل عکس خوندي شو",
+        "delivery.photo.sent_to_customer": "د تحویل عکس پیرودونکي ته واستول شو",
+        "delivery.photo.customer_notification": "ستاسو سفارش {order_code} تحویل شو! دا د تحویل تأیید عکس دی.",
+
+        # Delivery GPS (Card 15)
+        "delivery.gps.prompt": "📍 ستاسو سفارش {order_code} په لاره ده!\n\nچلوونکي سره مرسته وکړئ چې تاسو ژر ومومي — خپل ځای شریک کړئ:",
+        "delivery.gps.btn_static": "📍 ځای واستوئ",
+        "delivery.gps.btn_live": "📡 ژوندی ځای",
+        "delivery.gps.btn_skip": "⏭ تېر شئ",
+        "delivery.gps.static_sent": "✅ ستاسو ځای چلوونکي ته واستول شو.",
+        "delivery.gps.live_started": "📡 ژوندی ځای فعال شو! ستاسو چلوونکی تاسو په حقیقي وخت کې تعقیبوي.",
+        "delivery.gps.skipped": "⏭ ځای تېر شو. چلوونکی به د سفارش له پتې څخه کار واخلي.",
+        "delivery.chat.session_closed": "⏹ دا د چت غونډه پای ته ورسېدله. د مرستې لپاره له ملاتړ سره اړیکه ونیسئ.",
+        "delivery.chat.post_delivery_open": "✅ تحویل شو! چت به د {minutes} نورو دقیقو لپاره خلاص پاتې شي.",
+        "delivery.chat.post_delivery_closed": "⏹ د تحویل وروسته د چت کړکۍ وتړل شوه.",
+
+        # === Card 9: Kitchen & Delivery Workflow ===
+        "admin.menu.orders": "📋 سفارشونه",
+        "admin.orders.list_title": "📋 <b>سفارشونه</b>",
+        "admin.orders.empty": "هیڅ سفارش ونه موندل شو",
+        "admin.orders.filter_status": "د حالت پر اساس فلتر",
+        "admin.orders.filter_all": "📋 ټولې سفارشونه",
+        "admin.orders.filter_active": "🔄 فعالې",
+        "admin.orders.detail": (
+            "📋 <b>سفارش #{order_id}</b> ({order_code})\n"
+            "👤 اخیستونکی: {buyer_id}\n"
+            "💰 ټول: {total}\n"
+            "📦 حالت: {status}\n"
+            "📅 جوړ شوی: {created_at}\n"
+            "📍 پته: {address}\n"
+            "📞 تلفون: {phone}"
+        ),
+        "admin.orders.status_changed": "د سفارش #{order_id} حالت <b>{new_status}</b> ته بدل شو",
+        "admin.orders.invalid_transition": "د {current} څخه {new} ته حالت بدلول ممکن نه دي",
+        "kitchen.order_received": (
+            "🍳 <b>نوی سفارش #{order_id}</b> ({order_code})\n\n"
+            "{items}\n\n"
+            "💰 ټول: {total}\n"
+            "📍 پته: {address}\n"
+            "📞 تلفون: {phone}"
+        ),
+        "rider.order_ready": (
+            "🚗 <b>سفارش چمتو #{order_id}</b> ({order_code})\n\n"
+            "💰 ټول: {total}\n"
+            "📍 پته: {address}\n"
+            "📞 تلفون: {phone}"
+        ),
+        "order.status.preparing": "🍳 ستاسو سفارش #{order_code} چمتو کیږي",
+        "order.status.ready": "✅ ستاسو سفارش #{order_code} د ترلاسه کولو لپاره چمتو دی",
+        "order.status.out_for_delivery": "🚗 ستاسو سفارش #{order_code} په لاره کې دی",
+        "order.status.delivered_notify": "📦 ستاسو سفارش #{order_code} تحویل شو",
+        "kitchen.btn.start_preparing": "🍳 چمتو کول پیل کړئ",
+        "kitchen.btn.mark_ready": "✅ چمتو",
+        "rider.btn.picked_up": "📦 ترلاسه شو",
+        "rider.btn.delivered": "✅ تحویل شو",
     },
     "fr": {
         # === Common Buttons ===
@@ -4297,6 +4049,65 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.order_label": "📋 <b>Commande : {code}</b>",
         "order.payment.subtotal_label": "Sous-total : <b>{amount} {currency}</b>",
         "order.payment.total_amount_label": "<b>Montant total : {amount} {currency}</b>",
+
+        # Delivery Photo Proof (Card 4)
+        "delivery.photo.required": "Photo requise pour la livraison en point de depot",
+        "delivery.photo.upload_prompt": "Veuillez telecharger la photo de livraison",
+        "delivery.photo.received": "Photo de livraison enregistree",
+        "delivery.photo.sent_to_customer": "Photo de livraison envoyee au client",
+        "delivery.photo.customer_notification": "Votre commande {order_code} a ete livree ! Voici la photo de confirmation.",
+
+        # Delivery GPS (Card 15)
+        "delivery.gps.prompt": "📍 Votre commande {order_code} est en route !\n\nAidez votre livreur a vous trouver plus vite — partagez votre position :",
+        "delivery.gps.btn_static": "📍 Envoyer la position",
+        "delivery.gps.btn_live": "📡 Position en direct",
+        "delivery.gps.btn_skip": "⏭ Passer",
+        "delivery.gps.static_sent": "✅ Votre position a ete envoyee au livreur.",
+        "delivery.gps.live_started": "📡 Position en direct activee ! Votre livreur peut vous suivre en temps reel.",
+        "delivery.gps.skipped": "⏭ Position ignoree. Le livreur utilisera l'adresse de votre commande.",
+        "delivery.chat.session_closed": "⏹ Cette session de chat est terminee. Contactez le support pour de l'aide.",
+        "delivery.chat.post_delivery_open": "✅ Livre ! Le chat reste ouvert pendant {minutes} minutes supplementaires.",
+        "delivery.chat.post_delivery_closed": "⏹ La fenetre de chat post-livraison est fermee.",
+
+        # === Card 9: Kitchen & Delivery Workflow ===
+        "admin.menu.orders": "📋 Commandes",
+        "admin.orders.list_title": "📋 <b>Commandes</b>",
+        "admin.orders.empty": "Aucune commande trouvee",
+        "admin.orders.filter_status": "Filtrer par statut",
+        "admin.orders.filter_all": "📋 Toutes les commandes",
+        "admin.orders.filter_active": "🔄 Actives",
+        "admin.orders.detail": (
+            "📋 <b>Commande #{order_id}</b> ({order_code})\n"
+            "👤 Acheteur : {buyer_id}\n"
+            "💰 Total : {total}\n"
+            "📦 Statut : {status}\n"
+            "📅 Cree le : {created_at}\n"
+            "📍 Adresse : {address}\n"
+            "📞 Telephone : {phone}"
+        ),
+        "admin.orders.status_changed": "Le statut de la commande #{order_id} a ete change en <b>{new_status}</b>",
+        "admin.orders.invalid_transition": "Impossible de changer le statut de {current} a {new}",
+        "kitchen.order_received": (
+            "🍳 <b>Nouvelle commande #{order_id}</b> ({order_code})\n\n"
+            "{items}\n\n"
+            "💰 Total : {total}\n"
+            "📍 Adresse : {address}\n"
+            "📞 Telephone : {phone}"
+        ),
+        "rider.order_ready": (
+            "🚗 <b>Commande prete #{order_id}</b> ({order_code})\n\n"
+            "💰 Total : {total}\n"
+            "📍 Adresse : {address}\n"
+            "📞 Telephone : {phone}"
+        ),
+        "order.status.preparing": "🍳 Votre commande #{order_code} est en cours de preparation",
+        "order.status.ready": "✅ Votre commande #{order_code} est prete pour le retrait",
+        "order.status.out_for_delivery": "🚗 Votre commande #{order_code} est en route",
+        "order.status.delivered_notify": "📦 Votre commande #{order_code} a ete livree",
+        "kitchen.btn.start_preparing": "🍳 Commencer la preparation",
+        "kitchen.btn.mark_ready": "✅ Pret",
+        "rider.btn.picked_up": "📦 Recupere",
+        "rider.btn.delivered": "✅ Livre",
     },
 
 }

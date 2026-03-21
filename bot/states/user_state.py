@@ -52,6 +52,11 @@ class CartStates(StatesGroup):
     waiting_quantity = State()
 
 
+class AdminOrderStates(StatesGroup):
+    """FSM for admin order management (Card 4)."""
+    waiting_delivery_photo = State()
+
+
 class SettingsFSM(StatesGroup):
     """FSM for bot settings management."""
     waiting_referral_percent = State()

@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-> **90% Complete** | `██████████████████░░` | Models + QR generation + tests done. Receipt upload handler exists in `order_handler.py`; separate handler file not created.
+> **95% Complete** | `███████████████████░` | Models + QR generation + receipt upload handler in `order_handler.py` + tests done. Only remaining: optional refactor to separate handler file.
 
 ## Flow Diagram
 

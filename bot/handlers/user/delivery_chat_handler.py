@@ -44,7 +44,12 @@ def is_chat_active(order: Order) -> bool:
     if order.order_status in ('confirmed', 'preparing', 'ready', 'out_for_delivery'):
         return True
     if order.order_status == 'delivered' and order.chat_post_delivery_until:
-        return datetime.now(timezone.utc) < order.chat_post_delivery_until
+        now = datetime.now(timezone.utc)
+        deadline = order.chat_post_delivery_until
+        # Handle naive datetimes (e.g. from SQLite) by assuming UTC
+        if deadline.tzinfo is None:
+            deadline = deadline.replace(tzinfo=timezone.utc)
+        return now < deadline
     return False
 
 

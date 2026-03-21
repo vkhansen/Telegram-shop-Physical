@@ -12,13 +12,14 @@
 - [x] Model: `DeliveryChatMessage` table for audit trail
 - [x] Model: `driver_id`, `driver_live_location_message_id` on Order
 - [x] Handler: `delivery_chat_handler.py` with relay functions
-- [x] i18n: Chat strings in ru/en/th/ar/fa
+- [x] i18n: Chat strings in all 7 locales (th/en/ru/ar/fa/ps/fr)
 - [x] Tests: 13 tests passing
 - [x] Handler: Wire into rider group message listener
 - [x] Handler: Wire customer reply detection for active deliveries
 - [x] FSM: `DeliveryChatStates.chatting_with_driver` for customer chat mode
 - [x] UI: "Chat with Driver" button on order detail for `out_for_delivery` orders
 - [x] Router: `delivery_chat_router` registered in user handlers
+- [x] Chat relay works both directions (driver-to-customer and customer-to-driver)
 
 ---
 

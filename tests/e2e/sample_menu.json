@@ -1,0 +1,424 @@
+{
+  "restaurant_name": "Baan Thai Kitchen",
+  "categories": [
+    {
+      "name": "Appetizers",
+      "sort_order": 1,
+      "items": [
+        {
+          "name": "Spring Rolls",
+          "description": "Crispy vegetable spring rolls served with sweet chili sauce",
+          "price": 89.00,
+          "stock_quantity": 100,
+          "modifiers": {
+            "sauce": {
+              "label": "Dipping Sauce",
+              "type": "single",
+              "required": true,
+              "options": [
+                {"id": "sweet_chili", "label": "Sweet Chili", "price": 0},
+                {"id": "peanut", "label": "Peanut Sauce", "price": 10},
+                {"id": "sriracha", "label": "Sriracha Mayo", "price": 15}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Tom Yum Soup",
+          "description": "Spicy and sour Thai soup with mushrooms, lemongrass and galangal",
+          "price": 129.00,
+          "stock_quantity": 60,
+          "modifiers": {
+            "protein": {
+              "label": "Choose Protein",
+              "type": "single",
+              "required": true,
+              "options": [
+                {"id": "shrimp", "label": "Shrimp", "price": 40},
+                {"id": "chicken", "label": "Chicken", "price": 0},
+                {"id": "mushroom", "label": "Mixed Mushroom", "price": 0}
+              ]
+            },
+            "spice": {
+              "label": "Spice Level",
+              "type": "single",
+              "required": true,
+              "options": [
+                {"id": "mild", "label": "Mild", "price": 0},
+                {"id": "medium", "label": "Medium", "price": 0},
+                {"id": "hot", "label": "Hot", "price": 0},
+                {"id": "thai_hot", "label": "Thai Hot", "price": 0}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Satay Chicken",
+          "description": "Grilled chicken skewers marinated in turmeric and coconut milk",
+          "price": 109.00,
+          "stock_quantity": 80,
+          "modifiers": {
+            "extras": {
+              "label": "Add Extras",
+              "type": "multi",
+              "required": false,
+              "options": [
+                {"id": "extra_peanut_sauce", "label": "Extra Peanut Sauce", "price": 15},
+                {"id": "cucumber_relish", "label": "Cucumber Relish", "price": 10},
+                {"id": "extra_skewer", "label": "Extra Skewer (+1)", "price": 35}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Fresh Spring Rolls",
+          "description": "Rice paper rolls with shrimp, herbs and vermicelli noodles",
+          "price": 99.00,
+          "stock_quantity": 50,
+          "modifiers": null
+        }
+      ]
+    },
+    {
+      "name": "Main Courses",
+      "sort_order": 2,
+      "items": [
+        {
+          "name": "Green Curry",
+          "description": "Thai green curry with bamboo shoots, eggplant and sweet basil",
+          "price": 179.00,
+          "stock_quantity": 40,
+          "modifiers": {
+            "protein": {
+              "label": "Choose Protein",
+              "type": "single",
+              "required": true,
+              "options": [
+                {"id": "chicken", "label": "Chicken", "price": 0},
+                {"id": "pork", "label": "Pork", "price": 0},
+                {"id": "beef", "label": "Beef", "price": 30},
+                {"id": "shrimp", "label": "Shrimp", "price": 40},
+                {"id": "tofu", "label": "Tofu", "price": 0}
+              ]
+            },
+            "spice": {
+              "label": "Spice Level",
+              "type": "single",
+              "required": true,
+              "options": [
+                {"id": "mild", "label": "Mild", "price": 0},
+                {"id": "medium", "label": "Medium", "price": 0},
+                {"id": "hot", "label": "Hot", "price": 0}
+              ]
+            },
+            "rice": {
+              "label": "Rice Option",
+              "type": "single",
+              "required": false,
+              "options": [
+                {"id": "jasmine", "label": "Jasmine Rice", "price": 0},
+                {"id": "sticky", "label": "Sticky Rice", "price": 10},
+                {"id": "brown", "label": "Brown Rice", "price": 15},
+                {"id": "roti", "label": "Roti Bread", "price": 20}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Massaman Curry",
+          "description": "Rich and mild curry with potatoes, peanuts and onions",
+          "price": 189.00,
+          "stock_quantity": 35,
+          "modifiers": {
+            "protein": {
+              "label": "Choose Protein",
+              "type": "single",
+              "required": true,
+              "options": [
+                {"id": "chicken", "label": "Chicken", "price": 0},
+                {"id": "beef", "label": "Beef", "price": 30},
+                {"id": "lamb", "label": "Lamb", "price": 50}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Basil Stir Fry",
+          "description": "Pad Krapao - stir fried meat with holy basil and chili, served with fried egg",
+          "price": 159.00,
+          "stock_quantity": 70,
+          "modifiers": {
+            "protein": {
+              "label": "Choose Protein",
+              "type": "single",
+              "required": true,
+              "options": [
+                {"id": "chicken", "label": "Chicken", "price": 0},
+                {"id": "pork", "label": "Pork", "price": 0},
+                {"id": "beef", "label": "Beef", "price": 20},
+                {"id": "seafood", "label": "Mixed Seafood", "price": 50}
+              ]
+            },
+            "spice": {
+              "label": "Spice Level",
+              "type": "single",
+              "required": true,
+              "options": [
+                {"id": "mild", "label": "Mild", "price": 0},
+                {"id": "medium", "label": "Medium", "price": 0},
+                {"id": "hot", "label": "Hot", "price": 0},
+                {"id": "thai_hot", "label": "Thai Hot", "price": 0}
+              ]
+            },
+            "extras": {
+              "label": "Add Extras",
+              "type": "multi",
+              "required": false,
+              "options": [
+                {"id": "fried_egg", "label": "Extra Fried Egg", "price": 15},
+                {"id": "crispy_pork", "label": "Crispy Pork Belly", "price": 35}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Grilled Pork Neck",
+          "description": "Kor Moo Yang - marinated grilled pork neck with Jaew dipping sauce",
+          "price": 169.00,
+          "stock_quantity": 30,
+          "modifiers": {
+            "spice": {
+              "label": "Jaew Sauce Spice",
+              "type": "single",
+              "required": false,
+              "options": [
+                {"id": "mild", "label": "Mild", "price": 0},
+                {"id": "medium", "label": "Medium", "price": 0},
+                {"id": "hot", "label": "Hot", "price": 0}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Noodles",
+      "sort_order": 3,
+      "items": [
+        {
+          "name": "Pad Thai",
+          "description": "Classic stir fried rice noodles with tamarind sauce, bean sprouts and peanuts",
+          "price": 149.00,
+          "stock_quantity": 90,
+          "modifiers": {
+            "protein": {
+              "label": "Choose Protein",
+              "type": "single",
+              "required": true,
+              "options": [
+                {"id": "shrimp", "label": "Shrimp", "price": 30},
+                {"id": "chicken", "label": "Chicken", "price": 0},
+                {"id": "tofu", "label": "Tofu", "price": 0},
+                {"id": "combo", "label": "Shrimp & Chicken Combo", "price": 40}
+              ]
+            },
+            "extras": {
+              "label": "Add Extras",
+              "type": "multi",
+              "required": false,
+              "options": [
+                {"id": "extra_egg", "label": "Extra Egg", "price": 15},
+                {"id": "extra_peanuts", "label": "Extra Peanuts", "price": 10},
+                {"id": "fresh_shrimp", "label": "Fresh River Shrimp", "price": 60}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Boat Noodles",
+          "description": "Rich dark broth noodles with beef, meatballs and morning glory",
+          "price": 119.00,
+          "stock_quantity": 55,
+          "modifiers": {
+            "noodle_type": {
+              "label": "Noodle Type",
+              "type": "single",
+              "required": true,
+              "options": [
+                {"id": "thin_rice", "label": "Thin Rice Noodles", "price": 0},
+                {"id": "wide_rice", "label": "Wide Rice Noodles", "price": 0},
+                {"id": "egg_noodle", "label": "Egg Noodles", "price": 10},
+                {"id": "glass_noodle", "label": "Glass Noodles", "price": 10}
+              ]
+            },
+            "size": {
+              "label": "Portion Size",
+              "type": "single",
+              "required": false,
+              "options": [
+                {"id": "regular", "label": "Regular", "price": 0},
+                {"id": "large", "label": "Large (+50%)", "price": 40}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Pad See Ew",
+          "description": "Stir fried wide rice noodles with Chinese broccoli in soy sauce",
+          "price": 139.00,
+          "stock_quantity": 65,
+          "modifiers": {
+            "protein": {
+              "label": "Choose Protein",
+              "type": "single",
+              "required": true,
+              "options": [
+                {"id": "chicken", "label": "Chicken", "price": 0},
+                {"id": "pork", "label": "Pork", "price": 0},
+                {"id": "shrimp", "label": "Shrimp", "price": 30}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Khao Soi",
+          "description": "Northern Thai coconut curry noodles topped with crispy noodles",
+          "price": 159.00,
+          "stock_quantity": 40,
+          "modifiers": {
+            "protein": {
+              "label": "Choose Protein",
+              "type": "single",
+              "required": true,
+              "options": [
+                {"id": "chicken_leg", "label": "Chicken Leg", "price": 0},
+                {"id": "beef", "label": "Braised Beef", "price": 30}
+              ]
+            },
+            "spice": {
+              "label": "Spice Level",
+              "type": "single",
+              "required": false,
+              "options": [
+                {"id": "mild", "label": "Mild", "price": 0},
+                {"id": "medium", "label": "Medium", "price": 0},
+                {"id": "hot", "label": "Hot", "price": 0}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Desserts",
+      "sort_order": 4,
+      "items": [
+        {
+          "name": "Mango Sticky Rice",
+          "description": "Sweet sticky rice with fresh mango and coconut cream",
+          "price": 99.00,
+          "stock_quantity": 45,
+          "modifiers": {
+            "extras": {
+              "label": "Add Extras",
+              "type": "multi",
+              "required": false,
+              "options": [
+                {"id": "extra_mango", "label": "Extra Mango", "price": 30},
+                {"id": "coconut_ice", "label": "Coconut Ice Cream", "price": 25}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Roti with Banana",
+          "description": "Crispy fried roti with banana, condensed milk and chocolate",
+          "price": 79.00,
+          "stock_quantity": 60,
+          "modifiers": {
+            "topping": {
+              "label": "Choose Topping",
+              "type": "single",
+              "required": false,
+              "options": [
+                {"id": "condensed_milk", "label": "Condensed Milk", "price": 0},
+                {"id": "nutella", "label": "Nutella", "price": 20},
+                {"id": "honey", "label": "Honey", "price": 10}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Coconut Ice Cream",
+          "description": "Homemade coconut ice cream with peanuts and corn",
+          "price": 69.00,
+          "stock_quantity": 50,
+          "modifiers": null
+        }
+      ]
+    },
+    {
+      "name": "Drinks",
+      "sort_order": 5,
+      "items": [
+        {
+          "name": "Thai Iced Tea",
+          "description": "Classic Thai tea with condensed milk over ice",
+          "price": 59.00,
+          "stock_quantity": 200,
+          "modifiers": {
+            "sweetness": {
+              "label": "Sweetness Level",
+              "type": "single",
+              "required": false,
+              "options": [
+                {"id": "regular", "label": "Regular", "price": 0},
+                {"id": "less_sweet", "label": "Less Sweet", "price": 0},
+                {"id": "no_sugar", "label": "No Sugar", "price": 0}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Fresh Coconut",
+          "description": "Young coconut served chilled with a straw",
+          "price": 49.00,
+          "stock_quantity": 120,
+          "modifiers": null
+        },
+        {
+          "name": "Lemongrass Iced Tea",
+          "description": "Refreshing lemongrass and pandan herbal tea",
+          "price": 49.00,
+          "stock_quantity": 150,
+          "modifiers": {
+            "sweetness": {
+              "label": "Sweetness Level",
+              "type": "single",
+              "required": false,
+              "options": [
+                {"id": "regular", "label": "Regular", "price": 0},
+                {"id": "less_sweet", "label": "Less Sweet", "price": 0},
+                {"id": "no_sugar", "label": "No Sugar", "price": 0}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Chang Beer",
+          "description": "Thai lager beer 620ml",
+          "price": 89.00,
+          "stock_quantity": 100,
+          "modifiers": null
+        },
+        {
+          "name": "Singha Beer",
+          "description": "Premium Thai beer 330ml",
+          "price": 79.00,
+          "stock_quantity": 100,
+          "modifiers": null
+        }
+      ]
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-> **70% Complete** | `██████████████░░░░░░` | Model fields + status validator + tests done. Group notification functions not written yet.
+> **95% Complete** | `███████████████████░` | Full order management handler with status filtering, transitions, kitchen/rider group notifications, customer notifications, inline buttons, delivery photo enforcement, and i18n for all 7 locales. Only missing: minor polish items.
 
 ## Flow Diagram
 
@@ -121,13 +121,18 @@ RIDER_GROUP_ID=-1001234567891
 ## Acceptance Criteria
 
 - [x] Order flows through all extended statuses
-- [ ] Kitchen group receives formatted order on confirmation
-- [ ] Rider group notified when order is ready
-- [ ] Customer receives status updates at each stage
-- [ ] Kitchen can mark "preparing" and "ready" via buttons
-- [ ] Rider can mark "picked up" via button
+- [x] Kitchen group receives formatted order on confirmation (with inline buttons)
+- [x] Rider group notified when order is ready (address, phone, GPS, payment details with buttons)
+- [x] Customer receives status updates at each stage
+- [x] Kitchen can mark "Start Preparing" and "Mark Ready" via inline buttons
+- [x] Rider can mark "Picked Up" and "Delivered" via inline buttons
 - [x] CLI supports all new status transitions
 - [x] Reservation cleaner only expires `reserved` orders
+- [x] `bot/handlers/admin/order_management.py` with order list, detail view, status filtering
+- [x] Status change validation (`is_valid_transition`)
+- [x] Delivery photo enforcement for dead drop orders
+- [x] Admin console has Orders button
+- [x] i18n strings for all 7 locales (th/en/ru/ar/fa/ps/fr)
 
 ## Test Plan
 

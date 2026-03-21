@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-> **100% Complete** | `████████████████████` | Models, handler, keyboards, states, i18n, router wiring, and tests all done.
+> **95% Complete** | `███████████████████░` | Models, handler, keyboards, states, i18n, router wiring, and 30+ tests all done. Only missing: formal router registration for edited_message in main handler (registered via delivery_chat router which is already included).
 
 **Phase:** 4 — Delivery Experience
 **Priority:** High
@@ -185,7 +185,7 @@ def is_chat_active(order: Order) -> bool:
 - [x] GPS choice callback handlers (static/live/skip)
 - [x] Rider group edited_message listener for driver live location updates
 - [x] Customer private chat edited_message listener with relay to rider group
-- [x] Unit tests (19 tests passing)
+- [x] Unit tests (30+ tests in `test_live_location.py`)
 
 ## Test Plan
 

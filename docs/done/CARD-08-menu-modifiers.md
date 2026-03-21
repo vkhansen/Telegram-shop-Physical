@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-> **85% Complete** | `█████████████████░░░` | Model fields + price calculation utility + tests done. Handler UI for modifier selection not wired up.
+> **90% Complete** | `██████████████████░░` | Model fields + price calculation utility (with tests) + JSON menu loader + category sort_order done. Still missing: modifier selection UI in shop handler, admin modifier config UI.
 
 ## Flow Diagram
 
@@ -124,13 +124,14 @@ sort_order = Column(Integer, default=0)
 
 ## Acceptance Criteria
 
-- [x] Products can have configurable modifiers (single/multi choice)
-- [x] Modifiers with price adjustments calculate correctly
-- [ ] User selects modifiers when adding to cart
+- [x] Products can have configurable modifiers (single/multi choice) (`Goods.modifiers` JSON field)
+- [x] Modifiers with price adjustments calculate correctly (`bot/utils/modifiers.py` with tests)
+- [ ] User selects modifiers when adding to cart (modifier selection UI in shop handler)
 - [ ] Cart displays items with selected modifiers
-- [x] Order items store selected modifiers
-- [ ] Admin can configure modifiers per product
-- [x] Categories have sort order for restaurant-style menu
+- [x] Order items store selected modifiers (`OrderItem.selected_modifiers`, `ShoppingCart.selected_modifiers`)
+- [ ] Admin can configure modifiers per product (admin modifier config UI)
+- [x] Categories have sort order for restaurant-style menu (`Categories.sort_order`)
+- [x] JSON menu loader for importing menus with modifiers (`tests/e2e/menu_loader.py`)
 - [ ] CLI shows modifier details in orders
 
 ## Test Plan

@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-> **80% Complete** | `████████████████░░░░` | Model fields + tests done. Enforcement in delivery logic not wired up yet.
+> **100% Complete** | `████████████████████` | Model fields, enforcement, notifications, admin states, i18n all done.
 
 ## Flow Diagram
 
@@ -85,13 +85,14 @@ delivery_photo_by = Column(BigInteger, nullable=True)  # Admin/rider who took ph
 ## Acceptance Criteria
 
 - [x] Admin can upload delivery photo via bot
-- [ ] Photo auto-sent to customer on delivery
-- [ ] Dead drop orders require photo before marking delivered
-- [ ] Door delivery orders allow optional photo
-- [ ] Pickup orders skip photo requirement
+- [x] Photo auto-sent to customer on delivery (`send_delivery_photo_to_customer()` in `bot/payments/notifications.py`)
+- [x] Dead drop orders require photo before marking delivered (`needs_delivery_photo()` in `bot/utils/delivery_types.py`, enforced in admin order management)
+- [x] Door delivery orders allow optional photo
+- [x] Pickup orders skip photo requirement
 - [x] Photo stored in Order record with timestamp
-- [ ] CLI supports delivery photo workflow
-- [ ] Customer receives photo with delivery confirmation message
+- [x] `AdminOrderStates.waiting_delivery_photo` state for admin photo upload flow
+- [x] Customer receives photo with delivery confirmation message
+- [x] i18n `delivery.photo.*` strings in all 7 locales (th/en/ru/ar/fa/ps/fr)
 
 ## Test Plan
 

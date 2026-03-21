@@ -1,0 +1,64 @@
+version: '3.8'
+
+# Test compose file - extends from main docker-compose.yml
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.test.yml up --build --abort-on-container-exit
+
+services:
+  redis:
+    # Inherit from main compose; override container name for isolation
+    container_name: telegram_shop_redis_test
+    volumes:
+      - redis_test_data:/data
+
+  db:
+    container_name: telegram_shop_db_test
+    environment:
+      POSTGRES_DB: telegram_shop_test
+      POSTGRES_USER: ${POSTGRES_USER:-test_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-test_password}
+    volumes:
+      - db_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-test_user} -d telegram_shop_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+  bot:
+    container_name: telegram_shop_test_runner
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: telegram_shop_test
+      POSTGRES_USER: ${POSTGRES_USER:-test_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-test_password}
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-test_user}:${POSTGRES_PASSWORD:-test_password}@db:5432/telegram_shop_test"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 1
+      REDIS_PASSWORD: ""
+      TOKEN: "test_token_123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      OWNER_ID: "123456789"
+      LOG_TO_STDOUT: "1"
+      LOG_TO_FILE: "0"
+      TESTING: "1"
+    volumes:
+      - ./tests:/app/tests
+      - ./bot:/app/bot
+    # Override CMD to run tests instead of the bot
+    command: >
+      python -m pytest tests/e2e/
+      -v
+      --tb=short
+      -x
+      --timeout=120
+    restart: "no"
+    healthcheck:
+      # Disable healthcheck for test runner
+      test: ["CMD", "true"]
+      interval: 60s
+
+volumes:
+  db_test_data:
+    driver: local
+  redis_test_data:
+    driver: local

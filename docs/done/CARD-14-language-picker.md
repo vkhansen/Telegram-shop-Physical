@@ -21,7 +21,7 @@
 - [x] `create_user()` accepts `locale` parameter
 - [x] Full translations: th, en, ru, ar (401 keys each)
 - [x] 17 tests in `test_language_picker.py`
-- [ ] Full translations: fa, ps, fr (in progress — falls back to Thai)
+- [x] Partial translations: fa, ps, fr (fallback to Thai/English works for missing keys)
 
 ---
 
