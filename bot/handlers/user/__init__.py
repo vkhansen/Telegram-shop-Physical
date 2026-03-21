@@ -6,6 +6,7 @@ from .help_handler import router as help_router
 from .cart_handler import router as cart_router
 from .order_handler import router as order_router
 from .orders_view_handler import router as orders_view_router
+from .delivery_chat_handler import router as delivery_chat_router
 
 from aiogram import Router
 
@@ -16,5 +17,6 @@ router.include_router(help_router)
 router.include_router(cart_router)
 router.include_router(order_router)
 router.include_router(orders_view_router)
+router.include_router(delivery_chat_router)
 router.include_router(shop_and_goods_router)
 router.include_router(referral_system_router)

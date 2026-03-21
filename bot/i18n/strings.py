@@ -1,5 +1,34 @@
 DEFAULT_LOCALE = "th"
 
+# Language picker — add new languages here + their translations in TRANSLATIONS
+AVAILABLE_LOCALES: dict[str, str] = {
+    "th": "🇹🇭 ไทย",
+    "en": "🇬🇧 English",
+    "ru": "🇷🇺 Русский",
+    "ar": "🇸🇦 العربية",
+    "fa": "🇮🇷 فارسی",
+    "ps": "🇦🇫 پښتو",
+    "fr": "🇫🇷 Français",
+}
+
+# The language picker message is shown in ALL languages simultaneously
+# so the user can understand it regardless of current locale
+LANGUAGE_PICKER_MESSAGE = (
+    "🌐 Choose your language / เลือกภาษา / Выберите язык\n"
+    "اختر لغتك / زبان خود را انتخاب کنید / خپله ژبه وټاکئ\n"
+    "Choisissez votre langue"
+)
+
+LANGUAGE_CHANGED_MESSAGES: dict[str, str] = {
+    "th": "✅ เปลี่ยนเป็นภาษาไทยแล้ว",
+    "en": "✅ Language changed to English",
+    "ru": "✅ Язык изменён на русский",
+    "ar": "✅ تم تغيير اللغة إلى العربية",
+    "fa": "✅ زبان به فارسی تغییر کرد",
+    "ps": "✅ ژبه پښتو ته بدله شوه",
+    "fr": "✅ Langue changée en français",
+}
+
 TRANSLATIONS: dict[str, dict[str, str]] = {
     "ru": {
         # === Common Buttons ===
@@ -366,8 +395,26 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 
         # Delivery Chat (Card 13)
         "order.delivery.chat_unavailable": "❌ Чат с водителем недоступен. Группа курьеров не настроена.",
-        "order.delivery.chat_started": "💬 Вы можете отправить сообщение водителю. Отправьте текст, фото или локацию.",
+        "order.delivery.chat_started": "💬 Вы можете отправить сообщение водителю. Отправьте текст, фото или локацию.\n\nОтправьте /endchat чтобы завершить чат.",
         "order.delivery.live_location_shared": "📍 Водитель поделился живой локацией! Вы можете отслеживать доставку.",
+        "order.delivery.chat_no_active_delivery": "❌ У вас нет активных доставок для чата.",
+        "order.delivery.chat_ended": "✅ Чат с водителем завершён.",
+        "order.delivery.chat_message_sent": "✅ Сообщение отправлено водителю.",
+        "order.delivery.driver_no_active_order": "⚠️ Нет активного заказа для пересылки этого сообщения.",
+        "btn.chat_with_driver": "💬 Чат с водителем",
+
+        # GPS tracking & chat session (Card 15)
+        "delivery.gps.prompt": "📍 Ваш заказ {order_code} в пути!\n\nПомогите водителю найти вас быстрее — поделитесь своим местоположением:",
+        "delivery.gps.btn_static": "📍 Отправить локацию",
+        "delivery.gps.btn_live": "📡 Живая локация",
+        "delivery.gps.btn_skip": "⏭ Пропустить",
+        "delivery.gps.static_sent": "✅ Ваше местоположение отправлено водителю.",
+        "delivery.gps.live_started": "📡 Живая локация включена! Водитель видит вас в реальном времени.",
+        "delivery.gps.skipped": "⏭ Локация пропущена. Водитель будет использовать адрес из заказа.",
+        "delivery.chat.session_closed": "⏹ Сессия чата завершена. Свяжитесь с поддержкой для помощи.",
+        "delivery.chat.post_delivery_open": "✅ Доставлено! Чат остаётся открытым ещё {minutes} мин.",
+        "delivery.chat.post_delivery_closed": "⏹ Окно чата после доставки закрыто.",
+        "btn.end_chat": "❌ Завершить чат",
 
         # === Bonus/Referral Application ===
         "order.bonus.available": "💰 <b>У вас есть ${bonus_balance} в реферальных бонусах!</b>\n\n",
@@ -909,8 +956,26 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 
         # Delivery Chat (Card 13)
         "order.delivery.chat_unavailable": "❌ Chat with driver unavailable. Rider group not configured.",
-        "order.delivery.chat_started": "💬 You can message your driver. Send text, photo, or location.",
+        "order.delivery.chat_started": "💬 You can message your driver. Send text, photo, or location.\n\nSend /endchat to end the chat.",
         "order.delivery.live_location_shared": "📍 Driver is sharing live location! You can track your delivery.",
+        "order.delivery.chat_no_active_delivery": "❌ You have no active deliveries to chat about.",
+        "order.delivery.chat_ended": "✅ Chat with driver ended.",
+        "order.delivery.chat_message_sent": "✅ Message sent to driver.",
+        "order.delivery.driver_no_active_order": "⚠️ No active order to relay this message.",
+        "btn.chat_with_driver": "💬 Chat with Driver",
+
+        # GPS tracking & chat session (Card 15)
+        "delivery.gps.prompt": "📍 Your order {order_code} is on the way!\n\nHelp your driver find you faster — share your location:",
+        "delivery.gps.btn_static": "📍 Send Location",
+        "delivery.gps.btn_live": "📡 Live Location",
+        "delivery.gps.btn_skip": "⏭ Skip",
+        "delivery.gps.static_sent": "✅ Your location has been sent to the driver.",
+        "delivery.gps.live_started": "📡 Live location enabled! Your driver can track you in real-time.",
+        "delivery.gps.skipped": "⏭ Location skipped. Driver will use the address from your order.",
+        "delivery.chat.session_closed": "⏹ This chat session has ended. Contact support for help.",
+        "delivery.chat.post_delivery_open": "✅ Delivered! Chat stays open for {minutes} more minutes.",
+        "delivery.chat.post_delivery_closed": "⏹ Post-delivery chat window has closed.",
+        "btn.end_chat": "❌ End Chat",
 
         # === Bonus/Referral Application ===
         "order.bonus.available": "💰 <b>You have ${bonus_balance} in referral bonuses!</b>\n\n",
@@ -1451,8 +1516,26 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 
         # Delivery Chat (Card 13)
         "order.delivery.chat_unavailable": "❌ แชทกับคนขับไม่พร้อมใช้งาน กลุ่มไรเดอร์ยังไม่ได้ตั้งค่า",
-        "order.delivery.chat_started": "💬 คุณสามารถส่งข้อความถึงคนขับได้ ส่งข้อความ รูปภาพ หรือตำแหน่ง",
+        "order.delivery.chat_started": "💬 คุณสามารถส่งข้อความถึงคนขับได้ ส่งข้อความ รูปภาพ หรือตำแหน่ง\n\nส่ง /endchat เพื่อจบการสนทนา",
         "order.delivery.live_location_shared": "📍 คนขับแชร์ตำแหน่งสด! คุณสามารถติดตามการจัดส่งได้",
+        "order.delivery.chat_no_active_delivery": "❌ คุณไม่มีการจัดส่งที่กำลังดำเนินอยู่สำหรับแชท",
+        "order.delivery.chat_ended": "✅ จบการสนทนากับคนขับแล้ว",
+        "order.delivery.chat_message_sent": "✅ ส่งข้อความถึงคนขับแล้ว",
+        "order.delivery.driver_no_active_order": "⚠️ ไม่มีออเดอร์ที่กำลังจัดส่งสำหรับส่งต่อข้อความนี้",
+        "btn.chat_with_driver": "💬 แชทกับคนขับ",
+
+        # GPS tracking & chat session (Card 15)
+        "delivery.gps.prompt": "📍 ออเดอร์ {order_code} ของคุณกำลังมา!\n\nช่วยให้คนขับหาคุณเจอเร็วขึ้น — แชร์ตำแหน่งของคุณ:",
+        "delivery.gps.btn_static": "📍 ส่งตำแหน่ง",
+        "delivery.gps.btn_live": "📡 ตำแหน่งสด",
+        "delivery.gps.btn_skip": "⏭ ข้าม",
+        "delivery.gps.static_sent": "✅ ส่งตำแหน่งของคุณให้คนขับแล้ว",
+        "delivery.gps.live_started": "📡 เปิดตำแหน่งสดแล้ว! คนขับสามารถติดตามคุณได้แบบเรียลไทม์",
+        "delivery.gps.skipped": "⏭ ข้ามตำแหน่งแล้ว คนขับจะใช้ที่อยู่จากออเดอร์",
+        "delivery.chat.session_closed": "⏹ เซสชันแชทนี้สิ้นสุดแล้ว ติดต่อฝ่ายสนับสนุนเพื่อขอความช่วยเหลือ",
+        "delivery.chat.post_delivery_open": "✅ จัดส่งแล้ว! แชทยังเปิดอีก {minutes} นาที",
+        "delivery.chat.post_delivery_closed": "⏹ หน้าต่างแชทหลังจัดส่งปิดแล้ว",
+        "btn.end_chat": "❌ จบการสนทนา",
 
         # === Bonus/Referral Application ===
         "order.bonus.available": "💰 <b>คุณมีโบนัสการแนะนำ ${bonus_balance}!</b>\n\n",
@@ -1610,5 +1693,1101 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.order_label": "📋 <b>คำสั่งซื้อ: {code}</b>",
         "order.payment.subtotal_label": "ยอดรวมย่อย: <b>{amount} {currency}</b>",
         "order.payment.total_amount_label": "<b>ยอดรวม: {amount} {currency}</b>",
+    },
+
+    "ar": {
+        # === Common Buttons ===
+        "btn.shop": "🏪 المتجر",
+        "btn.rules": "📜 القواعد",
+        "btn.profile": "👤 الملف الشخصي",
+        "btn.support": "🆘 الدعم",
+        "btn.channel": "ℹ قناة الأخبار",
+        "btn.admin_menu": "🎛 لوحة الإدارة",
+        "btn.back": "⬅️ رجوع",
+        "btn.close": "✖ إغلاق",
+        "btn.yes": "✅ نعم",
+        "btn.no": "❌ لا",
+        "btn.check_subscription": "🔄 التحقق من الاشتراك",
+        "btn.admin.ban_user": "🚫 حظر المستخدم",
+        "btn.admin.unban_user": "✅ إلغاء حظر المستخدم",
+
+        # === Admin Buttons (user management shortcuts) ===
+        "btn.admin.promote": "⬆️ ترقية إلى مشرف",
+        "btn.admin.demote": "⬇️ إزالة صلاحيات المشرف",
+        "btn.admin.add_user_bonus": "🎁 إضافة مكافأة إحالة",
+
+        # === Titles / Generic Texts ===
+        "menu.title": "⛩️ القائمة الرئيسية",
+        "admin.goods.add.stock.error": "❌ خطأ في إضافة المخزون الأولي: {error}",
+        "admin.goods.stock.add_success": "✅ تمت إضافة {quantity} وحدة إلى \"{item}\"",
+        "admin.goods.stock.add_units": "➕ إضافة وحدات",
+        "admin.goods.stock.current_status": "الحالة الحالية",
+        "admin.goods.stock.error": "❌ خطأ في إدارة المخزون: {error}",
+        "admin.goods.stock.insufficient": "❌ المخزون غير كافٍ. يتوفر {available} وحدة فقط.",
+        "admin.goods.stock.invalid_quantity": "⚠️ كمية غير صالحة. أدخل رقمًا صحيحًا.",
+        "admin.goods.stock.management_title": "إدارة المخزون: {item}",
+        "admin.goods.stock.negative_quantity": "⚠️ لا يمكن أن تكون الكمية سالبة.",
+        "admin.goods.stock.no_products": "❌ لا توجد منتجات في المتجر بعد",
+        "admin.goods.stock.prompt.add_units": "أدخل عدد الوحدات المراد إضافتها:",
+        "admin.goods.stock.prompt.item_name": "أدخل اسم المنتج لإدارة المخزون:",
+        "admin.goods.stock.prompt.remove_units": "أدخل عدد الوحدات المراد إزالتها:",
+        "admin.goods.stock.prompt.set_exact": "أدخل كمية المخزون المحددة:",
+        "admin.goods.stock.redirect_message": "ℹ️ إدارة المخزون متاحة الآن من خلال قائمة \"إدارة المخزون\"",
+        "admin.goods.stock.remove_success": "✅ تمت إزالة {quantity} وحدة من \"{item}\"",
+        "admin.goods.stock.remove_units": "➖ إزالة وحدات",
+        "admin.goods.stock.select_action": "اختر الإجراء",
+        "admin.goods.stock.set_exact": "⚖️ تعيين الكمية المحددة",
+        "admin.goods.stock.set_success": "✅ تم تعيين مخزون \"{item}\" إلى {quantity} وحدة",
+        "admin.goods.stock.status_title": "📊 حالة المخزون:",
+        "errors.invalid_item_name": "❌ اسم المنتج غير صالح",
+        "profile.caption": "👤 <b>الملف الشخصي</b> — <a href='tg://user?id={id}'>{name}</a>",
+        "rules.not_set": "❌ لم تتم إضافة القواعد",
+        "admin.users.cannot_ban_owner": "❌ لا يمكن حظر المالك",
+        "admin.users.ban.success": "✅ تم حظر المستخدم {name} بنجاح",
+        "admin.users.ban.failed": "❌ فشل حظر المستخدم",
+        "admin.users.ban.notify": "⛔ تم حظرك من قبل المشرف",
+        "admin.users.unban.success": "✅ تم إلغاء حظر المستخدم {name} بنجاح",
+        "admin.users.unban.failed": "❌ فشل إلغاء حظر المستخدم",
+        "admin.users.unban.notify": "✅ تم إلغاء حظرك من قبل المشرف",
+
+        # === Profile ===
+        "btn.referral": "🎲 نظام الإحالة",
+        "btn.purchased": "🎁 المشتريات",
+        "profile.referral_id": "👤 <b>الإحالة</b> — <code>{id}</code>",
+
+        # === Subscription Flow ===
+        "subscribe.prompt": "أولاً، اشترك في قناة الأخبار",
+
+        # === Profile Info Lines ===
+        "profile.id": "🆔 <b>ID</b> — <code>{id}</code>",
+        "profile.bonus_balance": "💰 <b>مكافأة الإحالة:</b> ${bonus_balance}",
+        "profile.purchased_count": "🎁 <b>المنتجات المشتراة</b> — {count} قطعة",
+        "profile.registration_date": "🕢 <b>تاريخ التسجيل</b> — <code>{dt}</code>",
+
+        # === Referral ===
+        "referral.title": "💚 نظام الإحالة",
+        "referral.count": "عدد الإحالات: {count}",
+        "referral.description": (
+            "📔 يتيح لك نظام الإحالة كسب المال دون أي استثمار. "
+            "شارك رابط الإحالة الخاص بك وستحصل على {percent}% من "
+            "عمليات إيداع المُحالين في رصيد البوت الخاص بك."
+        ),
+        "btn.view_referrals": "👥 إحالاتي",
+        "btn.view_earnings": "💰 أرباحي",
+
+        "referrals.list.title": "👥 إحالاتك:",
+        "referrals.list.empty": "ليس لديك إحالات نشطة بعد",
+        "referrals.item.format": "ID: {telegram_id} | الأرباح: {total_earned} {currency}",
+
+        "referral.earnings.title": "💰 الأرباح من الإحالة <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>):",
+        "referral.earnings.empty": "لا توجد أرباح من هذه الإحالة <code>{id}</code> (<a href='tg://user?id={id}'>{name}</a>) بعد",
+        "referral.earning.format": "{amount} {currency} | {date} | (من {original_amount} {currency})",
+        "referral.item.info": ("💰 رقم الربح: <code>{id}</code>\n"
+                               "👤 الإحالة: <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>)\n"
+                               "🔢 المبلغ: {amount} {currency}\n"
+                               "🕘 التاريخ: <code>{date}</code>\n"
+                               "💵 من إيداع بقيمة {original_amount} {currency}"),
+
+        "referral.admin_bonus.info": ("💰 رقم الربح: <code>{id}</code>\n"
+                                      "🎁 <b>مكافأة من المشرف</b>\n"
+                                      "🔢 المبلغ: {amount} {currency}\n"
+                                      "🕘 التاريخ: <code>{date}</code>"),
+
+        "all.earnings.title": "💰 جميع أرباح الإحالة الخاصة بك:",
+        "all.earnings.empty": "ليس لديك أرباح إحالة بعد",
+        "all.earning.format.admin": "{amount} {currency} من المشرف | {date}",
+
+        "referrals.stats.template": (
+            "📊 إحصائيات نظام الإحالة:\n\n"
+            "👥 الإحالات النشطة: {active_count}\n"
+            "💰 إجمالي الأرباح: {total_earned} {currency}\n"
+            "📈 إجمالي إيداعات الإحالات: {total_original} {currency}\n"
+            "🔢 عدد الأرباح: {earnings_count}"
+        ),
+
+        # === Admin: Main Menu ===
+        "admin.menu.main": "⛩️ قائمة الإدارة",
+        "admin.menu.shop": "🛒 إدارة المتجر",
+        "admin.menu.goods": "📦 إدارة المنتجات",
+        "admin.menu.categories": "📂 إدارة الفئات",
+        "admin.menu.users": "👥 إدارة المستخدمين",
+        "admin.menu.broadcast": "📝 الرسائل الجماعية",
+        "admin.menu.rights": "صلاحيات غير كافية",
+
+        # === Admin: User Management ===
+        "admin.users.prompt_enter_id": "👤 أدخل معرّف المستخدم لعرض / تعديل البيانات",
+        "admin.users.invalid_id": "⚠️ يرجى إدخال معرّف مستخدم رقمي صالح.",
+        "admin.users.profile_unavailable": "❌ الملف الشخصي غير متوفر (هذا المستخدم لم يكن موجودًا أبدًا)",
+        "admin.users.not_found": "❌ لم يتم العثور على المستخدم",
+        "admin.users.cannot_change_owner": "لا يمكنك تغيير دور المالك",
+        "admin.users.referrals": "👥 <b>إحالات المستخدم</b> — {count}",
+        "admin.users.btn.view_referrals": "👥 إحالات المستخدم",
+        "admin.users.btn.view_earnings": "💰 أرباح المستخدم",
+        "admin.users.role": "🎛 <b>الدور</b> — {role}",
+        "admin.users.set_admin.success": "✅ تم تعيين الدور لـ {name}",
+        "admin.users.set_admin.notify": "✅ تم منحك دور المشرف",
+        "admin.users.remove_admin.success": "✅ تم إلغاء دور المشرف من {name}",
+        "admin.users.remove_admin.notify": "❌ تم إلغاء دور المشرف الخاص بك",
+        "admin.users.bonus.prompt": "أدخل مبلغ المكافأة بـ {currency}:",
+        "admin.users.bonus.added": "✅ تم إضافة مكافأة إحالة بقيمة {amount} {currency} لـ {name}",
+        "admin.users.bonus.added.notify": "🎁 تم إضافة مكافأة إحالة بقيمة {amount} {currency} لحسابك",
+        "admin.users.bonus.invalid": "❌ مبلغ غير صالح. أدخل رقمًا من {min_amount} إلى {max_amount} {currency}.",
+
+        # === Admin: Shop Management Menu ===
+        "admin.shop.menu.title": "⛩️ إدارة المتجر",
+        "admin.shop.menu.statistics": "📊 الإحصائيات",
+        "admin.shop.menu.logs": "📁 عرض السجلات",
+        "admin.shop.menu.admins": "👮 المشرفون",
+        "admin.shop.menu.users": "👤 المستخدمون",
+
+        # === Admin: Categories Management ===
+        "admin.categories.menu.title": "⛩️ إدارة الفئات",
+        "admin.categories.add": "➕ إضافة فئة",
+        "admin.categories.rename": "✏️ إعادة تسمية فئة",
+        "admin.categories.delete": "🗑 حذف فئة",
+        "admin.categories.prompt.add": "أدخل اسم الفئة الجديدة:",
+        "admin.categories.prompt.delete": "أدخل اسم الفئة المراد حذفها:",
+        "admin.categories.prompt.rename.old": "أدخل اسم الفئة الحالية المراد إعادة تسميتها:",
+        "admin.categories.prompt.rename.new": "أدخل اسم الفئة الجديد:",
+        "admin.categories.add.exist": "❌ لم يتم إنشاء الفئة (موجودة بالفعل)",
+        "admin.categories.add.success": "✅ تم إنشاء الفئة",
+        "admin.categories.delete.not_found": "❌ لم يتم حذف الفئة (غير موجودة)",
+        "admin.categories.delete.success": "✅ تم حذف الفئة",
+        "admin.categories.rename.not_found": "❌ لا يمكن تحديث الفئة (غير موجودة)",
+        "admin.categories.rename.exist": "❌ لا يمكن إعادة التسمية (توجد فئة بهذا الاسم بالفعل)",
+        "admin.categories.rename.success": "✅ تمت إعادة تسمية الفئة \"{old}\" إلى \"{new}\"",
+
+        # === Admin: Goods / Items Management (Add / List / Item Info) ===
+        "admin.goods.add_position": "➕ إضافة منتج",
+        "admin.goods.manage_stock": "➕ إضافة بضاعة إلى المنتج",
+        "admin.goods.update_position": "📝 تعديل المنتج",
+        "admin.goods.delete_position": "❌ حذف المنتج",
+        "admin.goods.add.prompt.name": "أدخل اسم المنتج",
+        "admin.goods.add.name.exists": "❌ لا يمكن إنشاء المنتج (موجود بالفعل)",
+        "admin.goods.add.prompt.description": "أدخل وصف المنتج:",
+        "admin.goods.add.prompt.price": "أدخل سعر المنتج (رقم بـ {currency}):",
+        "admin.goods.add.price.invalid": "⚠️ سعر غير صالح. يرجى إدخال رقم.",
+        "admin.goods.add.prompt.category": "أدخل الفئة التي ينتمي إليها المنتج:",
+        "admin.goods.add.category.not_found": "❌ لا يمكن إنشاء المنتج (الفئة المدخلة غير صالحة)",
+        "admin.goods.position.not_found": "❌ لا توجد بضائع (هذا المنتج غير موجود)",
+        "admin.goods.menu.title": "⛩️ قائمة إدارة المنتجات",
+        "admin.goods.add.stock.prompt": "أدخل كمية البضائع المراد إضافتها",
+        "admin.goods.add.stock.invalid": "⚠️ قيمة كمية غير صحيحة. يرجى إدخال رقم.",
+        "admin.goods.add.stock.negative": "⚠️ قيمة كمية غير صحيحة. أدخل رقمًا موجبًا.",
+        "admin.goods.add.result.created_with_stock": "✅ تم إنشاء المنتج {item_name}، وتمت إضافة {stock_quantity} إلى كمية البضائع.",
+
+        # === Admin: Goods / Items Update Flow ===
+        "admin.goods.update.position.invalid": "المنتج غير موجود.",
+        "admin.goods.update.position.exists": "يوجد منتج بهذا الاسم بالفعل.",
+        "admin.goods.update.prompt.name": "أدخل اسم المنتج",
+        "admin.goods.update.not_exists": "❌ لا يمكن تحديث المنتج (غير موجود)",
+        "admin.goods.update.prompt.new_name": "أدخل اسم المنتج الجديد:",
+        "admin.goods.update.prompt.description": "أدخل وصف المنتج:",
+        "admin.goods.update.success": "✅ تم تحديث المنتج",
+
+        # === Admin: Goods / Items Delete Flow ===
+        "admin.goods.delete.prompt.name": "أدخل اسم المنتج",
+        "admin.goods.delete.position.not_found": "❌ لم يتم حذف المنتج (غير موجود)",
+        "admin.goods.delete.position.success": "✅ تم حذف المنتج",
+
+        # === Admin: Item Info ===
+        "admin.goods.view_stock": "عرض المنتجات",
+
+        # === Admin: Logs ===
+        "admin.shop.logs.caption": "سجلات البوت",
+        "admin.shop.logs.empty": "❗️ لا توجد سجلات بعد",
+
+        # === Group Notifications ===
+        "shop.group.new_upload": "مخزون جديد",
+        "shop.group.item": "المنتج",
+        "shop.group.stock": "الكمية",
+
+        # === Admin: Statistics ===
+        "admin.shop.stats.template": (
+            "إحصائيات المتجر:\n"
+            "➖➖➖➖➖➖➖➖➖➖➖➖➖\n"
+            "<b>◽المستخدمون</b>\n"
+            "◾️المستخدمون في آخر 24 ساعة: {today_users}\n"
+            "◾️إجمالي المشرفين: {admins}\n"
+            "◾️إجمالي المستخدمين: {users}\n"
+            "➖➖➖➖➖➖➖➖➖➖➖➖➖\n"
+            "◽<b>متنوع</b>\n"
+            "◾المنتجات: {items} قطعة\n"
+            "◾العناصر: {goods} قطعة\n"
+            "◾الفئات: {categories} قطعة\n"
+        ),
+
+        # === Admin: Lists & Broadcast ===
+        "admin.shop.admins.title": "👮 مشرفو البوت:",
+        "admin.shop.users.title": "مستخدمو البوت:",
+        "broadcast.prompt": "أرسل رسالة للبث:",
+        "broadcast.creating": "📤 بدء البث...\n👥 إجمالي المستخدمين: {ids}",
+        "broadcast.progress": (
+            "📤 البث جارٍ...\n\n\n"
+            "📊 التقدم: {progress:.1f}%{n}"
+            "✅ تم الإرسال: {sent}/{total}\n"
+            "❌ الأخطاء: {failed}\n"
+            "⏱ الوقت المنقضي: {time} ثانية"),
+        "broadcast.done": (
+            "✅ اكتمل البث!\n\n"
+            "📊 الإحصائيات:📊\n"
+            "👥 الإجمالي: {total}\n"
+            "✅ تم التسليم: {sent}\n"
+            "❌ لم يتم التسليم: {failed}\n"
+            "🚫 حظر البوت: ~{blocked}\n"
+            "📈 معدل النجاح: {success}%\n"
+            "⏱ الوقت: {duration} ثانية"
+        ),
+        "broadcast.cancel": "❌ تم إلغاء البث.",
+        "broadcast.warning": "لا يوجد بث نشط",
+
+        # === Shop Browsing (Categories / Goods / Item Page) ===
+        "shop.categories.title": "🏪 فئات المتجر",
+        "shop.goods.choose": "🏪 اختر منتجًا",
+        "shop.item.not_found": "المنتج غير موجود",
+        "shop.item.title": "🏪 المنتج {name}",
+        "shop.item.description": "الوصف: {description}",
+        "shop.item.price": "السعر — {amount} {currency}",
+        "shop.item.quantity_unlimited": "الكمية — غير محدودة",
+        "shop.item.quantity_left": "الكمية — {count} قطعة",
+        "shop.item.quantity_detailed": "📦 إجمالي المخزون: {total} قطعة\n🔒 محجوز: {reserved} قطعة\n✅ متاح للطلب: {available} قطعة",
+
+        # === Purchases ===
+        "purchases.title": "المشتريات:",
+        "purchases.pagination.invalid": "بيانات التصفح غير صالحة",
+        "purchases.item.not_found": "لم يتم العثور على عملية الشراء",
+        "purchases.item.name": "<b>🧾 المنتج</b>: <code>{name}</code>",
+        "purchases.item.price": "<b>💵 السعر</b>: <code>{amount}</code> {currency}",
+        "purchases.item.datetime": "<b>🕒 تاريخ الشراء</b>: <code>{dt}</code>",
+        "purchases.item.unique_id": "<b>🧾 المعرّف الفريد</b>: <code>{uid}</code>",
+        "purchases.item.value": "<b>🔑 القيمة</b>:\n<code>{value}</code>",
+
+        # === Middleware ===
+        "middleware.ban": "⏳ أنت محظور مؤقتًا. انتظر {time} ثانية.",
+        "middleware.above_limits": "⚠️ طلبات كثيرة جدًا! أنت محظور مؤقتًا.",
+        "middleware.waiting": "⏳ انتظر {time} ثانية قبل الإجراء التالي.",
+        "middleware.security.session_outdated": "⚠️ انتهت صلاحية الجلسة. يرجى البدء من جديد.",
+        "middleware.security.invalid_data": "❌ بيانات غير صالحة",
+        "middleware.security.blocked": "❌ تم حظر الوصول",
+        "middleware.security.not_admin": "⛔ صلاحيات غير كافية",
+        "middleware.security.banned": "⛔ <b>تم حظرك</b>\n\nالسبب: {reason}",
+        "middleware.security.banned_no_reason": "⛔ <b>تم حظرك</b>\n\nيرجى التواصل مع المشرف للحصول على مزيد من المعلومات.",
+        "middleware.security.rate_limit": "⚠️ طلبات كثيرة جدًا! يرجى الانتظار قليلاً.",
+
+        # === Errors ===
+        "errors.not_subscribed": "أنت غير مشترك",
+        "errors.pagination_invalid": "بيانات التصفح غير صالحة",
+        "errors.invalid_data": "❌ بيانات غير صالحة",
+        "errors.channel.telegram_not_found": "لا أستطيع الكتابة في القناة. أضفني كمشرف في قناة التحميلات @{channel} مع صلاحية نشر الرسائل.",
+        "errors.channel.telegram_forbidden_error": "القناة غير موجودة. تحقق من اسم مستخدم القناة للتحميلات @{channel}.",
+        "errors.channel.telegram_bad_request": "فشل الإرسال إلى قناة التحميلات: {e}",
+
+        # === Orders ===
+        "order.payment_method.choose": "💳 اختر طريقة الدفع:",
+        "order.payment_method.bitcoin": "💳 Bitcoin",
+        "order.payment_method.cash": "💵 الدفع عند الاستلام",
+        "order.status.notify_order_confirmed": (
+            "تم تأكيد الطلب {order_code}! 🎉\n\n"
+            "سيتم تسليم طلبك في: {delivery_time}\n\n"
+            "المنتجات:\n{items}\n\n"
+            "الإجمالي: {total}\n\n"
+            "انتظر التسليم!"
+        ),
+        "order.status.notify_order_delivered": (
+            "تم تسليم الطلب {order_code}! ✅\n\n"
+            "شكرًا لشرائك! نتطلع لرؤيتك مجددًا! 🙏"
+        ),
+        "order.status.notify_order_modified": (
+            "تم تعديل الطلب {order_code} من قبل المشرف 📝\n\n"
+            "التغييرات:\n{changes}\n\n"
+            "الإجمالي الجديد: {total}"
+        ),
+
+        # === Additional Common Buttons ===
+        "btn.cart": "🛒 سلة المشتريات",
+        "btn.my_orders": "📦 طلباتي",
+        "btn.reference_codes": "🔑 رموز الإحالة",
+        "btn.settings": "⚙️ الإعدادات",
+        "btn.referral_bonus_percent": "💰 نسبة مكافأة الإحالة",
+        "btn.order_timeout": "⏱️ مهلة الطلب",
+        "btn.timezone": "🌍 المنطقة الزمنية",
+        "btn.skip": "⏭️ تخطي",
+        "btn.use_saved_info": "✅ استخدام المعلومات المحفوظة",
+        "btn.update_info": "✏️ تحديث المعلومات",
+        "btn.back_to_cart": "◀️ العودة إلى السلة",
+        "btn.clear_cart": "🗑️ تفريغ السلة",
+        "btn.proceed_checkout": "💳 متابعة الدفع",
+        "btn.remove_item": "❌ إزالة {item_name}",
+        "btn.use_all_bonus": "استخدام الكل ${amount}",
+        "btn.apply_bonus_yes": "✅ نعم، تطبيق المكافأة",
+        "btn.apply_bonus_no": "❌ لا، حفظها لاحقًا",
+        "btn.cancel": "❌ إلغاء",
+        "btn.add_to_cart": "🛒 إضافة إلى السلة",
+
+        # === Cart Management ===
+        "cart.add_success": "✅ تمت إضافة {item_name} إلى السلة!",
+        "cart.add_error": "❌ {message}",
+        "cart.empty": "🛒 سلتك فارغة.\n\nتصفح المتجر لإضافة منتجات!",
+        "cart.title": "🛒 <b>سلة مشترياتك</b>\n\n",
+        "cart.removed_success": "تمت إزالة المنتج من السلة",
+        "cart.cleared_success": "✅ تم تفريغ السلة بنجاح!",
+        "cart.empty_alert": "السلة فارغة!",
+        "cart.summary_title": "📦 <b>ملخص الطلب</b>\n\n",
+        "cart.saved_delivery_info": "معلومات التوصيل المحفوظة:\n\n",
+        "cart.delivery_address": "📍 العنوان: {address}\n",
+        "cart.delivery_phone": "📞 الهاتف: {phone}\n",
+        "cart.delivery_note": "📝 ملاحظة: {note}\n",
+        "cart.use_info_question": "\n\nهل تريد استخدام هذه المعلومات أم تحديثها؟",
+        "cart.no_saved_info": "❌ لم يتم العثور على معلومات توصيل محفوظة. يرجى الإدخال يدويًا.",
+
+        # === Order/Delivery Flow ===
+        "order.delivery.address_prompt": "📍 يرجى إدخال عنوان التوصيل:",
+        "order.delivery.address_invalid": "❌ يرجى تقديم عنوان توصيل صالح (5 أحرف على الأقل).",
+        "order.delivery.phone_prompt": "📞 يرجى إدخال رقم هاتفك (مع رمز الدولة):",
+        "order.delivery.phone_invalid": "❌ يرجى تقديم رقم هاتف صالح (8 أرقام على الأقل).",
+        "order.delivery.note_prompt": "📝 هل لديك تعليمات توصيل خاصة؟ (اختياري)\n\nيمكنك تخطي ذلك بالنقر على الزر أدناه.",
+        "order.delivery.info_save_error": "❌ خطأ في حفظ معلومات التوصيل. يرجى المحاولة مرة أخرى.",
+
+        # GPS Location (Card 2)
+        "order.delivery.location_prompt": "📍 هل تريد مشاركة موقع GPS لتوصيل أكثر دقة؟\n\nانقر على الزر أدناه أو تخطَّ هذه الخطوة.",
+        "order.delivery.location_saved": "✅ تم حفظ الموقع!",
+        "btn.share_location": "📍 مشاركة الموقع",
+        "btn.skip_location": "⏭ تخطي",
+
+        # Delivery Type (Card 3)
+        "order.delivery.type_prompt": "🚚 اختر نوع التوصيل:",
+        "btn.delivery.door": "🚪 توصيل إلى الباب",
+        "btn.delivery.dead_drop": "📦 ترك في الموقع",
+        "btn.delivery.pickup": "🏪 استلام ذاتي",
+        "order.delivery.drop_instructions_prompt": "📝 صف مكان ترك طلبك (مثلاً، 'مع حارس الأمن في الردهة'، 'تحت السجادة عند الغرفة 405'):",
+        "order.delivery.drop_photo_prompt": "📸 هل تريد إرسال صورة لموقع التسليم؟ (اختياري)",
+        "order.delivery.drop_photo_saved": "✅ تم حفظ صورة موقع التسليم!",
+        "btn.skip_drop_photo": "⏭ تخطي الصورة",
+
+        # PromptPay (Card 1)
+        "order.payment_method.promptpay": "💳 PromptPay QR",
+        "order.payment.promptpay.title": "💳 <b>الدفع عبر PromptPay</b>",
+        "order.payment.promptpay.scan": "📱 امسح رمز QR للدفع:",
+        "order.payment.promptpay.upload_receipt": "📸 بعد الدفع، يرجى تحميل إيصال الدفع:",
+        "order.payment.promptpay.receipt_received": "✅ تم استلام الإيصال! في انتظار التحقق من المشرف.",
+        "order.payment.promptpay.receipt_invalid": "❌ يرجى إرسال صورة لإيصال الدفع.",
+        "admin.order.verify_payment": "✅ التحقق من الدفع",
+        "admin.order.payment_verified": "✅ تم التحقق من الدفع",
+
+        # Delivery Chat (Card 13)
+        "order.delivery.chat_unavailable": "❌ الدردشة مع السائق غير متاحة. مجموعة السائقين غير مهيأة.",
+        "order.delivery.chat_started": "💬 يمكنك مراسلة السائق. أرسل نصًا أو صورة أو موقعًا.\n\nأرسل /endchat لإنهاء الدردشة.",
+        "order.delivery.live_location_shared": "📍 السائق يشارك الموقع المباشر! يمكنك تتبع التوصيل.",
+        "order.delivery.chat_no_active_delivery": "❌ ليس لديك توصيلات نشطة للدردشة.",
+        "order.delivery.chat_ended": "✅ تم إنهاء الدردشة مع السائق.",
+        "order.delivery.chat_message_sent": "✅ تم إرسال الرسالة إلى السائق.",
+        "order.delivery.driver_no_active_order": "⚠️ لا يوجد طلب نشط لإعادة توجيه هذه الرسالة.",
+        "btn.chat_with_driver": "💬 الدردشة مع السائق",
+        "btn.end_chat": "❌ إنهاء الدردشة",
+
+        # === Bonus/Referral Application ===
+        "order.bonus.available": "💰 <b>لديك ${bonus_balance} في مكافآت الإحالة!</b>\n\n",
+        "order.bonus.apply_question": "هل تريد تطبيق مكافأة الإحالة على هذا الطلب؟",
+        "order.bonus.amount_positive_error": "❌ يرجى إدخال مبلغ موجب.",
+        "order.bonus.amount_too_high": "❌ المبلغ كبير جدًا. الحد الأقصى المطبق: ${max_applicable}\nيرجى إدخال مبلغ صالح:",
+        "order.bonus.invalid_amount": "❌ مبلغ غير صالح. يرجى إدخال رقم (مثلاً، 5.50):",
+        "order.bonus.insufficient": "❌ رصيد المكافأة غير كافٍ. يرجى المحاولة مرة أخرى.",
+        "order.bonus.enter_amount": "أدخل مبلغ المكافأة الذي تريد تطبيقه (الحد الأقصى ${max_applicable}):\n\nأو استخدم جميع المكافآت المتاحة بالنقر على الزر أدناه.",
+
+        # === Payment Instructions ===
+        "order.payment.system_unavailable": "❌ <b>نظام الدفع غير متاح مؤقتًا</b>\n\nلا تتوفر عناوين Bitcoin. يرجى التواصل مع الدعم.",
+        "order.payment.customer_not_found": "❌ لم يتم العثور على معلومات العميل. يرجى المحاولة مرة أخرى.",
+        "order.payment.creation_error": "❌ خطأ في إنشاء الطلبات. يرجى المحاولة مرة أخرى أو التواصل مع الدعم.",
+
+        # === Order Summary/Total ===
+        "order.summary.title": "📦 <b>ملخص الطلب</b>\n\n",
+        "order.summary.cart_total": "إجمالي السلة: ${cart_total}",
+        "order.summary.bonus_applied": "المكافأة المطبقة: -${bonus_applied}",
+        "order.summary.final_amount": "المبلغ النهائي: ${final_amount}",
+
+        # === Inventory/Reservation ===
+        "order.inventory.unable_to_reserve": "❌ <b>تعذر حجز المنتجات</b>\n\nالمنتجات التالية غير متوفرة بالكميات المطلوبة:\n\n{unavailable_items}\n\nيرجى تعديل سلتك والمحاولة مرة أخرى.",
+
+        # === My Orders View ===
+        "myorders.title": "📦 <b>طلباتي</b>\n\n",
+        "myorders.total": "إجمالي الطلبات: {count}",
+        "myorders.active": "⏳ الطلبات النشطة: {count}",
+        "myorders.delivered": "✅ تم التسليم: {count}",
+        "myorders.select_category": "اختر فئة لعرض الطلبات:",
+        "myorders.active_orders": "⏳ الطلبات النشطة",
+        "myorders.delivered_orders": "✅ الطلبات المسلّمة",
+        "myorders.all_orders": "📋 جميع الطلبات",
+        "myorders.no_orders_yet": "لم تقم بأي طلبات بعد.\n\nتصفح المتجر لبدء التسوق!",
+        "myorders.browse_shop": "🛍️ الذهاب إلى المتجر",
+        "myorders.back": "◀️ رجوع",
+        "myorders.all_title": "📋 جميع الطلبات",
+        "myorders.active_title": "⏳ الطلبات النشطة",
+        "myorders.delivered_title": "✅ الطلبات المسلّمة",
+        "myorders.invalid_filter": "فلتر غير صالح",
+        "myorders.not_found": "لم يتم العثور على طلبات.",
+        "myorders.back_to_menu": "◀️ العودة إلى قائمة الطلبات",
+        "myorders.select_details": "اختر طلبًا لعرض التفاصيل:",
+        "myorders.order_not_found": "لم يتم العثور على الطلب",
+
+        # === Order Details Display ===
+        "myorders.detail.title": "📦 <b>تفاصيل الطلب #{order_code}</b>\n\n",
+        "myorders.detail.status": "📊 <b>الحالة:</b> {status}\n",
+        "myorders.detail.subtotal": "💵 <b>المجموع الفرعي:</b> ${subtotal}\n",
+        "myorders.detail.bonus_applied": "🎁 <b>المكافأة المطبقة:</b> ${bonus}\n",
+        "myorders.detail.final_price": "💰 <b>السعر النهائي:</b> ${total}\n",
+        "myorders.detail.total_price": "💰 <b>السعر الإجمالي:</b> ${total}\n",
+        "myorders.detail.payment_method": "💳 <b>طريقة الدفع:</b> {method}\n",
+        "myorders.detail.ordered": "📅 <b>تاريخ الطلب:</b> {date}\n",
+        "myorders.detail.delivery_time": "🚚 <b>التسليم المجدول:</b> {time}\n",
+        "myorders.detail.completed": "✅ <b>مكتمل:</b> {date}\n",
+        "myorders.detail.items": "\n📦 <b>المنتجات:</b>\n{items}\n",
+        "myorders.detail.delivery_info": "\n📍 <b>معلومات التوصيل:</b>\n{address}\n{phone}\n{note}",
+
+        # === Help System ===
+        "help.prompt": "📧 <b>هل تحتاج مساعدة؟</b>\n\n",
+        "help.describe_issue": "يرجى وصف مشكلتك أو سؤالك، وسيتم إرساله مباشرة إلى المشرف.\n\nاكتب رسالتك أدناه:",
+        "help.admin_not_configured": "❌ عذرًا، لم يتم تهيئة جهة اتصال المشرف. يرجى المحاولة لاحقًا.",
+        "help.admin_notification_title": "📧 <b>طلب مساعدة جديد</b>\n\n",
+        "help.admin_notification_from": "<b>من:</b> @{username} (ID: {user_id})\n",
+        "help.admin_notification_message": "<b>الرسالة:</b>\n{message}",
+        "help.sent_success": "✅ {auto_message}",
+        "help.sent_error": "❌ فشل إرسال الرسالة إلى المشرف: {error}\n\nيرجى المحاولة لاحقًا.",
+        "help.cancelled": "تم إلغاء طلب المساعدة.",
+
+        # === Admin Order Notifications ===
+        "admin.order.action_required_title": "⏳ <b>إجراء مطلوب:</b>",
+        "admin.order.address_label": "العنوان: {address}",
+        "admin.order.amount_to_collect_label": "<b>المبلغ المطلوب تحصيله: ${amount} {currency}</b>",
+        "admin.order.amount_to_receive_label": "<b>المبلغ المطلوب استلامه: ${amount} {currency}</b>",
+        "admin.order.awaiting_payment_status": "⏳ في انتظار تأكيد الدفع...",
+        "admin.order.bitcoin_address_label": "عنوان Bitcoin: <code>{address}</code>",
+        "admin.order.bonus_applied_label": "المكافأة المطبقة: <b>-${amount}</b>",
+        "admin.order.customer_label": "العميل: {username} (ID: {id})",
+        "admin.order.delivery_info_title": "<b>معلومات التوصيل:</b>",
+        "admin.order.items_title": "<b>المنتجات:</b>",
+        "admin.order.new_bitcoin_order": "🔔 <b>طلب Bitcoin جديد مستلم</b>",
+        "admin.order.new_cash_order": "🔔 <b>طلب نقدي جديد مستلم</b> 💵",
+        "admin.order.note_label": "ملاحظة: {note}",
+        "admin.order.order_label": "الطلب: <b>{code}</b>",
+        "admin.order.payment_cash": "الدفع عند الاستلام",
+        "admin.order.payment_method_label": "طريقة الدفع: <b>{method}</b>",
+        "admin.order.phone_label": "الهاتف: {phone}",
+        "admin.order.subtotal_label": "المجموع الفرعي: <b>${amount} {currency}</b>",
+        "admin.order.use_cli_confirm": "استخدم CLI لتأكيد الطلب وتحديد وقت التسليم:\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time \"YYYY-MM-DD HH:MM\"</code>",
+        "btn.admin.back_to_panel": "🔙 العودة إلى لوحة الإدارة",
+        "btn.admin.create_refcode": "➕ إنشاء رمز إحالة",
+        "btn.admin.list_refcodes": "📋 قائمة جميع الرموز",
+        "btn.back_to_orders": "◀️ العودة إلى الطلبات",
+        "btn.create_reference_code": "➕ إنشاء رمز إحالة",
+        "btn.my_reference_codes": "🔑 رموز الإحالة الخاصة بي",
+        "btn.need_help": "❓ هل تحتاج مساعدة؟",
+        "cart.item.price_format": "  السعر: {price} {currency} × {quantity}",
+        "cart.item.subtotal_format": "  المجموع الفرعي: {subtotal} {currency}",
+        "cart.total_format": "<b>الإجمالي: {total} {currency}</b>",
+        "help.pending_order.contact_support": "استخدم الأمر /help للتواصل مع الدعم.",
+        "help.pending_order.issues_title": "<b>هل تواجه مشاكل؟</b>",
+        "help.pending_order.status": "طلبك في انتظار الدفع حاليًا.",
+        "help.pending_order.step1": "1. أرسل المبلغ المحدد إلى عنوان Bitcoin المعروض",
+        "help.pending_order.step2": "2. انتظر تأكيد البلوكتشين (عادةً 10-60 دقيقة)",
+        "help.pending_order.step3": "3. سيؤكد المشرف دفعتك ويحدد وقت التسليم",
+        "help.pending_order.step4": "4. سيتم تسليم بضائعك بواسطة المندوب.",
+        "help.pending_order.title": "❓ <b>هل تحتاج مساعدة في طلبك؟</b>",
+        "help.pending_order.what_to_do_title": "<b>ما يجب فعله:</b>",
+        "myorders.detail.bitcoin_address_label": "عنوان Bitcoin:",
+        "myorders.detail.bitcoin_admin_confirm": "بعد الدفع، سيؤكد المشرف طلبك.",
+        "myorders.detail.bitcoin_send_instruction": "⚠️ يرجى إرسال <b>{amount} {currency}</b> من Bitcoin إلى هذا العنوان.",
+        "myorders.detail.cash_awaiting_confirm": "طلبك في انتظار تأكيد المشرف.",
+        "myorders.detail.cash_payment_courier": "سيتم الدفع للمندوب عند التسليم.",
+        "myorders.detail.cash_title": "💵 الدفع عند الاستلام",
+        "myorders.detail.cash_will_notify": "سيتم إعلامك عندما يتم تأكيد طلبك وتحديد وقت التسليم.",
+        "myorders.detail.confirmed_title": "✅ <b>تم تأكيد الطلب!</b>",
+        "myorders.detail.delivered_thanks_message": "شكرًا لشرائك! نأمل أن نراك مجددًا! 🙏",
+        "myorders.detail.delivered_title": "📦 <b>تم تسليم الطلب!</b>",
+        "myorders.detail.payment_info_title": "<b>معلومات الدفع:</b>",
+        "myorders.detail.preparing_message": "يتم تحضير طلبك للتسليم.",
+        "myorders.detail.scheduled_delivery_label": "التسليم المجدول: <b>{time}</b>",
+        "myorders.order_summary_format": "{status_emoji} {code} - {items_count} منتجات - {total} {currency}",
+        "order.bonus.available_label": "المكافأة المتاحة: <b>${amount}</b>",
+        "order.bonus.choose_amount_hint": "يمكنك اختيار المبلغ المراد استخدامه (حتى ${max_amount})",
+        "order.bonus.enter_amount_title": "💵 <b>أدخل مبلغ المكافأة للتطبيق</b>",
+        "order.bonus.max_applicable_label": "الحد الأقصى المطبق: <b>${amount}</b>",
+        "order.bonus.order_total_label": "إجمالي الطلب: <b>${amount} {currency}</b>",
+        "order.info.view_status_hint": "💡 يمكنك عرض حالة طلبك في أي وقت باستخدام الأمر /orders.",
+        "order.payment.bitcoin.address_title": "<b>عنوان الدفع بـ Bitcoin:</b>",
+        "order.payment.bitcoin.admin_confirm": "• بعد الدفع، سيؤكد المشرف طلبك",
+        "order.payment.bitcoin.delivery_title": "<b>التوصيل:</b>",
+        "order.payment.bitcoin.important_title": "⚠️ <b>مهم:</b>",
+        "order.payment.bitcoin.items_title": "<b>المنتجات:</b>",
+        "order.payment.bitcoin.need_help": "هل تحتاج مساعدة؟ استخدم /help للتواصل مع الدعم.",
+        "order.payment.bitcoin.one_time_address": "• هذا العنوان للاستخدام مرة واحدة فقط",
+        "order.payment.bitcoin.order_code": "الطلب: <b>{code}</b>",
+        "order.payment.bitcoin.send_exact": "• أرسل المبلغ المحدد المعروض أعلاه",
+        "order.payment.bitcoin.title": "💳 <b>تعليمات الدفع بـ Bitcoin</b>",
+        "order.payment.bitcoin.total_amount": "المبلغ الإجمالي: <b>{amount} {currency}</b>",
+        "order.payment.cash.admin_contact": "سيتواصل معك المشرف قريبًا.",
+        "order.payment.cash.after_confirm": "بعد التأكيد، سيتم إعلامك بوقت التسليم.",
+        "order.payment.cash.created": "تم إنشاء طلبك {code} وهو في انتظار تأكيد المشرف.",
+        "order.payment.cash.important": "⏳ <b>مهم:</b> الطلب محجوز لفترة محدودة.",
+        "order.payment.cash.items_title": "المنتجات:",
+        "order.payment.cash.payment_to_courier": "سيتم الدفع للمندوب عند التسليم.",
+        "order.payment.cash.title": "💵 <b>الدفع عند الاستلام</b>",
+        "order.payment.cash.total": "الإجمالي: {amount}",
+        "order.payment.error_general": "❌ خطأ في إنشاء الطلب. يرجى المحاولة مرة أخرى أو التواصل مع الدعم.",
+        "order.summary.total_label": "<b>الإجمالي: {amount} {currency}</b>",
+        "order.payment.bonus_applied_label": "المكافأة المطبقة: <b>-{amount} {currency}</b>",
+        "order.payment.cash.amount_with_bonus": "<b>المبلغ المطلوب دفعه عند التسليم: {amount} {currency}</b>",
+        "order.payment.cash.total_label": "<b>إجمالي المبلغ عند التسليم: {amount} {currency}</b>",
+        "order.payment.final_amount_label": "<b>المبلغ النهائي للدفع: {amount} {currency}</b>",
+        "order.payment.order_label": "📋 <b>الطلب: {code}</b>",
+        "order.payment.subtotal_label": "المجموع الفرعي: <b>{amount} {currency}</b>",
+        "order.payment.total_amount_label": "<b>المبلغ الإجمالي: {amount} {currency}</b>",
+    },
+
+    "fa": {
+        # === Common Buttons ===
+        "btn.shop": "🏪 فروشگاه",
+        "btn.rules": "📜 قوانین",
+        "btn.profile": "👤 پروفایل",
+        "btn.support": "🆘 پشتیبانی",
+        "btn.channel": "ℹ کانال اخبار",
+        "btn.admin_menu": "🎛 پنل مدیریت",
+        "btn.back": "⬅️ بازگشت",
+        "btn.close": "✖ بستن",
+        "btn.yes": "✅ بله",
+        "btn.no": "❌ خیر",
+        "btn.check_subscription": "🔄 بررسی عضویت",
+        "btn.admin.ban_user": "🚫 مسدود کردن کاربر",
+        "btn.admin.unban_user": "✅ رفع مسدودیت کاربر",
+
+        # === Admin Buttons (user management shortcuts) ===
+        "btn.admin.promote": "⬆️ ارتقا به مدیر",
+        "btn.admin.demote": "⬇️ حذف مدیریت",
+        "btn.admin.add_user_bonus": "🎁 افزودن پاداش معرفی",
+
+        # === Titles / Generic Texts ===
+        "menu.title": "⛩️ منوی اصلی",
+        "admin.goods.add.stock.error": "❌ خطا در افزودن موجودی اولیه: {error}",
+        "admin.goods.stock.add_success": "✅ {quantity} واحد به \"{item}\" اضافه شد",
+        "admin.goods.stock.add_units": "➕ افزودن واحد",
+        "admin.goods.stock.current_status": "وضعیت فعلی",
+        "admin.goods.stock.error": "❌ خطا در مدیریت موجودی: {error}",
+        "admin.goods.stock.insufficient": "❌ موجودی کافی نیست. فقط {available} واحد موجود است.",
+        "admin.goods.stock.invalid_quantity": "⚠️ تعداد نامعتبر. یک عدد صحیح وارد کنید.",
+        "admin.goods.stock.management_title": "مدیریت موجودی: {item}",
+        "admin.goods.stock.negative_quantity": "⚠️ تعداد نمی‌تواند منفی باشد.",
+        "admin.goods.stock.no_products": "❌ هنوز محصولی در فروشگاه وجود ندارد",
+        "admin.goods.stock.prompt.add_units": "تعداد واحدهایی که می‌خواهید اضافه کنید را وارد کنید:",
+        "admin.goods.stock.prompt.item_name": "نام محصول را برای مدیریت موجودی وارد کنید:",
+        "admin.goods.stock.prompt.remove_units": "تعداد واحدهایی که می‌خواهید حذف کنید را وارد کنید:",
+        "admin.goods.stock.prompt.set_exact": "مقدار دقیق موجودی را وارد کنید:",
+        "admin.goods.stock.redirect_message": "ℹ️ مدیریت موجودی اکنون از طریق منوی \"مدیریت موجودی\" در دسترس است",
+        "admin.goods.stock.remove_success": "✅ {quantity} واحد از \"{item}\" حذف شد",
+        "admin.goods.stock.remove_units": "➖ حذف واحد",
+        "admin.goods.stock.select_action": "عملیات را انتخاب کنید",
+        "admin.goods.stock.set_exact": "⚖️ تنظیم مقدار دقیق",
+        "admin.goods.stock.set_success": "✅ موجودی \"{item}\" به {quantity} واحد تنظیم شد",
+        "admin.goods.stock.status_title": "📊 وضعیت موجودی:",
+        "errors.invalid_item_name": "❌ نام محصول نامعتبر است",
+        "profile.caption": "👤 <b>پروفایل</b> — <a href='tg://user?id={id}'>{name}</a>",
+        "rules.not_set": "❌ قوانین هنوز اضافه نشده‌اند",
+        "admin.users.cannot_ban_owner": "❌ امکان مسدود کردن مالک وجود ندارد",
+        "admin.users.ban.success": "✅ کاربر {name} با موفقیت مسدود شد",
+        "admin.users.ban.failed": "❌ مسدود کردن کاربر ناموفق بود",
+        "admin.users.ban.notify": "⛔ شما توسط مدیر مسدود شدید",
+        "admin.users.unban.success": "✅ مسدودیت کاربر {name} با موفقیت رفع شد",
+        "admin.users.unban.failed": "❌ رفع مسدودیت کاربر ناموفق بود",
+        "admin.users.unban.notify": "✅ مسدودیت شما توسط مدیر رفع شد",
+
+        # === Profile ===
+        "btn.referral": "🎲 سیستم معرفی",
+        "btn.purchased": "🎁 خریدهای انجام شده",
+        "profile.referral_id": "👤 <b>معرفی</b> — <code>{id}</code>",
+
+        # === Subscription Flow ===
+        "subscribe.prompt": "ابتدا در کانال اخبار عضو شوید",
+
+        # === Profile Info Lines ===
+        "profile.id": "🆔 <b>ID</b> — <code>{id}</code>",
+        "profile.bonus_balance": "💰 <b>پاداش معرفی:</b> ${bonus_balance}",
+        "profile.purchased_count": "🎁 <b>محصولات خریداری شده</b> — {count} عدد",
+        "profile.registration_date": "🕢 <b>تاریخ ثبت‌نام</b> — <code>{dt}</code>",
+
+        # === Referral ===
+        "referral.title": "💚 سیستم معرفی",
+        "referral.count": "تعداد معرفی‌ها: {count}",
+        "referral.description": (
+            "📔 سیستم معرفی به شما امکان کسب درآمد بدون هیچ سرمایه‌گذاری را می‌دهد. "
+            "لینک معرفی خود را به اشتراک بگذارید و {percent}% از "
+            "شارژهای معرفی‌شدگان خود را در موجودی ربات دریافت کنید."
+        ),
+        "btn.view_referrals": "👥 معرفی‌شدگان من",
+        "btn.view_earnings": "💰 درآمدهای من",
+
+        "referrals.list.title": "👥 معرفی‌شدگان شما:",
+        "referrals.list.empty": "شما هنوز معرفی‌شده فعالی ندارید",
+        "referrals.item.format": "ID: {telegram_id} | درآمد: {total_earned} {currency}",
+
+        "referral.earnings.title": "💰 درآمد از معرفی‌شده <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>):",
+        "referral.earnings.empty": "هنوز درآمدی از این معرفی‌شده <code>{id}</code> (<a href='tg://user?id={id}'>{name}</a>) وجود ندارد",
+        "referral.earning.format": "{amount} {currency} | {date} | (از {original_amount} {currency})",
+        "referral.item.info": ("💰 شماره درآمد: <code>{id}</code>\n"
+                               "👤 معرفی‌شده: <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>)\n"
+                               "🔢 مبلغ: {amount} {currency}\n"
+                               "🕘 تاریخ: <code>{date}</code>\n"
+                               "💵 از واریز به مبلغ {original_amount} {currency}"),
+
+        "referral.admin_bonus.info": ("💰 شماره درآمد: <code>{id}</code>\n"
+                                      "🎁 <b>پاداش از مدیر</b>\n"
+                                      "🔢 مبلغ: {amount} {currency}\n"
+                                      "🕘 تاریخ: <code>{date}</code>"),
+
+        "all.earnings.title": "💰 تمام درآمدهای معرفی شما:",
+        "all.earnings.empty": "شما هنوز درآمد معرفی ندارید",
+        "all.earning.format.admin": "{amount} {currency} از مدیر | {date}",
+
+        "referrals.stats.template": (
+            "📊 آمار سیستم معرفی:\n\n"
+            "👥 معرفی‌شدگان فعال: {active_count}\n"
+            "💰 کل درآمد: {total_earned} {currency}\n"
+            "📈 کل شارژهای معرفی‌شدگان: {total_original} {currency}\n"
+            "🔢 تعداد درآمدها: {earnings_count}"
+        ),
+
+        # === Admin: Main Menu ===
+        "admin.menu.main": "⛩️ منوی مدیریت",
+        "admin.menu.shop": "🛒 مدیریت فروشگاه",
+        "admin.menu.goods": "📦 مدیریت محصولات",
+        "admin.menu.categories": "📂 مدیریت دسته‌بندی‌ها",
+        "admin.menu.users": "👥 مدیریت کاربران",
+        "admin.menu.broadcast": "📝 ارسال همگانی",
+        "admin.menu.rights": "دسترسی کافی نیست",
+
+        # === Admin: User Management ===
+        "admin.users.prompt_enter_id": "👤 شناسه کاربر را برای مشاهده / ویرایش اطلاعات وارد کنید",
+        "admin.users.invalid_id": "⚠️ لطفاً یک شناسه کاربری عددی معتبر وارد کنید.",
+        "admin.users.profile_unavailable": "❌ پروفایل در دسترس نیست (چنین کاربری هرگز وجود نداشته است)",
+        "admin.users.not_found": "❌ کاربر یافت نشد",
+        "admin.users.cannot_change_owner": "امکان تغییر نقش مالک وجود ندارد",
+        "admin.users.referrals": "👥 <b>معرفی‌شدگان کاربر</b> — {count}",
+        "admin.users.btn.view_referrals": "👥 معرفی‌شدگان کاربر",
+        "admin.users.btn.view_earnings": "💰 درآمدهای کاربر",
+        "admin.users.role": "🎛 <b>نقش</b> — {role}",
+        "admin.users.set_admin.success": "✅ نقش به {name} اختصاص داده شد",
+        "admin.users.set_admin.notify": "✅ نقش مدیر به شما اعطا شد",
+        "admin.users.remove_admin.success": "✅ نقش مدیر از {name} لغو شد",
+        "admin.users.remove_admin.notify": "❌ نقش مدیر شما لغو شد",
+        "admin.users.bonus.prompt": "مبلغ پاداش را به {currency} وارد کنید:",
+        "admin.users.bonus.added": "✅ پاداش معرفی {name} به مبلغ {amount} {currency} شارژ شد",
+        "admin.users.bonus.added.notify": "🎁 پاداش معرفی به مبلغ {amount} {currency} به حساب شما واریز شد",
+        "admin.users.bonus.invalid": "❌ مبلغ نامعتبر. عددی از {min_amount} تا {max_amount} {currency} وارد کنید.",
+
+        # === Admin: Shop Management Menu ===
+        "admin.shop.menu.title": "⛩️ مدیریت فروشگاه",
+        "admin.shop.menu.statistics": "📊 آمار",
+        "admin.shop.menu.logs": "📁 نمایش گزارش‌ها",
+        "admin.shop.menu.admins": "👮 مدیران",
+        "admin.shop.menu.users": "👤 کاربران",
+
+        # === Admin: Categories Management ===
+        "admin.categories.menu.title": "⛩️ مدیریت دسته‌بندی‌ها",
+        "admin.categories.add": "➕ افزودن دسته‌بندی",
+        "admin.categories.rename": "✏️ تغییر نام دسته‌بندی",
+        "admin.categories.delete": "🗑 حذف دسته‌بندی",
+        "admin.categories.prompt.add": "نام دسته‌بندی جدید را وارد کنید:",
+        "admin.categories.prompt.delete": "نام دسته‌بندی برای حذف را وارد کنید:",
+        "admin.categories.prompt.rename.old": "نام فعلی دسته‌بندی برای تغییر نام را وارد کنید:",
+        "admin.categories.prompt.rename.new": "نام جدید دسته‌بندی را وارد کنید:",
+        "admin.categories.add.exist": "❌ دسته‌بندی ایجاد نشد (از قبل وجود دارد)",
+        "admin.categories.add.success": "✅ دسته‌بندی ایجاد شد",
+        "admin.categories.delete.not_found": "❌ دسته‌بندی حذف نشد (وجود ندارد)",
+        "admin.categories.delete.success": "✅ دسته‌بندی حذف شد",
+        "admin.categories.rename.not_found": "❌ دسته‌بندی قابل به‌روزرسانی نیست (وجود ندارد)",
+        "admin.categories.rename.exist": "❌ تغییر نام ممکن نیست (دسته‌بندی با این نام از قبل وجود دارد)",
+        "admin.categories.rename.success": "✅ دسته‌بندی \"{old}\" به \"{new}\" تغییر نام یافت",
+
+        # === Admin: Goods / Items Management (Add / List / Item Info) ===
+        "admin.goods.add_position": "➕ افزودن محصول",
+        "admin.goods.manage_stock": "➕ افزودن کالا به محصول",
+        "admin.goods.update_position": "📝 ویرایش محصول",
+        "admin.goods.delete_position": "❌ حذف محصول",
+        "admin.goods.add.prompt.name": "نام محصول را وارد کنید",
+        "admin.goods.add.name.exists": "❌ محصول قابل ایجاد نیست (از قبل وجود دارد)",
+        "admin.goods.add.prompt.description": "توضیحات محصول را وارد کنید:",
+        "admin.goods.add.prompt.price": "قیمت محصول را وارد کنید (عدد به {currency}):",
+        "admin.goods.add.price.invalid": "⚠️ قیمت نامعتبر. لطفاً یک عدد وارد کنید.",
+        "admin.goods.add.prompt.category": "دسته‌بندی محصول را وارد کنید:",
+        "admin.goods.add.category.not_found": "❌ محصول قابل ایجاد نیست (دسته‌بندی نامعتبر است)",
+        "admin.goods.position.not_found": "❌ کالایی وجود ندارد (این محصول موجود نیست)",
+        "admin.goods.menu.title": "⛩️ منوی مدیریت محصولات",
+        "admin.goods.add.stock.prompt": "تعداد کالای مورد نظر برای افزودن را وارد کنید",
+        "admin.goods.add.stock.invalid": "⚠️ مقدار تعداد نادرست. لطفاً یک عدد وارد کنید.",
+        "admin.goods.add.stock.negative": "⚠️ مقدار تعداد نادرست. یک عدد مثبت وارد کنید.",
+        "admin.goods.add.result.created_with_stock": "✅ محصول {item_name} ایجاد شد، {stock_quantity} به تعداد کالا اضافه شد.",
+
+        # === Admin: Goods / Items Update Flow ===
+        "admin.goods.update.position.invalid": "محصول یافت نشد.",
+        "admin.goods.update.position.exists": "محصولی با این نام از قبل وجود دارد.",
+        "admin.goods.update.prompt.name": "نام محصول را وارد کنید",
+        "admin.goods.update.not_exists": "❌ محصول قابل به‌روزرسانی نیست (وجود ندارد)",
+        "admin.goods.update.prompt.new_name": "نام جدید محصول را وارد کنید:",
+        "admin.goods.update.prompt.description": "توضیحات محصول را وارد کنید:",
+        "admin.goods.update.success": "✅ محصول به‌روزرسانی شد",
+
+        # === Admin: Goods / Items Delete Flow ===
+        "admin.goods.delete.prompt.name": "نام محصول را وارد کنید",
+        "admin.goods.delete.position.not_found": "❌ محصول حذف نشد (وجود ندارد)",
+        "admin.goods.delete.position.success": "✅ محصول حذف شد",
+
+        # === Admin: Item Info ===
+        "admin.goods.view_stock": "مشاهده محصولات",
+
+        # === Admin: Logs ===
+        "admin.shop.logs.caption": "گزارش‌های ربات",
+        "admin.shop.logs.empty": "❗️ هنوز گزارشی وجود ندارد",
+
+        # === Group Notifications ===
+        "shop.group.new_upload": "موجودی جدید",
+        "shop.group.item": "محصول",
+        "shop.group.stock": "تعداد",
+
+        # === Admin: Statistics ===
+        "admin.shop.stats.template": (
+            "آمار فروشگاه:\n"
+            "➖➖➖➖➖➖➖➖➖➖➖➖➖\n"
+            "<b>◽کاربران</b>\n"
+            "◾️کاربران در ۲۴ ساعت گذشته: {today_users}\n"
+            "◾️کل مدیران: {admins}\n"
+            "◾️کل کاربران: {users}\n"
+            "➖➖➖➖➖➖➖➖➖➖➖➖➖\n"
+            "◽<b>متفرقه</b>\n"
+            "◾محصولات: {items} عدد\n"
+            "◾آیتم‌ها: {goods} عدد\n"
+            "◾دسته‌بندی‌ها: {categories} عدد\n"
+        ),
+
+        # === Admin: Lists & Broadcast ===
+        "admin.shop.admins.title": "👮 مدیران ربات:",
+        "admin.shop.users.title": "کاربران ربات:",
+        "broadcast.prompt": "پیام ارسال همگانی را بفرستید:",
+        "broadcast.creating": "📤 شروع ارسال همگانی...\n👥 کل کاربران: {ids}",
+        "broadcast.progress": (
+            "📤 ارسال همگانی در حال انجام...\n\n\n"
+            "📊 پیشرفت: {progress:.1f}%{n}"
+            "✅ ارسال شده: {sent}/{total}\n"
+            "❌ خطاها: {failed}\n"
+            "⏱ زمان سپری شده: {time} ثانیه"),
+        "broadcast.done": (
+            "✅ ارسال همگانی کامل شد!\n\n"
+            "📊 آمار:📊\n"
+            "👥 کل: {total}\n"
+            "✅ تحویل شده: {sent}\n"
+            "❌ تحویل نشده: {failed}\n"
+            "🚫 ربات را مسدود کردند: ~{blocked}\n"
+            "📈 نرخ موفقیت: {success}%\n"
+            "⏱ زمان: {duration} ثانیه"
+        ),
+        "broadcast.cancel": "❌ ارسال همگانی لغو شد.",
+        "broadcast.warning": "ارسال همگانی فعالی وجود ندارد",
+
+        # === Shop Browsing (Categories / Goods / Item Page) ===
+        "shop.categories.title": "🏪 دسته‌بندی‌های فروشگاه",
+        "shop.goods.choose": "🏪 محصول مورد نظر را انتخاب کنید",
+        "shop.item.not_found": "محصول یافت نشد",
+        "shop.item.title": "🏪 محصول {name}",
+        "shop.item.description": "توضیحات: {description}",
+        "shop.item.price": "قیمت — {amount} {currency}",
+        "shop.item.quantity_unlimited": "تعداد — نامحدود",
+        "shop.item.quantity_left": "تعداد — {count} عدد",
+        "shop.item.quantity_detailed": "📦 کل موجودی: {total} عدد\n🔒 رزرو شده: {reserved} عدد\n✅ قابل سفارش: {available} عدد",
+
+        # === Purchases ===
+        "purchases.title": "محصولات خریداری شده:",
+        "purchases.pagination.invalid": "داده‌های صفحه‌بندی نامعتبر",
+        "purchases.item.not_found": "خرید یافت نشد",
+        "purchases.item.name": "<b>🧾 محصول</b>: <code>{name}</code>",
+        "purchases.item.price": "<b>💵 قیمت</b>: <code>{amount}</code> {currency}",
+        "purchases.item.datetime": "<b>🕒 تاریخ خرید</b>: <code>{dt}</code>",
+        "purchases.item.unique_id": "<b>🧾 شناسه یکتا</b>: <code>{uid}</code>",
+        "purchases.item.value": "<b>🔑 مقدار</b>:\n<code>{value}</code>",
+
+        # === Middleware ===
+        "middleware.ban": "⏳ شما موقتاً مسدود هستید. {time} ثانیه صبر کنید.",
+        "middleware.above_limits": "⚠️ درخواست‌های بیش از حد! شما موقتاً مسدود شدید.",
+        "middleware.waiting": "⏳ {time} ثانیه قبل از اقدام بعدی صبر کنید.",
+        "middleware.security.session_outdated": "⚠️ نشست منقضی شده است. لطفاً دوباره شروع کنید.",
+        "middleware.security.invalid_data": "❌ داده نامعتبر",
+        "middleware.security.blocked": "❌ دسترسی مسدود شد",
+        "middleware.security.not_admin": "⛔ دسترسی کافی نیست",
+        "middleware.security.banned": "⛔ <b>شما مسدود شدید</b>\n\nدلیل: {reason}",
+        "middleware.security.banned_no_reason": "⛔ <b>شما مسدود شدید</b>\n\nبرای اطلاعات بیشتر با مدیر تماس بگیرید.",
+        "middleware.security.rate_limit": "⚠️ درخواست‌های بیش از حد! لطفاً کمی صبر کنید.",
+
+        # === Errors ===
+        "errors.not_subscribed": "شما عضو نشدید",
+        "errors.pagination_invalid": "داده‌های صفحه‌بندی نامعتبر",
+        "errors.invalid_data": "❌ داده نامعتبر",
+        "errors.channel.telegram_not_found": "قادر به نوشتن در کانال نیستم. من را به عنوان مدیر کانال آپلود @{channel} با حق انتشار پیام اضافه کنید.",
+        "errors.channel.telegram_forbidden_error": "کانال یافت نشد. نام کاربری کانال آپلود @{channel} را بررسی کنید.",
+        "errors.channel.telegram_bad_request": "ارسال به کانال آپلود ناموفق بود: {e}",
+
+        # === Orders ===
+        "order.payment_method.choose": "💳 روش پرداخت را انتخاب کنید:",
+        "order.payment_method.bitcoin": "💳 Bitcoin",
+        "order.payment_method.cash": "💵 پرداخت در محل",
+        "order.status.notify_order_confirmed": (
+            "سفارش {order_code} تأیید شد! 🎉\n\n"
+            "سفارش شما تحویل داده خواهد شد: {delivery_time}\n\n"
+            "محصولات:\n{items}\n\n"
+            "مجموع: {total}\n\n"
+            "منتظر تحویل باشید!"
+        ),
+        "order.status.notify_order_delivered": (
+            "سفارش {order_code} تحویل داده شد! ✅\n\n"
+            "از خرید شما متشکریم! امیدواریم دوباره ببینیمتان! 🙏"
+        ),
+        "order.status.notify_order_modified": (
+            "سفارش {order_code} توسط مدیر ویرایش شد 📝\n\n"
+            "تغییرات:\n{changes}\n\n"
+            "مجموع جدید: {total}"
+        ),
+
+        # === Additional Common Buttons ===
+        "btn.cart": "🛒 سبد خرید",
+        "btn.my_orders": "📦 سفارشات من",
+        "btn.reference_codes": "🔑 کدهای معرفی",
+        "btn.settings": "⚙️ تنظیمات",
+        "btn.referral_bonus_percent": "💰 درصد پاداش معرفی",
+        "btn.order_timeout": "⏱️ مهلت سفارش",
+        "btn.timezone": "🌍 منطقه زمانی",
+        "btn.skip": "⏭️ رد شدن",
+        "btn.use_saved_info": "✅ استفاده از اطلاعات ذخیره شده",
+        "btn.update_info": "✏️ به‌روزرسانی اطلاعات",
+        "btn.back_to_cart": "◀️ بازگشت به سبد خرید",
+        "btn.clear_cart": "🗑️ خالی کردن سبد خرید",
+        "btn.proceed_checkout": "💳 ادامه خرید",
+        "btn.remove_item": "❌ حذف {item_name}",
+        "btn.use_all_bonus": "استفاده از کل ${amount}",
+        "btn.apply_bonus_yes": "✅ بله، پاداش را اعمال کن",
+        "btn.apply_bonus_no": "❌ خیر، برای بعد نگه دار",
+        "btn.cancel": "❌ لغو",
+        "btn.add_to_cart": "🛒 افزودن به سبد خرید",
+
+        # === Cart Management ===
+        "cart.add_success": "✅ {item_name} به سبد خرید اضافه شد!",
+        "cart.add_error": "❌ {message}",
+        "cart.empty": "🛒 سبد خرید شما خالی است.\n\nفروشگاه را مرور کنید تا محصولات اضافه کنید!",
+        "cart.title": "🛒 <b>سبد خرید شما</b>\n\n",
+        "cart.removed_success": "محصول از سبد خرید حذف شد",
+        "cart.cleared_success": "✅ سبد خرید با موفقیت خالی شد!",
+        "cart.empty_alert": "سبد خرید خالی است!",
+        "cart.summary_title": "📦 <b>خلاصه سفارش</b>\n\n",
+        "cart.saved_delivery_info": "اطلاعات ارسال ذخیره شده شما:\n\n",
+        "cart.delivery_address": "📍 آدرس: {address}\n",
+        "cart.delivery_phone": "📞 تلفن: {phone}\n",
+        "cart.delivery_note": "📝 یادداشت: {note}\n",
+        "cart.use_info_question": "\n\nآیا می‌خواهید از این اطلاعات استفاده کنید یا آن را به‌روزرسانی کنید؟",
+        "cart.no_saved_info": "❌ اطلاعات ارسال ذخیره شده یافت نشد. لطفاً به صورت دستی وارد کنید.",
+
+        # === Order/Delivery Flow ===
+        "order.delivery.address_prompt": "📍 لطفاً آدرس تحویل خود را وارد کنید:",
+        "order.delivery.address_invalid": "❌ لطفاً یک آدرس تحویل معتبر وارد کنید (حداقل ۵ کاراکتر).",
+        "order.delivery.phone_prompt": "📞 لطفاً شماره تلفن خود را وارد کنید (با کد کشور):",
+        "order.delivery.phone_invalid": "❌ لطفاً یک شماره تلفن معتبر وارد کنید (حداقل ۸ رقم).",
+        "order.delivery.note_prompt": "📝 آیا دستورالعمل خاصی برای تحویل دارید؟ (اختیاری)\n\nمی‌توانید با کلیک بر دکمه زیر رد شوید.",
+        "order.delivery.info_save_error": "❌ خطا در ذخیره اطلاعات ارسال. لطفاً دوباره تلاش کنید.",
+
+        # GPS Location (Card 2)
+        "order.delivery.location_prompt": "📍 آیا می‌خواهید موقعیت GPS خود را برای تحویل دقیق‌تر به اشتراک بگذارید؟\n\nدکمه زیر را بزنید یا این مرحله را رد کنید.",
+        "order.delivery.location_saved": "✅ موقعیت ذخیره شد!",
+        "btn.share_location": "📍 اشتراک‌گذاری موقعیت",
+        "btn.skip_location": "⏭ رد شدن",
+
+        # Delivery Type (Card 3)
+        "order.delivery.type_prompt": "🚚 نوع تحویل را انتخاب کنید:",
+        "btn.delivery.door": "🚪 تحویل درب منزل",
+        "btn.delivery.dead_drop": "📦 گذاشتن در محل مشخص",
+        "btn.delivery.pickup": "🏪 تحویل حضوری",
+        "order.delivery.drop_instructions_prompt": "📝 محل گذاشتن سفارش را توضیح دهید (مثلاً 'نزد نگهبان در لابی'، 'زیر پادری اتاق 405'):",
+        "order.delivery.drop_photo_prompt": "📸 آیا می‌خواهید عکسی از محل تحویل بفرستید؟ (اختیاری)",
+        "order.delivery.drop_photo_saved": "✅ عکس محل تحویل ذخیره شد!",
+        "btn.skip_drop_photo": "⏭ رد شدن از عکس",
+
+        # PromptPay (Card 1)
+        "order.payment_method.promptpay": "💳 PromptPay QR",
+        "order.payment.promptpay.title": "💳 <b>پرداخت از طریق PromptPay</b>",
+        "order.payment.promptpay.scan": "📱 کد QR را برای پرداخت اسکن کنید:",
+        "order.payment.promptpay.upload_receipt": "📸 پس از پرداخت، لطفاً رسید خود را آپلود کنید:",
+        "order.payment.promptpay.receipt_received": "✅ رسید دریافت شد! در انتظار تأیید مدیر.",
+        "order.payment.promptpay.receipt_invalid": "❌ لطفاً عکس رسید پرداخت را ارسال کنید.",
+        "admin.order.verify_payment": "✅ تأیید پرداخت",
+        "admin.order.payment_verified": "✅ پرداخت تأیید شد",
+
+        # Delivery Chat (Card 13)
+        "order.delivery.chat_unavailable": "❌ گفتگو با راننده در دسترس نیست. گروه پیک تنظیم نشده است.",
+        "order.delivery.chat_started": "💬 می‌توانید به راننده پیام دهید. متن، عکس یا موقعیت ارسال کنید.\n\nبرای پایان گفتگو /endchat بفرستید.",
+        "order.delivery.live_location_shared": "📍 راننده موقعیت زنده را به اشتراک گذاشته است! می‌توانید تحویل را پیگیری کنید.",
+        "order.delivery.chat_no_active_delivery": "❌ شما هیچ تحویل فعالی برای گفتگو ندارید.",
+        "order.delivery.chat_ended": "✅ گفتگو با راننده پایان یافت.",
+        "order.delivery.chat_message_sent": "✅ پیام به راننده ارسال شد.",
+        "order.delivery.driver_no_active_order": "⚠️ هیچ سفارش فعالی برای ارسال این پیام وجود ندارد.",
+        "btn.chat_with_driver": "💬 گفتگو با راننده",
+        "btn.end_chat": "❌ پایان گفتگو",
+
+        # === Bonus/Referral Application ===
+        "order.bonus.available": "💰 <b>شما ${bonus_balance} پاداش معرفی دارید!</b>\n\n",
+        "order.bonus.apply_question": "آیا می‌خواهید پاداش معرفی را در این سفارش اعمال کنید؟",
+        "order.bonus.amount_positive_error": "❌ لطفاً مبلغ مثبت وارد کنید.",
+        "order.bonus.amount_too_high": "❌ مبلغ بیش از حد بالاست. حداکثر قابل اعمال: ${max_applicable}\nلطفاً مبلغ معتبر وارد کنید:",
+        "order.bonus.invalid_amount": "❌ مبلغ نامعتبر. لطفاً یک عدد وارد کنید (مثلاً 5.50):",
+        "order.bonus.insufficient": "❌ موجودی پاداش کافی نیست. لطفاً دوباره تلاش کنید.",
+        "order.bonus.enter_amount": "مبلغ پاداشی که می‌خواهید اعمال کنید را وارد کنید (حداکثر ${max_applicable}):\n\nیا با کلیک بر دکمه زیر از تمام پاداش موجود استفاده کنید.",
+
+        # === Payment Instructions ===
+        "order.payment.system_unavailable": "❌ <b>سیستم پرداخت موقتاً در دسترس نیست</b>\n\nآدرس Bitcoin موجود نیست. لطفاً با پشتیبانی تماس بگیرید.",
+        "order.payment.customer_not_found": "❌ اطلاعات مشتری یافت نشد. لطفاً دوباره تلاش کنید.",
+        "order.payment.creation_error": "❌ خطا در ایجاد سفارشات. لطفاً دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.",
+
+        # === Order Summary/Total ===
+        "order.summary.title": "📦 <b>خلاصه سفارش</b>\n\n",
+        "order.summary.cart_total": "مجموع سبد خرید: ${cart_total}",
+        "order.summary.bonus_applied": "پاداش اعمال شده: -${bonus_applied}",
+        "order.summary.final_amount": "مبلغ نهایی: ${final_amount}",
+
+        # === Inventory/Reservation ===
+        "order.inventory.unable_to_reserve": "❌ <b>امکان رزرو محصولات وجود ندارد</b>\n\nمحصولات زیر در تعداد درخواستی موجود نیستند:\n\n{unavailable_items}\n\nلطفاً سبد خرید خود را تنظیم کنید و دوباره تلاش کنید.",
+
+        # === My Orders View ===
+        "myorders.title": "📦 <b>سفارشات من</b>\n\n",
+        "myorders.total": "کل سفارشات: {count}",
+        "myorders.active": "⏳ سفارشات فعال: {count}",
+        "myorders.delivered": "✅ تحویل داده شده: {count}",
+        "myorders.select_category": "دسته‌بندی را برای مشاهده سفارشات انتخاب کنید:",
+        "myorders.active_orders": "⏳ سفارشات فعال",
+        "myorders.delivered_orders": "✅ سفارشات تحویل شده",
+        "myorders.all_orders": "📋 همه سفارشات",
+        "myorders.no_orders_yet": "شما هنوز سفارشی ثبت نکردید.\n\nفروشگاه را مرور کنید تا خرید را شروع کنید!",
+        "myorders.browse_shop": "🛍️ رفتن به فروشگاه",
+        "myorders.back": "◀️ بازگشت",
+        "myorders.all_title": "📋 همه سفارشات",
+        "myorders.active_title": "⏳ سفارشات فعال",
+        "myorders.delivered_title": "✅ سفارشات تحویل شده",
+        "myorders.invalid_filter": "فیلتر نامعتبر",
+        "myorders.not_found": "سفارشی یافت نشد.",
+        "myorders.back_to_menu": "◀️ بازگشت به منوی سفارشات",
+        "myorders.select_details": "سفارشی را برای مشاهده جزئیات انتخاب کنید:",
+        "myorders.order_not_found": "سفارش یافت نشد",
+
+        # === Order Details Display ===
+        "myorders.detail.title": "📦 <b>جزئیات سفارش #{order_code}</b>\n\n",
+        "myorders.detail.status": "📊 <b>وضعیت:</b> {status}\n",
+        "myorders.detail.subtotal": "💵 <b>جمع فرعی:</b> ${subtotal}\n",
+        "myorders.detail.bonus_applied": "🎁 <b>پاداش اعمال شده:</b> ${bonus}\n",
+        "myorders.detail.final_price": "💰 <b>قیمت نهایی:</b> ${total}\n",
+        "myorders.detail.total_price": "💰 <b>قیمت کل:</b> ${total}\n",
+        "myorders.detail.payment_method": "💳 <b>روش پرداخت:</b> {method}\n",
+        "myorders.detail.ordered": "📅 <b>تاریخ سفارش:</b> {date}\n",
+        "myorders.detail.delivery_time": "🚚 <b>تحویل برنامه‌ریزی شده:</b> {time}\n",
+        "myorders.detail.completed": "✅ <b>تکمیل شده:</b> {date}\n",
+        "myorders.detail.items": "\n📦 <b>محصولات:</b>\n{items}\n",
+        "myorders.detail.delivery_info": "\n📍 <b>اطلاعات تحویل:</b>\n{address}\n{phone}\n{note}",
+
+        # === Help System ===
+        "help.prompt": "📧 <b>به کمک نیاز دارید؟</b>\n\n",
+        "help.describe_issue": "لطفاً مشکل یا سؤال خود را شرح دهید و مستقیماً به مدیر ارسال خواهد شد.\n\nپیام خود را در زیر بنویسید:",
+        "help.admin_not_configured": "❌ متأسفانه، ارتباط با مدیر تنظیم نشده است. لطفاً بعداً دوباره تلاش کنید.",
+        "help.admin_notification_title": "📧 <b>درخواست کمک جدید</b>\n\n",
+        "help.admin_notification_from": "<b>از:</b> @{username} (ID: {user_id})\n",
+        "help.admin_notification_message": "<b>پیام:</b>\n{message}",
+        "help.sent_success": "✅ {auto_message}",
+        "help.sent_error": "❌ ارسال پیام به مدیر ناموفق بود: {error}\n\nلطفاً بعداً دوباره تلاش کنید.",
+        "help.cancelled": "درخواست کمک لغو شد.",
+
+        # === Admin Order Notifications ===
+        "admin.order.action_required_title": "⏳ <b>اقدام لازم است:</b>",
+        "admin.order.address_label": "آدرس: {address}",
+        "admin.order.amount_to_collect_label": "<b>مبلغ قابل دریافت: ${amount} {currency}</b>",
+        "admin.order.amount_to_receive_label": "<b>مبلغ قابل دریافت: ${amount} {currency}</b>",
+        "admin.order.awaiting_payment_status": "⏳ در انتظار تأیید پرداخت...",
+        "admin.order.bitcoin_address_label": "آدرس Bitcoin: <code>{address}</code>",
+        "admin.order.bonus_applied_label": "پاداش اعمال شده: <b>-${amount}</b>",
+        "admin.order.customer_label": "مشتری: {username} (ID: {id})",
+        "admin.order.delivery_info_title": "<b>اطلاعات تحویل:</b>",
+        "admin.order.items_title": "<b>محصولات:</b>",
+        "admin.order.new_bitcoin_order": "🔔 <b>سفارش Bitcoin جدید دریافت شد</b>",
+        "admin.order.new_cash_order": "🔔 <b>سفارش نقدی جدید دریافت شد</b> 💵",
+        "admin.order.note_label": "یادداشت: {note}",
+        "admin.order.order_label": "سفارش: <b>{code}</b>",
+        "admin.order.payment_cash": "پرداخت در محل",
+        "admin.order.payment_method_label": "روش پرداخت: <b>{method}</b>",
+        "admin.order.phone_label": "تلفن: {phone}",
+        "admin.order.subtotal_label": "جمع فرعی: <b>${amount} {currency}</b>",
+        "admin.order.use_cli_confirm": "برای تأیید سفارش و تنظیم زمان تحویل از CLI استفاده کنید:\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time \"YYYY-MM-DD HH:MM\"</code>",
+        "btn.admin.back_to_panel": "🔙 بازگشت به پنل مدیریت",
+        "btn.admin.create_refcode": "➕ ایجاد کد معرفی",
+        "btn.admin.list_refcodes": "📋 فهرست همه کدها",
+        "btn.back_to_orders": "◀️ بازگشت به سفارشات",
+        "btn.create_reference_code": "➕ ایجاد کد معرفی",
+        "btn.my_reference_codes": "🔑 کدهای معرفی من",
+        "btn.need_help": "❓ به کمک نیاز دارید؟",
+        "cart.item.price_format": "  قیمت: {price} {currency} × {quantity}",
+        "cart.item.subtotal_format": "  جمع فرعی: {subtotal} {currency}",
+        "cart.total_format": "<b>مجموع: {total} {currency}</b>",
+        "help.pending_order.contact_support": "از دستور /help برای تماس با پشتیبانی استفاده کنید.",
+        "help.pending_order.issues_title": "<b>مشکلی دارید؟</b>",
+        "help.pending_order.status": "سفارش شما در حال حاضر در انتظار پرداخت است.",
+        "help.pending_order.step1": "1. مبلغ دقیق را به آدرس Bitcoin نمایش داده شده ارسال کنید",
+        "help.pending_order.step2": "2. منتظر تأیید بلاکچین باشید (معمولاً ۱۰ تا ۶۰ دقیقه)",
+        "help.pending_order.step3": "3. مدیر پرداخت شما را تأیید و زمان تحویل را تعیین خواهد کرد",
+        "help.pending_order.step4": "4. کالاهای شما توسط پیک تحویل داده خواهد شد.",
+        "help.pending_order.title": "❓ <b>به کمک در مورد سفارش نیاز دارید؟</b>",
+        "help.pending_order.what_to_do_title": "<b>چه کاری باید انجام دهید:</b>",
+        "myorders.detail.bitcoin_address_label": "آدرس Bitcoin:",
+        "myorders.detail.bitcoin_admin_confirm": "پس از پرداخت، مدیر سفارش شما را تأیید خواهد کرد.",
+        "myorders.detail.bitcoin_send_instruction": "⚠️ لطفاً <b>{amount} {currency}</b> Bitcoin به این آدرس ارسال کنید.",
+        "myorders.detail.cash_awaiting_confirm": "سفارش شما در انتظار تأیید مدیر است.",
+        "myorders.detail.cash_payment_courier": "پرداخت هنگام تحویل به پیک انجام خواهد شد.",
+        "myorders.detail.cash_title": "💵 پرداخت در محل",
+        "myorders.detail.cash_will_notify": "هنگامی که سفارش تأیید و زمان تحویل تعیین شود، به شما اطلاع داده خواهد شد.",
+        "myorders.detail.confirmed_title": "✅ <b>سفارش تأیید شد!</b>",
+        "myorders.detail.delivered_thanks_message": "از خرید شما متشکریم! امیدواریم دوباره ببینیمتان! 🙏",
+        "myorders.detail.delivered_title": "📦 <b>سفارش تحویل داده شد!</b>",
+        "myorders.detail.payment_info_title": "<b>اطلاعات پرداخت:</b>",
+        "myorders.detail.preparing_message": "سفارش شما در حال آماده‌سازی برای تحویل است.",
+        "myorders.detail.scheduled_delivery_label": "تحویل برنامه‌ریزی شده: <b>{time}</b>",
+        "myorders.order_summary_format": "{status_emoji} {code} - {items_count} محصول - {total} {currency}",
+        "order.bonus.available_label": "پاداش موجود: <b>${amount}</b>",
+        "order.bonus.choose_amount_hint": "می‌توانید مقدار استفاده را انتخاب کنید (تا ${max_amount})",
+        "order.bonus.enter_amount_title": "💵 <b>مبلغ پاداش برای اعمال را وارد کنید</b>",
+        "order.bonus.max_applicable_label": "حداکثر قابل اعمال: <b>${amount}</b>",
+        "order.bonus.order_total_label": "مجموع سفارش: <b>${amount} {currency}</b>",
+        "order.info.view_status_hint": "💡 می‌توانید وضعیت سفارش خود را در هر زمان با دستور /orders مشاهده کنید.",
+        "order.payment.bitcoin.address_title": "<b>آدرس پرداخت Bitcoin:</b>",
+        "order.payment.bitcoin.admin_confirm": "• پس از پرداخت، مدیر سفارش شما را تأیید خواهد کرد",
+        "order.payment.bitcoin.delivery_title": "<b>تحویل:</b>",
+        "order.payment.bitcoin.important_title": "⚠️ <b>مهم:</b>",
+        "order.payment.bitcoin.items_title": "<b>محصولات:</b>",
+        "order.payment.bitcoin.need_help": "به کمک نیاز دارید؟ از /help برای تماس با پشتیبانی استفاده کنید.",
+        "order.payment.bitcoin.one_time_address": "• این آدرس فقط برای یک بار استفاده است",
+        "order.payment.bitcoin.order_code": "سفارش: <b>{code}</b>",
+        "order.payment.bitcoin.send_exact": "• مبلغ دقیق نمایش داده شده در بالا را ارسال کنید",
+        "order.payment.bitcoin.title": "💳 <b>دستورالعمل پرداخت Bitcoin</b>",
+        "order.payment.bitcoin.total_amount": "مبلغ کل: <b>{amount} {currency}</b>",
+        "order.payment.cash.admin_contact": "مدیر به زودی با شما تماس خواهد گرفت.",
+        "order.payment.cash.after_confirm": "پس از تأیید، از زمان تحویل مطلع خواهید شد.",
+        "order.payment.cash.created": "سفارش {code} شما ایجاد شد و در انتظار تأیید مدیر است.",
+        "order.payment.cash.important": "⏳ <b>مهم:</b> سفارش برای مدت محدودی رزرو شده است.",
+        "order.payment.cash.items_title": "محصولات:",
+        "order.payment.cash.payment_to_courier": "پرداخت هنگام تحویل به پیک انجام خواهد شد.",
+        "order.payment.cash.title": "💵 <b>پرداخت در محل</b>",
+        "order.payment.cash.total": "مجموع: {amount}",
+        "order.payment.error_general": "❌ خطا در ایجاد سفارش. لطفاً دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.",
+        "order.summary.total_label": "<b>مجموع: {amount} {currency}</b>",
+        "order.payment.bonus_applied_label": "پاداش اعمال شده: <b>-{amount} {currency}</b>",
+        "order.payment.cash.amount_with_bonus": "<b>مبلغ قابل پرداخت هنگام تحویل: {amount} {currency}</b>",
+        "order.payment.cash.total_label": "<b>مجموع قابل پرداخت هنگام تحویل: {amount} {currency}</b>",
+        "order.payment.final_amount_label": "<b>مبلغ نهایی قابل پرداخت: {amount} {currency}</b>",
+        "order.payment.order_label": "📋 <b>سفارش: {code}</b>",
+        "order.payment.subtotal_label": "جمع فرعی: <b>{amount} {currency}</b>",
+        "order.payment.total_amount_label": "<b>مبلغ کل: {amount} {currency}</b>",
     },
 }

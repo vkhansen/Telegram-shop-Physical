@@ -21,10 +21,10 @@ async def my_orders_menu(call: CallbackQuery, state: FSMContext):
 
     # Count orders by status
     with Database().session() as session:
-        # Count active orders (pending, reserved, confirmed)
+        # Count active orders (pending through out_for_delivery)
         active_count = session.query(Order).filter(
             Order.buyer_id == user_id,
-            Order.order_status.in_(['pending', 'reserved', 'confirmed'])
+            Order.order_status.in_(['pending', 'reserved', 'confirmed', 'preparing', 'ready', 'out_for_delivery'])
         ).count()
 
         # Count delivered orders
@@ -89,7 +89,7 @@ async def view_orders_list(call: CallbackQuery, state: FSMContext):
         with Database().session() as session:
             query = session.query(Order).filter(
                 Order.buyer_id == user_id,
-                Order.order_status.in_(['pending', 'reserved', 'confirmed'])
+                Order.order_status.in_(['pending', 'reserved', 'confirmed', 'preparing', 'ready', 'out_for_delivery'])
             ).order_by(Order.created_at.desc())
 
             active_orders = query.limit(10).offset(0).all()
@@ -143,6 +143,9 @@ async def view_orders_list(call: CallbackQuery, state: FSMContext):
             'pending': '⏳',
             'reserved': '🔒',
             'confirmed': '✅',
+            'preparing': '👨‍🍳',
+            'ready': '✅',
+            'out_for_delivery': '🛵',
             'delivered': '📦',
             'cancelled': '❌',
             'canceled': '❌',
@@ -194,6 +197,9 @@ async def view_order_details(call: CallbackQuery, state: FSMContext):
             'pending': '⏳ Pending',
             'reserved': '🔒 Reserved',
             'confirmed': '✅ Confirmed',
+            'preparing': '👨‍🍳 Preparing',
+            'ready': '✅ Ready',
+            'out_for_delivery': '🛵 Out for Delivery',
             'delivered': '📦 Delivered',
             'cancelled': '❌ Cancelled',
             'canceled': '❌ Canceled',

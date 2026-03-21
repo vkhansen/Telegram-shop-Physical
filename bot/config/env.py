@@ -48,6 +48,9 @@ class EnvKeys(ABC):
     KITCHEN_GROUP_ID: Final = os.getenv("KITCHEN_GROUP_ID")
     RIDER_GROUP_ID: Final = os.getenv("RIDER_GROUP_ID")
 
+    # Delivery chat (Card 15)
+    POST_DELIVERY_CHAT_MINUTES: Final = int(os.getenv("POST_DELIVERY_CHAT_MINUTES", 30))
+
     # Monitoring
     MONITORING_HOST: Final = os.getenv("MONITORING_HOST", "localhost")
     MONITORING_PORT: Final = int(os.getenv("MONITORING_PORT", 9090))

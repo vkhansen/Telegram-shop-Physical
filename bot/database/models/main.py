@@ -80,6 +80,7 @@ class User(Database.BASE):
     telegram_id = Column(BigInteger, primary_key=True)
     role_id = Column(Integer, ForeignKey('roles.id', ondelete="RESTRICT"), default=1, index=True)
     referral_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="SET NULL"), nullable=True, index=True)
+    locale = Column(String(5), nullable=True)  # Per-user language: th, en, ru, ar, fa, ps, fr (Card 14)
     registration_date = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     is_banned = Column(Boolean, nullable=False, default=False, index=True)
     banned_at = Column(DateTime(timezone=True), nullable=True)
@@ -100,11 +101,12 @@ class User(Database.BASE):
 
     def __init__(self, telegram_id: int, registration_date: datetime.datetime, referral_id=None,
                  role_id: int = 1, is_banned: bool = False, banned_at=None, banned_by=None,
-                 ban_reason: str = None, **kw: Any):
+                 ban_reason: str = None, locale: str = None, **kw: Any):
         super().__init__(**kw)
         self.telegram_id = telegram_id
         self.role_id = role_id
         self.referral_id = referral_id
+        self.locale = locale
         self.registration_date = registration_date
         self.is_banned = is_banned
         self.banned_at = banned_at

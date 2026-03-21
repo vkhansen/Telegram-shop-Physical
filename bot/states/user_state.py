@@ -7,6 +7,11 @@ class UserMgmtStates(StatesGroup):
     waiting_user_bonus = State()
 
 
+class LanguageStates(StatesGroup):
+    """FSM for language selection flow (Card 14)."""
+    waiting_language = State()
+
+
 class ReferenceCodeStates(StatesGroup):
     """FSM for reference code validation flow."""
     waiting_reference_code = State()

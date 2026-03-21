@@ -13,11 +13,12 @@ from bot.database.methods import (
     get_reference_bonus_percent
 )
 from bot.database import Database
-from bot.database.models.main import CustomerInfo
+from bot.database.models.main import CustomerInfo, User
 from bot.handlers.other import check_sub_channel
-from bot.keyboards import main_menu, back, profile_keyboard, check_sub
+from bot.keyboards import main_menu, back, profile_keyboard, check_sub, language_picker_keyboard
 from bot.config import EnvKeys
-from bot.i18n import localize
+from bot.i18n import localize, set_request_locale, get_user_locale
+from bot.i18n.strings import LANGUAGE_PICKER_MESSAGE, LANGUAGE_CHANGED_MESSAGES, AVAILABLE_LOCALES
 from bot.logger_mesh import logger
 
 router = Router()
@@ -64,9 +65,9 @@ async def show_main_menu(message: Message, state: FSMContext):
 async def start(message: Message, state: FSMContext):
     """
     Handle /start:
-    - Check if user exists
-    - If new user and reference codes are enabled, require reference code
-    - If user exists or reference codes disabled, show main menu
+    - If new user → show language picker first → then reference code
+    - If existing user without locale → show language picker → then menu
+    - If existing user with locale → show main menu
     """
     if message.chat.type != ChatType.PRIVATE:
         return
@@ -78,39 +79,126 @@ async def start(message: Message, state: FSMContext):
     existing_user = await check_user_cached(user_id)
 
     if existing_user:
-        # User already exists, show main menu
-        await show_main_menu(message, state)
-        await message.delete()
+        # Check if user has selected a language yet
+        user_locale = get_user_locale(user_id)
+        if user_locale:
+            set_request_locale(user_locale)
+            await show_main_menu(message, state)
+            await message.delete()
+            return
+        else:
+            # Existing user but no language — show picker
+            await message.answer(
+                LANGUAGE_PICKER_MESSAGE,
+                reply_markup=language_picker_keyboard()
+            )
+            await state.update_data(after_language="menu")
+            return
+
+    # New user — show language picker first (Card 14)
+    # Save referral info in state for after language selection
+    referral_text = message.text[7:] if len(message.text) > 7 else ""
+    await state.update_data(
+        after_language="register",
+        referral_text=referral_text
+    )
+    await message.answer(
+        LANGUAGE_PICKER_MESSAGE,
+        reply_markup=language_picker_keyboard()
+    )
+
+
+@router.callback_query(F.data.startswith("set_locale_"))
+async def set_locale_callback(call: CallbackQuery, state: FSMContext):
+    """
+    Handle language selection from the flag picker.
+    Saves locale to user record, then continues the appropriate flow.
+    """
+    locale_code = call.data.replace("set_locale_", "")
+    user_id = call.from_user.id
+
+    if locale_code not in AVAILABLE_LOCALES:
+        await call.answer("Invalid language")
         return
 
-    # Check if reference codes are enabled
-    from bot.database.main import Database
-    from bot.database.models.main import BotSettings
+    await call.answer()
 
+    # Set locale for this request
+    set_request_locale(locale_code)
+
+    # Get state data to determine what to do next
+    data = await state.get_data()
+    after_language = data.get("after_language", "menu")
+
+    # Save locale to database
     with Database().session() as session:
-        setting = session.query(BotSettings).filter_by(setting_key='reference_codes_enabled').first()
-        refcodes_enabled = setting and setting.setting_value.lower() == 'true' if setting else True
+        user = session.query(User).filter_by(telegram_id=user_id).first()
+        if user:
+            user.locale = locale_code
+            session.commit()
 
-    # If reference codes are disabled or user is owner, create user directly
-    if not refcodes_enabled or str(user_id) == EnvKeys.OWNER_ID:
-        owner_max_role = select_max_role_id()
-        referral_id = message.text[7:] if len(message.text) > 7 and message.text[7:] != str(user_id) else None
-        user_role = owner_max_role if str(user_id) == EnvKeys.OWNER_ID else 1
+    # Send confirmation in the selected language
+    confirm_msg = LANGUAGE_CHANGED_MESSAGES.get(locale_code, f"✅ Language set to {locale_code}")
 
-        create_user(
-            telegram_id=int(user_id),
-            registration_date=datetime.datetime.now(),
-            referral_id=int(referral_id) if referral_id and referral_id.isdigit() else None,
-            role=user_role
-        )
+    if after_language == "register":
+        # New user — continue to registration flow
+        referral_text = data.get("referral_text", "")
 
-        await show_main_menu(message, state)
-        await message.delete()
+        # Check if reference codes are enabled
+        from bot.database.models.main import BotSettings
+        with Database().session() as session:
+            setting = session.query(BotSettings).filter_by(setting_key='reference_codes_enabled').first()
+            refcodes_enabled = setting and setting.setting_value.lower() == 'true' if setting else True
+
+        if not refcodes_enabled or str(user_id) == EnvKeys.OWNER_ID:
+            owner_max_role = select_max_role_id()
+            referral_id = referral_text if referral_text and referral_text != str(user_id) else None
+            user_role = owner_max_role if str(user_id) == EnvKeys.OWNER_ID else 1
+
+            create_user(
+                telegram_id=int(user_id),
+                registration_date=datetime.datetime.now(),
+                referral_id=int(referral_id) if referral_id and referral_id.isdigit() else None,
+                role=user_role,
+                locale=locale_code
+            )
+
+            await call.message.edit_text(confirm_msg)
+            await show_main_menu(call.message, state)
+            return
+
+        # Reference codes enabled — save locale temporarily and prompt for code
+        await state.update_data(selected_locale=locale_code)
+        await call.message.edit_text(confirm_msg)
+
+        from bot.handlers.user.reference_code_handler import prompt_reference_code
+        await prompt_reference_code(call.message, state)
+
+    elif after_language == "language_change":
+        # User just changing language via /language
+        await call.message.edit_text(confirm_msg)
+        await show_main_menu(call.message, state)
+
+    else:
+        # Existing user picking language for first time
+        await call.message.edit_text(confirm_msg)
+        await show_main_menu(call.message, state)
+
+
+@router.message(F.text == "/language")
+async def language_command(message: Message, state: FSMContext):
+    """
+    /language command — show language picker anytime.
+    """
+    if message.chat.type != ChatType.PRIVATE:
         return
 
-    # New user and reference codes are enabled - require reference code
-    from bot.handlers.user.reference_code_handler import prompt_reference_code
-    await prompt_reference_code(message, state)
+    await state.clear()
+    await state.update_data(after_language="language_change")
+    await message.answer(
+        LANGUAGE_PICKER_MESSAGE,
+        reply_markup=language_picker_keyboard()
+    )
 
 
 @router.callback_query(F.data == "back_to_menu")

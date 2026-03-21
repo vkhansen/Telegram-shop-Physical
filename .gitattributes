@@ -1,0 +1,3 @@
+# Force LF line endings for shell scripts (prevents Docker exec failures on Linux)
+*.sh text eol=lf
+docker-entrypoint.sh text eol=lf

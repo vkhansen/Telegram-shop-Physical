@@ -74,10 +74,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      # Removed redis dependency - using external Redis Cloud
-      # If using local Redis, uncomment:
-      # redis:
-      #   condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9090/health" ]

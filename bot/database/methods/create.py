@@ -7,7 +7,8 @@ from bot.database import Database
 from bot.logger_mesh import logger
 
 
-def create_user(telegram_id: int, registration_date: datetime, referral_id: int | None, role: int = 1) -> None:
+def create_user(telegram_id: int, registration_date: datetime, referral_id: int | None,
+                role: int = 1, locale: str = None) -> None:
     """Create user if missing; commit."""
     with Database().session() as s:
         if s.query(exists().where(User.telegram_id == telegram_id)).scalar():
@@ -18,6 +19,7 @@ def create_user(telegram_id: int, registration_date: datetime, referral_id: int 
                 role_id=role,
                 registration_date=registration_date,
                 referral_id=referral_id,
+                locale=locale,
             )
         )
 

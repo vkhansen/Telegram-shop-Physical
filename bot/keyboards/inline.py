@@ -86,6 +86,40 @@ def timezone_selection_keyboard() -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
+def language_picker_keyboard() -> InlineKeyboardMarkup:
+    """
+    Language picker with flag buttons — built from AVAILABLE_LOCALES (Card 14).
+    """
+    from bot.i18n.strings import AVAILABLE_LOCALES
+    kb = InlineKeyboardBuilder()
+    for code, label in AVAILABLE_LOCALES.items():
+        kb.button(text=label, callback_data=f"set_locale_{code}")
+    kb.adjust(2)
+    return kb.as_markup()
+
+
+def delivery_gps_choice_keyboard(locale: str = None) -> InlineKeyboardMarkup:
+    """
+    GPS choice for customer during active delivery (Card 15).
+    Options: send static location, share live location, or skip.
+    """
+    kb = InlineKeyboardBuilder()
+    kb.button(
+        text=localize("delivery.gps.btn_static", locale=locale),
+        callback_data="delivery_gps_static"
+    )
+    kb.button(
+        text=localize("delivery.gps.btn_live", locale=locale),
+        callback_data="delivery_gps_live"
+    )
+    kb.button(
+        text=localize("delivery.gps.btn_skip", locale=locale),
+        callback_data="delivery_gps_skip"
+    )
+    kb.adjust(2, 1)
+    return kb.as_markup()
+
+
 def simple_buttons(buttons: Iterable[Tuple[str, str]], per_row: int = 1) -> InlineKeyboardMarkup:
     """
     Universal button assembly from (text, callback_data)
