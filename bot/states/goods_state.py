@@ -14,13 +14,20 @@ class AddItemFSM(StatesGroup):
     2) description,
     3) price,
     4) category,
-    5) initial stock quantity.
+    5) initial stock quantity,
+    6) modifiers (optional JSON).
     """
     waiting_item_name = State()
     waiting_item_description = State()
     waiting_item_price = State()
     waiting_category = State()
     waiting_stock_quantity = State()
+    waiting_modifiers_json = State()  # Card 8: optional modifier schema
+
+
+class ModifierSelectionFSM(StatesGroup):
+    """FSM for selecting modifiers when adding item to cart (Card 8)."""
+    selecting_modifiers = State()
 
 
 class UpdateItemFSM(StatesGroup):

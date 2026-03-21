@@ -92,7 +92,6 @@ async def items_list_callback_handler(call: CallbackQuery, state: FSMContext):
 
     # Create paginator for items in category
     from bot.database.methods.lazy_queries import query_items_in_category
-    from functools import partial
 
     query_func = partial(query_items_in_category, category_name)
     paginator = LazyPaginator(query_func, per_page=10)
@@ -138,7 +137,6 @@ async def navigate_goods(call: CallbackQuery, state: FSMContext):
 
     # Create paginator
     from bot.database.methods.lazy_queries import query_items_in_category
-    from functools import partial
 
     query_func = partial(query_items_in_category, category_name)
     paginator = LazyPaginator(query_func, per_page=10, state=paginator_state)
@@ -214,13 +212,34 @@ async def item_info_callback_handler(call: CallbackQuery):
 
     markup = item_info(item_name, back_data)
 
+    # Build info lines
+    info_lines = [
+        localize("shop.item.title", name=item_name),
+        localize("shop.item.description", description=item_info_data["description"]),
+        localize("shop.item.price", amount=item_info_data["price"], currency=EnvKeys.PAY_CURRENCY),
+        quantity_line,
+    ]
+
+    # Show available modifiers in the item description (Card 8)
+    modifiers_schema = item_info_data.get("modifiers")
+    if modifiers_schema and isinstance(modifiers_schema, dict):
+        info_lines.append("")  # blank line separator
+        for group_key, group in modifiers_schema.items():
+            label = group.get("label", group_key)
+            required = group.get("required", False)
+            req_tag = localize("modifier.required") if required else localize("modifier.optional")
+            options = group.get("options", [])
+            opt_labels = []
+            for opt in options:
+                opt_text = opt.get("label", opt["id"])
+                price = opt.get("price", 0)
+                if price:
+                    opt_text += f" {localize('modifier.price_extra', price=price)}"
+                opt_labels.append(opt_text)
+            info_lines.append(f"{label} {req_tag}: {', '.join(opt_labels)}")
+
     await call.message.edit_text(
-        "\n".join([
-            localize("shop.item.title", name=item_name),
-            localize("shop.item.description", description=item_info_data["description"]),
-            localize("shop.item.price", amount=item_info_data["price"], currency=EnvKeys.PAY_CURRENCY),
-            quantity_line,
-        ]),
+        "\n".join(info_lines),
         reply_markup=markup,
     )
 

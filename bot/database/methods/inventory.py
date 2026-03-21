@@ -4,9 +4,6 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 import logging
 
-from aiogram import Bot
-from aiogram.client.default import DefaultBotProperties
-
 from bot.database.main import Database
 from bot.database.models.main import Goods, Order, OrderItem, InventoryLog, CustomerInfo
 from bot.database.methods import invalidate_item_cache
@@ -424,25 +421,20 @@ async def cleanup_expired_reservations() -> Tuple[int, List[str]]:
 
                         # Send notification to customer about bonus refund
                         try:
-                            bot = Bot(
-                                token=EnvKeys.TOKEN,
-                                default=DefaultBotProperties(parse_mode="HTML")
+                            from bot.payments.notifications import get_shared_bot
+                            bot = get_shared_bot()
+
+                            notification_text = (
+                                f"⏱️ <b>Order Expired</b>\n\n"
+                                f"Your order <b>{order.order_code}</b> has expired due to payment timeout.\n\n"
+                                f"💰 <b>Bonus Refund: ${order.bonus_applied}</b>\n"
+                                f"📊 New Bonus Balance: <b>${new_bonus_balance}</b>\n\n"
+                                f"Your referral bonus has been returned to your account.\n"
+                                f"You can use it for your next order!"
                             )
 
-                            try:
-                                notification_text = (
-                                    f"⏱️ <b>Order Expired</b>\n\n"
-                                    f"Your order <b>{order.order_code}</b> has expired due to payment timeout.\n\n"
-                                    f"💰 <b>Bonus Refund: ${order.bonus_applied}</b>\n"
-                                    f"📊 New Bonus Balance: <b>${new_bonus_balance}</b>\n\n"
-                                    f"Your referral bonus has been returned to your account.\n"
-                                    f"You can use it for your next order!"
-                                )
-
-                                await bot.send_message(order.buyer_id, notification_text)
-                                logger.info(f"Bonus refund notification sent for expired order {order.order_code} (buyer: {order.buyer_id})")
-                            finally:
-                                await bot.session.close()
+                            await bot.send_message(order.buyer_id, notification_text)
+                            logger.info(f"Bonus refund notification sent for expired order {order.order_code} (buyer: {order.buyer_id})")
 
                         except Exception as e:
                             logger.warning(f"Failed to send bonus refund notification for order {order.order_code}: {e}")

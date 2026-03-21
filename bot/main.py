@@ -165,6 +165,13 @@ async def __on_shutdown(dp: Dispatcher, bot: Bot) -> None:
     if monitoring_server:
         await monitoring_server.stop()
 
+    # Close shared notification bot session
+    try:
+        from bot.payments.notifications import close_shared_bot
+        await close_shared_bot()
+    except Exception:
+        pass
+
     logging.info("Shutdown completed")
 
 

@@ -207,21 +207,26 @@ async def handle_live_location_update(bot, order: Order, message: Message, sende
 
 
 # ---------------------------------------------------------------------------
-# Driver -> Customer relay (Card 13, enhanced Card 15)
+# Shared relay helper (Card 13, enhanced Card 15)
 # ---------------------------------------------------------------------------
 
-async def relay_driver_to_customer(bot, order: Order, message: Message):
+async def _relay_message(bot, order: Order, message: Message,
+                         target_chat_id: int, sender_role: str,
+                         sender_label: str, sender_emoji: str,
+                         live_location_field: str):
     """
-    Relay a message from driver to customer and record it.
+    Relay a message (text/photo/location) to target_chat_id and record it.
 
     Args:
         bot: Bot instance
-        order: Active order being delivered
-        message: Driver's message to relay
+        order: Active order
+        message: Source message to relay
+        target_chat_id: Chat ID to relay to
+        sender_role: 'driver' or 'customer' (for audit log)
+        sender_label: Display label (e.g. 'Driver', 'Customer')
+        sender_emoji: Emoji prefix for text relay
+        live_location_field: Order attribute to store live location msg ID
     """
-    if not is_chat_active(order):
-        return
-
     with Database().session() as session:
         open_chat_session(session, order)
 
@@ -234,17 +239,17 @@ async def relay_driver_to_customer(bot, order: Order, message: Message):
         if message.text:
             msg_text = message.text
             await bot.send_message(
-                order.buyer_id,
-                f"🛵 <b>Driver ({order.order_code}):</b>\n{msg_text}"
+                target_chat_id,
+                f"{sender_emoji} <b>{sender_label} ({order.order_code}):</b>\n{msg_text}"
             )
 
         elif message.photo:
             photo_id = message.photo[-1].file_id
-            caption = f"🛵 <b>Driver ({order.order_code}):</b>"
+            caption = f"{sender_emoji} <b>{sender_label} ({order.order_code}):</b>"
             if message.caption:
                 caption += f"\n{message.caption}"
                 msg_text = message.caption
-            await bot.send_photo(order.buyer_id, photo_id, caption=caption)
+            await bot.send_photo(target_chat_id, photo_id, caption=caption)
 
         elif message.location:
             loc_lat = message.location.latitude
@@ -252,38 +257,35 @@ async def relay_driver_to_customer(bot, order: Order, message: Message):
 
             if message.location.live_period:
                 is_live = True
-                # Live location — forward directly so customer gets real-time updates
                 await bot.forward_message(
-                    order.buyer_id,
+                    target_chat_id,
                     message.chat.id,
                     message.message_id
                 )
                 await bot.send_message(
-                    order.buyer_id,
-                    f"📡 <b>Driver LIVE location ({order.order_code})</b>\n"
+                    target_chat_id,
+                    f"📡 <b>{sender_label} LIVE location ({order.order_code})</b>\n"
                     f"This pin updates in real-time."
                 )
-                # Store the live location message ID on order for tracking
                 db_order = session.query(Order).filter_by(id=order.id).first()
                 if db_order:
-                    db_order.driver_live_location_message_id = message.message_id
+                    setattr(db_order, live_location_field, message.message_id)
             else:
-                # Static location
                 await bot.send_location(
-                    order.buyer_id,
+                    target_chat_id,
                     latitude=loc_lat,
                     longitude=loc_lng
                 )
                 await bot.send_message(
-                    order.buyer_id,
-                    f"📍 <b>Driver location ({order.order_code})</b>"
+                    target_chat_id,
+                    f"📍 <b>{sender_label} location ({order.order_code})</b>"
                 )
 
         # Record in audit log
         chat_msg = DeliveryChatMessage(
             order_id=order.id,
             sender_id=message.from_user.id,
-            sender_role="driver",
+            sender_role=sender_role,
             message_text=msg_text,
             photo_file_id=photo_id,
             location_lat=loc_lat,
@@ -297,18 +299,30 @@ async def relay_driver_to_customer(bot, order: Order, message: Message):
 
 
 # ---------------------------------------------------------------------------
+# Driver -> Customer relay (Card 13, enhanced Card 15)
+# ---------------------------------------------------------------------------
+
+async def relay_driver_to_customer(bot, order: Order, message: Message):
+    """Relay a message from driver to customer and record it."""
+    if not is_chat_active(order):
+        return
+
+    await _relay_message(
+        bot, order, message,
+        target_chat_id=order.buyer_id,
+        sender_role="driver",
+        sender_label="Driver",
+        sender_emoji="🛵",
+        live_location_field="driver_live_location_message_id",
+    )
+
+
+# ---------------------------------------------------------------------------
 # Customer -> Driver relay (Card 13, enhanced Card 15)
 # ---------------------------------------------------------------------------
 
 async def relay_customer_to_driver(bot, order: Order, message: Message):
-    """
-    Relay a message from customer to driver/rider group and record it.
-
-    Args:
-        bot: Bot instance
-        order: Active order
-        message: Customer's message to relay
-    """
+    """Relay a message from customer to driver/rider group and record it."""
     rider_group_id = EnvKeys.RIDER_GROUP_ID
     if not rider_group_id:
         await message.answer(localize("order.delivery.chat_unavailable"))
@@ -330,78 +344,14 @@ async def relay_customer_to_driver(bot, order: Order, message: Message):
             session.commit()
         return
 
-    with Database().session() as session:
-        open_chat_session(session, order)
-
-        msg_text = None
-        photo_id = None
-        loc_lat = None
-        loc_lng = None
-        is_live = False
-
-        if message.text:
-            msg_text = message.text
-            await bot.send_message(
-                int(rider_group_id),
-                f"👤 <b>Customer ({order.order_code}):</b>\n{msg_text}"
-            )
-
-        elif message.photo:
-            photo_id = message.photo[-1].file_id
-            caption = f"👤 <b>Customer ({order.order_code}):</b>"
-            if message.caption:
-                caption += f"\n{message.caption}"
-                msg_text = message.caption
-            await bot.send_photo(int(rider_group_id), photo_id, caption=caption)
-
-        elif message.location:
-            loc_lat = message.location.latitude
-            loc_lng = message.location.longitude
-
-            if message.location.live_period:
-                is_live = True
-                # Customer sharing live location — forward to rider group
-                await bot.forward_message(
-                    int(rider_group_id),
-                    message.chat.id,
-                    message.message_id
-                )
-                await bot.send_message(
-                    int(rider_group_id),
-                    f"📡 <b>Customer LIVE location ({order.order_code})</b>\n"
-                    f"This pin updates in real-time."
-                )
-                # Store customer live location message ID
-                db_order = session.query(Order).filter_by(id=order.id).first()
-                if db_order:
-                    db_order.customer_live_location_message_id = message.message_id
-            else:
-                # Static location
-                await bot.send_location(
-                    int(rider_group_id),
-                    latitude=loc_lat,
-                    longitude=loc_lng
-                )
-                await bot.send_message(
-                    int(rider_group_id),
-                    f"📍 <b>Customer location ({order.order_code})</b>"
-                )
-
-        # Record in audit log
-        chat_msg = DeliveryChatMessage(
-            order_id=order.id,
-            sender_id=message.from_user.id,
-            sender_role="customer",
-            message_text=msg_text,
-            photo_file_id=photo_id,
-            location_lat=loc_lat,
-            location_lng=loc_lng,
-            is_live_location=is_live,
-            live_location_update_count=0 if is_live else None,
-            telegram_message_id=message.message_id,
-        )
-        session.add(chat_msg)
-        session.commit()
+    await _relay_message(
+        bot, order, message,
+        target_chat_id=int(rider_group_id),
+        sender_role="customer",
+        sender_label="Customer",
+        sender_emoji="👤",
+        live_location_field="customer_live_location_message_id",
+    )
 
 
 # ---------------------------------------------------------------------------

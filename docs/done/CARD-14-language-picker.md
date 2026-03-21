@@ -7,7 +7,7 @@
 
 ---
 
-## Implementation Status: 95% Complete
+## Implementation Status: 100% Complete
 
 - [x] `User.locale` column added to model + DB migration
 - [x] `AVAILABLE_LOCALES` registry with 7 languages (th/en/ru/ar/fa/ps/fr)
@@ -163,15 +163,15 @@ User sends /language → bot shows picker → user taps flag → locale saved �
 
 ## Acceptance Criteria
 
-- [ ] New users see language picker on first `/start`
-- [ ] Picker shows all languages from `AVAILABLE_LOCALES`
-- [ ] Selected language saved to `User.locale` column
-- [ ] All subsequent messages use the selected language
-- [ ] `/language` command shows picker anytime to change
-- [ ] Confirmation message shown in the newly selected language
-- [ ] Users without a locale preference fall back to `BOT_LOCALE` (th)
-- [ ] Adding a new language requires only: translations dict + `AVAILABLE_LOCALES` entry
-- [ ] Existing users (locale=None) continue to see Thai (default)
+- [x] New users see language picker on first `/start`
+- [x] Picker shows all languages from `AVAILABLE_LOCALES`
+- [x] Selected language saved to `User.locale` column
+- [x] All subsequent messages use the selected language
+- [x] `/language` command shows picker anytime to change
+- [x] Confirmation message shown in the newly selected language
+- [x] Users without a locale preference fall back to `BOT_LOCALE` (th)
+- [x] Adding a new language requires only: translations dict + `AVAILABLE_LOCALES` entry
+- [x] Existing users (locale=None) continue to see Thai (default)
 
 ## Test Plan
 

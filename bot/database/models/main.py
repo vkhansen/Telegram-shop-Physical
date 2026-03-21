@@ -330,6 +330,15 @@ class Order(Database.BASE):
     payment_verified_by = Column(BigInteger, nullable=True)  # Admin who verified
     payment_verified_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Slip auto-verification (SlipOK/EasySlip/RDCW)
+    slip_verify_status = Column(String(30), nullable=True)  # verified, amount_mismatch, etc.
+    slip_verify_bank = Column(String(20), nullable=True)  # slipok, easyslip, rdcw (provider used)
+    slip_transaction_id = Column(String(100), nullable=True)  # Bank transaction reference
+    slip_verified_amount = Column(Numeric(precision=12, scale=2), nullable=True)  # Amount from bank
+    slip_sender_name = Column(String(255), nullable=True)
+    slip_receiver_name = Column(String(255), nullable=True)
+    slip_verified_at = Column(DateTime(timezone=True), nullable=True)
+
     # Delivery type (Card 3)
     delivery_type = Column(String(20), nullable=False, default="door")  # door | dead_drop | pickup
     drop_instructions = Column(Text, nullable=True)

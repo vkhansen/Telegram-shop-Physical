@@ -9,10 +9,45 @@ from bot.i18n import localize
 from bot.config.env import EnvKeys
 from bot.utils.currency import format_currency
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Shared Bot instance (lazy-initialized, reuses a single aiohttp session)
+# ---------------------------------------------------------------------------
+_shared_bot: Bot | None = None
+
+
+def get_shared_bot() -> Bot:
+    """
+    Return a module-level Bot instance that reuses one aiohttp session
+    instead of creating (and tearing down) a new one per notification.
+    """
+    global _shared_bot
+    if _shared_bot is None:
+        _shared_bot = Bot(
+            token=EnvKeys.TOKEN,
+            default=DefaultBotProperties(parse_mode="HTML"),
+        )
+    return _shared_bot
+
+
+async def close_shared_bot() -> None:
+    """Call on shutdown to cleanly close the shared session."""
+    global _shared_bot
+    if _shared_bot is not None:
+        await _shared_bot.session.close()
+        _shared_bot = None
+
+
+# ---------------------------------------------------------------------------
+# Core send helpers
+# ---------------------------------------------------------------------------
 
 async def send_order_notification(telegram_id: int, message_text: str) -> bool:
     """
-    Send a notification message to user via Telegram
+    Send a notification message to user via Telegram.
 
     Args:
         telegram_id: Telegram user ID
@@ -22,26 +57,44 @@ async def send_order_notification(telegram_id: int, message_text: str) -> bool:
         True if sent successfully, False otherwise
     """
     try:
-        bot = Bot(
-            token=EnvKeys.TOKEN,
-            default=DefaultBotProperties(parse_mode="HTML")
-        )
-
-        try:
-            await bot.send_message(telegram_id, message_text)
-            return True
-        finally:
-            await bot.session.close()
-
+        bot = get_shared_bot()
+        await bot.send_message(telegram_id, message_text)
+        return True
     except Exception as e:
-        # Avoid emoji in print for Windows console compatibility
-        print(f"[WARNING] Failed to send notification to {telegram_id}: {str(e)[:100]}")
+        logger.warning(f"Failed to send notification to {telegram_id}: {str(e)[:100]}")
         return False
 
 
+async def _send_to_group(chat_id: str | int, message_text: str,
+                         reply_markup: InlineKeyboardMarkup = None) -> int | None:
+    """
+    Send a message to a Telegram group and return the message_id.
+
+    Returns:
+        message_id on success, None on failure
+    """
+    if not chat_id:
+        return None
+    try:
+        bot = get_shared_bot()
+        msg = await bot.send_message(
+            chat_id=int(chat_id),
+            text=message_text,
+            reply_markup=reply_markup,
+        )
+        return msg.message_id
+    except Exception as e:
+        logger.warning(f"Failed to send group message to {chat_id}: {str(e)[:100]}")
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Item formatting helper
+# ---------------------------------------------------------------------------
+
 def format_order_items(items: list) -> str:
     """
-    Format order items for display
+    Format order items for display.
 
     Args:
         items: List of OrderItem objects
@@ -57,51 +110,29 @@ def format_order_items(items: list) -> str:
     return "\n".join(items_list)
 
 
+# ---------------------------------------------------------------------------
+# Order notification functions
+# ---------------------------------------------------------------------------
+
 async def notify_order_confirmed(order: Order, items: list, delivery_time: datetime) -> bool:
-    """
-    Send order confirmation notification to customer
-
-    Args:
-        order: Order object
-        items: List of OrderItem objects
-        delivery_time: Planned delivery time
-
-    Returns:
-        True if sent successfully
-    """
-
-    # Format delivery time
+    """Send order confirmation notification to customer."""
     delivery_time_str = delivery_time.strftime("%Y-%m-%d %H:%M")
-
-    # Format items
     items_formatted = format_order_items(items)
 
-    # Format message
     message = localize("order.status.notify_order_confirmed",
                        order_code=order.order_code,
                        delivery_time=delivery_time_str,
                        items=items_formatted,
-                       total=f"{order.total_price} {EnvKeys.PAY_CURRENCY}"
-                       )
+                       total=f"{order.total_price} {EnvKeys.PAY_CURRENCY}")
 
     return await send_order_notification(order.buyer_id, message)
 
 
 async def notify_order_delivered(order: Order) -> bool:
-    """
-    Send order delivery confirmation to customer
-
-    Args:
-        order: Order object
-
-    Returns:
-        True if sent successfully
-    """
-    # Format message
+    """Send order delivery confirmation to customer."""
     message = localize("order.status.notify_order_delivered",
                        order_code=order.order_code,
-                       total=f"${order.total_price}"
-                       )
+                       total=f"${order.total_price}")
 
     return await send_order_notification(order.buyer_id, message)
 
@@ -120,84 +151,40 @@ async def send_delivery_photo_to_customer(order: Order) -> bool:
         return False
 
     try:
-        bot = Bot(
-            token=EnvKeys.TOKEN,
-            default=DefaultBotProperties(parse_mode="HTML")
+        bot = get_shared_bot()
+        caption = localize("delivery.photo.customer_notification",
+                           order_code=order.order_code)
+        await bot.send_photo(
+            chat_id=order.buyer_id,
+            photo=order.delivery_photo,
+            caption=caption,
         )
-
-        try:
-            caption = localize("delivery.photo.customer_notification",
-                               order_code=order.order_code)
-            await bot.send_photo(
-                chat_id=order.buyer_id,
-                photo=order.delivery_photo,
-                caption=caption
-            )
-            return True
-        finally:
-            await bot.session.close()
-
+        return True
     except Exception as e:
-        print(f"[WARNING] Failed to send delivery photo to {order.buyer_id}: {str(e)[:100]}")
+        logger.warning(f"Failed to send delivery photo to {order.buyer_id}: {str(e)[:100]}")
         return False
 
 
 async def notify_order_modified(order: Order, changes_description: str) -> bool:
-    """
-    Send order modification notification to customer
-
-    Args:
-        order: Order object
-        changes_description: Description of changes made
-
-    Returns:
-        True if sent successfully
-    """
-    # Format message
+    """Send order modification notification to customer."""
     message = localize("order.status.notify_order_modified",
                        order_code=order.order_code,
                        changes=changes_description,
-                       total=f"${order.total_price}"
-                       )
+                       total=f"${order.total_price}")
 
     return await send_order_notification(order.buyer_id, message)
 
 
-async def _send_to_group(chat_id: str | int, message_text: str,
-                         reply_markup: InlineKeyboardMarkup = None) -> int | None:
-    """
-    Send a message to a Telegram group and return the message_id.
-
-    Returns:
-        message_id on success, None on failure
-    """
-    if not chat_id:
-        return None
-    try:
-        bot = Bot(
-            token=EnvKeys.TOKEN,
-            default=DefaultBotProperties(parse_mode="HTML")
-        )
-        try:
-            msg = await bot.send_message(
-                chat_id=int(chat_id),
-                text=message_text,
-                reply_markup=reply_markup,
-            )
-            return msg.message_id
-        finally:
-            await bot.session.close()
-    except Exception as e:
-        print(f"[WARNING] Failed to send group message to {chat_id}: {str(e)[:100]}")
-        return None
-
+# ---------------------------------------------------------------------------
+# Group notifications
+# ---------------------------------------------------------------------------
 
 async def notify_kitchen_group(bot: Bot, order: Order, items: list) -> int | None:
     """
     Send formatted order to kitchen group when status becomes 'confirmed'.
 
     Args:
-        bot: Bot instance (unused, kept for interface consistency; uses EnvKeys.TOKEN internally)
+        bot: Bot instance (unused, kept for interface consistency)
         order: Order object
         items: List of OrderItem objects
 

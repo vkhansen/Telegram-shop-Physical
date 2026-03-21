@@ -4,22 +4,77 @@ from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramBadRequest
 
 from bot.database import Database
-from bot.database.models.main import CustomerInfo
+from bot.database.models.main import CustomerInfo, Goods
 from bot.database.methods import get_cart_items, calculate_cart_total, add_to_cart, remove_from_cart, clear_cart
-from bot.keyboards import back, simple_buttons
+from bot.keyboards import back, simple_buttons, modifier_group_keyboard
 from bot.i18n import localize
 from bot.config import EnvKeys
-from bot.states import CartStates, OrderStates
+from bot.states import CartStates, OrderStates, ModifierSelectionFSM
 from bot.handlers.other import is_safe_item_name
 from bot.monitoring import get_metrics
+from bot.utils.modifiers import validate_modifier_selection
 
 router = Router()
 
 
+def _format_selected_modifiers(selected_modifiers: dict, modifiers_schema: dict) -> str:
+    """Format selected modifiers for display in cart (Card 8)."""
+    if not selected_modifiers or not modifiers_schema:
+        return ""
+    parts = []
+    for group_key, selection in selected_modifiers.items():
+        group = modifiers_schema.get(group_key)
+        if not group:
+            continue
+        options = group.get("options", [])
+        label = group.get("label", group_key)
+        if isinstance(selection, list):
+            chosen = [o.get("label", o["id"]) for o in options if o["id"] in selection]
+            if chosen:
+                parts.append(f"{label}: {', '.join(chosen)}")
+        else:
+            chosen = next((o.get("label", o["id"]) for o in options if o["id"] == selection), None)
+            if chosen:
+                parts.append(f"{label}: {chosen}")
+    return "; ".join(parts)
+
+
+def _get_modifier_group_keys(modifiers_schema: dict) -> list[str]:
+    """Return ordered list of modifier group keys."""
+    return list(modifiers_schema.keys()) if modifiers_schema else []
+
+
+async def _show_modifier_group(call: CallbackQuery, state: FSMContext,
+                                item_name: str, group_key: str,
+                                modifiers_schema: dict, selected: dict):
+    """Show a single modifier group's options to the user."""
+    group = modifiers_schema[group_key]
+    label = group.get("label", group_key)
+    required = group.get("required", False)
+    group_type = group.get("type", "single")
+
+    req_text = localize("modifier.required") if required else localize("modifier.optional")
+    title = localize("modifier.select_title", label=label) + f" {req_text}"
+
+    # Get already-selected options for this group (for multi-choice toggle display)
+    current_selection = selected.get(group_key, [])
+    if not isinstance(current_selection, list):
+        current_selection = [current_selection] if current_selection else []
+
+    markup = modifier_group_keyboard(item_name, group_key, group, selected=current_selection)
+
+    try:
+        await call.message.edit_text(title, reply_markup=markup)
+    except TelegramBadRequest as e:
+        if "message is not modified" not in str(e):
+            raise
+
+
 @router.callback_query(F.data.startswith('add_to_cart_'))
-async def add_to_cart_handler(call: CallbackQuery):
+async def add_to_cart_handler(call: CallbackQuery, state: FSMContext):
     """
-    Handle adding item to cart from item details page
+    Handle adding item to cart from item details page.
+    If item has modifiers, start modifier selection flow (Card 8).
     """
     # Extract item name from callback data: add_to_cart_{item_name}
     item_name = call.data[len('add_to_cart_'):]
@@ -31,7 +86,28 @@ async def add_to_cart_handler(call: CallbackQuery):
 
     user_id = call.from_user.id
 
-    # Add to cart
+    # Check if item has modifiers (Card 8)
+    with Database().session() as session:
+        good = session.query(Goods).filter_by(name=item_name).first()
+        modifiers_schema = good.modifiers if good else None
+
+    if modifiers_schema:
+        # Start modifier selection flow
+        group_keys = _get_modifier_group_keys(modifiers_schema)
+        await state.set_state(ModifierSelectionFSM.selecting_modifiers)
+        await state.update_data(
+            mod_item_name=item_name,
+            mod_schema=modifiers_schema,
+            mod_group_keys=group_keys,
+            mod_current_index=0,
+            mod_selected={},
+        )
+        # Show the first modifier group
+        await _show_modifier_group(call, state, item_name, group_keys[0], modifiers_schema, {})
+        await call.answer()
+        return
+
+    # No modifiers - add directly
     success, message = await add_to_cart(user_id, item_name, quantity=1)
 
     if success:
@@ -49,6 +125,145 @@ async def add_to_cart_handler(call: CallbackQuery):
         await call.answer(localize("cart.add_error", message=message), show_alert=True)
 
 
+@router.callback_query(F.data.startswith("mod_sel:"), ModifierSelectionFSM.selecting_modifiers)
+async def modifier_option_selected(call: CallbackQuery, state: FSMContext):
+    """Handle user selecting a modifier option (Card 8)."""
+    # Parse: mod_sel:{item_name}:{group_key}:{opt_id}
+    parts = call.data.split(":", 3)
+    if len(parts) != 4:
+        await call.answer()
+        return
+    _, item_name, group_key, opt_id = parts
+
+    data = await state.get_data()
+    modifiers_schema = data.get("mod_schema", {})
+    group_keys = data.get("mod_group_keys", [])
+    current_index = data.get("mod_current_index", 0)
+    selected = data.get("mod_selected", {})
+
+    group = modifiers_schema.get(group_key, {})
+    group_type = group.get("type", "single")
+
+    if group_type == "multi":
+        # Toggle option in multi-choice list
+        current = selected.get(group_key, [])
+        if not isinstance(current, list):
+            current = [current] if current else []
+        if opt_id in current:
+            current.remove(opt_id)
+        else:
+            current.append(opt_id)
+        selected[group_key] = current
+        await state.update_data(mod_selected=selected)
+
+        # Re-display same group with updated selections
+        await _show_modifier_group(call, state, item_name, group_key, modifiers_schema, selected)
+        opt_label = next((o.get("label", o["id"]) for o in group.get("options", []) if o["id"] == opt_id), opt_id)
+        await call.answer(localize("modifier.selected", choice=opt_label))
+    else:
+        # Single-choice: record and advance
+        selected[group_key] = opt_id
+        await state.update_data(mod_selected=selected, mod_current_index=current_index + 1)
+
+        opt_label = next((o.get("label", o["id"]) for o in group.get("options", []) if o["id"] == opt_id), opt_id)
+        await call.answer(localize("modifier.selected", choice=opt_label))
+
+        # Advance to next group or finish
+        next_index = current_index + 1
+        if next_index < len(group_keys):
+            await _show_modifier_group(call, state, item_name, group_keys[next_index], modifiers_schema, selected)
+        else:
+            await _finish_modifier_selection(call, state, selected)
+
+
+@router.callback_query(F.data.startswith("mod_done:"), ModifierSelectionFSM.selecting_modifiers)
+async def modifier_group_done(call: CallbackQuery, state: FSMContext):
+    """Handle 'Done' button for multi-choice modifier group (Card 8)."""
+    parts = call.data.split(":", 2)
+    if len(parts) != 3:
+        await call.answer()
+        return
+    _, item_name, group_key = parts
+
+    data = await state.get_data()
+    modifiers_schema = data.get("mod_schema", {})
+    group_keys = data.get("mod_group_keys", [])
+    current_index = data.get("mod_current_index", 0)
+    selected = data.get("mod_selected", {})
+
+    # Validate required group has selection
+    group = modifiers_schema.get(group_key, {})
+    if group.get("required") and not selected.get(group_key):
+        await call.answer(localize("modifier.required"), show_alert=True)
+        return
+
+    # Advance to next group
+    next_index = current_index + 1
+    await state.update_data(mod_current_index=next_index)
+
+    if next_index < len(group_keys):
+        await _show_modifier_group(call, state, item_name, group_keys[next_index], modifiers_schema, selected)
+        await call.answer()
+    else:
+        await _finish_modifier_selection(call, state, selected)
+
+
+@router.callback_query(F.data == "mod_cancel", ModifierSelectionFSM.selecting_modifiers)
+async def modifier_cancel(call: CallbackQuery, state: FSMContext):
+    """Cancel modifier selection flow (Card 8)."""
+    await state.clear()
+    await call.answer(localize("cart.add_cancelled"))
+    await call.message.edit_text(
+        localize("modifier.cancelled"),
+        reply_markup=back("back_to_menu")
+    )
+
+
+async def _finish_modifier_selection(call: CallbackQuery, state: FSMContext, selected: dict):
+    """Validate and add item with modifiers to cart (Card 8)."""
+    data = await state.get_data()
+    item_name = data.get("mod_item_name", "")
+    modifiers_schema = data.get("mod_schema", {})
+    user_id = call.from_user.id
+
+    # Validate
+    is_valid, error_msg = validate_modifier_selection(modifiers_schema, selected)
+    if not is_valid:
+        await call.answer(error_msg, show_alert=True)
+        return
+
+    # Clean up empty selections
+    clean_selected = {}
+    for k, v in selected.items():
+        if v:  # Skip empty lists / None
+            clean_selected[k] = v
+
+    # Clear FSM state
+    await state.clear()
+
+    # Add to cart with modifiers
+    success, message = await add_to_cart(user_id, item_name, quantity=1,
+                                          selected_modifiers=clean_selected or None)
+
+    if success:
+        metrics = get_metrics()
+        if metrics:
+            metrics.track_event("cart_add", user_id, {
+                "item": item_name,
+                "quantity": 1,
+                "modifiers": clean_selected
+            })
+            metrics.track_conversion("customer_journey", "cart_add", user_id)
+
+        await call.answer(localize("cart.add_success", item_name=item_name), show_alert=False)
+        await call.message.edit_text(
+            localize("cart.add_success", item_name=item_name),
+            reply_markup=back("back_to_menu")
+        )
+    else:
+        await call.answer(localize("cart.add_error", message=message), show_alert=True)
+
+
 @router.callback_query(F.data == "view_cart")
 async def view_cart_handler(call: CallbackQuery, state: FSMContext):
     """
@@ -57,16 +272,6 @@ async def view_cart_handler(call: CallbackQuery, state: FSMContext):
     user_id = call.from_user.id
     cart_items = await get_cart_items(user_id)
 
-    # Track cart view
-    if cart_items:
-        total = await calculate_cart_total(user_id)
-        metrics = get_metrics()
-        if metrics:
-            metrics.track_event("cart_view", user_id, {
-                "items_count": len(cart_items),
-                "total": float(total)
-            })
-
     if not cart_items:
         await call.message.edit_text(
             localize("cart.empty"),
@@ -74,15 +279,30 @@ async def view_cart_handler(call: CallbackQuery, state: FSMContext):
         )
         return
 
+    # Calculate total once (avoid duplicate DB query)
+    total = sum(item['total'] for item in cart_items)
+
+    # Track cart view
+    metrics = get_metrics()
+    if metrics:
+        metrics.track_event("cart_view", user_id, {
+            "items_count": len(cart_items),
+            "total": float(total)
+        })
+
     # Build cart display
     text = localize("cart.title")
 
     for item in cart_items:
         text += f"<b>{item['item_name']}</b>\n"
+        # Show selected modifiers if present (Card 8)
+        if item.get('selected_modifiers') and item.get('modifiers_schema'):
+            mod_text = _format_selected_modifiers(item['selected_modifiers'], item['modifiers_schema'])
+            if mod_text:
+                text += localize("cart.item.modifiers", modifiers=mod_text) + "\n"
         text += localize("cart.item.price_format", price=item['price'], currency=EnvKeys.PAY_CURRENCY, quantity=item['quantity']) + "\n"
         text += localize("cart.item.subtotal_format", subtotal=item['total'], currency=EnvKeys.PAY_CURRENCY) + "\n\n"
 
-    total = await calculate_cart_total(user_id)
     text += localize("cart.total_format", total=total, currency=EnvKeys.PAY_CURRENCY)
 
     # Build keyboard
@@ -175,7 +395,6 @@ async def checkout_cart_handler(call: CallbackQuery, state: FSMContext):
         metrics.track_conversion("customer_journey", "checkout_start", user_id)
 
     # Check if user has customer info saved
-    from bot.database.models.main import CustomerInfo
     with Database().session() as session:
         customer_info = session.query(CustomerInfo).filter_by(
             telegram_id=user_id

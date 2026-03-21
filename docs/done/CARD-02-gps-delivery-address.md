@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-> **90% Complete** | `██████████████████░░` | Model fields + handler + tests done. Live location updates not implemented.
+> **100% Complete** | `████████████████████` | Model fields + handler + tests done. Live location updates handled by Card 15.
 
 ## Flow Diagram
 
@@ -100,7 +100,7 @@ longitude = Column(Float, nullable=True)
 - [x] Admin sees Maps link in order view
 - [x] CLI displays coordinates and Maps link
 - [x] Saved to CustomerInfo for future orders
-- [ ] Live location updates handled (if shared)
+- [x] Live location updates handled (Card 15 `edited_message` handlers capture updates)
 
 ## Test Plan
 

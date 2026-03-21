@@ -125,18 +125,9 @@ def get_item_info(item_name: str) -> dict | None:
         return result.__dict__ if result else None
 
 
-def get_goods_info(item_name: str) -> dict | None:
-    """Return goods row as dict by name, or None. (Replaced ItemValues with Goods)"""
-    with Database().session() as s:
-        result = s.query(Goods).filter(Goods.name == item_name).first()
-        return result.__dict__ if result else None
-
-
-def check_item(item_name: str) -> dict | None:
-    """Return item (position) as dict by name, or None."""
-    with Database().session() as s:
-        result = s.query(Goods).filter(Goods.name == item_name).first()
-        return result.__dict__ if result else None
+# Aliases kept for backward compatibility — all do the same thing.
+get_goods_info = get_item_info
+check_item = get_item_info
 
 
 def check_category(category_name: str) -> dict | None:
@@ -355,8 +346,10 @@ async def get_cart_items(user_id: int) -> list:
         user_id: User's telegram ID
 
     Returns:
-        List of cart items with product info
+        List of cart items with product info (includes selected_modifiers and modifier-adjusted price)
     """
+    from bot.utils.modifiers import calculate_item_price
+
     with Database().session() as session:
         cart_items = session.query(ShoppingCart, Goods).join(
             Goods, ShoppingCart.item_name == Goods.name
@@ -366,12 +359,18 @@ async def get_cart_items(user_id: int) -> list:
 
         result = []
         for cart_item, good in cart_items:
+            # Calculate price with modifier adjustments (Card 8)
+            unit_price = calculate_item_price(
+                good.price, good.modifiers, cart_item.selected_modifiers
+            )
             result.append({
                 'cart_id': cart_item.id,
                 'item_name': cart_item.item_name,
                 'quantity': cart_item.quantity,
-                'price': good.price,
-                'total': Decimal(str(good.price)) * cart_item.quantity
+                'price': unit_price,
+                'total': unit_price * cart_item.quantity,
+                'selected_modifiers': cart_item.selected_modifiers,
+                'modifiers_schema': good.modifiers,
             })
         return result
 

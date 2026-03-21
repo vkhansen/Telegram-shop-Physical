@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-> **95% Complete** | `███████████████████░` | Models, handler, keyboards, states, i18n, router wiring, and 30+ tests all done. Only missing: formal router registration for edited_message in main handler (registered via delivery_chat router which is already included).
+> **100% Complete** | `████████████████████` | Models, handler, keyboards, states, i18n, router wiring, and 30+ tests all done. edited_message handlers wired via delivery_chat router.
 
 **Phase:** 4 — Delivery Experience
 **Priority:** High

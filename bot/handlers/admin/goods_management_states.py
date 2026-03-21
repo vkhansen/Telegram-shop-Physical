@@ -26,6 +26,7 @@ async def goods_management_callback_handler(call: CallbackQuery, state):
         (localize("admin.goods.add_position"), "add_item"),
         (localize("admin.goods.manage_stock"), "manage_stock"),
         (localize("admin.goods.update_position"), "update_item"),
+        (localize("admin.goods.manage_modifiers"), "manage_modifiers"),
         (localize("admin.goods.delete_position"), "delete_item"),
         (localize("admin.goods.view_stock"), "view_stock_status"),
         (localize("btn.back"), "console"),
@@ -103,6 +104,93 @@ async def view_stock_status_handler(call: CallbackQuery, state):
             parse_mode='HTML',
             reply_markup=back("goods_management")
         )
+    await state.clear()
+
+
+# ---------------------------------------------------------------------------
+# Modifier Management (Card 8)
+# ---------------------------------------------------------------------------
+
+@router.callback_query(F.data == 'manage_modifiers', HasPermissionFilter(permission=Permission.SHOP_MANAGE))
+async def manage_modifiers_handler(call: CallbackQuery, state):
+    """
+    Ask which product to manage modifiers for.
+    """
+    await call.message.edit_text(
+        localize('admin.goods.modifiers.select_item'),
+        reply_markup=back("goods_management")
+    )
+    from bot.states import UpdateItemFSM
+    await state.set_state(UpdateItemFSM.waiting_item_name_for_update)
+    await state.update_data(modifier_edit_mode=True)
+
+
+@router.callback_query(F.data.startswith('edit_modifiers_'))
+async def edit_modifiers_for_item(call: CallbackQuery, state):
+    """Show current modifiers and options for an item."""
+    import json as _json
+    item_name = call.data.replace('edit_modifiers_', '')
+
+    from bot.database import Database
+    from bot.database.models.main import Goods
+
+    with Database().session() as session:
+        good = session.query(Goods).filter_by(name=item_name).first()
+        if not good:
+            await call.answer("Item not found", show_alert=True)
+            return
+
+        current = good.modifiers
+        if current:
+            text = f"<b>{item_name}</b> - Current modifiers:\n\n"
+            text += f"<code>{_json.dumps(current, indent=2, ensure_ascii=False)}</code>"
+        else:
+            text = f"<b>{item_name}</b> - No modifiers configured."
+
+    text += "\n\n" + localize("admin.goods.modifiers.edit_instructions")
+
+    buttons = [
+        (localize("admin.goods.modifiers.set_new"), f"set_modifiers_{item_name}"),
+        (localize("admin.goods.modifiers.clear"), f"clear_modifiers_{item_name}"),
+        (localize("btn.back"), "goods_management"),
+    ]
+    await call.message.edit_text(text, reply_markup=simple_buttons(buttons, per_row=1))
+
+
+@router.callback_query(F.data.startswith('set_modifiers_'))
+async def set_modifiers_prompt(call: CallbackQuery, state):
+    """Ask admin to paste modifier JSON for an item."""
+    item_name = call.data.replace('set_modifiers_', '')
+    await state.update_data(modifier_item_name=item_name)
+    await call.message.edit_text(
+        localize("admin.goods.modifiers.json_prompt"),
+        reply_markup=back('goods_management'),
+    )
+    from bot.states import AddItemFSM
+    await state.set_state(AddItemFSM.waiting_modifiers_json)
+    # Mark as edit mode so the handler saves to existing item
+    await state.update_data(modifier_edit_existing=True)
+
+
+@router.callback_query(F.data.startswith('clear_modifiers_'))
+async def clear_modifiers(call: CallbackQuery, state):
+    """Remove all modifiers from an item."""
+    item_name = call.data.replace('clear_modifiers_', '')
+
+    from bot.database import Database
+    from bot.database.models.main import Goods
+
+    with Database().session() as session:
+        good = session.query(Goods).filter_by(name=item_name).first()
+        if good:
+            good.modifiers = None
+            session.commit()
+
+    await call.answer("Modifiers cleared")
+    await call.message.edit_text(
+        f"Modifiers cleared for <b>{item_name}</b>",
+        reply_markup=back('goods_management'),
+    )
     await state.clear()
 
 

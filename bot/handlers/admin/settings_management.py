@@ -9,6 +9,7 @@ from bot.states.user_state import SettingsFSM
 from bot.keyboards.inline import back, settings_management_keyboard, timezone_selection_keyboard
 from bot.filters import HasPermissionFilter
 from bot.config import timezone
+from bot.config.env import EnvKeys
 
 router = Router()
 
@@ -25,13 +26,16 @@ async def settings_menu(call: CallbackQuery, state: FSMContext):
     current_percent = get_reference_bonus_percent()
     current_timeout = get_bot_setting('cash_order_timeout_hours', default=24, value_type=int)
     current_timezone = timezone.get_timezone()
+    promptpay_id = get_bot_setting('promptpay_id') or EnvKeys.PROMPTPAY_ID or "Not set"
+    promptpay_name = get_bot_setting('promptpay_account_name') or EnvKeys.PROMPTPAY_ACCOUNT_NAME or "Not set"
 
     await call.message.edit_text(
         f"⚙️ <b>Bot Settings</b>\n\n"
         f"<b>Current Values:</b>\n"
         f"• Referral Bonus: <b>{current_percent}%</b>\n"
         f"• Order Timeout: <b>{current_timeout} hours</b>\n"
-        f"• Timezone: <b>{current_timezone}</b>\n\n"
+        f"• Timezone: <b>{current_timezone}</b>\n"
+        f"• PromptPay: <b>{promptpay_id}</b> ({promptpay_name})\n\n"
         f"Select a setting to modify:",
         reply_markup=settings_management_keyboard(),
         parse_mode='HTML'
@@ -353,4 +357,127 @@ async def process_timezone_input(message: Message, state: FSMContext):
         parse_mode='HTML'
     )
 
+    await state.clear()
+
+
+# ---------------------------------------------------------------------------
+# PromptPay Recipient Account Settings
+# ---------------------------------------------------------------------------
+
+def get_promptpay_id() -> str:
+    """Get PromptPay ID from DB, falling back to env var."""
+    return get_bot_setting('promptpay_id') or EnvKeys.PROMPTPAY_ID or ""
+
+
+def get_promptpay_name() -> str:
+    """Get PromptPay account name from DB, falling back to env var."""
+    return get_bot_setting('promptpay_account_name') or EnvKeys.PROMPTPAY_ACCOUNT_NAME or ""
+
+
+@router.callback_query(F.data == "setting_promptpay", HasPermissionFilter(Permission.SETTINGS_MANAGE))
+async def set_promptpay_start(call: CallbackQuery, state: FSMContext):
+    """Show current PromptPay recipient account and prompt for new ID."""
+    current_id = get_promptpay_id()
+    current_name = get_promptpay_name()
+
+    id_display = f"<code>{current_id}</code>" if current_id else "<i>Not configured</i>"
+    name_display = f"<b>{current_name}</b>" if current_name else "<i>Not set</i>"
+
+    await call.message.edit_text(
+        f"💳 <b>PromptPay Recipient Account</b>\n\n"
+        f"This is the account that receives all PromptPay payments.\n"
+        f"The QR code shown to customers will direct payment here.\n\n"
+        f"<b>Current Configuration:</b>\n"
+        f"• PromptPay ID: {id_display}\n"
+        f"• Account Name: {name_display}\n\n"
+        f"<b>Enter your PromptPay ID:</b>\n"
+        f"• Phone number (10 digits): <code>0812345678</code>\n"
+        f"• National ID (13 digits): <code>1234567890123</code>\n\n"
+        f"<i>This is the phone number or national ID registered with PromptPay at your bank.</i>",
+        reply_markup=back("settings_management"),
+        parse_mode='HTML'
+    )
+    await state.set_state(SettingsFSM.waiting_promptpay_id)
+
+
+@router.message(SettingsFSM.waiting_promptpay_id, F.text)
+async def process_promptpay_id(message: Message, state: FSMContext):
+    """Validate and save PromptPay ID, then ask for account name."""
+    raw_id = message.text.strip().replace("-", "").replace(" ", "")
+
+    # Validate: must be 10-digit phone or 13-digit national ID
+    if len(raw_id) == 10 and raw_id.isdigit() and raw_id.startswith("0"):
+        id_type = "phone number"
+    elif len(raw_id) == 13 and raw_id.isdigit():
+        id_type = "national ID"
+    else:
+        await message.answer(
+            "❌ <b>Invalid PromptPay ID</b>\n\n"
+            "Must be one of:\n"
+            "• 10-digit phone number starting with 0 (e.g. <code>0812345678</code>)\n"
+            "• 13-digit national ID (e.g. <code>1234567890123</code>)\n\n"
+            "Please try again:",
+            reply_markup=back("settings_management"),
+            parse_mode='HTML'
+        )
+        return
+
+    # Save ID to state, ask for account name next
+    await state.update_data(new_promptpay_id=raw_id, promptpay_id_type=id_type)
+
+    current_name = get_promptpay_name()
+    name_hint = f"\nCurrent name: <b>{current_name}</b>" if current_name else ""
+
+    await message.answer(
+        f"✅ PromptPay ID: <code>{raw_id}</code> ({id_type})\n\n"
+        f"<b>Now enter the account holder name:</b>{name_hint}\n\n"
+        f"This name is used to verify that customer payments reach the correct recipient.\n"
+        f"Enter the name exactly as it appears on your bank account.\n\n"
+        f"• Example: <code>Somchai Jaidee</code>\n"
+        f"• Example: <code>My Restaurant Co Ltd</code>",
+        reply_markup=back("settings_management"),
+        parse_mode='HTML'
+    )
+    await state.set_state(SettingsFSM.waiting_promptpay_name)
+
+
+@router.message(SettingsFSM.waiting_promptpay_name, F.text)
+async def process_promptpay_name(message: Message, state: FSMContext):
+    """Save PromptPay account name and finalize."""
+    account_name = message.text.strip()
+
+    if len(account_name) < 2 or len(account_name) > 200:
+        await message.answer(
+            "❌ <b>Invalid name</b>\n\n"
+            "Account name must be between 2 and 200 characters.\n"
+            "Please try again:",
+            reply_markup=back("settings_management"),
+            parse_mode='HTML'
+        )
+        return
+
+    data = await state.get_data()
+    promptpay_id = data.get('new_promptpay_id', '')
+    id_type = data.get('promptpay_id_type', '')
+
+    # Save both settings to database
+    with Database().session() as session:
+        for key, value in [('promptpay_id', promptpay_id), ('promptpay_account_name', account_name)]:
+            setting = session.query(BotSettings).filter_by(setting_key=key).first()
+            if setting:
+                setting.setting_value = value
+            else:
+                setting = BotSettings(setting_key=key, setting_value=value)
+                session.add(setting)
+        session.commit()
+
+    await message.answer(
+        f"✅ <b>PromptPay Account Updated!</b>\n\n"
+        f"<b>PromptPay ID:</b> <code>{promptpay_id}</code> ({id_type})\n"
+        f"<b>Account Name:</b> {account_name}\n\n"
+        f"All new orders will generate QR codes directing payment to this account.\n"
+        f"Slip verification will check that payments match this recipient.",
+        reply_markup=settings_management_keyboard(),
+        parse_mode='HTML'
+    )
     await state.clear()

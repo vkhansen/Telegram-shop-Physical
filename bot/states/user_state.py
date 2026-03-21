@@ -62,3 +62,5 @@ class SettingsFSM(StatesGroup):
     waiting_referral_percent = State()
     waiting_order_timeout = State()
     waiting_timezone = State()
+    waiting_promptpay_id = State()
+    waiting_promptpay_name = State()

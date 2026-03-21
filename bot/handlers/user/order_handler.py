@@ -182,13 +182,11 @@ async def process_drop_gps(message: Message, state: FSMContext):
     await state.set_state(OrderStates.waiting_drop_media)
 
 
-@router.message(OrderStates.waiting_drop_media, F.photo)
-async def process_drop_media_photo(message: Message, state: FSMContext):
-    """Accumulate a photo for the dead drop location"""
-    file_id = message.photo[-1].file_id
+async def _accumulate_drop_media(message: Message, state: FSMContext, file_id: str, media_type: str):
+    """Shared helper: accumulate a media file for the dead drop location."""
     data = await state.get_data()
     media_list = data.get('drop_media', [])
-    media_list.append({"file_id": file_id, "type": "photo"})
+    media_list.append({"file_id": file_id, "type": media_type})
     await state.update_data(drop_media=media_list)
 
     await message.answer(
@@ -198,24 +196,18 @@ async def process_drop_media_photo(message: Message, state: FSMContext):
             (localize("btn.skip_drop_media"), "skip_drop_media"),
         ], per_row=1)
     )
+
+
+@router.message(OrderStates.waiting_drop_media, F.photo)
+async def process_drop_media_photo(message: Message, state: FSMContext):
+    """Accumulate a photo for the dead drop location"""
+    await _accumulate_drop_media(message, state, message.photo[-1].file_id, "photo")
 
 
 @router.message(OrderStates.waiting_drop_media, F.video)
 async def process_drop_media_video(message: Message, state: FSMContext):
     """Accumulate a video for the dead drop location"""
-    file_id = message.video.file_id
-    data = await state.get_data()
-    media_list = data.get('drop_media', [])
-    media_list.append({"file_id": file_id, "type": "video"})
-    await state.update_data(drop_media=media_list)
-
-    await message.answer(
-        localize("order.delivery.drop_media_saved", count=len(media_list)),
-        reply_markup=simple_buttons([
-            (localize("btn.drop_media_done"), "done_drop_media"),
-            (localize("btn.skip_drop_media"), "skip_drop_media"),
-        ], per_row=1)
-    )
+    await _accumulate_drop_media(message, state, message.video.file_id, "video")
 
 
 @router.callback_query(F.data == "done_drop_media", OrderStates.waiting_drop_media)
@@ -480,8 +472,9 @@ async def show_payment_method_selection(message: Message, state: FSMContext, use
         (localize("order.payment_method.cash"), "payment_method_cash"),
     ]
 
-    # Add PromptPay if configured (Card 1)
-    if EnvKeys.PROMPTPAY_ID:
+    # Add PromptPay if configured (Card 1) — check DB first, then env var
+    from bot.handlers.admin.settings_management import get_promptpay_id
+    if get_promptpay_id():
         payment_buttons.insert(0, (localize("order.payment_method.promptpay"), "payment_method_promptpay"))
 
     payment_buttons.append((localize("order.payment_method.bitcoin"), "payment_method_bitcoin"))
@@ -719,7 +712,8 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
                     order_id=order.id,
                     item_name=item_name,
                     price=Decimal(str(price)),
-                    quantity=quantity
+                    quantity=quantity,
+                    selected_modifiers=cart_item.get('selected_modifiers')
                 )
                 session.add(order_item)
 
@@ -925,7 +919,8 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
                     order_id=order.id,
                     item_name=item_name,
                     price=Decimal(str(price)),
-                    quantity=quantity
+                    quantity=quantity,
+                    selected_modifiers=cart_item.get('selected_modifiers')
                 )
                 session.add(order_item)
 
@@ -1158,7 +1153,8 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
                     order_id=order.id,
                     item_name=item_name,
                     price=Decimal(str(price)),
-                    quantity=quantity
+                    quantity=quantity,
+                    selected_modifiers=cart_item.get('selected_modifiers')
                 )
                 session.add(order_item)
 
@@ -1368,7 +1364,8 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
                     order_id=order.id,
                     item_name=item_name,
                     price=Decimal(str(price)),
-                    quantity=quantity
+                    quantity=quantity,
+                    selected_modifiers=cart_item.get('selected_modifiers')
                 )
                 session.add(order_item)
                 items_summary.append(f"{item_name} x{quantity} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}")
@@ -1395,8 +1392,9 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
             session.query(ShoppingCart).filter_by(user_id=user_id).delete()
             session.commit()
 
-            # Generate QR code
-            promptpay_id = EnvKeys.PROMPTPAY_ID
+            # Generate QR code — DB setting overrides env var
+            from bot.handlers.admin.settings_management import get_promptpay_id as _get_pp_id
+            promptpay_id = _get_pp_id()
             try:
                 qr_bytes = generate_promptpay_qr(promptpay_id, final_amount)
 
@@ -1449,7 +1447,7 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
 
 @router.message(PromptPayStates.waiting_receipt_photo, F.photo)
 async def process_receipt_photo(message: Message, state: FSMContext):
-    """User uploaded payment receipt photo (Card 1)"""
+    """User uploaded payment receipt photo (Card 1) — with optional auto-verification"""
     photo_file_id = message.photo[-1].file_id
     data = await state.get_data()
     order_id = data.get('promptpay_order_id')
@@ -1461,6 +1459,78 @@ async def process_receipt_photo(message: Message, state: FSMContext):
                 order.payment_receipt_photo = photo_file_id
                 session.commit()
 
+                # Attempt auto-verification via bank APIs
+                verify_result = None
+                if EnvKeys.SLIP_AUTO_VERIFY == "1":
+                    try:
+                        from bot.payments.slip_verify import verify_slip, VerifyStatus
+
+                        # Download the photo from Telegram
+                        file_obj = await message.bot.get_file(photo_file_id)
+                        photo_bytes_io = await message.bot.download_file(file_obj.file_path)
+                        slip_image = photo_bytes_io.read()
+
+                        # Calculate expected amount (total - bonus)
+                        expected_amount = order.total_price - (order.bonus_applied or Decimal('0'))
+
+                        from bot.handlers.admin.settings_management import get_promptpay_name as _get_pp_name
+                        verify_result = await verify_slip(
+                            slip_image=slip_image,
+                            expected_amount=expected_amount,
+                            expected_receiver=_get_pp_name() or None,
+                        )
+
+                        # Save verification result to order
+                        import datetime as dt
+                        order.slip_verify_status = verify_result.status.value
+                        order.slip_verify_bank = verify_result.provider.value if verify_result.provider else None
+                        order.slip_transaction_id = verify_result.transaction_id
+                        order.slip_verified_amount = verify_result.amount
+                        order.slip_sender_name = verify_result.sender_name
+                        order.slip_receiver_name = verify_result.receiver_name
+                        order.slip_verified_at = dt.datetime.now(dt.timezone.utc)
+
+                        if verify_result.status == VerifyStatus.VERIFIED:
+                            # Auto-confirm the payment
+                            order.payment_verified_at = dt.datetime.now(dt.timezone.utc)
+                            order.payment_verified_by = 0  # 0 = auto-verified by API
+                            order.order_status = "confirmed"
+                            logger.info(
+                                "Order %s auto-verified via %s (txn: %s)",
+                                order.order_code, verify_result.provider.value, verify_result.transaction_id,
+                            )
+
+                        session.commit()
+
+                    except Exception as e:
+                        logger.error(f"Slip auto-verification error for order {order.order_code}: {e}")
+
+                # Build admin notification caption
+                admin_caption = (
+                    f"💳 <b>PromptPay Receipt</b>\n"
+                    f"Order: <code>{order.order_code}</code>\n"
+                    f"Amount: {order.total_price} {EnvKeys.PAY_CURRENCY}\n"
+                    f"From: {message.from_user.id}"
+                )
+
+                if verify_result:
+                    from bot.payments.slip_verify import VerifyStatus
+                    if verify_result.status == VerifyStatus.VERIFIED:
+                        admin_caption += (
+                            f"\n\n✅ <b>AUTO-VERIFIED</b> via {verify_result.provider.value.upper()}\n"
+                            f"Txn: <code>{verify_result.transaction_id}</code>\n"
+                            f"Amount: {verify_result.amount} THB"
+                        )
+                        if verify_result.sender_name:
+                            admin_caption += f"\nSender: {verify_result.sender_name}"
+                    elif verify_result.status == VerifyStatus.NO_API_CONFIGURED:
+                        admin_caption += "\n\n⏳ Manual verification required (no bank API configured)"
+                    else:
+                        admin_caption += (
+                            f"\n\n⚠️ <b>VERIFY FAILED:</b> {verify_result.status.value}\n"
+                            f"{verify_result.error_message or 'Check manually'}"
+                        )
+
                 # Notify admin with receipt
                 owner_id = EnvKeys.OWNER_ID
                 if owner_id:
@@ -1468,15 +1538,19 @@ async def process_receipt_photo(message: Message, state: FSMContext):
                         await message.bot.send_photo(
                             int(owner_id),
                             photo_file_id,
-                            caption=(
-                                f"💳 <b>PromptPay Receipt</b>\n"
-                                f"Order: <code>{order.order_code}</code>\n"
-                                f"Amount: {order.total_price} {EnvKeys.PAY_CURRENCY}\n"
-                                f"From: {message.from_user.id}"
-                            )
+                            caption=admin_caption,
                         )
                     except Exception as e:
                         logger.error(f"Failed to forward receipt to admin: {e}")
+
+                # Send appropriate response to user
+                if verify_result and verify_result.status == VerifyStatus.VERIFIED:
+                    await message.answer(
+                        localize("order.payment.promptpay.slip_verified"),
+                        reply_markup=back("back_to_menu"),
+                    )
+                    await state.clear()
+                    return
 
     await message.answer(localize("order.payment.promptpay.receipt_received"), reply_markup=back("back_to_menu"))
     await state.clear()

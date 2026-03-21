@@ -65,6 +65,7 @@ def settings_management_keyboard() -> InlineKeyboardMarkup:
     kb.button(text=localize("btn.referral_bonus_percent"), callback_data="setting_referral_percent")
     kb.button(text=localize("btn.order_timeout"), callback_data="setting_order_timeout")
     kb.button(text=localize("btn.timezone"), callback_data="setting_timezone")
+    kb.button(text=localize("btn.promptpay_account"), callback_data="setting_promptpay")
     kb.button(text=localize("btn.back"), callback_data="console")
     kb.adjust(1)
     return kb.as_markup()
@@ -272,6 +273,53 @@ def admin_order_status_keyboard(order_id: int, current_status: str) -> InlineKey
         kb.button(text=status.replace("_", " ").title(), callback_data=f"order_status_{order_id}_{status}")
     kb.button(text=localize("btn.back"), callback_data="order_management")
     kb.adjust(1)
+    return kb.as_markup()
+
+
+def modifier_group_keyboard(item_name: str, group_key: str, group: dict,
+                             selected: list = None) -> InlineKeyboardMarkup:
+    """
+    Show options for a single modifier group (Card 8).
+
+    For single-choice groups: one tap selects and advances.
+    For multi-choice groups: toggleable options + a Done button.
+    """
+    kb = InlineKeyboardBuilder()
+    selected = selected or []
+    options = group.get("options", [])
+    group_type = group.get("type", "single")
+
+    for opt in options:
+        opt_id = opt["id"]
+        label = opt.get("label", opt_id)
+        price = opt.get("price", 0)
+
+        # Show price extra if non-zero
+        if price:
+            label += f" {localize('modifier.price_extra', price=price)}"
+
+        # Mark already-selected options (multi-choice)
+        if opt_id in selected:
+            label = f"[x] {label}"
+
+        cb_data = f"mod_sel:{item_name}:{group_key}:{opt_id}"
+        kb.button(text=label, callback_data=cb_data)
+
+    kb.adjust(1)
+
+    # Multi-choice groups get a "Done" button to advance
+    if group_type == "multi":
+        kb.row(InlineKeyboardButton(
+            text=localize("modifier.done"),
+            callback_data=f"mod_done:{item_name}:{group_key}"
+        ))
+
+    # Cancel button
+    kb.row(InlineKeyboardButton(
+        text=localize("btn.back"),
+        callback_data="mod_cancel"
+    ))
+
     return kb.as_markup()
 
 

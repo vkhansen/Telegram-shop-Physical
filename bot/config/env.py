@@ -44,6 +44,15 @@ class EnvKeys(ABC):
     PROMPTPAY_ID: Final = os.getenv("PROMPTPAY_ID")  # Phone number or national ID
     PROMPTPAY_ACCOUNT_NAME: Final = os.getenv("PROMPTPAY_ACCOUNT_NAME", "")
 
+    # Slip Verification — Thai Slip Verification Services
+    # Configure one or more. Tried in order: SlipOK → EasySlip → RDCW
+    SLIPOK_API_KEY: Final = os.getenv("SLIPOK_API_KEY")
+    SLIPOK_BRANCH_ID: Final = os.getenv("SLIPOK_BRANCH_ID")
+    EASYSLIP_API_KEY: Final = os.getenv("EASYSLIP_API_KEY")
+    RDCW_CLIENT_ID: Final = os.getenv("RDCW_CLIENT_ID")
+    RDCW_CLIENT_SECRET: Final = os.getenv("RDCW_CLIENT_SECRET")
+    SLIP_AUTO_VERIFY: Final = os.getenv("SLIP_AUTO_VERIFY", "1")  # 1=auto-verify, 0=manual only
+
     # Kitchen & Delivery Groups (Card 9)
     KITCHEN_GROUP_ID: Final = os.getenv("KITCHEN_GROUP_ID")
     RIDER_GROUP_ID: Final = os.getenv("RIDER_GROUP_ID")

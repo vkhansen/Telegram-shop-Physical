@@ -47,7 +47,8 @@ def create_category(category_name: str) -> None:
         s.add(Categories(name=category_name))
 
 
-async def add_to_cart(user_id: int, item_name: str, quantity: int = 1) -> tuple[bool, str]:
+async def add_to_cart(user_id: int, item_name: str, quantity: int = 1,
+                      selected_modifiers: dict = None) -> tuple[bool, str]:
     """
     Add item to cart or update quantity if already exists
 
@@ -55,6 +56,7 @@ async def add_to_cart(user_id: int, item_name: str, quantity: int = 1) -> tuple[
         user_id: User's telegram ID
         item_name: Name of the item to add
         quantity: Quantity to add (default 1)
+        selected_modifiers: Selected modifier choices (Card 8)
 
     Returns:
         Tuple of (success, message)
@@ -91,11 +93,15 @@ async def add_to_cart(user_id: int, item_name: str, quantity: int = 1) -> tuple[
 
             if cart_item:
                 cart_item.quantity += quantity
+                # Update modifiers if provided (replace previous selection)
+                if selected_modifiers is not None:
+                    cart_item.selected_modifiers = selected_modifiers
             else:
                 cart_item = ShoppingCart(
                     user_id=user_id,
                     item_name=item_name,
-                    quantity=quantity
+                    quantity=quantity,
+                    selected_modifiers=selected_modifiers
                 )
                 session.add(cart_item)
 
