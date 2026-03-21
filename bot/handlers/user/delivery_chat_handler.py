@@ -10,15 +10,13 @@ Flow:
 - All messages (text, photo, location) are logged
 - Driver can share live location → forwarded to customer for tracking
 """
-from aiogram import Router, F
+from aiogram import Router
 from aiogram.types import Message
-from aiogram.fsm.context import FSMContext
 
-from bot.database import Database
-from bot.database.models.main import Order, DeliveryChatMessage
 from bot.config.env import EnvKeys
+from bot.database import Database
+from bot.database.models.main import DeliveryChatMessage, Order
 from bot.i18n import localize
-from bot.logger_mesh import logger
 
 router = Router()
 

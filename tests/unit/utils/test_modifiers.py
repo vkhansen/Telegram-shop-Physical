@@ -260,3 +260,281 @@ class TestModifierModelFields:
         db_session.commit()
 
         assert cat.sort_order == 0
+
+
+@pytest.mark.unit
+class TestCalculateItemPriceEdgeCases:
+    """Edge case tests for calculate_item_price"""
+
+    def test_empty_selected_modifiers_dict(self):
+        """Empty selected_modifiers dict {} returns base price (falsy dict)"""
+        result = calculate_item_price(Decimal("100"), SAMPLE_MODIFIERS, {})
+        assert result == Decimal("100")
+
+    def test_unknown_group_key_ignored(self):
+        """Selection with a group key not in schema is ignored, returns base price"""
+        result = calculate_item_price(
+            Decimal("100"), SAMPLE_MODIFIERS,
+            {"nonexistent_group": "some_option"}
+        )
+        assert result == Decimal("100")
+
+    def test_option_missing_price_key(self):
+        """Option dict without 'price' key defaults to 0 via opt.get('price', 0)"""
+        schema = {
+            "toppings": {
+                "label": "Toppings",
+                "type": "single",
+                "required": False,
+                "options": [
+                    {"id": "cheese", "label": "Cheese"},  # no "price" key
+                ]
+            }
+        }
+        result = calculate_item_price(
+            Decimal("50"), schema,
+            {"toppings": "cheese"}
+        )
+        assert result == Decimal("50")
+
+    def test_option_missing_price_key_multi(self):
+        """Multi-choice option without 'price' key defaults to 0"""
+        schema = {
+            "toppings": {
+                "label": "Toppings",
+                "type": "multi",
+                "required": False,
+                "options": [
+                    {"id": "cheese", "label": "Cheese"},
+                    {"id": "bacon", "label": "Bacon", "price": 25},
+                ]
+            }
+        }
+        result = calculate_item_price(
+            Decimal("50"), schema,
+            {"toppings": ["cheese", "bacon"]}
+        )
+        assert result == Decimal("75")  # 50 + 0 + 25
+
+    def test_very_large_modifier_price(self):
+        """Very large modifier price is calculated correctly"""
+        schema = {
+            "premium": {
+                "label": "Premium",
+                "type": "single",
+                "required": False,
+                "options": [
+                    {"id": "gold", "label": "Gold Leaf", "price": 9999},
+                ]
+            }
+        }
+        result = calculate_item_price(
+            Decimal("100"), schema,
+            {"premium": "gold"}
+        )
+        assert result == Decimal("10099")
+
+    def test_multiple_multi_choice_selections(self):
+        """Three or more extras in multi-choice sum correctly"""
+        result = calculate_item_price(
+            Decimal("100"), SAMPLE_MODIFIERS,
+            {"extras": ["extra_rice", "egg", "extra_meat"]}
+        )
+        # 100 + 20 + 15 + 40 = 175
+        assert result == Decimal("175")
+
+    def test_base_price_zero_with_modifiers(self):
+        """Base price of zero still adds modifier prices"""
+        result = calculate_item_price(
+            Decimal("0"), SAMPLE_MODIFIERS,
+            {"spice_level": "thai_hot", "extras": ["egg"]}
+        )
+        # 0 + 10 + 15 = 25
+        assert result == Decimal("25")
+
+    def test_string_base_price(self):
+        """String base price '100' works via Decimal(str())"""
+        result = calculate_item_price(
+            "100", SAMPLE_MODIFIERS,
+            {"spice_level": "thai_hot"}
+        )
+        assert result == Decimal("110")
+
+    def test_float_base_price(self):
+        """Float base price 100.5 works via Decimal(str())"""
+        result = calculate_item_price(
+            100.5, SAMPLE_MODIFIERS,
+            {"spice_level": "thai_hot"}
+        )
+        assert result == Decimal("110.5")
+
+    def test_integer_base_price(self):
+        """Integer base price works via Decimal(str())"""
+        result = calculate_item_price(
+            100, SAMPLE_MODIFIERS,
+            {"extras": ["egg"]}
+        )
+        assert result == Decimal("115")
+
+    def test_mixed_known_and_unknown_groups(self):
+        """Known groups are priced, unknown groups are silently ignored"""
+        result = calculate_item_price(
+            Decimal("100"), SAMPLE_MODIFIERS,
+            {"spice_level": "thai_hot", "unknown_group": "whatever"}
+        )
+        assert result == Decimal("110")
+
+    def test_single_choice_option_not_found(self):
+        """Single choice with option ID not in options list is ignored"""
+        result = calculate_item_price(
+            Decimal("100"), SAMPLE_MODIFIERS,
+            {"spice_level": "nuclear"}  # not in options
+        )
+        assert result == Decimal("100")
+
+    def test_multi_choice_some_options_not_found(self):
+        """Multi-choice with some invalid option IDs: only valid ones are priced"""
+        result = calculate_item_price(
+            Decimal("100"), SAMPLE_MODIFIERS,
+            {"extras": ["egg", "nonexistent_item"]}
+        )
+        assert result == Decimal("115")  # 100 + 15 (egg only)
+
+
+@pytest.mark.unit
+class TestValidateModifierSelectionEdgeCases:
+    """Edge case tests for validate_modifier_selection"""
+
+    def test_empty_schema_is_valid(self):
+        """Empty schema {} always validates successfully"""
+        is_valid, err = validate_modifier_selection({}, {"anything": "value"})
+        assert is_valid is True
+        assert err == ""
+
+    def test_empty_selection_no_required_groups(self):
+        """Empty selection {} with no required groups is valid"""
+        schema = {
+            "extras": {
+                "label": "Extras",
+                "type": "multi",
+                "required": False,
+                "options": [{"id": "egg", "label": "Egg", "price": 15}]
+            }
+        }
+        is_valid, err = validate_modifier_selection(schema, {})
+        assert is_valid is True
+        assert err == ""
+
+    def test_empty_list_multi_choice_optional(self):
+        """Empty list in optional multi-choice is treated as falsy (no selection)"""
+        schema = {
+            "extras": {
+                "label": "Extras",
+                "type": "multi",
+                "required": False,
+                "options": [{"id": "egg", "label": "Egg", "price": 15}]
+            }
+        }
+        is_valid, err = validate_modifier_selection(schema, {"extras": []})
+        assert is_valid is True
+
+    def test_empty_list_multi_choice_required(self):
+        """Empty list in required multi-choice fails (empty list is falsy)"""
+        schema = {
+            "extras": {
+                "label": "Extras",
+                "type": "multi",
+                "required": True,
+                "options": [{"id": "egg", "label": "Egg", "price": 15}]
+            }
+        }
+        is_valid, err = validate_modifier_selection(schema, {"extras": []})
+        assert is_valid is False
+        assert "required" in err.lower() or "Extras" in err
+
+    def test_multiple_selections_in_single_choice(self):
+        """Multiple selections passed as list for single-choice: validated as list"""
+        # The function checks isinstance(selection, list), so a list is treated
+        # as multi-choice regardless of the schema type. Both options are validated.
+        is_valid, err = validate_modifier_selection(
+            SAMPLE_MODIFIERS,
+            {"spice_level": ["mild", "hot"]}
+        )
+        # Both "mild" and "hot" are valid option IDs, so validation passes
+        assert is_valid is True
+
+    def test_multiple_selections_single_choice_invalid_option(self):
+        """List with invalid option in single-choice group fails validation"""
+        is_valid, err = validate_modifier_selection(
+            SAMPLE_MODIFIERS,
+            {"spice_level": ["mild", "nuclear"]}
+        )
+        assert is_valid is False
+        assert "Invalid" in err
+
+    def test_selection_with_none_value(self):
+        """Selection with None value is treated as falsy (no selection)"""
+        is_valid, err = validate_modifier_selection(
+            SAMPLE_MODIFIERS,
+            {"spice_level": None}
+        )
+        # spice_level is required, None is falsy → fails
+        assert is_valid is False
+
+    def test_selection_with_none_value_optional(self):
+        """None value for optional group passes validation"""
+        schema = {
+            "extras": {
+                "label": "Extras",
+                "type": "multi",
+                "required": False,
+                "options": [{"id": "egg", "label": "Egg", "price": 15}]
+            }
+        }
+        is_valid, err = validate_modifier_selection(schema, {"extras": None})
+        assert is_valid is True
+
+    def test_very_long_option_id_string(self):
+        """Very long option ID string is validated normally"""
+        long_id = "a" * 500
+        schema = {
+            "group": {
+                "label": "Group",
+                "type": "single",
+                "required": False,
+                "options": [{"id": long_id, "label": "Long", "price": 0}]
+            }
+        }
+        is_valid, err = validate_modifier_selection(schema, {"group": long_id})
+        assert is_valid is True
+
+    def test_very_long_option_id_invalid(self):
+        """Very long option ID that doesn't match fails validation"""
+        long_id = "a" * 500
+        schema = {
+            "group": {
+                "label": "Group",
+                "type": "single",
+                "required": False,
+                "options": [{"id": "short", "label": "Short", "price": 0}]
+            }
+        }
+        is_valid, err = validate_modifier_selection(schema, {"group": long_id})
+        assert is_valid is False
+        assert "Invalid" in err
+
+    def test_unknown_group_in_selection_ignored(self):
+        """Selection keys not present in schema are not validated (ignored)"""
+        schema = {
+            "extras": {
+                "label": "Extras",
+                "type": "multi",
+                "required": False,
+                "options": [{"id": "egg", "label": "Egg", "price": 15}]
+            }
+        }
+        is_valid, err = validate_modifier_selection(
+            schema,
+            {"extras": ["egg"], "phantom_group": "phantom_option"}
+        )
+        assert is_valid is True

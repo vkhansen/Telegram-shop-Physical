@@ -193,7 +193,8 @@ telegram_shop/
 │   ├── config/                     # Configuration management
 │   │   ├── env.py                  # Environment variables
 │   │   ├── storage.py              # Redis/Memory storage
-│   │   └── timezone.py             # Timezone handling
+│   │   ├── timezone.py             # Timezone handling (default: Asia/Bangkok)
+│   │   └── delivery_zones.py       # Zone pricing + time slots
 │   │
 │   ├── database/                   # Database layer
 │   │   ├── main.py                 # Database engine & session
@@ -216,8 +217,9 @@ telegram_shop/
 │   │   │   ├── main.py             # /start, /help
 │   │   │   ├── shop_and_goods.py   # Browse catalog
 │   │   │   ├── cart_handler.py     # Shopping cart
-│   │   │   ├── order_handler.py    # Checkout & orders
+│   │   │   ├── order_handler.py    # Checkout, payments (PromptPay/Cash/BTC)
 │   │   │   ├── orders_view_handler.py  # Order history
+│   │   │   ├── delivery_chat_handler.py # Driver-customer chat relay
 │   │   │   ├── reference_code_handler.py  # Code entry
 │   │   │   └── referral_system.py  # Referral bonuses
 │   │   └── admin/                  # Admin-only handlers
@@ -256,6 +258,7 @@ telegram_shop/
 │   │
 │   ├── payments/                   # Payment processing
 │   │   ├── bitcoin.py              # BTC address management
+│   │   ├── promptpay.py            # PromptPay QR generation (EMVCo)
 │   │   └── notifications.py        # Payment notifications
 │   │
 │   ├── referrals/                  # Referral system
@@ -326,40 +329,53 @@ telegram_shop/
 
 ### Database Models
 
+```mermaid
+erDiagram
+    User ||--o{ Order : places
+    User ||--o| CustomerInfo : has
+    Order ||--|{ OrderItem : contains
+    Order ||--o{ DeliveryChatMessage : has
+    Goods ||--o{ OrderItem : "ordered as"
+    Categories ||--|{ Goods : contains
+    User ||--o{ ReferralEarnings : earns
+    User ||--o{ ReferenceCodeUsage : uses
+```
+
 **Core Models:**
 
-- `User`: Telegram users with role and referral tracking
-- `Role`: Permission-based access control (USER/ADMIN/OWNER)
-- `Goods`: Products with `stock_quantity`, `reserved_quantity`, `price`
-- `Categories`: Product categories
-- `ShoppingCart`: User cart items
+| Model | Key Fields | Purpose |
+|-------|-----------|---------|
+| `User` | telegram_id, role_id, referral_id, is_banned | Telegram users with role + referral tracking |
+| `Role` | name, permissions (bitmask) | USER, ADMIN, OWNER access control |
+| `Categories` | name, **sort_order** | Product categories with menu ordering |
+| `Goods` | name, price, stock_quantity, reserved_quantity, **modifiers** (JSON) | Products with stock tracking + restaurant modifiers |
+| `ShoppingCart` | user_id, item_name, quantity, **selected_modifiers** (JSON) | Cart items with modifier choices |
 
 **Order System:**
 
-- `Order`: Orders with status, delivery info, payment method, reservation timeout
-- `OrderItem`: Individual items in orders with quantity
-- `CustomerInfo`: Customer delivery preferences, spending history, bonus balance
+| Model | Key Fields | Purpose |
+|-------|-----------|---------|
+| `Order` | order_code, buyer_id, total_price, payment_method, order_status, **delivery_type**, **latitude/longitude**, **delivery_zone**, **delivery_fee**, **delivery_photo**, **driver_id** | Orders with full Thailand delivery support |
+| `OrderItem` | order_id, item_name, price, quantity, **selected_modifiers** (JSON) | Line items with modifier choices |
+| `CustomerInfo` | telegram_id, phone, address, bonus_balance, **latitude/longitude**, **address_structured** (JSON) | Customer profiles with GPS + Thai address |
 
-**Inventory System:**
+**Delivery & Chat:**
 
-- `InventoryLog`: Complete audit trail of all inventory changes
+| Model | Key Fields | Purpose |
+|-------|-----------|---------|
+| `DeliveryChatMessage` | order_id, sender_id, sender_role, message_text, photo_file_id, location_lat/lng | Recorded driver-customer chat messages |
+| `InventoryLog` | item_name, change_type, quantity_change, order_id | Audit trail for all inventory changes |
 
-**Reference Code System:**
+**Payment & Referral:**
 
-- `ReferenceCode`: Reference codes with expiry, usage limits, notes
-- `ReferenceCodeUsage`: Tracking who used which code
+| Model | Key Fields | Purpose |
+|-------|-----------|---------|
+| `BitcoinAddress` | address, is_used, used_by, order_id | Bitcoin address pool with usage tracking |
+| `ReferenceCode` | code, created_by, expires_at, max_uses | Invite codes with expiry + usage limits |
+| `ReferralEarnings` | referrer_id, referral_id, amount | Referral bonus transactions |
+| `BotSettings` | setting_key, setting_value | Dynamic config (timezone, bonus %, etc.) |
 
-**Payment System:**
-
-- `BitcoinAddress`: Pool of Bitcoin addresses with usage tracking
-
-**Referral System:**
-
-- `ReferralEarnings`: Referral bonus transactions
-
-**Configuration:**
-
-- `BotSettings`: Dynamic bot settings (timezone, bonus percentage, etc.)
+**Fields in bold** were added for the Thailand restaurant conversion.
 
 ## 📋 Requirements
 
@@ -370,203 +386,205 @@ telegram_shop/
 
 ## ⚙️ Environment Variables
 
-The application requires the following environment variables:
+### Required Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `TOKEN` | [Bot Token from @BotFather](https://telegram.me/BotFather) | `123456:ABC-DEF` |
+| `OWNER_ID` | [Your Telegram ID](https://telegram.me/myidbot) | `123456789` |
+| `POSTGRES_DB` | PostgreSQL database name | `telegram_shop` |
+| `POSTGRES_PASSWORD` | PostgreSQL password | `strong_password_here` |
+
+### Thailand Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PAY_CURRENCY` | Display currency code | `THB` |
+| `BOT_LOCALE` | Interface language (`th`, `en`, `ru`) | `th` |
+| `TIMEZONE` | Timezone for all timestamps | `Asia/Bangkok` |
+| `PROMPTPAY_ID` | PromptPay phone number or national ID for QR payments | `0812345678` |
+| `PROMPTPAY_ACCOUNT_NAME` | Display name shown on payment instructions | `Restaurant Name` |
+
+### Delivery & Operations
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `KITCHEN_GROUP_ID` | Telegram group ID for kitchen staff notifications | - |
+| `RIDER_GROUP_ID` | Telegram group ID for rider/driver notifications + chat relay | - |
+| `RESTAURANT_LAT` | Restaurant GPS latitude (for delivery zone calculation) | `13.7563` |
+| `RESTAURANT_LNG` | Restaurant GPS longitude | `100.5018` |
+
+### Infrastructure
 
 <details>
-<summary><b>🤖 Telegram</b></summary>
+<summary><b>Database, Redis, Monitoring (click to expand)</b></summary>
 
-| Variable   | Description                                                | Required |
-|------------|------------------------------------------------------------|----------|
-| `TOKEN`    | [Bot Token from @BotFather](https://telegram.me/BotFather) | ✅        |
-| `OWNER_ID` | [Your Telegram ID](https://telegram.me/myidbot)            | ✅        |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `POSTGRES_USER` | PostgreSQL username | `postgres` |
+| `DB_PORT` | PostgreSQL port | `5432` |
+| `DB_DRIVER` | Database driver | `postgresql+psycopg2` |
+| `REDIS_HOST` | Redis server address | `localhost` |
+| `REDIS_PORT` | Redis server port | `6379` |
+| `REDIS_DB` | Redis database number | `0` |
+| `REDIS_PASSWORD` | Redis password (if enabled) | - |
+| `MONITORING_HOST` | Monitoring server bind address (`0.0.0.0` for Docker) | `localhost` |
+| `MONITORING_PORT` | Monitoring server port | `9090` |
 
 </details>
 
 <details>
-<summary><b>💳 Payments</b></summary>
+<summary><b>Links, UI, Logging (click to expand)</b></summary>
 
-| Variable       | Description                            | Default |
-|----------------|----------------------------------------|---------|
-| `PAY_CURRENCY` | Display currency (RUB, USD, EUR, etc.) | `RUB`   |
-| `MIN_AMOUNT`   | Minimum payment amount                 | `20`    |
-| `MAX_AMOUNT`   | Maximum payment amount                 | `10000` |
-
-</details>
-
-<details>
-<summary><b>🔗 Links / UI</b></summary>
-
-| Variable      | Description                              | Default |
-|---------------|------------------------------------------|---------|
-| `CHANNEL_URL` | News channel link (public channels only) | -       |
-| `HELPER_ID`   | Support user Telegram ID                 | -       |
-| `RULES`       | Bot usage rules text                     | -       |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `CHANNEL_URL` | News channel link | - |
+| `HELPER_ID` | Support user Telegram ID | - |
+| `RULES` | Bot usage rules text | - |
+| `MIN_AMOUNT` | Minimum payment amount | `20` |
+| `MAX_AMOUNT` | Maximum payment amount | `10000` |
+| `LOG_TO_STDOUT` | Console logging (1/0) | `1` |
+| `LOG_TO_FILE` | File logging (1/0) | `1` |
+| `DEBUG` | Debug mode (1/0) | `0` |
 
 </details>
 
-<details>
-<summary><b>🌐 Locale & Logs</b></summary>
-
-| Variable        | Description                   | Default |
-|-----------------|-------------------------------|---------|
-| `BOT_LOCALE`    | Localization language (ru/en) | `ru`    |
-| `LOG_TO_STDOUT` | Console logging (1/0)         | `1`     |
-| `LOG_TO_FILE`   | File logging (1/0)            | `1`     |
-| `DEBUG`         | Debug mode (1/0)              | `0`     |
-
-</details>
-
-<details>
-<summary><b>📊 Monitoring</b></summary>
-
-| Variable          | Description                    | Default     |
-|-------------------|--------------------------------|-------------|
-| `MONITORING_HOST` | Monitoring server bind address | `localhost` |
-| `MONITORING_PORT` | Monitoring server port         | `9090`      |
-
-**Note**: When running in Docker, set `MONITORING_HOST=0.0.0.0` to allow external access.
-
-</details>
-
-<details>
-<summary><b>📦 Redis Storage</b></summary>
-
-| Variable         | Description                 | Default |
-|------------------|-----------------------------|---------|
-| `REDIS_HOST`     | Redis server address        | `redis` |
-| `REDIS_PORT`     | Redis server port           | `6379`  |
-| `REDIS_DB`       | Redis database number       | `0`     |
-| `REDIS_PASSWORD` | Redis password (if enabled) | -       |
-
-</details>
-
-<details>
-<summary><b>🗄️ Database (Docker)</b></summary>
-
-| Variable            | Description              | Default               |
-|---------------------|--------------------------|-----------------------|
-| `POSTGRES_DB`       | PostgreSQL database name | **Required**          |
-| `POSTGRES_USER`     | PostgreSQL username      | `postgres`            |
-| `POSTGRES_PASSWORD` | PostgreSQL password      | **Required**          |
-| `DB_PORT`           | PostgreSQL port          | `5432`                |
-| `DB_DRIVER`         | Database driver          | `postgresql+psycopg2` |
-
-</details>
-
-<details>
-<summary><b>🗄️ Database (Manual Deploy)</b></summary>
-
-For manual deployment, configure `DATABASE_URL` in `bot/config/env.py`:
-
-```python
-DATABASE_URL = "postgresql+psycopg2://user:password@localhost:5432/db_name"
-```
-
-[SQLAlchemy Documentation](https://docs.sqlalchemy.org/en/20/core/engines.html#postgresql)
-
-</details>
-
-## 🚀 Installation
+## 🚀 Installation & Deployment Guide
 
 ### Option 1: Docker (Recommended)
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/telegram_shop.git
-   cd telegram_shop
-   ```
+```bash
+# 1. Clone
+git clone https://github.com/yourusername/telegram_shop.git
+cd telegram_shop
 
-2. **Configure environment**
-   ```bash
-   cp .env.example .env
-   nano .env  # Edit with your values
-   ```
+# 2. Configure
+cp .env.example .env
+nano .env  # Fill in required values (see below)
 
-3. **Add Bitcoin addresses** (Required ONLY if accepting Bitcoin payments)
-   ```bash
-   nano btc_addresses.txt
-   # Add your Bitcoin addresses, one per line:
-   # bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
-   # bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4
-   # Note: Skip this step if using cash on delivery only
-   ```
+# 3. Start
+docker compose up -d --build bot
 
-4. **Start services**
-   ```bash
-   docker compose up -d --build bot
-   ```
-
-5. **View logs**
-   ```bash
-   docker compose logs -f bot
-   ```
+# 4. Verify
+docker compose logs -f bot
+```
 
 ### Option 2: Manual Installation
 
-1. **Clone repository**
-   ```bash
-   git clone https://github.com/yourusername/telegram_shop.git
-   cd telegram_shop
-   ```
+```bash
+# 1. Clone & setup Python
+git clone https://github.com/yourusername/telegram_shop.git
+cd telegram_shop
+python3.11 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 
-2. **Create virtual environment**
-   ```bash
-   python3.11 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+# 2. Setup PostgreSQL + Redis
+createdb telegram_shop
+createuser shop_user -P
 
-3. **Install dependencies**
-   ```bash
-   pip install --upgrade pip
-   pip install -r requirements.txt
-   ```
+# 3. Configure environment
+cp .env.example .env
+nano .env
 
-4. **Set up PostgreSQL**
-   ```bash
-   createdb telegram_shop
-   createuser shop_user -P
-   ```
+# 4. Run
+python run.py
+```
 
-5. **Configure environment**
-    - [Set environment variables in PyCharm](https://stackoverflow.com/questions/42708389/how-to-set-environment-variables-in-pycharm)
-    - Or export them in terminal:
-   ```bash
-   export TOKEN="your_bot_token"
-   export OWNER_ID="your_telegram_id"
-   # Set other required variables from .env.example
-   ```
+### Thailand Restaurant Setup Checklist
 
-6. **Add Bitcoin addresses** (optional - only if accepting Bitcoin)
-   ```bash
-   nano btc_addresses.txt
-   # Add addresses as shown above
-   # Skip if using cash on delivery only
-   ```
+After basic installation, configure these Thailand-specific settings:
 
-7. **Run the bot**
-   ```bash
-   python run.py
-   ```
+#### Step 1: PromptPay Payment Setup
 
-### Bot Settings (Dynamic)
+```env
+# In .env — set your PromptPay account for QR payments
+PROMPTPAY_ID=0812345678              # Your phone number (10 digits) or national ID (13 digits)
+PROMPTPAY_ACCOUNT_NAME=ร้านอาหาร     # Restaurant name shown to customers
+```
 
-These can be changed at runtime via CLI:
+The bot generates EMVCo-standard QR codes that work with **all Thai banking apps** (SCB, KBank, Bangkok Bank, Krungthai, TrueMoney, etc.). When a customer selects PromptPay:
+1. Bot generates a QR code with the exact amount embedded
+2. Customer scans with their banking app and pays
+3. Customer uploads a screenshot of the payment slip
+4. Admin receives the slip and clicks "Verify Payment"
+
+> **Note:** If `PROMPTPAY_ID` is not set, PromptPay will not appear as a payment option. Cash on Delivery and Bitcoin remain available.
+
+#### Step 2: Telegram Groups for Kitchen & Riders
+
+Create two Telegram groups and add the bot as admin:
+
+```env
+# In .env
+KITCHEN_GROUP_ID=-1001234567890      # Kitchen staff group
+RIDER_GROUP_ID=-1001234567891        # Delivery riders group
+```
+
+**How to get group IDs:** Add the bot to each group, then send a message. Check bot logs for the chat ID, or use `@userinfobot` in the group.
+
+**Kitchen group** receives order details (items, modifiers, notes) when an order is confirmed.
+**Rider group** receives delivery details (address, GPS link, phone, COD amount) when food is ready.
+
+**Driver-Customer Chat:** When `RIDER_GROUP_ID` is set, drivers can send messages in the rider group that get relayed to the customer (and vice versa). All messages are recorded in the `delivery_chat_messages` table for dispute resolution.
+
+**Driver Live Location:** Drivers share Telegram's live location in the rider group → bot forwards it to the customer. The customer sees a real-time moving pin (Telegram native feature, up to 8 hours).
+
+> **Note:** If group IDs are not set, kitchen/rider notifications and driver chat are disabled. Orders still work normally via admin CLI.
+
+#### Step 3: Restaurant Location (for Delivery Zones)
+
+```env
+# In .env — your restaurant's GPS coordinates
+RESTAURANT_LAT=13.7563               # Latitude
+RESTAURANT_LNG=100.5018              # Longitude
+```
+
+Used to calculate delivery zones and fees based on distance from the restaurant:
+
+| Zone | Distance | Default Fee |
+|------|----------|-------------|
+| Zone 1 - Central | 0-3 km | Free |
+| Zone 2 - Inner | 3-7 km | ฿30 |
+| Zone 3 - Mid | 7-12 km | ฿50 |
+| Zone 4 - Outer | 12-20 km | ฿80 |
+| Zone 5 - Far | 20+ km | ฿120 |
+
+Zone configuration is in `bot/config/delivery_zones.py`. Fees are added to the order total.
+
+#### Step 4: Language & Currency (already defaulted for Thailand)
+
+```env
+# These default to Thai values — only change if needed
+BOT_LOCALE=th                        # Thai language (also: en, ru)
+PAY_CURRENCY=THB                     # Thai Baht with ฿ symbol
+TIMEZONE=Asia/Bangkok                # ICT +07:00
+```
+
+#### Step 5: Bitcoin Addresses (optional)
+
+Only needed if accepting Bitcoin payments alongside PromptPay/COD:
 
 ```bash
-# Enable/disable reference codes
-python bot_cli.py settings set reference_codes_enabled true
+nano btc_addresses.txt
+# Add addresses one per line:
+# bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
+```
 
-# Set referral bonus percentage (0-100)
+### Runtime Settings (via CLI)
+
+```bash
+# Timezone (stored in database, survives restarts)
+python bot_cli.py settings set timezone "Asia/Bangkok"
+
+# Referral bonus percentage
 python bot_cli.py settings set reference_bonus_percent 5
 
-# Set timezone for logs
-python bot_cli.py settings set timezone "America/New_York"
-
-# Set order timeout (hours)
+# Order reservation timeout (hours)
 python bot_cli.py settings set cash_order_timeout_hours 24
 
-# Set help auto-response
-python bot_cli.py settings set help_auto_message "We'll respond within 24 hours"
+# Enable/disable reference codes
+python bot_cli.py settings set reference_codes_enabled true
 ```
 
 ## 🔧 Bot CLI Commands
@@ -706,62 +724,86 @@ python bot_cli.py unban 123456789
 
 ## 📦 Order Lifecycle
 
-### Complete Order Flow
+### Checkout Flow
 
-```
-1. User browses shop
-   ↓
-2. User adds items to cart
-   ↓
-3. User clicks "Proceed to Checkout"
-   ↓
-4. System asks for delivery info:
-   - Delivery address
-   - Phone number
-   - Delivery note (optional)
-   ↓
-5. System asks about applying referral bonus (if available)
-   ↓
-6. User selects payment method:
-   - Bitcoin: System assigns address from pool, user receives payment instructions
-   - Cash on Delivery: Order proceeds directly to confirmation
-   ↓
-7. Order created with status: pending → reserved
-   - Inventory RESERVED for 24 hours (configurable)
-   - reserved_until timestamp set
-   ↓
-8. Admin receives order notification
-   ↓
-9. Customer pays (Bitcoin) or prepares cash (COD)
-   ↓
-10. Admin confirms order via CLI:
-    python bot_cli.py order --order-code XXXXX --status-confirmed --delivery-time "YYYY-MM-DD HH:MM"
-    - Order status: reserved → confirmed
-    - Delivery time set
-    - Customer notified
-    - For Bitcoin: After payment is verified
-    - For COD: After reviewing order details
-    ↓
-11. Admin delivers order and marks as delivered via CLI:
-    python bot_cli.py order --order-code XXXXX --status-delivered
-    - Order status: confirmed → delivered
-    - Inventory DEDUCTED from stock (actual reduction)
-    - reserved_quantity reduced
-    - stock_quantity reduced
-    - Customer spending updated
-    - Referral bonus credited (if applicable)
-    - Customer notified
-    - For COD: Cash collected at this point
+```mermaid
+flowchart TD
+    A[Browse Shop] --> B[Add to Cart]
+    B --> C[Proceed to Checkout]
+    C --> D[Enter Delivery Address]
+    D --> E{Share GPS Location?}
+    E -->|Yes| F[Telegram Location Pin]
+    E -->|Skip| G[Select Delivery Type]
+    F --> G
+    G -->|Door| H[Phone Number]
+    G -->|Dead Drop| I[Drop Instructions + Photo]
+    G -->|Pickup| H
+    I --> H
+    H --> J[Delivery Note]
+    J --> K{Apply Referral Bonus?}
+    K --> L[Select Payment Method]
+    L -->|PromptPay| M[Scan QR → Upload Receipt]
+    L -->|Cash| N[Order Created]
+    L -->|Bitcoin| O[Pay to Address]
+    M --> N
+    O --> N
 ```
 
-### Order Status States
+### Order Status Flow
 
-- **`pending`**: Order just created, waiting for reservation
-- **`reserved`**: Inventory reserved, waiting for payment/confirmation
-- **`confirmed`**: Payment confirmed, delivery time set, awaiting delivery
-- **`delivered`**: Order completed, inventory deducted, customer updated
-- **`cancelled`**: Manually cancelled by admin, inventory released
-- **`expired`**: Reservation timeout exceeded, inventory automatically released
+```mermaid
+stateDiagram-v2
+    [*] --> pending
+    pending --> reserved : Inventory reserved
+    reserved --> confirmed : Admin confirms + sets delivery time
+    reserved --> expired : Timeout (auto, 24h)
+    reserved --> cancelled : Admin cancels
+    confirmed --> preparing : Kitchen starts cooking
+    preparing --> ready : Food ready for pickup
+    ready --> out_for_delivery : Rider picks up
+    out_for_delivery --> delivered : Delivery photo uploaded
+    confirmed --> cancelled
+    preparing --> cancelled
+    ready --> cancelled
+    out_for_delivery --> cancelled
+    delivered --> [*]
+    cancelled --> [*]
+    expired --> [*]
+```
+
+### Status Definitions
+
+| Status | Description | Triggered By |
+|--------|-------------|--------------|
+| `pending` | Order just created | User checkout |
+| `reserved` | Inventory held (24h timeout) | Automatic after payment method selection |
+| `confirmed` | Payment verified, delivery time set | Admin via CLI or bot |
+| `preparing` | Kitchen is cooking the order | Kitchen group button |
+| `ready` | Food ready, waiting for rider | Kitchen group button |
+| `out_for_delivery` | Rider has picked up the food | Rider group button |
+| `delivered` | Completed — inventory deducted, customer notified | Rider uploads delivery photo |
+| `cancelled` | Admin cancelled — inventory released, bonus refunded | Admin via CLI |
+| `expired` | Reservation timeout — inventory auto-released | Background task (every 60s) |
+
+### Delivery Features During Active Orders
+
+When an order is `out_for_delivery`:
+
+- **Driver-Customer Chat**: Driver messages in rider group → relayed to customer (and vice versa). All messages (text, photo, location) recorded in `delivery_chat_messages` table.
+- **Live Location Tracking**: Driver shares Telegram live location → forwarded to customer as a real-time moving pin.
+- **Photo Proof**: Before marking as `delivered`, rider must upload a delivery photo (required for dead drop orders, optional for door delivery). Photo is auto-sent to customer as confirmation.
+
+### Delivery Types
+
+| Type | Description | Photo Required? |
+|------|-------------|-----------------|
+| `door` | Standard delivery to customer's door | Optional |
+| `dead_drop` | Leave at specified location (guard desk, under mat, etc.) | **Required** |
+| `pickup` | Customer picks up from restaurant | No |
+
+For dead drop orders, the customer provides:
+1. Text instructions (e.g., "leave with security guard at lobby desk")
+2. Optional photo of the drop location (for rider reference)
 
 ### Inventory Flow
 
@@ -996,23 +1038,38 @@ This test suite provides comprehensive coverage for all major components of the 
 
 ```
 tests/
-├── conftest.py              # Shared fixtures and pytest configuration
-├── unit/                    # Unit tests
-│   ├── database/           # Database-related tests
-│   │   ├── test_models.py       # Model tests
-│   │   ├── test_crud.py         # CRUD operation tests
-│   │   ├── test_inventory.py   # Inventory management tests
-│   │   └── test_cart.py         # Shopping cart tests
-│   ├── utils/              # Utility tests
-│   │   ├── test_validators.py  # Validator tests
-│   │   └── test_order_codes.py # Order code generation tests
-│   ├── payments/           # Payment system tests
-│   │   └── test_bitcoin.py     # Bitcoin address tests
-│   └── referrals/          # Referral system tests
-│       └── test_reference_codes.py  # Reference code tests
-└── integration/            # Integration tests
-    └── test_order_lifecycle.py  # Complete order flow tests
+├── conftest.py                        # Shared fixtures (Asia/Bangkok timezone)
+├── unit/
+│   ├── config/
+│   │   └── test_timezone.py           # Timezone defaults + Bangkok (Card 12)
+│   ├── database/
+│   │   ├── test_models.py             # Core model tests
+│   │   ├── test_crud.py               # CRUD operations
+│   │   ├── test_inventory.py          # Inventory management
+│   │   ├── test_cart.py               # Shopping cart
+│   │   ├── test_gps_location.py       # GPS fields on Order/CustomerInfo (Card 2)
+│   │   ├── test_delivery_types.py     # Delivery type + photo proof (Cards 3, 4)
+│   │   ├── test_thai_address.py       # Structured Thai address JSON (Card 7)
+│   │   └── test_delivery_chat.py      # Driver-customer chat recording (Card 13)
+│   ├── i18n/
+│   │   └── test_strings.py            # Thai locale completeness (Cards 5, 11)
+│   ├── payments/
+│   │   ├── test_bitcoin.py            # Bitcoin address pool
+│   │   └── test_promptpay.py          # PromptPay QR + receipt fields (Card 1)
+│   ├── utils/
+│   │   ├── test_validators.py         # Input validation
+│   │   ├── test_order_codes.py        # Order code generation
+│   │   ├── test_currency.py           # THB formatting (Card 6)
+│   │   ├── test_modifiers.py          # Menu modifier pricing (Card 8)
+│   │   ├── test_order_status.py       # Status transition validation (Card 9)
+│   │   └── test_delivery_zones.py     # Haversine + zone pricing (Card 10)
+│   └── referrals/
+│       └── test_reference_codes.py    # Reference code lifecycle
+└── integration/
+    └── test_order_lifecycle.py         # Complete order flow
 ```
+
+**247 tests passing** (including 101 new Thailand feature tests).
 
 ## 🧪 Testing
 
@@ -1153,57 +1210,28 @@ Tests are organized with markers for easy filtering:
 
 ### Test Coverage
 
-#### Current Coverage Areas
-
-1. **Database Models** (100%)
-    - All model creation and validation
-    - Relationships between models
-    - Property calculations (e.g., available_quantity)
-    - Permission system
-
-2. **CRUD Operations** (95%)
-    - Create operations for all models
-    - Read operations with caching
-    - Update operations with validation
-    - Proper error handling
-
-3. **Inventory Management** (100%)
-    - Reservation system
-    - Release mechanism
-    - Deduction on order completion
-    - Stock tracking and logging
-    - Concurrent access handling
-
-4. **Order System** (100%)
-    - Order creation
-    - Status transitions
-    - Order cancellation
-    - Multi-item orders
-    - Order code generation
-
-5. **Shopping Cart** (100%)
-    - Adding items
-    - Quantity updates
-    - Stock validation
-    - Total calculation
-
-6. **Referral System** (100%)
-    - Reference code generation
-    - Code validation
-    - Usage tracking
-    - Expiration handling
-    - Usage limits
-
-7. **Bitcoin System** (95%)
-    - Address loading
-    - Address assignment
-    - Usage tracking
-    - File synchronization
-
-8. **Validators** (100%)
-    - Input validation
-    - Data sanitization
-    - Error handling
+| Area | Tests | Coverage |
+|------|-------|----------|
+| Database Models (core + all new fields) | 17 + 30 | All models, relationships, new Card fields |
+| CRUD Operations | 37 | Create/Read/Update/Delete + ban flows |
+| Inventory Management | 16 | Reserve, release, deduct, add, stats |
+| Order System | 5 | Full lifecycle, cancellation, multi-item |
+| Shopping Cart | 7 | Add, update, totals, stock validation |
+| Referral System | 30 | Code generation, validation, usage, expiry |
+| Bitcoin Payments | 12 | Address loading, assignment, tracking |
+| **PromptPay QR (Card 1)** | **18** | **EMVCo payload, QR PNG, receipt fields, payment verification** |
+| **GPS Location (Card 2)** | **6** | **Lat/lng on Order + CustomerInfo, maps link** |
+| **Delivery Types (Cards 3, 4)** | **8** | **Door/dead drop/pickup, photo proof enforcement** |
+| **Thai i18n (Cards 5, 11)** | **6** | **All th keys present, placeholders match, locale switch** |
+| **THB Currency (Card 6)** | **8** | **฿ symbol, comma formatting, edge cases** |
+| **Thai Address (Card 7)** | **3** | **JSON structured address on Order + CustomerInfo** |
+| **Menu Modifiers (Card 8)** | **21** | **Price calc, validation, Goods/Cart/OrderItem JSON fields** |
+| **Kitchen Workflow (Card 9)** | **15** | **Status transitions, terminal states, reservation cleaner** |
+| **Delivery Zones (Card 10)** | **12** | **Haversine distance, zone detection, time slots** |
+| **Timezone (Card 12)** | **8** | **Bangkok default, fallback, reload, TZ-aware datetime** |
+| **Driver Chat (Card 13)** | **7** | **Chat recording, history ordering, driver fields** |
+| Validators | 23 | Input validation, sanitization |
+| Order Codes | 4 | Generation, uniqueness |
 
 ## 📄 License
 
@@ -1232,5 +1260,25 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📚 Additional Documentation
 
-- `.env.example` - Environment variable reference
-- `bot_cli.py --help` - CLI usage help
+- `.env.example` — Complete environment variable reference with Thailand defaults
+- `FEATURE_CARDS.md` — All 13 feature cards with implementation details, test plans, and database migration summary
+- `docs/done/` — Individual feature card documents with mermaid diagrams and acceptance criteria
+- `bot_cli.py --help` — CLI usage help
+
+### Feature Cards Index
+
+| Card | Feature | Status |
+|------|---------|--------|
+| [Card 1](docs/done/CARD-01-promptpay-qr-payment.md) | PromptPay QR Payment | 90% |
+| [Card 2](docs/done/CARD-02-gps-delivery-address.md) | GPS Delivery Address | 90% |
+| [Card 3](docs/done/CARD-03-dead-drop-delivery.md) | Dead Drop / Pickup Options | 90% |
+| [Card 4](docs/done/CARD-04-photo-proof-delivery.md) | Photo Proof of Delivery | 80% |
+| [Card 5](docs/done/CARD-05-thai-language-i18n.md) | Thai Language (i18n) | 100% |
+| [Card 6](docs/done/CARD-06-thb-currency.md) | THB Currency Formatting | 100% |
+| [Card 7](docs/done/CARD-07-thai-address-format.md) | Thai Address Format | 100% |
+| [Card 8](docs/done/CARD-08-menu-modifiers.md) | Menu Modifiers (Spice/Extras) | 85% |
+| [Card 9](docs/done/CARD-09-kitchen-delivery-workflow.md) | Kitchen & Delivery Workflow | 70% |
+| [Card 10](docs/done/CARD-10-delivery-zones-timeslots.md) | Delivery Zones + Time Slots | 100% |
+| [Card 11](docs/done/CARD-11-cod-thai-localization.md) | COD Thai Localization | 100% |
+| [Card 12](docs/done/CARD-12-timezone-bangkok.md) | Timezone (Asia/Bangkok) | 100% |
+| [Card 13](docs/done/CARD-13-driver-chat-live-location.md) | Driver Chat + Live Location | 85% |

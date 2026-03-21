@@ -104,10 +104,10 @@ def generate_promptpay_qr(promptpay_id: str, amount: Decimal) -> bytes:
     """
     try:
         import qrcode
-    except ImportError:
+    except ImportError as e:
         raise ImportError(
             "qrcode library required for PromptPay QR. Install with: pip install qrcode[pil]"
-        )
+        ) from e
 
     payload = generate_promptpay_payload(promptpay_id, amount)
 

@@ -5,9 +5,7 @@ Simple distance-based zone pricing using Haversine formula.
 """
 import os
 from decimal import Decimal
-from math import radians, sin, cos, sqrt, atan2
-from typing import Optional
-
+from math import atan2, cos, radians, sin, sqrt
 
 # Restaurant location (configurable via env)
 RESTAURANT_LAT = float(os.getenv("RESTAURANT_LAT", "13.7563"))
@@ -50,8 +48,8 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
 
 def get_delivery_zone(lat: float, lon: float,
-                      restaurant_lat: float = None,
-                      restaurant_lon: float = None) -> Optional[dict]:
+                      restaurant_lat: float | None = None,
+                      restaurant_lon: float | None = None) -> dict | None:
     """
     Determine delivery zone based on distance from restaurant.
 
@@ -67,7 +65,7 @@ def get_delivery_zone(lat: float, lon: float,
     distance = calculate_distance(lat, lon, r_lat, r_lon)
 
     for zone in DEFAULT_DELIVERY_ZONES:
-        if distance <= zone["max_km"]:
+        if distance <= float(zone["max_km"]):
             return zone
 
     return DEFAULT_DELIVERY_ZONES[-1]

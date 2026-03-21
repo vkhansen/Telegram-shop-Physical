@@ -1,0 +1,167 @@
+[project]
+name = "telegram-shop-physical"
+version = "2.0.0"
+description = "Thailand restaurant delivery bot on Telegram with PromptPay, GPS delivery, kitchen workflow"
+requires-python = ">=3.11"
+
+# =============================================================================
+# Ruff - Linter & Formatter
+# =============================================================================
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort (import sorting)
+    "N",     # pep8-naming
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "SIM",   # flake8-simplify
+    "RUF",   # ruff-specific rules
+    "S",     # flake8-bandit (security)
+    "T20",   # flake8-print
+    "PIE",   # flake8-pie
+    "RET",   # flake8-return
+    "C4",    # flake8-comprehensions
+]
+ignore = [
+    "E501",    # line too long — handled by formatter
+    "B008",    # do not perform function calls in argument defaults (needed for aiogram)
+    "S101",    # use of assert — needed in tests
+    "S104",    # possible binding to all interfaces — intentional for Docker
+    "S311",    # pseudo-random generators — not used for security
+    "T201",    # print found — used in CLI and notifications
+    "RET504",  # unnecessary assignment before return
+    "SIM108",  # ternary operator — sometimes less readable
+    "UP007",   # use X | Y for union — breaks runtime on Python < 3.10
+    "N802",    # function name should be lowercase — some aiogram patterns
+    "N806",    # variable in function should be lowercase
+    "B905",    # zip without strict — not always needed
+    "RUF012",  # mutable class attributes — SQLAlchemy models use this pattern
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",    # assert is fine in tests
+    "S106",    # hardcoded passwords in tests
+    "B011",    # do not assert False
+    "S105",    # possible hardcoded password
+    "N801",    # class name should use CapWords
+]
+"bot_cli.py" = [
+    "T201",    # print is the primary output method for CLI
+    "B010",    # do not call setattr with constant
+]
+"bot/database/models/main.py" = [
+    "N815",    # mixedCase variable in class scope — SQLAlchemy column names
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["bot"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+# =============================================================================
+# Mypy - Type Checker
+# =============================================================================
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = false
+warn_unused_configs = true
+ignore_missing_imports = true
+no_strict_optional = true
+allow_untyped_defs = true
+allow_untyped_calls = true
+check_untyped_defs = false
+disallow_incomplete_defs = false
+
+# Strict mode per-module (opt-in for new code)
+[[tool.mypy.overrides]]
+module = [
+    "bot.utils.modifiers",
+    "bot.utils.currency",
+    "bot.utils.order_status",
+    "bot.utils.order_helpers",
+    "bot.utils.constants",
+    "bot.config.delivery_zones",
+    "bot.payments.promptpay",
+]
+disallow_untyped_defs = true
+check_untyped_defs = true
+
+# =============================================================================
+# Pytest
+# =============================================================================
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "database: Tests that require database",
+    "slow: Slow running tests",
+    "models: Database model tests",
+    "crud: CRUD operation tests",
+    "inventory: Inventory management tests",
+    "orders: Order management tests",
+    "cart: Shopping cart tests",
+    "referrals: Referral system tests",
+    "bitcoin: Bitcoin payment tests",
+    "validators: Validator tests",
+    "caching: Cache system tests",
+]
+addopts = """
+    -v
+    --strict-markers
+    --tb=short
+    --cov=bot
+    --cov-report=html
+    --cov-report=term-missing
+    --cov-report=xml
+    --cov-branch
+"""
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+norecursedirs = [".git", ".tox", "dist", "build", "*.egg", "venv"]
+filterwarnings = [
+    "ignore::ResourceWarning",
+    "ignore::RuntimeWarning",
+    "ignore::DeprecationWarning",
+]
+
+# =============================================================================
+# Coverage
+# =============================================================================
+[tool.coverage.run]
+source = ["bot"]
+branch = true
+omit = [
+    "bot/monitoring/dashboard.py",
+    "bot/main.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.",
+    "raise NotImplementedError",
+    "pass",
+    "except ImportError",
+]
+show_missing = true
+fail_under = 25

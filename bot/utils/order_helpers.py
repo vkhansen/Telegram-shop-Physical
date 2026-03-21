@@ -8,13 +8,12 @@ Extracts common patterns from order_handler.py:
 - Google Maps link generation
 """
 from decimal import Decimal
-from typing import Optional
 
-from bot.database.models.main import Order, OrderItem
 from bot.config.env import EnvKeys
+from bot.database.models.main import Order, OrderItem
 
 
-def build_google_maps_link(latitude: Optional[float], longitude: Optional[float]) -> Optional[str]:
+def build_google_maps_link(latitude: float | None, longitude: float | None) -> str | None:
     """Generate Google Maps link from coordinates, or None if no GPS data."""
     if latitude is not None and longitude is not None:
         return f"https://www.google.com/maps?q={latitude},{longitude}"
@@ -28,7 +27,7 @@ def create_order_from_customer(
     payment_method: str,
     total_amount: Decimal,
     bonus_applied: Decimal = Decimal("0"),
-    bitcoin_address: str = None,
+    bitcoin_address: str | None = None,
 ) -> Order:
     """
     Create an Order from CustomerInfo and cart data.

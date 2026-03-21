@@ -215,3 +215,65 @@ class TestPromptPayOrderFields:
         assert order.payment_verified_by == 700005
         assert order.payment_verified_at is not None
         assert order.order_status == "confirmed"
+
+
+@pytest.mark.unit
+class TestPromptPayPayloadEdgeCases:
+    """Edge-case tests for PromptPay payload generation."""
+
+    def test_very_small_amount(self):
+        """Smallest practical amount (0.01 THB) should generate valid payload."""
+        payload = generate_promptpay_payload("0812345678", Decimal("0.01"))
+        assert payload
+        assert "0.01" in payload
+
+    def test_very_large_amount(self):
+        """Large amount (999999.99 THB) should generate valid payload."""
+        payload = generate_promptpay_payload("0812345678", Decimal("999999.99"))
+        assert payload
+        assert "999999.99" in payload
+
+    def test_amount_with_extra_decimals(self):
+        """Amount with 3+ decimal places should still produce a payload."""
+        payload = generate_promptpay_payload("0812345678", Decimal("100.555"))
+        assert payload
+        assert "100.555" in payload
+
+    def test_phone_with_spaces(self):
+        """Phone number with spaces should be cleaned and accepted."""
+        payload = generate_promptpay_payload("081 234 5678", Decimal("100"))
+        assert "0066812345678" in payload
+
+    def test_phone_already_international_format_wrong_length(self):
+        """Phone in international format without leading 0 (11 digits) should raise."""
+        with pytest.raises(ValueError, match="Invalid PromptPay ID"):
+            generate_promptpay_payload("66812345678", Decimal("100"))
+
+    def test_id_with_12_digits_raises(self):
+        """12-digit ID (neither 10 nor 13) should raise ValueError."""
+        with pytest.raises(ValueError, match="Invalid PromptPay ID"):
+            generate_promptpay_payload("123456789012", Decimal("100"))
+
+    def test_none_promptpay_id_raises(self):
+        """None as promptpay_id should raise an error."""
+        with pytest.raises((ValueError, TypeError, AttributeError)):
+            generate_promptpay_payload(None, Decimal("100"))
+
+    def test_crc16_empty_string(self):
+        """CRC16 of empty string should return the initial value (0xFFFF)."""
+        result = _crc16("")
+        assert isinstance(result, int)
+        assert result == 0xFFFF  # No bytes processed, initial CRC unchanged
+
+    def test_crc16_long_string(self):
+        """CRC16 of a 100+ character string should return valid 16-bit value."""
+        long_input = "A" * 150
+        result = _crc16(long_input)
+        assert isinstance(result, int)
+        assert 0 <= result <= 0xFFFF
+
+    def test_two_identical_payloads_deterministic(self):
+        """Same inputs must produce identical payloads (deterministic)."""
+        p1 = generate_promptpay_payload("0812345678", Decimal("250.00"))
+        p2 = generate_promptpay_payload("0812345678", Decimal("250.00"))
+        assert p1 == p2

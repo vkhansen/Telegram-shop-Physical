@@ -3,7 +3,7 @@ import pytest
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from bot.utils.order_status import is_valid_transition, get_allowed_transitions, EXPIRABLE_STATUSES
+from bot.utils.order_status import is_valid_transition, get_allowed_transitions, EXPIRABLE_STATUSES, ALL_STATUSES, VALID_TRANSITIONS
 
 
 @pytest.mark.unit
@@ -107,3 +107,100 @@ class TestExtendedStatusFields:
 
         assert order.kitchen_group_message_id == 12345
         assert order.rider_group_message_id == 67890
+
+
+@pytest.mark.unit
+class TestStatusTransitionEdgeCases:
+    """Edge case tests for order status transitions"""
+
+    def test_nonexistent_status_returns_false(self):
+        """Non-existent status string returns False for any transition"""
+        assert is_valid_transition("nonexistent", "confirmed") is False
+        assert is_valid_transition("nonexistent", "pending") is False
+        assert is_valid_transition("nonexistent", "delivered") is False
+
+    def test_empty_string_status_returns_false(self):
+        """Empty string status returns False for any transition"""
+        assert is_valid_transition("", "confirmed") is False
+        assert is_valid_transition("", "pending") is False
+        assert is_valid_transition("pending", "") is False
+        assert is_valid_transition("", "") is False
+
+    def test_self_transition_returns_false(self):
+        """Self-transition (same status to same status) returns False"""
+        for status in ALL_STATUSES:
+            assert is_valid_transition(status, status) is False, (
+                f"Self-transition should be invalid for '{status}'"
+            )
+
+    def test_get_allowed_transitions_pending(self):
+        """Pending can transition to reserved or cancelled"""
+        assert get_allowed_transitions("pending") == {"reserved", "cancelled"}
+
+    def test_get_allowed_transitions_reserved(self):
+        """Reserved can transition to confirmed, cancelled, or expired"""
+        assert get_allowed_transitions("reserved") == {"confirmed", "cancelled", "expired"}
+
+    def test_get_allowed_transitions_confirmed(self):
+        """Confirmed can transition to preparing or cancelled"""
+        assert get_allowed_transitions("confirmed") == {"preparing", "cancelled"}
+
+    def test_get_allowed_transitions_preparing(self):
+        """Preparing can transition to ready or cancelled"""
+        assert get_allowed_transitions("preparing") == {"ready", "cancelled"}
+
+    def test_get_allowed_transitions_ready(self):
+        """Ready can transition to out_for_delivery or cancelled"""
+        assert get_allowed_transitions("ready") == {"out_for_delivery", "cancelled"}
+
+    def test_get_allowed_transitions_out_for_delivery(self):
+        """Out for delivery can transition to delivered or cancelled"""
+        assert get_allowed_transitions("out_for_delivery") == {"delivered", "cancelled"}
+
+    def test_get_allowed_transitions_delivered(self):
+        """Delivered is terminal — no transitions"""
+        assert get_allowed_transitions("delivered") == set()
+
+    def test_get_allowed_transitions_cancelled(self):
+        """Cancelled is terminal — no transitions"""
+        assert get_allowed_transitions("cancelled") == set()
+
+    def test_get_allowed_transitions_expired(self):
+        """Expired is terminal — no transitions"""
+        assert get_allowed_transitions("expired") == set()
+
+    def test_get_allowed_transitions_unknown_status(self):
+        """Unknown status returns empty set"""
+        assert get_allowed_transitions("unknown") == set()
+        assert get_allowed_transitions("") == set()
+
+    def test_all_statuses_contains_exactly_nine(self):
+        """ALL_STATUSES constant contains exactly 9 statuses"""
+        assert len(ALL_STATUSES) == 9
+        expected = {
+            "pending", "reserved", "confirmed", "preparing", "ready",
+            "out_for_delivery", "delivered", "cancelled", "expired"
+        }
+        assert ALL_STATUSES == expected
+
+    def test_pending_to_cancelled_is_valid(self):
+        """Pending can be cancelled"""
+        assert is_valid_transition("pending", "cancelled") is True
+
+    def test_pending_to_expired_is_not_valid(self):
+        """Pending cannot expire — only reserved can expire"""
+        assert is_valid_transition("pending", "expired") is False
+
+    def test_cancelled_to_anything_is_not_valid(self):
+        """Cancelled is terminal — cannot transition to any status"""
+        for status in ALL_STATUSES:
+            assert is_valid_transition("cancelled", status) is False, (
+                f"Cancelled should not transition to '{status}'"
+            )
+
+    def test_expired_to_anything_is_not_valid(self):
+        """Expired is terminal — cannot transition to any status"""
+        for status in ALL_STATUSES:
+            assert is_valid_transition("expired", status) is False, (
+                f"Expired should not transition to '{status}'"
+            )

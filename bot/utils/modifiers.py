@@ -5,11 +5,10 @@ Handles modifier validation and price calculation for items
 with customization options (spice level, extras, removals).
 """
 from decimal import Decimal
-from typing import Optional
 
 
-def calculate_item_price(base_price: Decimal, modifiers_schema: Optional[dict],
-                         selected_modifiers: Optional[dict]) -> Decimal:
+def calculate_item_price(base_price: Decimal, modifiers_schema: dict | None,
+                         selected_modifiers: dict | None) -> Decimal:
     """
     Calculate total item price including modifier adjustments.
 
@@ -50,8 +49,8 @@ def calculate_item_price(base_price: Decimal, modifiers_schema: Optional[dict],
     return base_price + modifier_total
 
 
-def validate_modifier_selection(modifiers_schema: Optional[dict],
-                                selected_modifiers: Optional[dict]) -> tuple[bool, str]:
+def validate_modifier_selection(modifiers_schema: dict | None,
+                                selected_modifiers: dict | None) -> tuple[bool, str]:
     """
     Validate that selected modifiers match the schema.
 
@@ -87,7 +86,7 @@ def validate_modifier_selection(modifiers_schema: Optional[dict],
     return True, ""
 
 
-def _find_option(options: list, opt_id: str) -> Optional[dict]:
+def _find_option(options: list, opt_id: str) -> dict | None:
     """Find option by ID in options list."""
     for opt in options:
         if opt.get("id") == opt_id:

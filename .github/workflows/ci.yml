@@ -1,0 +1,161 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main, develop]
+  pull_request:
+    branches: [master, main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  # Required env vars for bot module imports
+  TOKEN: "test_token_for_ci"
+  OWNER_ID: "123456789"
+  DATABASE_URL: "sqlite://"
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install linting tools
+        run: pip install ruff
+
+      - name: Ruff check (lint)
+        run: ruff check . --output-format=github
+
+      - name: Ruff format check
+        run: ruff format --check --diff .
+
+  typecheck:
+    name: Type Check (mypy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install mypy types-pytz types-python-dateutil
+
+      - name: Run mypy (new modules - strict)
+        run: |
+          mypy \
+            bot/payments/promptpay.py \
+            bot/utils/currency.py \
+            bot/utils/modifiers.py \
+            bot/utils/order_status.py \
+            bot/utils/order_helpers.py \
+            bot/utils/constants.py \
+            bot/config/delivery_zones.py \
+            --ignore-missing-imports
+
+      - name: Run mypy (full codebase - lenient)
+        run: mypy bot/ --ignore-missing-imports --no-strict-optional --allow-untyped-defs
+        continue-on-error: true
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          python -m pytest tests/ \
+            --tb=short \
+            --strict-markers \
+            --cov=bot \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --cov-branch \
+            -q
+        env:
+          TOKEN: "test_token_for_ci"
+          OWNER_ID: "123456789"
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 14
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pip-audit safety
+
+      - name: Audit dependencies
+        run: pip-audit -r requirements.txt --skip-editable
+        continue-on-error: true
+
+      - name: Check for known vulnerabilities
+        run: safety check -r requirements.txt --output text
+        continue-on-error: true
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t telegram-shop-physical:ci .
+
+      - name: Verify image
+        run: docker image inspect telegram-shop-physical:ci --format '{{.Size}}'
