@@ -1,5 +1,20 @@
 # Card 7: Thai Address Format Fields
 
+## Implementation Status
+
+> **100% Complete** | `████████████████████` | JSON address fields, validation, and tests fully implemented.
+
+## Flow Diagram
+
+```mermaid
+flowchart TD
+    A[Free-text Address] --> B[Order Created]
+    C[Structured JSON Address] --> B
+    D[GPS Coordinates] --> B
+    B --> E[Display Formatted Thai Address]
+    E --> F[Admin View / CLI / Receipt]
+```
+
 **Phase:** 2 — Thailand Localization
 **Priority:** Medium
 **Effort:** Low (2-3 hours)
@@ -51,10 +66,10 @@ address_structured = Column(JSON, nullable=True)
 
 ## Acceptance Criteria
 
-- [ ] JSON address field available on Order and CustomerInfo
-- [ ] Free-text address still works (backward compatible)
-- [ ] Structured address displayed in formatted Thai style
-- [ ] GPS coordinates remain primary delivery method
+- [x] JSON address field available on Order and CustomerInfo
+- [x] Free-text address still works (backward compatible)
+- [x] Structured address displayed in formatted Thai style
+- [x] GPS coordinates remain primary delivery method
 
 ## Test Plan
 

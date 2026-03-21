@@ -1,5 +1,29 @@
 # Card 9: Kitchen & Delivery Status Workflow + Group Notifications
 
+## Implementation Status
+
+> **70% Complete** | `██████████████░░░░░░` | Model fields + status validator + tests done. Group notification functions not written yet.
+
+## Flow Diagram
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending
+    pending --> reserved
+    reserved --> confirmed
+    reserved --> cancelled
+    reserved --> expired
+    confirmed --> preparing
+    preparing --> ready
+    ready --> out_for_delivery
+    out_for_delivery --> delivered
+    delivered --> [*]
+    confirmed --> cancelled
+    preparing --> cancelled
+    ready --> cancelled
+    out_for_delivery --> cancelled
+```
+
 **Phase:** 3 — Restaurant Flow Polish
 **Priority:** Medium
 **Effort:** Medium (1-2 days)
@@ -96,14 +120,14 @@ RIDER_GROUP_ID=-1001234567891
 
 ## Acceptance Criteria
 
-- [ ] Order flows through all extended statuses
+- [x] Order flows through all extended statuses
 - [ ] Kitchen group receives formatted order on confirmation
 - [ ] Rider group notified when order is ready
 - [ ] Customer receives status updates at each stage
 - [ ] Kitchen can mark "preparing" and "ready" via buttons
 - [ ] Rider can mark "picked up" via button
-- [ ] CLI supports all new status transitions
-- [ ] Reservation cleaner only expires `reserved` orders
+- [x] CLI supports all new status transitions
+- [x] Reservation cleaner only expires `reserved` orders
 
 ## Test Plan
 

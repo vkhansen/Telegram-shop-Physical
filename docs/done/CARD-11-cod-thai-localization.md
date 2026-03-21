@@ -1,5 +1,19 @@
 # Card 11: Cash on Delivery — Thai Localization
 
+## Implementation Status
+
+> **100% Complete** | `████████████████████` | Thai COD labels, rider notification amounts, and tests fully implemented.
+
+## Flow Diagram
+
+```mermaid
+flowchart LR
+    A[Order Total] --> B[+ Delivery Fee]
+    B --> C[COD Amount]
+    C --> D[Rider Notification]
+    D --> E["เก็บเงิน ฿X"]
+```
+
 **Phase:** 3 — Restaurant Flow Polish
 **Priority:** Low
 **Effort:** Very Low (1-2 hours)
@@ -35,9 +49,9 @@ Cash on Delivery already exists in the repo and works correctly. This card simpl
 
 ## Acceptance Criteria
 
-- [ ] COD labels in Thai
-- [ ] Rider notification shows cash amount to collect
-- [ ] COD includes delivery fee in total
+- [x] COD labels in Thai
+- [x] Rider notification shows cash amount to collect
+- [x] COD includes delivery fee in total
 
 ## Test Plan
 

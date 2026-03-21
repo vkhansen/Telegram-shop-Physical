@@ -1,4 +1,4 @@
-DEFAULT_LOCALE = "ru"
+DEFAULT_LOCALE = "th"
 
 TRANSLATIONS: dict[str, dict[str, str]] = {
     "ru": {
@@ -337,6 +337,37 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.phone_invalid": "❌ Пожалуйста, укажите действительный номер телефона (минимум 8 цифр).",
         "order.delivery.note_prompt": "📝 Есть ли какие-то особые инструкции по доставке? (Необязательно)\n\nВы можете пропустить это, нажав на кнопку ниже.",
         "order.delivery.info_save_error": "❌ Ошибка сохранения информации о доставке. Пожалуйста, попробуйте еще раз.",
+
+        # GPS Location (Card 2)
+        "order.delivery.location_prompt": "📍 Хотите поделиться GPS-локацией для более точной доставки?\n\nНажмите кнопку ниже или пропустите этот шаг.",
+        "order.delivery.location_saved": "✅ Локация сохранена!",
+        "btn.share_location": "📍 Поделиться локацией",
+        "btn.skip_location": "⏭ Пропустить",
+
+        # Delivery Type (Card 3)
+        "order.delivery.type_prompt": "🚚 Выберите тип доставки:",
+        "btn.delivery.door": "🚪 Доставка к двери",
+        "btn.delivery.dead_drop": "📦 Оставить в указанном месте",
+        "btn.delivery.pickup": "🏪 Самовывоз",
+        "order.delivery.drop_instructions_prompt": "📝 Опишите, где оставить заказ (например, 'у охранника в лобби', 'под коврик у двери 405'):",
+        "order.delivery.drop_photo_prompt": "📸 Хотите отправить фото места? (необязательно)",
+        "order.delivery.drop_photo_saved": "✅ Фото места сохранено!",
+        "btn.skip_drop_photo": "⏭ Пропустить фото",
+
+        # PromptPay (Card 1)
+        "order.payment_method.promptpay": "💳 PromptPay QR",
+        "order.payment.promptpay.title": "💳 <b>Оплата через PromptPay</b>",
+        "order.payment.promptpay.scan": "📱 Сканируйте QR-код для оплаты:",
+        "order.payment.promptpay.upload_receipt": "📸 После оплаты отправьте скриншот/фото квитанции:",
+        "order.payment.promptpay.receipt_received": "✅ Квитанция получена! Ожидайте подтверждения от администратора.",
+        "order.payment.promptpay.receipt_invalid": "❌ Пожалуйста, отправьте фото квитанции.",
+        "admin.order.verify_payment": "✅ Подтвердить оплату",
+        "admin.order.payment_verified": "✅ Оплата подтверждена",
+
+        # Delivery Chat (Card 13)
+        "order.delivery.chat_unavailable": "❌ Чат с водителем недоступен. Группа курьеров не настроена.",
+        "order.delivery.chat_started": "💬 Вы можете отправить сообщение водителю. Отправьте текст, фото или локацию.",
+        "order.delivery.live_location_shared": "📍 Водитель поделился живой локацией! Вы можете отслеживать доставку.",
 
         # === Bonus/Referral Application ===
         "order.bonus.available": "💰 <b>У вас есть ${bonus_balance} в реферальных бонусах!</b>\n\n",
@@ -850,6 +881,37 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.note_prompt": "📝 Any special delivery instructions? (Optional)\n\nYou can skip this by clicking the button below.",
         "order.delivery.info_save_error": "❌ Error saving delivery information. Please try again.",
 
+        # GPS Location (Card 2)
+        "order.delivery.location_prompt": "📍 Would you like to share your GPS location for more accurate delivery?\n\nTap the button below or skip this step.",
+        "order.delivery.location_saved": "✅ Location saved!",
+        "btn.share_location": "📍 Share Location",
+        "btn.skip_location": "⏭ Skip",
+
+        # Delivery Type (Card 3)
+        "order.delivery.type_prompt": "🚚 Choose delivery type:",
+        "btn.delivery.door": "🚪 Deliver to Door",
+        "btn.delivery.dead_drop": "📦 Leave at Location",
+        "btn.delivery.pickup": "🏪 Self Pickup",
+        "order.delivery.drop_instructions_prompt": "📝 Describe where to leave your order (e.g., 'with security guard at lobby', 'under the mat at room 405'):",
+        "order.delivery.drop_photo_prompt": "📸 Want to send a photo of the drop location? (optional)",
+        "order.delivery.drop_photo_saved": "✅ Drop location photo saved!",
+        "btn.skip_drop_photo": "⏭ Skip Photo",
+
+        # PromptPay (Card 1)
+        "order.payment_method.promptpay": "💳 PromptPay QR",
+        "order.payment.promptpay.title": "💳 <b>PromptPay Payment</b>",
+        "order.payment.promptpay.scan": "📱 Scan QR code to pay:",
+        "order.payment.promptpay.upload_receipt": "📸 After payment, please upload your receipt/screenshot:",
+        "order.payment.promptpay.receipt_received": "✅ Receipt received! Waiting for admin verification.",
+        "order.payment.promptpay.receipt_invalid": "❌ Please send a photo of your payment receipt.",
+        "admin.order.verify_payment": "✅ Verify Payment",
+        "admin.order.payment_verified": "✅ Payment Verified",
+
+        # Delivery Chat (Card 13)
+        "order.delivery.chat_unavailable": "❌ Chat with driver unavailable. Rider group not configured.",
+        "order.delivery.chat_started": "💬 You can message your driver. Send text, photo, or location.",
+        "order.delivery.live_location_shared": "📍 Driver is sharing live location! You can track your delivery.",
+
         # === Bonus/Referral Application ===
         "order.bonus.available": "💰 <b>You have ${bonus_balance} in referral bonuses!</b>\n\n",
         "order.bonus.apply_question": "Would you like to apply referral bonus to this order?",
@@ -1006,5 +1068,547 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.order_label": "📋 <b>Order: {code}</b>",
         "order.payment.subtotal_label": "Subtotal: <b>{amount} {currency}</b>",
         "order.payment.total_amount_label": "<b>Total Amount: {amount} {currency}</b>",
+    },
+
+    "th": {
+        # === Common Buttons ===
+        "btn.shop": "🏪 ร้านค้า",
+        "btn.rules": "📜 กฎระเบียบ",
+        "btn.profile": "👤 โปรไฟล์",
+        "btn.support": "🆘 ช่วยเหลือ",
+        "btn.channel": "ℹ ช่องข่าว",
+        "btn.admin_menu": "🎛 แผงควบคุม",
+        "btn.back": "⬅️ กลับ",
+        "btn.close": "✖ ปิด",
+        "btn.yes": "✅ ใช่",
+        "btn.no": "❌ ไม่",
+        "btn.check_subscription": "🔄 ตรวจสอบการสมัครสมาชิก",
+        "btn.admin.ban_user": "🚫 แบนผู้ใช้",
+        "btn.admin.unban_user": "✅ ปลดแบนผู้ใช้",
+
+        # === Admin Buttons (user management shortcuts) ===
+        "btn.admin.promote": "⬆️ แต่งตั้งเป็นแอดมิน",
+        "btn.admin.demote": "⬇️ ถอดถอนแอดมิน",
+        "btn.admin.add_user_bonus": "🎁 เพิ่มโบนัสการแนะนำ",
+
+        # === Titles / Generic Texts ===
+        "menu.title": "⛩️ เมนูหลัก",
+        "admin.goods.add.stock.error": "❌ เกิดข้อผิดพลาดในการเพิ่มสต็อกเริ่มต้น: {error}",
+        "admin.goods.stock.add_success": "✅ เพิ่ม {quantity} หน่วยให้กับ \"{item}\"",
+        "admin.goods.stock.add_units": "➕ เพิ่มจำนวน",
+        "admin.goods.stock.current_status": "สถานะปัจจุบัน",
+        "admin.goods.stock.error": "❌ เกิดข้อผิดพลาดในการจัดการสต็อก: {error}",
+        "admin.goods.stock.insufficient": "❌ สต็อกไม่เพียงพอ มีเพียง {available} หน่วยเท่านั้น",
+        "admin.goods.stock.invalid_quantity": "⚠️ จำนวนไม่ถูกต้อง กรุณากรอกจำนวนเต็ม",
+        "admin.goods.stock.management_title": "จัดการสต็อก: {item}",
+        "admin.goods.stock.negative_quantity": "⚠️ จำนวนต้องไม่ติดลบ",
+        "admin.goods.stock.no_products": "❌ ยังไม่มีสินค้าในร้าน",
+        "admin.goods.stock.prompt.add_units": "กรอกจำนวนหน่วยที่ต้องการเพิ่ม:",
+        "admin.goods.stock.prompt.item_name": "กรอกชื่อสินค้าเพื่อจัดการสต็อก:",
+        "admin.goods.stock.prompt.remove_units": "กรอกจำนวนหน่วยที่ต้องการลบ:",
+        "admin.goods.stock.prompt.set_exact": "กรอกจำนวนสต็อกที่แน่นอน:",
+        "admin.goods.stock.redirect_message": "ℹ️ การจัดการสต็อกพร้อมใช้งานแล้วผ่านเมนู \"จัดการสต็อก\"",
+        "admin.goods.stock.remove_success": "✅ ลบ {quantity} หน่วยออกจาก \"{item}\"",
+        "admin.goods.stock.remove_units": "➖ ลบจำนวน",
+        "admin.goods.stock.select_action": "เลือกการดำเนินการ",
+        "admin.goods.stock.set_exact": "⚖️ ตั้งค่าจำนวนที่แน่นอน",
+        "admin.goods.stock.set_success": "✅ สต็อกของ \"{item}\" ถูกตั้งค่าเป็น {quantity} หน่วย",
+        "admin.goods.stock.status_title": "📊 สถานะสต็อก:",
+        "errors.invalid_item_name": "❌ ชื่อสินค้าไม่ถูกต้อง",
+        "profile.caption": "👤 <b>โปรไฟล์</b> — <a href='tg://user?id={id}'>{name}</a>",
+        "rules.not_set": "❌ ยังไม่ได้เพิ่มกฎระเบียบ",
+        "admin.users.cannot_ban_owner": "❌ ไม่สามารถแบนเจ้าของได้",
+        "admin.users.ban.success": "✅ ผู้ใช้ {name} ถูกแบนเรียบร้อยแล้ว",
+        "admin.users.ban.failed": "❌ ไม่สามารถแบนผู้ใช้ได้",
+        "admin.users.ban.notify": "⛔ คุณถูกแบนโดยผู้ดูแลระบบ",
+        "admin.users.unban.success": "✅ ผู้ใช้ {name} ถูกปลดแบนเรียบร้อยแล้ว",
+        "admin.users.unban.failed": "❌ ไม่สามารถปลดแบนผู้ใช้ได้",
+        "admin.users.unban.notify": "✅ คุณถูกปลดแบนโดยผู้ดูแลระบบ",
+
+        # === Profile ===
+        "btn.referral": "🎲 ระบบการแนะนำ",
+        "btn.purchased": "🎁 สินค้าที่ซื้อแล้ว",
+        "profile.referral_id": "👤 <b>การแนะนำ</b> — <code>{id}</code>",
+
+        # === Subscription Flow ===
+        "subscribe.prompt": "กรุณาสมัครสมาชิกช่องข่าวก่อน",
+
+        # === Profile Info Lines ===
+        "profile.id": "🆔 <b>ID</b> — <code>{id}</code>",
+        "profile.bonus_balance": "💰 <b>โบนัสการแนะนำ:</b> ${bonus_balance}",
+        "profile.purchased_count": "🎁 <b>สินค้าที่ซื้อแล้ว</b> — {count} ชิ้น",
+        "profile.registration_date": "🕢 <b>วันที่ลงทะเบียน</b> — <code>{dt}</code>",
+
+        # === Referral ===
+        "referral.title": "💚 ระบบการแนะนำ",
+        "referral.count": "จำนวนผู้ถูกแนะนำ: {count}",
+        "referral.description": (
+            "📔 ระบบการแนะนำช่วยให้คุณสามารถหารายได้โดยไม่ต้องลงทุน "
+            "เพียงแค่แชร์ลิงก์แนะนำของคุณ แล้วคุณจะได้รับ {percent}% "
+            "จากยอดเติมเงินของผู้ถูกแนะนำเข้าสู่ยอดเงินบอทของคุณ"
+        ),
+        "btn.view_referrals": "👥 ผู้ถูกแนะนำของฉัน",
+        "btn.view_earnings": "💰 รายได้ของฉัน",
+
+        "referrals.list.title": "👥 ผู้ถูกแนะนำของคุณ:",
+        "referrals.list.empty": "คุณยังไม่มีผู้ถูกแนะนำที่ใช้งานอยู่",
+        "referrals.item.format": "ID: {telegram_id} | รายได้: {total_earned} {currency}",
+
+        "referral.earnings.title": "💰 รายได้จากผู้ถูกแนะนำ <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>):",
+        "referral.earnings.empty": "ยังไม่มีรายได้จากผู้ถูกแนะนำ <code>{id}</code> (<a href='tg://user?id={id}'>{name}</a>)",
+        "referral.earning.format": "{amount} {currency} | {date} | (จาก {original_amount} {currency})",
+        "referral.item.info": ("💰 รายได้หมายเลข: <code>{id}</code>\n"
+                               "👤 ผู้ถูกแนะนำ: <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>)\n"
+                               "🔢 จำนวน: {amount} {currency}\n"
+                               "🕘 วันที่: <code>{date}</code>\n"
+                               "💵 จากยอดเติมเงิน {original_amount} {currency}"),
+
+        "referral.admin_bonus.info": ("💰 รายได้หมายเลข: <code>{id}</code>\n"
+                                      "🎁 <b>โบนัสจากผู้ดูแลระบบ</b>\n"
+                                      "🔢 จำนวน: {amount} {currency}\n"
+                                      "🕘 วันที่: <code>{date}</code>"),
+
+        "all.earnings.title": "💰 รายได้จากการแนะนำทั้งหมดของคุณ:",
+        "all.earnings.empty": "คุณยังไม่มีรายได้จากการแนะนำ",
+        "all.earning.format.admin": "{amount} {currency} จาก Admin | {date}",
+
+        "referrals.stats.template": (
+            "📊 สถิติระบบการแนะนำ:\n\n"
+            "👥 ผู้ถูกแนะนำที่ใช้งาน: {active_count}\n"
+            "💰 รายได้ทั้งหมด: {total_earned} {currency}\n"
+            "📈 ยอดเติมเงินรวมของผู้ถูกแนะนำ: {total_original} {currency}\n"
+            "🔢 จำนวนครั้งที่ได้รับ: {earnings_count}"
+        ),
+
+        # === Admin: Main Menu ===
+        "admin.menu.main": "⛩️ เมนูแอดมิน",
+        "admin.menu.shop": "🛒 จัดการร้านค้า",
+        "admin.menu.goods": "📦 จัดการสินค้า",
+        "admin.menu.categories": "📂 จัดการหมวดหมู่",
+        "admin.menu.users": "👥 จัดการผู้ใช้",
+        "admin.menu.broadcast": "📝 ประกาศ",
+        "admin.menu.rights": "สิทธิ์ไม่เพียงพอ",
+
+        # === Admin: User Management ===
+        "admin.users.prompt_enter_id": "👤 กรอก ID ผู้ใช้เพื่อดู / แก้ไขข้อมูล",
+        "admin.users.invalid_id": "⚠️ กรุณากรอก ID ผู้ใช้ที่เป็นตัวเลขที่ถูกต้อง",
+        "admin.users.profile_unavailable": "❌ ไม่พบโปรไฟล์ (ผู้ใช้นี้ไม่เคยมีอยู่)",
+        "admin.users.not_found": "❌ ไม่พบผู้ใช้",
+        "admin.users.cannot_change_owner": "ไม่สามารถเปลี่ยนบทบาทของเจ้าของได้",
+        "admin.users.referrals": "👥 <b>ผู้ถูกแนะนำของผู้ใช้</b> — {count}",
+        "admin.users.btn.view_referrals": "👥 ผู้ถูกแนะนำของผู้ใช้",
+        "admin.users.btn.view_earnings": "💰 รายได้",
+        "admin.users.role": "🎛 <b>บทบาท</b> — {role}",
+        "admin.users.set_admin.success": "✅ กำหนดบทบาทให้ {name} แล้ว",
+        "admin.users.set_admin.notify": "✅ คุณได้รับบทบาทแอดมินแล้ว",
+        "admin.users.remove_admin.success": "✅ ถอดถอนบทบาทแอดมินจาก {name} แล้ว",
+        "admin.users.remove_admin.notify": "❌ บทบาทแอดมินของคุณถูกถอดถอนแล้ว",
+        "admin.users.bonus.prompt": "กรอกจำนวนโบนัสเป็น {currency}:",
+        "admin.users.bonus.added": "✅ โบนัสการแนะนำของ {name} ถูกเติมเงิน {amount} {currency}",
+        "admin.users.bonus.added.notify": "🎁 คุณได้รับโบนัสการแนะนำจำนวน {amount} {currency}",
+        "admin.users.bonus.invalid": "❌ จำนวนไม่ถูกต้อง กรุณากรอกตัวเลขตั้งแต่ {min_amount} ถึง {max_amount} {currency}",
+
+        # === Admin: Shop Management Menu ===
+        "admin.shop.menu.title": "⛩️ จัดการร้านค้า",
+        "admin.shop.menu.statistics": "📊 สถิติ",
+        "admin.shop.menu.logs": "📁 แสดงบันทึก",
+        "admin.shop.menu.admins": "👮 แอดมิน",
+        "admin.shop.menu.users": "👤 ผู้ใช้",
+
+        # === Admin: Categories Management ===
+        "admin.categories.menu.title": "⛩️ จัดการหมวดหมู่",
+        "admin.categories.add": "➕ เพิ่มหมวดหมู่",
+        "admin.categories.rename": "✏️ เปลี่ยนชื่อหมวดหมู่",
+        "admin.categories.delete": "🗑 ลบหมวดหมู่",
+        "admin.categories.prompt.add": "กรอกชื่อหมวดหมู่ใหม่:",
+        "admin.categories.prompt.delete": "กรอกชื่อหมวดหมู่ที่ต้องการลบ:",
+        "admin.categories.prompt.rename.old": "กรอกชื่อหมวดหมู่ปัจจุบันที่ต้องการเปลี่ยนชื่อ:",
+        "admin.categories.prompt.rename.new": "กรอกชื่อหมวดหมู่ใหม่:",
+        "admin.categories.add.exist": "❌ ไม่สามารถสร้างหมวดหมู่ได้ (มีอยู่แล้ว)",
+        "admin.categories.add.success": "✅ สร้างหมวดหมู่แล้ว",
+        "admin.categories.delete.not_found": "❌ ไม่สามารถลบหมวดหมู่ได้ (ไม่มีหมวดหมู่นี้)",
+        "admin.categories.delete.success": "✅ ลบหมวดหมู่แล้ว",
+        "admin.categories.rename.not_found": "❌ ไม่สามารถอัปเดตหมวดหมู่ได้ (ไม่มีหมวดหมู่นี้)",
+        "admin.categories.rename.exist": "❌ ไม่สามารถเปลี่ยนชื่อได้ (มีหมวดหมู่ชื่อนี้อยู่แล้ว)",
+        "admin.categories.rename.success": "✅ หมวดหมู่ \"{old}\" เปลี่ยนชื่อเป็น \"{new}\"",
+
+        # === Admin: Goods / Items Management (Add / List / Item Info) ===
+        "admin.goods.add_position": "➕ เพิ่มสินค้า",
+        "admin.goods.manage_stock": "➕ เพิ่มสินค้าในรายการ",
+        "admin.goods.update_position": "📝 แก้ไขสินค้า",
+        "admin.goods.delete_position": "❌ ลบสินค้า",
+        "admin.goods.add.prompt.name": "กรอกชื่อสินค้า",
+        "admin.goods.add.name.exists": "❌ ไม่สามารถสร้างสินค้าได้ (มีอยู่แล้ว)",
+        "admin.goods.add.prompt.description": "กรอกรายละเอียดสินค้า:",
+        "admin.goods.add.prompt.price": "กรอกราคาสินค้า (ตัวเลขเป็น {currency}):",
+        "admin.goods.add.price.invalid": "⚠️ ราคาไม่ถูกต้อง กรุณากรอกตัวเลข",
+        "admin.goods.add.prompt.category": "กรอกหมวดหมู่ที่สินค้าจะอยู่:",
+        "admin.goods.add.category.not_found": "❌ ไม่สามารถสร้างสินค้าได้ (หมวดหมู่ไม่ถูกต้อง)",
+        "admin.goods.position.not_found": "❌ ไม่มีสินค้า (ไม่มีรายการนี้)",
+        "admin.goods.menu.title": "⛩️ เมนูจัดการสินค้า",
+        "admin.goods.add.stock.prompt": "กรอกจำนวนสินค้าที่ต้องการเพิ่ม",
+        "admin.goods.add.stock.invalid": "⚠️ จำนวนสินค้าไม่ถูกต้อง กรุณากรอกตัวเลข",
+        "admin.goods.add.stock.negative": "⚠️ จำนวนสินค้าไม่ถูกต้อง กรุณากรอกจำนวนที่เป็นบวก",
+        "admin.goods.add.result.created_with_stock": "✅ สินค้า {item_name} ถูกสร้างแล้ว เพิ่ม {stock_quantity} เข้าในจำนวนสินค้า",
+
+        # === Admin: Goods / Items Update Flow ===
+        "admin.goods.update.position.invalid": "ไม่พบสินค้า",
+        "admin.goods.update.position.exists": "มีสินค้าชื่อนี้อยู่แล้ว",
+        "admin.goods.update.prompt.name": "กรอกชื่อสินค้า",
+        "admin.goods.update.not_exists": "❌ ไม่สามารถแก้ไขสินค้าได้ (ไม่มีสินค้านี้)",
+        "admin.goods.update.prompt.new_name": "กรอกชื่อสินค้าใหม่:",
+        "admin.goods.update.prompt.description": "กรอกรายละเอียดสินค้า:",
+        "admin.goods.update.success": "✅ อัปเดตสินค้าแล้ว",
+
+        # === Admin: Goods / Items Delete Flow ===
+        "admin.goods.delete.prompt.name": "กรอกชื่อสินค้า",
+        "admin.goods.delete.position.not_found": "❌ ไม่สามารถลบสินค้าได้ (ไม่มีสินค้านี้)",
+        "admin.goods.delete.position.success": "✅ ลบสินค้าแล้ว",
+
+        # === Admin: Item Info ===
+        "admin.goods.view_stock": "ดูสินค้า",
+
+        # === Admin: Logs ===
+        "admin.shop.logs.caption": "บันทึกบอท",
+        "admin.shop.logs.empty": "❗️ ยังไม่มีบันทึก",
+
+        # === Group Notifications ===
+        "shop.group.new_upload": "สต็อกใหม่",
+        "shop.group.item": "สินค้า",
+        "shop.group.stock": "จำนวน",
+
+        # === Admin: Statistics ===
+        "admin.shop.stats.template": (
+            "สถิติร้านค้า:\n"
+            "➖➖➖➖➖➖➖➖➖➖➖➖➖\n"
+            "<b>◽ผู้ใช้</b>\n"
+            "◾️ผู้ใช้ใน 24 ชั่วโมงที่ผ่านมา: {today_users}\n"
+            "◾️แอดมินทั้งหมด: {admins}\n"
+            "◾️ผู้ใช้ทั้งหมด: {users}\n"
+            "➖➖➖➖➖➖➖➖➖➖➖➖➖\n"
+            "◽<b>อื่นๆ</b>\n"
+            "◾สินค้า: {items} ชิ้น\n"
+            "◾รายการ: {goods} ชิ้น\n"
+            "◾หมวดหมู่: {categories} ชิ้น\n"
+        ),
+
+        # === Admin: Lists & Broadcast ===
+        "admin.shop.admins.title": "👮 แอดมินบอท:",
+        "admin.shop.users.title": "ผู้ใช้บอท:",
+        "broadcast.prompt": "ส่งข้อความเพื่อประกาศ:",
+        "broadcast.creating": "📤 เริ่มการประกาศ...\n👥 ผู้ใช้ทั้งหมด: {ids}",
+        "broadcast.progress": (
+            "📤 กำลังประกาศ...\n\n\n"
+            "📊 ความคืบหน้า: {progress:.1f}%{n}"
+            "✅ ส่งแล้ว: {sent}/{total}\n"
+            "❌ ข้อผิดพลาด: {failed}\n"
+            "⏱ เวลาที่ผ่านไป: {time} วินาที"),
+        "broadcast.done": (
+            "✅ การประกาศเสร็จสิ้น!\n\n"
+            "📊 สถิติ:📊\n"
+            "👥 ทั้งหมด: {total}\n"
+            "✅ ส่งสำเร็จ: {sent}\n"
+            "❌ ส่งไม่สำเร็จ: {failed}\n"
+            "🚫 บล็อกบอท: ~{blocked}\n"
+            "📈 อัตราความสำเร็จ: {success}%\n"
+            "⏱ เวลา: {duration} วินาที"
+        ),
+        "broadcast.cancel": "❌ ยกเลิกการประกาศแล้ว",
+        "broadcast.warning": "ไม่มีการประกาศที่กำลังดำเนินอยู่",
+
+        # === Shop Browsing (Categories / Goods / Item Page) ===
+        "shop.categories.title": "🏪 หมวดหมู่ร้านค้า",
+        "shop.goods.choose": "🏪 เลือกสินค้าที่ต้องการ",
+        "shop.item.not_found": "ไม่พบสินค้า",
+        "shop.item.title": "🏪 สินค้า {name}",
+        "shop.item.description": "รายละเอียด: {description}",
+        "shop.item.price": "ราคา — {amount} {currency}",
+        "shop.item.quantity_unlimited": "จำนวน — ไม่จำกัด",
+        "shop.item.quantity_left": "จำนวน — {count} ชิ้น",
+        "shop.item.quantity_detailed": "📦 สต็อกทั้งหมด: {total} ชิ้น\n🔒 จองแล้ว: {reserved} ชิ้น\n✅ พร้อมสั่งซื้อ: {available} ชิ้น",
+
+        # === Purchases ===
+        "purchases.title": "สินค้าที่ซื้อแล้ว:",
+        "purchases.pagination.invalid": "ข้อมูลการแบ่งหน้าไม่ถูกต้อง",
+        "purchases.item.not_found": "ไม่พบรายการซื้อ",
+        "purchases.item.name": "<b>🧾 สินค้า</b>: <code>{name}</code>",
+        "purchases.item.price": "<b>💵 ราคา</b>: <code>{amount}</code> {currency}",
+        "purchases.item.datetime": "<b>🕒 วันที่ซื้อ</b>: <code>{dt}</code>",
+        "purchases.item.unique_id": "<b>🧾 ID เฉพาะ</b>: <code>{uid}</code>",
+        "purchases.item.value": "<b>🔑 ค่า</b>:\n<code>{value}</code>",
+
+        # === Middleware ===
+        "middleware.ban": "⏳ คุณถูกบล็อกชั่วคราว กรุณารอ {time} วินาที",
+        "middleware.above_limits": "⚠️ คำขอมากเกินไป! คุณถูกบล็อกชั่วคราว",
+        "middleware.waiting": "⏳ กรุณารอ {time} วินาทีก่อนดำเนินการต่อไป",
+        "middleware.security.session_outdated": "⚠️ เซสชันหมดอายุแล้ว กรุณาเริ่มใหม่",
+        "middleware.security.invalid_data": "❌ ข้อมูลไม่ถูกต้อง",
+        "middleware.security.blocked": "❌ การเข้าถึงถูกบล็อก",
+        "middleware.security.not_admin": "⛔ สิทธิ์ไม่เพียงพอ",
+        "middleware.security.banned": "⛔ <b>คุณถูกแบน</b>\n\nเหตุผล: {reason}",
+        "middleware.security.banned_no_reason": "⛔ <b>คุณถูกแบน</b>\n\nกรุณาติดต่อผู้ดูแลระบบเพื่อขอข้อมูลเพิ่มเติม",
+        "middleware.security.rate_limit": "⚠️ คำขอมากเกินไป! กรุณารอสักครู่",
+
+        # === Errors ===
+        "errors.not_subscribed": "คุณยังไม่ได้สมัครสมาชิก",
+        "errors.pagination_invalid": "ข้อมูลการแบ่งหน้าไม่ถูกต้อง",
+        "errors.invalid_data": "❌ ข้อมูลไม่ถูกต้อง",
+        "errors.channel.telegram_not_found": "ฉันไม่สามารถเขียนไปยังช่องได้ กรุณาเพิ่มฉันเป็นแอดมินช่อง @{channel} พร้อมสิทธิ์ในการเผยแพร่ข้อความ",
+        "errors.channel.telegram_forbidden_error": "ไม่พบช่อง กรุณาตรวจสอบชื่อผู้ใช้ช่อง @{channel}",
+        "errors.channel.telegram_bad_request": "ไม่สามารถส่งไปยังช่องได้: {e}",
+
+        # === Orders ===
+        "order.payment_method.choose": "💳 เลือกวิธีการชำระเงิน:",
+        "order.payment_method.bitcoin": "💳 Bitcoin",
+        "order.payment_method.cash": "💵 เก็บเงินปลายทาง",
+        "order.status.notify_order_confirmed": (
+            "คำสั่งซื้อ {order_code} ได้รับการยืนยัน! 🎉\n\n"
+            "คำสั่งซื้อของคุณจะถูกจัดส่งเวลา: {delivery_time}\n\n"
+            "สินค้า:\n{items}\n\n"
+            "รวม: {total}\n\n"
+            "รอรับสินค้า!"
+        ),
+        "order.status.notify_order_delivered": (
+            "คำสั่งซื้อ {order_code} จัดส่งแล้ว! ✅\n\n"
+            "ขอบคุณสำหรับการสั่งซื้อ! หวังว่าจะได้พบคุณอีก! 🙏"
+        ),
+        "order.status.notify_order_modified": (
+            "คำสั่งซื้อ {order_code} ถูกแก้ไขโดยแอดมิน 📝\n\n"
+            "การเปลี่ยนแปลง:\n{changes}\n\n"
+            "ยอดรวมใหม่: {total}"
+        ),
+
+        # === Additional Common Buttons ===
+        "btn.cart": "🛒 ตะกร้า",
+        "btn.my_orders": "📦 คำสั่งซื้อของฉัน",
+        "btn.reference_codes": "🔑 รหัสอ้างอิง",
+        "btn.settings": "⚙️ ตั้งค่า",
+        "btn.referral_bonus_percent": "💰 เปอร์เซ็นต์โบนัสการแนะนำ",
+        "btn.order_timeout": "⏱️ หมดเวลาคำสั่งซื้อ",
+        "btn.timezone": "🌍 เขตเวลา",
+        "btn.skip": "⏭️ ข้าม",
+        "btn.use_saved_info": "✅ ใช้ข้อมูลที่บันทึกไว้",
+        "btn.update_info": "✏️ อัปเดตข้อมูล",
+        "btn.back_to_cart": "◀️ กลับไปที่ตะกร้า",
+        "btn.clear_cart": "🗑️ ล้างตะกร้า",
+        "btn.proceed_checkout": "💳 ดำเนินการสั่งซื้อ",
+        "btn.remove_item": "❌ ลบ {item_name}",
+        "btn.use_all_bonus": "ใช้ทั้งหมด ${amount}",
+        "btn.apply_bonus_yes": "✅ ใช่ ใช้โบนัส",
+        "btn.apply_bonus_no": "❌ ไม่ เก็บไว้ใช้ทีหลัง",
+        "btn.cancel": "❌ ยกเลิก",
+        "btn.add_to_cart": "🛒 เพิ่มลงตะกร้า",
+
+        # === Cart Management ===
+        "cart.add_success": "✅ เพิ่ม {item_name} ลงตะกร้าแล้ว!",
+        "cart.add_error": "❌ {message}",
+        "cart.empty": "🛒 ตะกร้าของคุณว่างเปล่า\n\nเรียกดูร้านค้าเพื่อเพิ่มสินค้า!",
+        "cart.title": "🛒 <b>ตะกร้าสินค้าของคุณ</b>\n\n",
+        "cart.removed_success": "ลบสินค้าออกจากตะกร้าแล้ว",
+        "cart.cleared_success": "✅ ล้างตะกร้าเรียบร้อยแล้ว!",
+        "cart.empty_alert": "ตะกร้าว่างเปล่า!",
+        "cart.summary_title": "📦 <b>สรุปคำสั่งซื้อ</b>\n\n",
+        "cart.saved_delivery_info": "ข้อมูลการจัดส่งที่บันทึกไว้ของคุณ:\n\n",
+        "cart.delivery_address": "📍 ที่อยู่: {address}\n",
+        "cart.delivery_phone": "📞 โทรศัพท์: {phone}\n",
+        "cart.delivery_note": "📝 หมายเหตุ: {note}\n",
+        "cart.use_info_question": "\n\nคุณต้องการใช้ข้อมูลนี้หรือต้องการอัปเดต?",
+        "cart.no_saved_info": "❌ ไม่พบข้อมูลการจัดส่งที่บันทึกไว้ กรุณากรอกข้อมูลด้วยตนเอง",
+
+        # === Order/Delivery Flow ===
+        "order.delivery.address_prompt": "📍 กรุณากรอกที่อยู่จัดส่ง:",
+        "order.delivery.address_invalid": "❌ กรุณากรอกที่อยู่จัดส่งที่ถูกต้อง (อย่างน้อย 5 ตัวอักษร)",
+        "order.delivery.phone_prompt": "📞 กรุณากรอกหมายเลขโทรศัพท์ (พร้อมรหัสประเทศ):",
+        "order.delivery.phone_invalid": "❌ กรุณากรอกหมายเลขโทรศัพท์ที่ถูกต้อง (อย่างน้อย 8 หลัก)",
+        "order.delivery.note_prompt": "📝 มีคำแนะนำพิเศษสำหรับการจัดส่งหรือไม่? (ไม่บังคับ)\n\nคุณสามารถข้ามขั้นตอนนี้โดยกดปุ่มด้านล่าง",
+        "order.delivery.info_save_error": "❌ เกิดข้อผิดพลาดในการบันทึกข้อมูลการจัดส่ง กรุณาลองอีกครั้ง",
+
+        # GPS Location (Card 2)
+        "order.delivery.location_prompt": "📍 คุณต้องการแชร์ตำแหน่ง GPS เพื่อการจัดส่งที่แม่นยำยิ่งขึ้นหรือไม่?\n\nกดปุ่มด้านล่างหรือข้ามขั้นตอนนี้",
+        "order.delivery.location_saved": "✅ บันทึกตำแหน่งแล้ว!",
+        "btn.share_location": "📍 แชร์ตำแหน่ง",
+        "btn.skip_location": "⏭ ข้าม",
+
+        # Delivery Type (Card 3)
+        "order.delivery.type_prompt": "🚚 เลือกประเภทการจัดส่ง:",
+        "btn.delivery.door": "🚪 จัดส่งถึงหน้าประตู",
+        "btn.delivery.dead_drop": "📦 วางไว้ที่จุดรับ",
+        "btn.delivery.pickup": "🏪 รับเอง",
+        "order.delivery.drop_instructions_prompt": "📝 อธิบายสถานที่ที่จะวางคำสั่งซื้อ (เช่น 'ฝากไว้กับรปภ.ที่ล็อบบี้', 'วางใต้พรมหน้าห้อง 405'):",
+        "order.delivery.drop_photo_prompt": "📸 ต้องการส่งรูปถ่ายจุดรับหรือไม่? (ไม่บังคับ)",
+        "order.delivery.drop_photo_saved": "✅ บันทึกรูปถ่ายจุดรับแล้ว!",
+        "btn.skip_drop_photo": "⏭ ข้ามรูปถ่าย",
+
+        # PromptPay (Card 1)
+        "order.payment_method.promptpay": "💳 PromptPay QR",
+        "order.payment.promptpay.title": "💳 <b>ชำระเงินผ่าน PromptPay</b>",
+        "order.payment.promptpay.scan": "📱 สแกน QR เพื่อชำระเงิน:",
+        "order.payment.promptpay.upload_receipt": "📸 หลังชำระเงินแล้ว กรุณาอัปโหลดสลิปการโอนเงิน:",
+        "order.payment.promptpay.receipt_received": "✅ ได้รับสลิปแล้ว! รอการยืนยันจากแอดมิน",
+        "order.payment.promptpay.receipt_invalid": "❌ กรุณาส่งรูปถ่ายสลิปการโอนเงิน",
+        "admin.order.verify_payment": "✅ ยืนยันการชำระเงิน",
+        "admin.order.payment_verified": "✅ ยืนยันการชำระเงินแล้ว",
+
+        # Delivery Chat (Card 13)
+        "order.delivery.chat_unavailable": "❌ แชทกับคนขับไม่พร้อมใช้งาน กลุ่มไรเดอร์ยังไม่ได้ตั้งค่า",
+        "order.delivery.chat_started": "💬 คุณสามารถส่งข้อความถึงคนขับได้ ส่งข้อความ รูปภาพ หรือตำแหน่ง",
+        "order.delivery.live_location_shared": "📍 คนขับแชร์ตำแหน่งสด! คุณสามารถติดตามการจัดส่งได้",
+
+        # === Bonus/Referral Application ===
+        "order.bonus.available": "💰 <b>คุณมีโบนัสการแนะนำ ${bonus_balance}!</b>\n\n",
+        "order.bonus.apply_question": "คุณต้องการใช้โบนัสการแนะนำกับคำสั่งซื้อนี้หรือไม่?",
+        "order.bonus.amount_positive_error": "❌ กรุณากรอกจำนวนที่เป็นบวก",
+        "order.bonus.amount_too_high": "❌ จำนวนมากเกินไป สูงสุดที่ใช้ได้: ${max_applicable}\nกรุณากรอกจำนวนที่ถูกต้อง:",
+        "order.bonus.invalid_amount": "❌ จำนวนไม่ถูกต้อง กรุณากรอกตัวเลข (เช่น 5.50):",
+        "order.bonus.insufficient": "❌ ยอดโบนัสไม่เพียงพอ กรุณาลองอีกครั้ง",
+        "order.bonus.enter_amount": "กรอกจำนวนโบนัสที่ต้องการใช้ (สูงสุด ${max_applicable}):\n\nหรือใช้โบนัสทั้งหมดโดยกดปุ่มด้านล่าง",
+
+        # === Payment Instructions ===
+        "order.payment.system_unavailable": "❌ <b>ระบบชำระเงินไม่พร้อมใช้งานชั่วคราว</b>\n\nไม่มีที่อยู่ Bitcoin ที่พร้อมใช้งาน กรุณาติดต่อฝ่ายสนับสนุน",
+        "order.payment.customer_not_found": "❌ ไม่พบข้อมูลลูกค้า กรุณาลองอีกครั้ง",
+        "order.payment.creation_error": "❌ เกิดข้อผิดพลาดในการสร้างคำสั่งซื้อ กรุณาลองอีกครั้งหรือติดต่อฝ่ายสนับสนุน",
+
+        # === Order Summary/Total ===
+        "order.summary.title": "📦 <b>สรุปคำสั่งซื้อ</b>\n\n",
+        "order.summary.cart_total": "ยอดรวมตะกร้า: ${cart_total}",
+        "order.summary.bonus_applied": "โบนัสที่ใช้: -${bonus_applied}",
+        "order.summary.final_amount": "ยอดรวมสุทธิ: ${final_amount}",
+
+        # === Inventory/Reservation ===
+        "order.inventory.unable_to_reserve": "❌ <b>ไม่สามารถจองสินค้าได้</b>\n\nสินค้าต่อไปนี้ไม่พร้อมจำหน่ายในจำนวนที่ต้องการ:\n\n{unavailable_items}\n\nกรุณาปรับตะกร้าของคุณและลองอีกครั้ง",
+
+        # === My Orders View ===
+        "myorders.title": "📦 <b>คำสั่งซื้อของฉัน</b>\n\n",
+        "myorders.total": "คำสั่งซื้อทั้งหมด: {count}",
+        "myorders.active": "⏳ คำสั่งซื้อที่กำลังดำเนินการ: {count}",
+        "myorders.delivered": "✅ จัดส่งแล้ว: {count}",
+        "myorders.select_category": "เลือกหมวดหมู่เพื่อดูคำสั่งซื้อ:",
+        "myorders.active_orders": "⏳ คำสั่งซื้อที่กำลังดำเนินการ",
+        "myorders.delivered_orders": "✅ คำสั่งซื้อที่จัดส่งแล้ว",
+        "myorders.all_orders": "📋 คำสั่งซื้อทั้งหมด",
+        "myorders.no_orders_yet": "คุณยังไม่มีคำสั่งซื้อ\n\nเรียกดูร้านค้าเพื่อเริ่มช้อปปิ้ง!",
+        "myorders.browse_shop": "🛍️ ไปที่ร้านค้า",
+        "myorders.back": "◀️ กลับ",
+        "myorders.all_title": "📋 คำสั่งซื้อทั้งหมด",
+        "myorders.active_title": "⏳ คำสั่งซื้อที่กำลังดำเนินการ",
+        "myorders.delivered_title": "✅ คำสั่งซื้อที่จัดส่งแล้ว",
+        "myorders.invalid_filter": "ตัวกรองไม่ถูกต้อง",
+        "myorders.not_found": "ไม่พบคำสั่งซื้อ",
+        "myorders.back_to_menu": "◀️ กลับไปเมนูคำสั่งซื้อ",
+        "myorders.select_details": "เลือกคำสั่งซื้อเพื่อดูรายละเอียด:",
+        "myorders.order_not_found": "ไม่พบคำสั่งซื้อ",
+
+        # === Order Details Display ===
+        "myorders.detail.title": "📦 <b>รายละเอียดคำสั่งซื้อ #{order_code}</b>\n\n",
+        "myorders.detail.status": "📊 <b>สถานะ:</b> {status}\n",
+        "myorders.detail.subtotal": "💵 <b>ยอดรวมย่อย:</b> ${subtotal}\n",
+        "myorders.detail.bonus_applied": "🎁 <b>โบนัสที่ใช้:</b> ${bonus}\n",
+        "myorders.detail.final_price": "💰 <b>ราคาสุทธิ:</b> ${total}\n",
+        "myorders.detail.total_price": "💰 <b>ราคารวม:</b> ${total}\n",
+        "myorders.detail.payment_method": "💳 <b>วิธีการชำระเงิน:</b> {method}\n",
+        "myorders.detail.ordered": "📅 <b>สั่งซื้อเมื่อ:</b> {date}\n",
+        "myorders.detail.delivery_time": "🚚 <b>กำหนดจัดส่ง:</b> {time}\n",
+        "myorders.detail.completed": "✅ <b>เสร็จสิ้น:</b> {date}\n",
+        "myorders.detail.items": "\n📦 <b>สินค้า:</b>\n{items}\n",
+        "myorders.detail.delivery_info": "\n📍 <b>ข้อมูลการจัดส่ง:</b>\n{address}\n{phone}\n{note}",
+
+        # === Help System ===
+        "help.prompt": "📧 <b>ต้องการความช่วยเหลือ?</b>\n\n",
+        "help.describe_issue": "กรุณาอธิบายปัญหาหรือคำถามของคุณ แล้วจะถูกส่งตรงไปยังผู้ดูแลระบบ\n\nพิมพ์ข้อความด้านล่าง:",
+        "help.admin_not_configured": "❌ ขออภัย ยังไม่ได้ตั้งค่าช่องทางติดต่อแอดมิน กรุณาลองอีกครั้งภายหลัง",
+        "help.admin_notification_title": "📧 <b>คำขอช่วยเหลือใหม่</b>\n\n",
+        "help.admin_notification_from": "<b>จาก:</b> @{username} (ID: {user_id})\n",
+        "help.admin_notification_message": "<b>ข้อความ:</b>\n{message}",
+        "help.sent_success": "✅ {auto_message}",
+        "help.sent_error": "❌ ไม่สามารถส่งข้อความถึงแอดมินได้: {error}\n\nกรุณาลองอีกครั้งภายหลัง",
+        "help.cancelled": "ยกเลิกคำขอช่วยเหลือแล้ว",
+
+        # === Admin Order Notifications ===
+        "admin.order.action_required_title": "⏳ <b>ต้องดำเนินการ:</b>",
+        "admin.order.address_label": "ที่อยู่: {address}",
+        "admin.order.amount_to_collect_label": "<b>จำนวนเงินที่ต้องเก็บ: ${amount} {currency}</b>",
+        "admin.order.amount_to_receive_label": "<b>จำนวนเงินที่จะได้รับ: ${amount} {currency}</b>",
+        "admin.order.awaiting_payment_status": "⏳ รอการยืนยันการชำระเงิน...",
+        "admin.order.bitcoin_address_label": "ที่อยู่ Bitcoin: <code>{address}</code>",
+        "admin.order.bonus_applied_label": "โบนัสที่ใช้: <b>-${amount}</b>",
+        "admin.order.customer_label": "ลูกค้า: {username} (ID: {id})",
+        "admin.order.delivery_info_title": "<b>ข้อมูลการจัดส่ง:</b>",
+        "admin.order.items_title": "<b>สินค้า:</b>",
+        "admin.order.new_bitcoin_order": "🔔 <b>ได้รับคำสั่งซื้อ BITCOIN ใหม่</b>",
+        "admin.order.new_cash_order": "🔔 <b>ได้รับคำสั่งซื้อเงินสดใหม่</b> 💵",
+        "admin.order.note_label": "หมายเหตุ: {note}",
+        "admin.order.order_label": "คำสั่งซื้อ: <b>{code}</b>",
+        "admin.order.payment_cash": "เก็บเงินปลายทาง",
+        "admin.order.payment_method_label": "วิธีการชำระเงิน: <b>{method}</b>",
+        "admin.order.phone_label": "โทรศัพท์: {phone}",
+        "admin.order.subtotal_label": "ยอดรวมย่อย: <b>${amount} {currency}</b>",
+        "admin.order.use_cli_confirm": "ใช้ CLI เพื่อยืนยันคำสั่งซื้อและตั้งเวลาจัดส่ง:\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time \"YYYY-MM-DD HH:MM\"</code>",
+        "btn.admin.back_to_panel": "🔙 กลับไปแผงควบคุม",
+        "btn.admin.create_refcode": "➕ สร้างรหัสอ้างอิง",
+        "btn.admin.list_refcodes": "📋 รายการรหัสทั้งหมด",
+        "btn.back_to_orders": "◀️ กลับไปคำสั่งซื้อ",
+        "btn.create_reference_code": "➕ สร้างรหัสอ้างอิง",
+        "btn.my_reference_codes": "🔑 รหัสอ้างอิงของฉัน",
+        "btn.need_help": "❓ ต้องการความช่วยเหลือ?",
+        "cart.item.price_format": "  ราคา: {price} {currency} × {quantity}",
+        "cart.item.subtotal_format": "  ยอดรวมย่อย: {subtotal} {currency}",
+        "cart.total_format": "<b>รวม: {total} {currency}</b>",
+        "help.pending_order.contact_support": "ใช้คำสั่ง /help เพื่อติดต่อฝ่ายสนับสนุน",
+        "help.pending_order.issues_title": "<b>มีปัญหาหรือไม่?</b>",
+        "help.pending_order.status": "คำสั่งซื้อของคุณกำลังรอการชำระเงิน",
+        "help.pending_order.step1": "1. ส่งจำนวนเงินที่แน่นอนไปยังที่อยู่ Bitcoin ที่แสดง",
+        "help.pending_order.step2": "2. รอการยืนยันจาก blockchain (ปกติ 10-60 นาที)",
+        "help.pending_order.step3": "3. แอดมินจะยืนยันการชำระเงินและกำหนดเวลาจัดส่ง",
+        "help.pending_order.step4": "4. สินค้าของคุณจะถูกจัดส่งโดยพนักงานส่งของ",
+        "help.pending_order.title": "❓ <b>ต้องการความช่วยเหลือเกี่ยวกับคำสั่งซื้อ?</b>",
+        "help.pending_order.what_to_do_title": "<b>สิ่งที่ต้องทำ:</b>",
+        "myorders.detail.bitcoin_address_label": "ที่อยู่ Bitcoin:",
+        "myorders.detail.bitcoin_admin_confirm": "หลังชำระเงินแล้ว แอดมินจะยืนยันคำสั่งซื้อของคุณ",
+        "myorders.detail.bitcoin_send_instruction": "⚠️ กรุณาส่ง <b>{amount} {currency}</b> Bitcoin ไปยังที่อยู่นี้",
+        "myorders.detail.cash_awaiting_confirm": "คำสั่งซื้อของคุณกำลังรอการยืนยันจากแอดมิน",
+        "myorders.detail.cash_payment_courier": "ชำระเงินให้พนักงานส่งของเมื่อจัดส่ง",
+        "myorders.detail.cash_title": "💵 เก็บเงินปลายทาง",
+        "myorders.detail.cash_will_notify": "คุณจะได้รับแจ้งเมื่อคำสั่งซื้อได้รับการยืนยันและกำหนดเวลาจัดส่ง",
+        "myorders.detail.confirmed_title": "✅ <b>คำสั่งซื้อได้รับการยืนยัน!</b>",
+        "myorders.detail.delivered_thanks_message": "ขอบคุณสำหรับการสั่งซื้อ! หวังว่าจะได้พบคุณอีก! 🙏",
+        "myorders.detail.delivered_title": "📦 <b>คำสั่งซื้อจัดส่งแล้ว!</b>",
+        "myorders.detail.payment_info_title": "<b>ข้อมูลการชำระเงิน:</b>",
+        "myorders.detail.preparing_message": "คำสั่งซื้อของคุณกำลังเตรียมจัดส่ง",
+        "myorders.detail.scheduled_delivery_label": "กำหนดจัดส่ง: <b>{time}</b>",
+        "myorders.order_summary_format": "{status_emoji} {code} - {items_count} สินค้า - {total} {currency}",
+        "order.bonus.available_label": "โบนัสที่ใช้ได้: <b>${amount}</b>",
+        "order.bonus.choose_amount_hint": "คุณสามารถเลือกจำนวนที่ต้องการใช้ (สูงสุด ${max_amount})",
+        "order.bonus.enter_amount_title": "💵 <b>กรอกจำนวนโบนัสที่ต้องการใช้</b>",
+        "order.bonus.max_applicable_label": "สูงสุดที่ใช้ได้: <b>${amount}</b>",
+        "order.bonus.order_total_label": "ยอดรวมคำสั่งซื้อ: <b>${amount} {currency}</b>",
+        "order.info.view_status_hint": "💡 คุณสามารถดูสถานะคำสั่งซื้อได้ตลอดเวลาโดยใช้คำสั่ง /orders",
+        "order.payment.bitcoin.address_title": "<b>ที่อยู่ Bitcoin สำหรับชำระเงิน:</b>",
+        "order.payment.bitcoin.admin_confirm": "• หลังชำระเงินแล้ว แอดมินจะยืนยันคำสั่งซื้อของคุณ",
+        "order.payment.bitcoin.delivery_title": "<b>การจัดส่ง:</b>",
+        "order.payment.bitcoin.important_title": "⚠️ <b>สำคัญ:</b>",
+        "order.payment.bitcoin.items_title": "<b>สินค้า:</b>",
+        "order.payment.bitcoin.need_help": "ต้องการความช่วยเหลือ? ใช้ /help เพื่อติดต่อฝ่ายสนับสนุน",
+        "order.payment.bitcoin.one_time_address": "• ที่อยู่นี้ใช้ได้ครั้งเดียวเท่านั้น",
+        "order.payment.bitcoin.order_code": "คำสั่งซื้อ: <b>{code}</b>",
+        "order.payment.bitcoin.send_exact": "• ส่งจำนวนเงินที่แน่นอนตามที่แสดงด้านบน",
+        "order.payment.bitcoin.title": "💳 <b>คำแนะนำการชำระเงิน Bitcoin</b>",
+        "order.payment.bitcoin.total_amount": "ยอดรวม: <b>{amount} {currency}</b>",
+        "order.payment.cash.admin_contact": "แอดมินจะติดต่อคุณในเร็วๆ นี้",
+        "order.payment.cash.after_confirm": "หลังยืนยันแล้ว คุณจะได้รับแจ้งเวลาจัดส่ง",
+        "order.payment.cash.created": "คำสั่งซื้อ {code} ของคุณถูกสร้างแล้วและรอการยืนยันจากแอดมิน",
+        "order.payment.cash.important": "⏳ <b>สำคัญ:</b> คำสั่งซื้อถูกจองไว้ในระยะเวลาจำกัด",
+        "order.payment.cash.items_title": "สินค้า:",
+        "order.payment.cash.payment_to_courier": "ชำระเงินให้พนักงานส่งของเมื่อจัดส่ง",
+        "order.payment.cash.title": "💵 <b>เก็บเงินปลายทาง</b>",
+        "order.payment.cash.total": "รวม: {amount}",
+        "order.payment.error_general": "❌ เกิดข้อผิดพลาดในการสร้างคำสั่งซื้อ กรุณาลองอีกครั้งหรือติดต่อฝ่ายสนับสนุน",
+        "order.summary.total_label": "<b>รวม: {amount} {currency}</b>",
+        "order.payment.bonus_applied_label": "โบนัสที่ใช้: <b>-{amount} {currency}</b>",
+        "order.payment.cash.amount_with_bonus": "<b>จำนวนเงินที่ต้องชำระเมื่อจัดส่ง: {amount} {currency}</b>",
+        "order.payment.cash.total_label": "<b>ยอดรวมที่ต้องชำระเมื่อจัดส่ง: {amount} {currency}</b>",
+        "order.payment.final_amount_label": "<b>ยอดรวมสุทธิที่ต้องชำระ: {amount} {currency}</b>",
+        "order.payment.order_label": "📋 <b>คำสั่งซื้อ: {code}</b>",
+        "order.payment.subtotal_label": "ยอดรวมย่อย: <b>{amount} {currency}</b>",
+        "order.payment.total_amount_label": "<b>ยอดรวม: {amount} {currency}</b>",
     },
 }

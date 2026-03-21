@@ -1,5 +1,21 @@
 # Card 5: Full Thai Language (i18n)
 
+## Implementation Status
+
+> **100% Complete** | `████████████████████` | All Thai translations, locale loading, and tests fully implemented.
+
+## Flow Diagram
+
+```mermaid
+flowchart LR
+    A[BOT_LOCALE=th] --> B[Locale Manager]
+    B --> C{Key Lookup}
+    C -->|Found| D[Thai String]
+    C -->|Missing| E[English Fallback]
+    D --> F[Bot Message]
+    E --> F
+```
+
 **Phase:** 2 — Thailand Localization
 **Priority:** Medium
 **Effort:** Low (half day)
@@ -58,11 +74,11 @@ Most Bangkok customers prefer Thai. The bot currently supports Russian and Engli
 
 ## Acceptance Criteria
 
-- [ ] All UI strings available in Thai
-- [ ] Bot displays Thai when `BOT_LOCALE=th`
-- [ ] All new Phase 1 features have Thai translations
-- [ ] Admin panel strings translated
-- [ ] Error messages in Thai
+- [x] All UI strings available in Thai
+- [x] Bot displays Thai when `BOT_LOCALE=th`
+- [x] All new Phase 1 features have Thai translations
+- [x] Admin panel strings translated
+- [x] Error messages in Thai
 
 ## Test Plan
 

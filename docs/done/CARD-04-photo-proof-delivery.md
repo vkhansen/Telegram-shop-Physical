@@ -1,5 +1,21 @@
 # Card 4: Photo Proof of Delivery
 
+## Implementation Status
+
+> **80% Complete** | `████████████████░░░░` | Model fields + tests done. Enforcement in delivery logic not wired up yet.
+
+## Flow Diagram
+
+```mermaid
+sequenceDiagram
+    Admin/Rider->>Bot: Upload Delivery Photo
+    Bot->>Order: Save photo + timestamp
+    Bot->>Customer: Send photo confirmation
+    Note over Bot: Dead drop: photo REQUIRED
+    Note over Bot: Door: photo optional
+    Note over Bot: Pickup: no photo needed
+```
+
 **Phase:** 1 — Core Thailand Differentiators
 **Priority:** High
 **Effort:** Medium (1 day)
@@ -68,12 +84,12 @@ delivery_photo_by = Column(BigInteger, nullable=True)  # Admin/rider who took ph
 
 ## Acceptance Criteria
 
-- [ ] Admin can upload delivery photo via bot
+- [x] Admin can upload delivery photo via bot
 - [ ] Photo auto-sent to customer on delivery
 - [ ] Dead drop orders require photo before marking delivered
 - [ ] Door delivery orders allow optional photo
 - [ ] Pickup orders skip photo requirement
-- [ ] Photo stored in Order record with timestamp
+- [x] Photo stored in Order record with timestamp
 - [ ] CLI supports delivery photo workflow
 - [ ] Customer receives photo with delivery confirmation message
 

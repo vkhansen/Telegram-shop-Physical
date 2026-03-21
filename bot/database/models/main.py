@@ -4,7 +4,7 @@ from typing import Any
 
 from sqlalchemy import (
     Column, Integer, String, BigInteger, ForeignKey, Text, Boolean,
-    DateTime, Numeric, Index, UniqueConstraint, func, JSON
+    DateTime, Numeric, Float, Index, UniqueConstraint, func, JSON
 )
 from bot.database.main import Database
 from sqlalchemy.orm import relationship
@@ -115,11 +115,13 @@ class User(Database.BASE):
 class Categories(Database.BASE):
     __tablename__ = 'categories'
     name = Column(String(100), primary_key=True)
+    sort_order = Column(Integer, nullable=False, default=0)  # Menu ordering (Card 8)
     item = relationship("Goods", back_populates="category")
 
-    def __init__(self, name: str, **kw: Any):
+    def __init__(self, name: str, sort_order: int = 0, **kw: Any):
         super().__init__(**kw)
         self.name = name
+        self.sort_order = sort_order
 
 
 class Goods(Database.BASE):
@@ -131,6 +133,7 @@ class Goods(Database.BASE):
                            nullable=False, index=True)
     stock_quantity = Column(Integer, nullable=False, default=0)  # Total stock in warehouse
     reserved_quantity = Column(Integer, nullable=False, default=0)  # Reserved in pending orders
+    modifiers = Column(JSON, nullable=True)  # Modifier schema for restaurant items (Card 8)
     category = relationship("Categories", back_populates="item")
 
     @property
@@ -280,18 +283,54 @@ class Order(Database.BASE):
     buyer_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="SET NULL"), nullable=True, index=True)
     total_price = Column(Numeric(12, 2), nullable=False)
     bonus_applied = Column(Numeric(12, 2), nullable=True, default=0)  # Referral bonus applied to this order
-    payment_method = Column(String(20), nullable=False)  # 'bitcoin' or 'cash'
+    payment_method = Column(String(20), nullable=False)  # 'bitcoin', 'cash', or 'promptpay'
     delivery_address = Column(Text, nullable=False)
     phone_number = Column(String(50), nullable=False)
     delivery_note = Column(Text, nullable=True)
     bitcoin_address = Column(String(100), nullable=True)
     order_status = Column(String(20), nullable=False,
-                          default='pending')  # pending, reserved, confirmed, delivered, cancelled, expired
+                          default='pending')  # pending, reserved, confirmed, preparing, ready, out_for_delivery, delivered, cancelled, expired
     reserved_until = Column(DateTime(timezone=True),
                             nullable=True)  # Reservation expiration time (configurable timeout)
     delivery_time = Column(DateTime(timezone=True), nullable=True)  # Planned delivery time set by admin
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
+
+    # GPS location (Card 2)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    google_maps_link = Column(String(255), nullable=True)
+
+    # Thai address format (Card 7)
+    address_structured = Column(JSON, nullable=True)  # {house, soi, road, subdistrict, district, province, postal_code}
+
+    # Kitchen & delivery workflow (Card 9)
+    kitchen_group_message_id = Column(Integer, nullable=True)
+    rider_group_message_id = Column(Integer, nullable=True)
+
+    # Delivery zones & time slots (Card 10)
+    delivery_zone = Column(String(50), nullable=True)
+    delivery_fee = Column(Numeric(12, 2), nullable=True, default=0)
+    preferred_time_slot = Column(String(50), nullable=True)
+
+    # Driver live location (Card 13)
+    driver_live_location_message_id = Column(Integer, nullable=True)  # Message ID of live location shared with customer
+    driver_id = Column(BigInteger, nullable=True)  # Telegram ID of assigned driver/rider
+
+    # PromptPay payment (Card 1)
+    payment_receipt_photo = Column(String(255), nullable=True)  # Telegram file_id of payment slip
+    payment_verified_by = Column(BigInteger, nullable=True)  # Admin who verified
+    payment_verified_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Delivery type (Card 3)
+    delivery_type = Column(String(20), nullable=False, default="door")  # door | dead_drop | pickup
+    drop_instructions = Column(Text, nullable=True)
+    drop_location_photo = Column(String(255), nullable=True)  # Telegram file_id
+
+    # Delivery photo proof (Card 4)
+    delivery_photo = Column(String(255), nullable=True)  # Telegram file_id
+    delivery_photo_at = Column(DateTime(timezone=True), nullable=True)
+    delivery_photo_by = Column(BigInteger, nullable=True)
 
     buyer = relationship("User", foreign_keys=lambda: [Order.buyer_id])
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
@@ -307,7 +346,10 @@ class Order(Database.BASE):
                  delivery_address: str, phone_number: str, delivery_note: str = None,
                  bitcoin_address: str = None, order_status: str = 'pending',
                  order_code: str = None, reserved_until=None, delivery_time=None,
-                 bonus_applied=0, **kw: Any):
+                 bonus_applied=0, latitude: float = None, longitude: float = None,
+                 google_maps_link: str = None, delivery_type: str = 'door',
+                 drop_instructions: str = None, drop_location_photo: str = None,
+                 **kw: Any):
         super().__init__(**kw)
         self.buyer_id = buyer_id
         self.order_code = order_code
@@ -321,6 +363,12 @@ class Order(Database.BASE):
         self.order_status = order_status
         self.reserved_until = reserved_until
         self.delivery_time = delivery_time
+        self.latitude = latitude
+        self.longitude = longitude
+        self.google_maps_link = google_maps_link
+        self.delivery_type = delivery_type
+        self.drop_instructions = drop_instructions
+        self.drop_location_photo = drop_location_photo
 
 
 class OrderItem(Database.BASE):
@@ -331,6 +379,7 @@ class OrderItem(Database.BASE):
     item_name = Column(String(100), nullable=False)
     price = Column(Numeric(12, 2), nullable=False)  # Price per unit
     quantity = Column(Integer, nullable=False, default=1)
+    selected_modifiers = Column(JSON, nullable=True)  # Selected modifier choices (Card 8)
 
     order = relationship("Order", back_populates="items")
 
@@ -338,11 +387,13 @@ class OrderItem(Database.BASE):
         Index('ix_order_items_order_id', 'order_id'),
     )
 
-    def __init__(self, order_id: int, item_name: str, price, quantity: int = 1, **kw: Any):
+    def __init__(self, order_id: int, item_name: str, price, quantity: int = 1,
+                 selected_modifiers: dict = None, **kw: Any):
         super().__init__(**kw)
         self.order_id = order_id
         self.item_name = item_name
         self.price = price
+        self.selected_modifiers = selected_modifiers
         self.quantity = quantity
 
 
@@ -357,6 +408,13 @@ class CustomerInfo(Database.BASE):
     completed_orders_count = Column(Integer, nullable=False, default=0)
     bonus_balance = Column(Numeric(12, 2), nullable=False, default=0)
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+
+    # GPS location (Card 2)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+
+    # Thai address format (Card 7)
+    address_structured = Column(JSON, nullable=True)
 
     user = relationship("User", foreign_keys=lambda: [CustomerInfo.telegram_id])
 
@@ -414,6 +472,7 @@ class ShoppingCart(Database.BASE):
     user_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), nullable=False)
     item_name = Column(String(100), ForeignKey('goods.name', ondelete="CASCADE"), nullable=False)
     quantity = Column(Integer, nullable=False, default=1)
+    selected_modifiers = Column(JSON, nullable=True)  # Selected modifier choices (Card 8)
     added_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     user = relationship("User", foreign_keys=lambda: [ShoppingCart.user_id])
@@ -424,11 +483,49 @@ class ShoppingCart(Database.BASE):
         Index('ix_shopping_cart_user_added', 'user_id', 'added_at'),
     )
 
-    def __init__(self, user_id: int, item_name: str, quantity: int = 1, **kw: Any):
+    def __init__(self, user_id: int, item_name: str, quantity: int = 1,
+                 selected_modifiers: dict = None, **kw: Any):
         super().__init__(**kw)
         self.user_id = user_id
         self.item_name = item_name
         self.quantity = quantity
+        self.selected_modifiers = selected_modifiers
+
+
+class DeliveryChatMessage(Database.BASE):
+    """Recorded messages between driver and customer during delivery (Card 13)."""
+    __tablename__ = 'delivery_chat_messages'
+
+    id = Column(Integer, primary_key=True)
+    order_id = Column(Integer, ForeignKey('orders.id', ondelete="CASCADE"), nullable=False)
+    sender_id = Column(BigInteger, nullable=False)  # Telegram ID of sender
+    sender_role = Column(String(20), nullable=False)  # 'driver' or 'customer'
+    message_text = Column(Text, nullable=True)
+    photo_file_id = Column(String(255), nullable=True)  # If photo was sent
+    location_lat = Column(Float, nullable=True)  # If location was shared
+    location_lng = Column(Float, nullable=True)
+    telegram_message_id = Column(Integer, nullable=True)  # Original message ID
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    order = relationship("Order", foreign_keys=lambda: [DeliveryChatMessage.order_id])
+
+    __table_args__ = (
+        Index('ix_delivery_chat_order_created', 'order_id', 'created_at'),
+    )
+
+    def __init__(self, order_id: int, sender_id: int, sender_role: str,
+                 message_text: str = None, photo_file_id: str = None,
+                 location_lat: float = None, location_lng: float = None,
+                 telegram_message_id: int = None, **kw: Any):
+        super().__init__(**kw)
+        self.order_id = order_id
+        self.sender_id = sender_id
+        self.sender_role = sender_role
+        self.message_text = message_text
+        self.photo_file_id = photo_file_id
+        self.location_lat = location_lat
+        self.location_lng = location_lng
+        self.telegram_message_id = telegram_message_id
 
 
 class InventoryLog(Database.BASE):

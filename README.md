@@ -49,23 +49,36 @@ inventory management.
 This bot is specifically designed for **physical goods** (not digital products) with:
 
 - **Inventory management** with stock tracking and reservation system
-- **Dual payment methods**: Bitcoin (address pool) and Cash on Delivery
+- **Three payment methods**: PromptPay QR, Cash on Delivery, Bitcoin
 - **Shopping cart** with checkout flow
+- **GPS delivery** with Telegram location sharing + Google Maps links
+- **Delivery options**: Door delivery, dead drop, self-pickup
+- **Restaurant menu modifiers**: Spice level, extras, removals with price adjustments
+- **Kitchen & delivery workflow**: Extended statuses with group notifications
+- **Driver-customer chat**: Recorded message relay + live location tracking
+- **Delivery zone pricing**: Distance-based fees with configurable zones
+- **Thai language** (default), English, Russian
+- **THB currency** with ฿ formatting (configurable)
+- **Asia/Bangkok timezone** by default
 - **Reference codes** for controlled user registration
 - **Referral bonuses** for customer acquisition
-- **Order tracking** with delivery time management
 - **CLI tool** for comprehensive shop administration
 
 ### What Makes This Different
 
-This is NOT a typical digital goods Telegram shop. Key differences:
+Built for **Thailand restaurant delivery** on Telegram. Key features:
 
-- ✅ Physical inventory with stock levels
-- ✅ Reservation system with timeouts
-- ✅ Delivery address & phone collection
-- ✅ Dual payment methods (Bitcoin + Cash on Delivery)
-- ✅ Reference code requirement for registration
-- ✅ Multi-stage order lifecycle (pending → reserved → confirmed → delivered)
+- ✅ PromptPay QR payment (90%+ of Thai users)
+- ✅ GPS pin delivery with Google Maps links
+- ✅ Dead drop / leave-at-door / self-pickup options
+- ✅ Photo proof of delivery (required for dead drops)
+- ✅ Driver-customer chat relay with full audit trail
+- ✅ Driver live location tracking via Telegram
+- ✅ Kitchen → Rider → Customer status workflow
+- ✅ Menu modifiers (spice level, extras, removals)
+- ✅ Distance-based delivery zone pricing
+- ✅ Thai language + THB currency + Bangkok timezone
+- ✅ Multi-stage order lifecycle (pending → reserved → confirmed → preparing → ready → out_for_delivery → delivered)
 - ✅ Admin CLI for order & inventory management
 
 ## ✨ Key Features
@@ -80,21 +93,38 @@ This is NOT a typical digital goods Telegram shop. Key differences:
 
 ### 💰 Payment System
 
-**Two Payment Methods:**
+**Three Payment Methods:**
 
-#### 1. Bitcoin Payments
+#### 1. PromptPay QR (Thailand)
+
+- **Dynamic QR**: EMVCo-standard QR codes with embedded amount
+- **Receipt Upload**: Customer uploads payment slip photo
+- **Admin Verification**: Manual verification via bot button
+- **Thai Banks**: Works with SCB, KBank, Bangkok Bank, TrueMoney, etc.
+
+#### 2. Cash on Delivery (เก็บเงินปลายทาง)
+
+- **Manual Confirmation**: Admin/rider confirms cash receipt
+- **No Prepayment**: Customer pays upon delivery
+- **Rider Notification**: COD amount displayed prominently for rider
+
+#### 3. Bitcoin Payments
 
 - **Address Pool**: Load Bitcoin addresses from `btc_addresses.txt`
 - **One-Time Use**: Each address used only once per order
 - **Auto-Reload**: File watcher automatically loads new addresses when file changes
-- **Usage Tracking**: Complete address usage audit trail in database
-- **Critical**: Must add addresses to `btc_addresses.txt` before accepting Bitcoin orders
 
-#### 2. Cash on Delivery (COD)
+### 🚚 Thailand Delivery Features
 
-- **Manual Confirmation**: Admin confirms cash receipt via CLI
-- **No Prepayment**: Customer pays upon delivery
-- **Flexible**: No cryptocurrency wallet required
+- **GPS Location**: Telegram location sharing during checkout + Google Maps links
+- **Delivery Types**: Door delivery, dead drop (leave at location), self-pickup
+- **Dead Drop**: Custom instructions + optional photo of drop location
+- **Photo Proof**: Rider must upload delivery photo (required for dead drops)
+- **Delivery Zones**: Distance-based pricing (Haversine formula from restaurant GPS)
+- **Time Slots**: Configurable delivery windows (lunch, dinner, ASAP)
+- **Driver Chat**: Recorded message relay between driver and customer
+- **Live Location**: Driver shares Telegram live location for real-time tracking
+- **Menu Modifiers**: Spice level, extras, removals with price adjustments
 
 ### 👥 User Management
 
@@ -108,7 +138,7 @@ This is NOT a typical digital goods Telegram shop. Key differences:
 ### 📦 Order Management
 
 - **Order Codes**: 6-character unique codes (e.g., ECBDJI) for easy reference
-- **Order Status**: `pending` → `reserved` → `confirmed` → `delivered` → `cancelled`/`expired`
+- **Order Status**: `pending` → `reserved` → `confirmed` → `preparing` → `ready` → `out_for_delivery` → `delivered` (or `cancelled`/`expired`)
 - **Delivery Information**: Address, phone number, optional delivery note
 - **Delivery Time**: Admin-set planned delivery time
 - **Reservation Timeout**: Configurable timeout (default 24h) with automatic cleanup

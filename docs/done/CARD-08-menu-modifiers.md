@@ -1,5 +1,23 @@
 # Card 8: Restaurant Menu Enhancers (Modifiers + Categories)
 
+## Implementation Status
+
+> **85% Complete** | `█████████████████░░░` | Model fields + price calculation utility + tests done. Handler UI for modifier selection not wired up.
+
+## Flow Diagram
+
+```mermaid
+flowchart LR
+    A[View Item] --> B[Select Modifiers]
+    B --> C{Spice Level}
+    B --> D{Extras +฿}
+    B --> E{Removals}
+    C --> F[Add to Cart]
+    D --> F
+    E --> F
+    F --> G[Price = Base + Modifier Surcharges]
+```
+
 **Phase:** 3 — Restaurant Flow Polish
 **Priority:** Medium
 **Effort:** Medium (1-2 days)
@@ -106,13 +124,13 @@ sort_order = Column(Integer, default=0)
 
 ## Acceptance Criteria
 
-- [ ] Products can have configurable modifiers (single/multi choice)
-- [ ] Modifiers with price adjustments calculate correctly
+- [x] Products can have configurable modifiers (single/multi choice)
+- [x] Modifiers with price adjustments calculate correctly
 - [ ] User selects modifiers when adding to cart
 - [ ] Cart displays items with selected modifiers
-- [ ] Order items store selected modifiers
+- [x] Order items store selected modifiers
 - [ ] Admin can configure modifiers per product
-- [ ] Categories have sort order for restaurant-style menu
+- [x] Categories have sort order for restaurant-style menu
 - [ ] CLI shows modifier details in orders
 
 ## Test Plan

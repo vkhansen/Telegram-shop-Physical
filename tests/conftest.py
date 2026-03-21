@@ -289,7 +289,7 @@ def test_bot_settings(db_session: Session) -> BotSettings:
         BotSettings(setting_key='reference_codes_enabled', setting_value='true'),
         BotSettings(setting_key='reference_bonus_percent', setting_value='5'),
         BotSettings(setting_key='cash_order_timeout_hours', setting_value='24'),
-        BotSettings(setting_key='timezone', setting_value='UTC'),
+        BotSettings(setting_key='timezone', setting_value='Asia/Bangkok'),
     ]
     for setting in settings:
         db_session.add(setting)

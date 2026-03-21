@@ -10,7 +10,7 @@ class EnvKeys(ABC):
     TOKEN: Final = os.environ.get('TOKEN')
     OWNER_ID: Final = os.environ.get('OWNER_ID')
 
-    PAY_CURRENCY: Final = os.getenv("PAY_CURRENCY", "USD")
+    PAY_CURRENCY: Final = os.getenv("PAY_CURRENCY", "THB")
     MIN_AMOUNT: Final = int(os.getenv("MIN_AMOUNT", 20))
     MAX_AMOUNT: Final = int(os.getenv("MAX_AMOUNT", 10_000))
 
@@ -20,7 +20,7 @@ class EnvKeys(ABC):
     RULES: Final = os.getenv("RULES")
 
     # Locale & logs
-    BOT_LOCALE: Final = os.getenv("BOT_LOCALE", "en")
+    BOT_LOCALE: Final = os.getenv("BOT_LOCALE", "th")
     BOT_LOGFILE: Final = os.getenv("BOT_LOGFILE", "logs/bot.log")
     BOT_AUDITFILE: Final = os.getenv("BOT_AUDITFILE", "logs/audit.log")
     LOG_TO_STDOUT: Final = os.getenv("LOG_TO_STDOUT", "1")
@@ -39,6 +39,14 @@ class EnvKeys(ABC):
     POSTGRES_PASSWORD: Final = os.getenv("POSTGRES_PASSWORD")
     DB_PORT: Final = int(os.getenv("DB_PORT", 5432))
     DB_DRIVER: Final = os.getenv("DB_DRIVER", "postgresql+psycopg2")
+
+    # PromptPay (Card 1)
+    PROMPTPAY_ID: Final = os.getenv("PROMPTPAY_ID")  # Phone number or national ID
+    PROMPTPAY_ACCOUNT_NAME: Final = os.getenv("PROMPTPAY_ACCOUNT_NAME", "")
+
+    # Kitchen & Delivery Groups (Card 9)
+    KITCHEN_GROUP_ID: Final = os.getenv("KITCHEN_GROUP_ID")
+    RIDER_GROUP_ID: Final = os.getenv("RIDER_GROUP_ID")
 
     # Monitoring
     MONITORING_HOST: Final = os.getenv("MONITORING_HOST", "localhost")

@@ -1,5 +1,22 @@
 # Card 10: Delivery Time Slots + Bangkok Zone Pricing
 
+## Implementation Status
+
+> **100% Complete** | `████████████████████` | Zone detection, fee calculation, time slots, model, and tests fully implemented.
+
+## Flow Diagram
+
+```mermaid
+flowchart TD
+    A[Customer GPS] --> B[Calculate Distance]
+    B --> C{Distance from Restaurant}
+    C -->|0-3km| D[Zone 1: Free]
+    C -->|3-7km| E[Zone 2: ฿30]
+    C -->|7-12km| F[Zone 3: ฿50]
+    C -->|12-20km| G[Zone 4: ฿80]
+    C -->|20km+| H[Zone 5: ฿120]
+```
+
 **Phase:** 3 — Restaurant Flow Polish
 **Priority:** Low-Medium
 **Effort:** Low-Medium (1 day)
@@ -114,13 +131,13 @@ TIME_SLOTS_ENABLED=true
 
 ## Acceptance Criteria
 
-- [ ] Time slots configurable and displayed at checkout
-- [ ] Zone auto-detected from GPS coordinates
-- [ ] Delivery fee calculated and added to order total
-- [ ] User sees zone + fee before confirming order
-- [ ] Admin can manage zones via CLI
-- [ ] Time slots can be enabled/disabled
-- [ ] Order stores selected slot and zone
+- [x] Time slots configurable and displayed at checkout
+- [x] Zone auto-detected from GPS coordinates
+- [x] Delivery fee calculated and added to order total
+- [x] User sees zone + fee before confirming order
+- [x] Admin can manage zones via CLI
+- [x] Time slots can be enabled/disabled
+- [x] Order stores selected slot and zone
 
 ## Test Plan
 

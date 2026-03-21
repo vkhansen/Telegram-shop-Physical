@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
 import html
 from decimal import Decimal
@@ -11,6 +11,7 @@ from bot.keyboards import back, simple_buttons
 from bot.i18n import localize
 from bot.config import EnvKeys
 from bot.states import OrderStates
+from bot.states.payment_state import PromptPayStates
 from bot.logger_mesh import logger
 from bot.payments.bitcoin import get_available_bitcoin_address, mark_bitcoin_address_used
 from bot.export import log_order_creation, sync_customer_to_csv
@@ -37,8 +38,142 @@ async def process_delivery_address(message: Message, state: FSMContext):
     # Save to state
     await state.update_data(delivery_address=delivery_address)
 
-    # Ask for phone number
+    # Ask for GPS location (optional)
+    location_kb = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=localize("btn.share_location"), request_location=True)],
+            [KeyboardButton(text=localize("btn.skip_location"))]
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=True
+    )
     await message.answer(
+        localize("order.delivery.location_prompt"),
+        reply_markup=location_kb
+    )
+    await state.set_state(OrderStates.waiting_location)
+
+
+@router.message(OrderStates.waiting_location, F.location)
+async def process_location(message: Message, state: FSMContext):
+    """
+    Process shared GPS location
+    """
+    lat = message.location.latitude
+    lng = message.location.longitude
+    maps_link = f"https://www.google.com/maps?q={lat},{lng}"
+
+    await state.update_data(latitude=lat, longitude=lng, google_maps_link=maps_link)
+
+    await message.answer(
+        localize("order.delivery.location_saved"),
+        reply_markup=ReplyKeyboardRemove()
+    )
+
+    # Ask for delivery type (Card 3)
+    await ask_delivery_type(message, state)
+
+
+@router.message(OrderStates.waiting_location)
+async def skip_location(message: Message, state: FSMContext):
+    """
+    User skipped GPS location or sent text instead
+    """
+    await message.answer(
+        localize("order.delivery.location_saved"),
+        reply_markup=ReplyKeyboardRemove()
+    )
+
+    # Ask for delivery type (Card 3)
+    await ask_delivery_type(message, state)
+
+
+async def ask_delivery_type(message: Message, state: FSMContext):
+    """Show delivery type selection (Card 3)"""
+    await message.answer(
+        localize("order.delivery.type_prompt"),
+        reply_markup=simple_buttons([
+            (localize("btn.delivery.door"), "delivery_type_door"),
+            (localize("btn.delivery.dead_drop"), "delivery_type_dead_drop"),
+            (localize("btn.delivery.pickup"), "delivery_type_pickup"),
+        ], per_row=1)
+    )
+    await state.set_state(OrderStates.waiting_delivery_type)
+
+
+@router.callback_query(F.data == "delivery_type_door", OrderStates.waiting_delivery_type)
+async def delivery_type_door(call: CallbackQuery, state: FSMContext):
+    """User selected door delivery"""
+    await call.answer()
+    await state.update_data(delivery_type="door")
+    await call.message.edit_text(localize("order.delivery.phone_prompt"))
+    await call.message.answer(
+        localize("order.delivery.phone_prompt"),
+        reply_markup=back("view_cart")
+    )
+    await state.set_state(OrderStates.waiting_phone_number)
+
+
+@router.callback_query(F.data == "delivery_type_dead_drop", OrderStates.waiting_delivery_type)
+async def delivery_type_dead_drop(call: CallbackQuery, state: FSMContext):
+    """User selected dead drop — collect instructions"""
+    await call.answer()
+    await state.update_data(delivery_type="dead_drop")
+    await call.message.edit_text(
+        localize("order.delivery.drop_instructions_prompt"),
+    )
+    await state.set_state(OrderStates.waiting_drop_instructions)
+
+
+@router.callback_query(F.data == "delivery_type_pickup", OrderStates.waiting_delivery_type)
+async def delivery_type_pickup(call: CallbackQuery, state: FSMContext):
+    """User selected self-pickup — skip address/location details"""
+    await call.answer()
+    await state.update_data(delivery_type="pickup")
+    await call.message.edit_text(localize("order.delivery.phone_prompt"))
+    await call.message.answer(
+        localize("order.delivery.phone_prompt"),
+        reply_markup=back("view_cart")
+    )
+    await state.set_state(OrderStates.waiting_phone_number)
+
+
+@router.message(OrderStates.waiting_drop_instructions)
+async def process_drop_instructions(message: Message, state: FSMContext):
+    """Collect dead drop instructions text"""
+    instructions = message.text.strip()
+    await state.update_data(drop_instructions=instructions)
+
+    # Ask for optional photo of drop location
+    await message.answer(
+        localize("order.delivery.drop_photo_prompt"),
+        reply_markup=simple_buttons([
+            (localize("btn.skip_drop_photo"), "skip_drop_photo")
+        ], per_row=1)
+    )
+    await state.set_state(OrderStates.waiting_drop_photo)
+
+
+@router.message(OrderStates.waiting_drop_photo, F.photo)
+async def process_drop_photo(message: Message, state: FSMContext):
+    """Save photo of drop location"""
+    photo_file_id = message.photo[-1].file_id  # Largest resolution
+    await state.update_data(drop_location_photo=photo_file_id)
+
+    await message.answer(localize("order.delivery.drop_photo_saved"))
+    await message.answer(
+        localize("order.delivery.phone_prompt"),
+        reply_markup=back("view_cart")
+    )
+    await state.set_state(OrderStates.waiting_phone_number)
+
+
+@router.callback_query(F.data == "skip_drop_photo", OrderStates.waiting_drop_photo)
+async def skip_drop_photo(call: CallbackQuery, state: FSMContext):
+    """User skipped drop location photo"""
+    await call.answer()
+    await call.message.edit_text(localize("order.delivery.phone_prompt"))
+    await call.message.answer(
         localize("order.delivery.phone_prompt"),
         reply_markup=back("view_cart")
     )
@@ -251,15 +386,19 @@ async def show_payment_method_selection(message: Message, state: FSMContext, use
     summary_text += text
 
     # Payment method buttons
-    bitcoin_text = localize("order.payment_method.bitcoin")
-    cash_text = localize("order.payment_method.cash")
+    payment_buttons = [
+        (localize("order.payment_method.cash"), "payment_method_cash"),
+    ]
+
+    # Add PromptPay if configured (Card 1)
+    if EnvKeys.PROMPTPAY_ID:
+        payment_buttons.insert(0, (localize("order.payment_method.promptpay"), "payment_method_promptpay"))
+
+    payment_buttons.append((localize("order.payment_method.bitcoin"), "payment_method_bitcoin"))
 
     await message.answer(
         summary_text,
-        reply_markup=simple_buttons([
-            (bitcoin_text, "payment_method_bitcoin"),
-            (cash_text, "payment_method_cash")
-        ], per_row=2)
+        reply_markup=simple_buttons(payment_buttons, per_row=1)
     )
 
     await state.set_state(OrderStates.waiting_payment_method)
@@ -301,6 +440,22 @@ async def payment_method_cash_handler(call: CallbackQuery, state: FSMContext):
     await process_cash_payment_new_message(call.message, state, user_id=call.from_user.id)
 
 
+@router.callback_query(F.data == "payment_method_promptpay", OrderStates.waiting_payment_method)
+async def payment_method_promptpay_handler(call: CallbackQuery, state: FSMContext):
+    """
+    User selected PromptPay payment (Card 1)
+    """
+    await call.answer()
+    await state.update_data(payment_method='promptpay')
+
+    metrics = get_metrics()
+    if metrics:
+        metrics.track_event("payment_promptpay_initiated", call.from_user.id)
+        metrics.track_conversion("customer_journey", "payment_initiated", call.from_user.id)
+
+    await process_promptpay_payment(call.message, state, user_id=call.from_user.id)
+
+
 async def finalize_order_and_payment(message: Message, state: FSMContext, user_id: int = None,
                                      from_callback: bool = False):
     """
@@ -317,6 +472,9 @@ async def finalize_order_and_payment(message: Message, state: FSMContext, user_i
     delivery_address = data.get('delivery_address')
     phone_number = data.get('phone_number')
     delivery_note = data.get('delivery_note', '')
+    latitude = data.get('latitude')
+    longitude = data.get('longitude')
+    google_maps_link = data.get('google_maps_link')
 
     # Save/update customer info
     try:
@@ -350,6 +508,11 @@ async def finalize_order_and_payment(message: Message, state: FSMContext, user_i
                     )
                     customer_info.delivery_note = delivery_note
 
+                # Update GPS coordinates if provided (Card 2)
+                if latitude is not None and longitude is not None:
+                    customer_info.latitude = latitude
+                    customer_info.longitude = longitude
+
             else:
                 # Create new customer info (username stored in users table, not here)
                 customer_info = CustomerInfo(
@@ -358,6 +521,10 @@ async def finalize_order_and_payment(message: Message, state: FSMContext, user_i
                     delivery_address=delivery_address,
                     delivery_note=delivery_note
                 )
+                # Set GPS if provided
+                if latitude is not None and longitude is not None:
+                    customer_info.latitude = latitude
+                    customer_info.longitude = longitude
                 session.add(customer_info)
 
             session.commit()
@@ -426,7 +593,10 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
                 phone_number=customer_info.phone_number,
                 delivery_note=customer_info.delivery_note or "",
                 bitcoin_address=btc_address,
-                order_status="pending"
+                order_status="pending",
+                latitude=customer_info.latitude,
+                longitude=customer_info.longitude,
+                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude else None
             )
             session.add(order)
             session.flush()  # Get the order ID
@@ -619,7 +789,10 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
                 phone_number=customer_info.phone_number,
                 delivery_note=customer_info.delivery_note or "",
                 bitcoin_address=btc_address,
-                order_status="pending"
+                order_status="pending",
+                latitude=customer_info.latitude,
+                longitude=customer_info.longitude,
+                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude else None
             )
             session.add(order)
             session.flush()  # Get the order ID
@@ -839,7 +1012,10 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
                 phone_number=customer_info.phone_number,
                 delivery_note=customer_info.delivery_note or "",
                 bitcoin_address=None,  # No Bitcoin address for cash
-                order_status="pending"
+                order_status="pending",
+                latitude=customer_info.latitude,
+                longitude=customer_info.longitude,
+                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude else None
             )
             session.add(order)
             session.flush()  # Get the order ID
@@ -994,6 +1170,189 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
                 reply_markup=back("view_cart")
             )
             return
+
+
+async def process_promptpay_payment(message: Message, state: FSMContext, user_id: int = None):
+    """
+    Process PromptPay payment: generate QR, create order, ask for receipt (Card 1)
+    """
+    from bot.payments.promptpay import generate_promptpay_qr
+
+    if user_id is None:
+        user_id = message.from_user.id
+
+    username = await get_telegram_username(user_id, message.bot)
+    cart_items = await get_cart_items(user_id)
+
+    if not cart_items:
+        await message.answer(localize("cart.empty_alert"), reply_markup=back("shop"))
+        return
+
+    total_amount = await calculate_cart_total(user_id)
+    data = await state.get_data()
+    bonus_applied = Decimal(str(data.get('bonus_applied', 0)))
+    final_amount = total_amount - bonus_applied
+
+    with Database().session() as session:
+        customer_info = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
+        if not customer_info:
+            await message.answer(localize("order.payment.customer_not_found"), reply_markup=back("view_cart"))
+            return
+
+        if bonus_applied > 0:
+            if customer_info.bonus_balance < bonus_applied:
+                await message.answer(localize("order.bonus.insufficient"), reply_markup=back("view_cart"))
+                return
+            customer_info.bonus_balance -= bonus_applied
+
+        try:
+            items_summary = []
+            order = Order(
+                buyer_id=user_id,
+                total_price=Decimal(str(total_amount)),
+                bonus_applied=bonus_applied,
+                payment_method="promptpay",
+                delivery_address=customer_info.delivery_address,
+                phone_number=customer_info.phone_number,
+                delivery_note=customer_info.delivery_note or "",
+                order_status="pending",
+                latitude=customer_info.latitude,
+                longitude=customer_info.longitude,
+                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude else None
+            )
+            session.add(order)
+            session.flush()
+
+            order.order_code = generate_unique_order_code(session)
+
+            items_to_reserve = []
+            for cart_item in cart_items:
+                item_name = cart_item['item_name']
+                quantity = cart_item['quantity']
+                price = cart_item['price']
+
+                order_item = OrderItem(
+                    order_id=order.id,
+                    item_name=item_name,
+                    price=Decimal(str(price)),
+                    quantity=quantity
+                )
+                session.add(order_item)
+                items_summary.append(f"{item_name} x{quantity} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}")
+                items_to_reserve.append({'item_name': item_name, 'quantity': quantity})
+
+            success, reserve_message = reserve_inventory(order.id, items_to_reserve, payment_method='promptpay',
+                                                          session=session)
+            if not success:
+                session.rollback()
+                await message.answer(
+                    localize("order.inventory.unable_to_reserve", unavailable_items=reserve_message),
+                    reply_markup=back("view_cart")
+                )
+                return
+
+            log_order_creation(
+                order_id=order.id, buyer_id=user_id, buyer_username=username,
+                items_summary="\n".join(items_summary), total_price=float(total_amount),
+                payment_method="promptpay", delivery_address=customer_info.delivery_address,
+                phone_number=customer_info.phone_number, bitcoin_address=None,
+                order_code=order.order_code
+            )
+
+            session.query(ShoppingCart).filter_by(user_id=user_id).delete()
+            session.commit()
+
+            # Generate QR code
+            promptpay_id = EnvKeys.PROMPTPAY_ID
+            try:
+                qr_bytes = generate_promptpay_qr(promptpay_id, final_amount)
+
+                from aiogram.types import BufferedInputFile
+                qr_file = BufferedInputFile(qr_bytes, filename=f"promptpay_{order.order_code}.png")
+
+                caption = (
+                    localize("order.payment.promptpay.title") + "\n\n" +
+                    localize("order.payment.promptpay.scan") + "\n" +
+                    f"<b>{EnvKeys.PAY_CURRENCY} {final_amount}</b>\n" +
+                    f"Order: <code>{order.order_code}</code>"
+                )
+
+                await message.answer_photo(photo=qr_file, caption=caption)
+            except Exception as qr_error:
+                logger.error(f"QR generation failed: {qr_error}")
+                await message.answer(
+                    localize("order.payment.promptpay.title") + "\n\n" +
+                    f"PromptPay ID: <code>{promptpay_id}</code>\n" +
+                    f"Amount: <b>{final_amount} {EnvKeys.PAY_CURRENCY}</b>\n" +
+                    f"Order: <code>{order.order_code}</code>"
+                )
+
+            # Ask user to upload receipt
+            await message.answer(
+                localize("order.payment.promptpay.upload_receipt"),
+                reply_markup=back("back_to_menu")
+            )
+
+            # Save order_id in state for receipt association
+            await state.update_data(promptpay_order_id=order.id, promptpay_order_code=order.order_code)
+            await state.set_state(PromptPayStates.waiting_receipt_photo)
+
+            # Notify admin
+            await notify_admin_new_cash_order(
+                message.bot, order.order_code, user_id, username,
+                "\n".join(items_summary), total_amount,
+                customer_info.delivery_address, customer_info.phone_number,
+                customer_info.delivery_note or "", bonus_applied, final_amount
+            )
+
+            sync_customer_to_csv(user_id, username)
+
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error creating PromptPay order: {e}")
+            await message.answer(localize("order.payment.error_general"), reply_markup=back("view_cart"))
+            return
+
+
+@router.message(PromptPayStates.waiting_receipt_photo, F.photo)
+async def process_receipt_photo(message: Message, state: FSMContext):
+    """User uploaded payment receipt photo (Card 1)"""
+    photo_file_id = message.photo[-1].file_id
+    data = await state.get_data()
+    order_id = data.get('promptpay_order_id')
+
+    if order_id:
+        with Database().session() as session:
+            order = session.query(Order).filter_by(id=order_id).first()
+            if order:
+                order.payment_receipt_photo = photo_file_id
+                session.commit()
+
+                # Notify admin with receipt
+                owner_id = EnvKeys.OWNER_ID
+                if owner_id:
+                    try:
+                        await message.bot.send_photo(
+                            int(owner_id),
+                            photo_file_id,
+                            caption=(
+                                f"💳 <b>PromptPay Receipt</b>\n"
+                                f"Order: <code>{order.order_code}</code>\n"
+                                f"Amount: {order.total_price} {EnvKeys.PAY_CURRENCY}\n"
+                                f"From: {message.from_user.id}"
+                            )
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to forward receipt to admin: {e}")
+
+    await message.answer(localize("order.payment.promptpay.receipt_received"), reply_markup=back("back_to_menu"))
+    await state.clear()
+
+
+@router.message(PromptPayStates.waiting_receipt_photo)
+async def process_receipt_invalid(message: Message, state: FSMContext):
+    """User sent non-photo message when receipt expected"""
+    await message.answer(localize("order.payment.promptpay.receipt_invalid"))
 
 
 async def notify_admin_new_order(bot, order_code: str, buyer_id: int, buyer_username: str,

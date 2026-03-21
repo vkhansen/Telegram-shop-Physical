@@ -1,5 +1,25 @@
 # Card 3: Dead Drop Option + Custom Delivery Instructions
 
+## Implementation Status
+
+> **90% Complete** | `██████████████████░░` | Model fields + handler + tests done. Minor handler polish remaining.
+
+## Flow Diagram
+
+```mermaid
+flowchart TD
+    A[Delivery Type?] --> B[Door]
+    A --> C[Dead Drop]
+    A --> D[Pickup]
+    C --> E[Drop Instructions]
+    E --> F{Photo of Location?}
+    F -->|Yes| G[Save Photo]
+    F -->|Skip| H[Phone Number]
+    G --> H
+    B --> H
+    D --> H
+```
+
 **Phase:** 1 — Core Thailand Differentiators
 **Priority:** High
 **Effort:** Low (half day)
@@ -74,12 +94,12 @@ drop_instructions = Column(Text, nullable=True)
 
 ## Acceptance Criteria
 
-- [ ] User can select delivery type (door/dead drop/pickup)
-- [ ] Dead drop collects text instructions
-- [ ] Dead drop optionally accepts photo of location
-- [ ] Pickup skips address collection
-- [ ] Admin sees delivery type + instructions in order view
-- [ ] CLI shows delivery type details
+- [x] User can select delivery type (door/dead drop/pickup)
+- [x] Dead drop collects text instructions
+- [x] Dead drop optionally accepts photo of location
+- [x] Pickup skips address collection
+- [x] Admin sees delivery type + instructions in order view
+- [x] CLI shows delivery type details
 
 ## Test Plan
 

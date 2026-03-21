@@ -28,7 +28,7 @@ def get_timezone() -> str:
     from bot.database.methods.read import get_bot_setting
 
     try:
-        timezone_str = get_bot_setting('timezone', default='UTC', value_type=str)
+        timezone_str = get_bot_setting('timezone', default='Asia/Bangkok', value_type=str)
         # Validate timezone
         try:
             pytz.timezone(timezone_str)
@@ -36,19 +36,19 @@ def get_timezone() -> str:
             logger.debug(f"Timezone loaded from database: {timezone_str}")
         except UnknownTimeZoneError:
             logger.warning(f"Invalid timezone '{timezone_str}' in database, falling back to UTC")
-            _cached_timezone = "UTC"
+            _cached_timezone = "Asia/Bangkok"
     except Exception as e:
         # This can happen if database tables don't exist yet or database is unreachable
-        # Use UTC as safe default without logging error (normal during initialization)
+        # Use Asia/Bangkok as default (Thailand restaurant deployment)
         # Only log at debug level to avoid spamming logs during startup
         error_type = type(e).__name__
         if "does not exist" in str(e) or "relation" in str(e):
             # Table doesn't exist - completely normal during first-time initialization
-            logger.debug("Timezone table not yet created, using UTC (normal on first startup)")
+            logger.debug("Timezone table not yet created, using Asia/Bangkok (normal on first startup)")
         else:
             # Other database error - worth noting but not critical
-            logger.debug(f"Could not read timezone from database ({error_type}), using UTC: {e}")
-        _cached_timezone = "UTC"
+            logger.debug(f"Could not read timezone from database ({error_type}), using Asia/Bangkok: {e}")
+        _cached_timezone = "Asia/Bangkok"
 
     return _cached_timezone
 

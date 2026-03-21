@@ -1,5 +1,20 @@
 # Card 12: Timezone + Background Tasks (ICT +07)
 
+## Implementation Status
+
+> **100% Complete** | `████████████████████` | Bangkok timezone config, aware timestamps, reservation cleaner, and tests fully implemented.
+
+## Flow Diagram
+
+```mermaid
+flowchart LR
+    A[BotSettings DB] -->|timezone key| B{Found?}
+    B -->|Yes| C[Use DB value]
+    B -->|No/Error| D[Asia/Bangkok default]
+    C --> E[All timestamps in ICT+7]
+    D --> E
+```
+
 **Phase:** 3 — Restaurant Flow Polish
 **Priority:** High (foundational — do first)
 **Effort:** Very Low (1-2 hours)
@@ -45,11 +60,11 @@ DEFAULT_TIMEZONE = "Asia/Bangkok"
 
 ## Acceptance Criteria
 
-- [ ] Default timezone is Asia/Bangkok
-- [ ] All displayed times in ICT (+07)
-- [ ] Reservation expiry works correctly in Bangkok timezone
-- [ ] CLI shows Bangkok time
-- [ ] No UTC/ICT mismatch bugs
+- [x] Default timezone is Asia/Bangkok
+- [x] All displayed times in ICT (+07)
+- [x] Reservation expiry works correctly in Bangkok timezone
+- [x] CLI shows Bangkok time
+- [x] No UTC/ICT mismatch bugs
 
 ## Test Plan
 

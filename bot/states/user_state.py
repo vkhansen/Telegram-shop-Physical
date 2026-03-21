@@ -18,6 +18,10 @@ class ReferenceCodeStates(StatesGroup):
 class OrderStates(StatesGroup):
     """FSM for order placement flow."""
     waiting_delivery_address = State()
+    waiting_location = State()  # GPS location sharing (Card 2)
+    waiting_delivery_type = State()  # Door / Dead Drop / Pickup (Card 3)
+    waiting_drop_instructions = State()  # Dead drop instructions (Card 3)
+    waiting_drop_photo = State()  # Dead drop location photo (Card 3)
     waiting_phone_number = State()
     waiting_delivery_note = State()
     waiting_bonus_amount = State()  # For applying referral bonus to order

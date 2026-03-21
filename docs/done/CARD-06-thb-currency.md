@@ -1,5 +1,18 @@
 # Card 6: THB Currency + Thai Number Formatting
 
+## Implementation Status
+
+> **100% Complete** | `████████████████████` | Currency formatting, config, and tests fully implemented.
+
+## Flow Diagram
+
+```mermaid
+flowchart LR
+    A[Decimal Amount] --> B[format_thb]
+    B --> C["฿ + comma separators + .00"]
+    C --> D[Display in Bot/CLI/CSV]
+```
+
 **Phase:** 2 — Thailand Localization
 **Priority:** Medium
 **Effort:** Low (2-3 hours)
@@ -50,11 +63,11 @@ PAY_CURRENCY=THB
 
 ## Acceptance Criteria
 
-- [ ] All prices display with ฿ symbol
-- [ ] Comma-separated thousands (฿1,234.00)
-- [ ] Cart totals, order summaries, receipts all in THB
-- [ ] Admin stats and CLI in THB
-- [ ] CSV exports show THB
+- [x] All prices display with ฿ symbol
+- [x] Comma-separated thousands (฿1,234.00)
+- [x] Cart totals, order summaries, receipts all in THB
+- [x] Admin stats and CLI in THB
+- [x] CSV exports show THB
 
 ## Test Plan
 

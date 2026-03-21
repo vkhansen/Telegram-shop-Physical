@@ -1,5 +1,22 @@
 # Card 1: PromptPay QR Payment Generation + Verification
 
+## Implementation Status
+
+> **90% Complete** | `██████████████████░░` | Models + QR generation + tests done. Receipt upload handler exists in `order_handler.py`; separate handler file not created.
+
+## Flow Diagram
+
+```mermaid
+sequenceDiagram
+    Customer->>Bot: Select PromptPay
+    Bot->>Customer: QR Code + Amount
+    Customer->>Bank App: Scan & Pay
+    Customer->>Bot: Upload Receipt Photo
+    Bot->>Admin: Forward Receipt
+    Admin->>Bot: Verify Payment
+    Bot->>Customer: Order Confirmed
+```
+
 **Phase:** 1 — Core Thailand Differentiators
 **Priority:** High
 **Effort:** Medium (1-2 days)
@@ -90,13 +107,13 @@ Pillow>=10.0
 
 ## Acceptance Criteria
 
-- [ ] User can select PromptPay at checkout
-- [ ] QR code with correct amount is generated and sent
-- [ ] User can upload receipt photo
-- [ ] Admin receives notification with receipt
-- [ ] Admin can verify payment via bot button or CLI
-- [ ] Order transitions to confirmed after verification
-- [ ] PromptPay account configurable via env vars and CLI
+- [x] User can select PromptPay at checkout
+- [x] QR code with correct amount is generated and sent
+- [x] User can upload receipt photo
+- [x] Admin receives notification with receipt
+- [x] Admin can verify payment via bot button or CLI
+- [x] Order transitions to confirmed after verification
+- [x] PromptPay account configurable via env vars and CLI
 
 ## Test Plan
 

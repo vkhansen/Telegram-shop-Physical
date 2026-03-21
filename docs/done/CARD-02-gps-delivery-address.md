@@ -1,5 +1,20 @@
 # Card 2: GPS-Enabled Delivery Address + Live Location
 
+## Implementation Status
+
+> **90% Complete** | `██████████████████░░` | Model fields + handler + tests done. Live location updates not implemented.
+
+## Flow Diagram
+
+```mermaid
+flowchart LR
+    A[Address Text] --> B{Share GPS?}
+    B -->|Yes| C[Telegram Location]
+    B -->|Skip| D[Phone Number]
+    C --> D
+    D --> E[Delivery Note]
+```
+
 **Phase:** 1 — Core Thailand Differentiators
 **Priority:** High
 **Effort:** Low (half day)
@@ -79,12 +94,12 @@ longitude = Column(Float, nullable=True)
 
 ## Acceptance Criteria
 
-- [ ] User can share GPS location during checkout
-- [ ] Location is optional (text address still works alone)
-- [ ] Google Maps link auto-generated from coordinates
-- [ ] Admin sees Maps link in order view
-- [ ] CLI displays coordinates and Maps link
-- [ ] Saved to CustomerInfo for future orders
+- [x] User can share GPS location during checkout
+- [x] Location is optional (text address still works alone)
+- [x] Google Maps link auto-generated from coordinates
+- [x] Admin sees Maps link in order view
+- [x] CLI displays coordinates and Maps link
+- [x] Saved to CustomerInfo for future orders
 - [ ] Live location updates handled (if shared)
 
 ## Test Plan
