@@ -60,6 +60,10 @@ class EnvKeys(ABC):
     # Delivery chat (Card 15)
     POST_DELIVERY_CHAT_MINUTES: Final = int(os.getenv("POST_DELIVERY_CHAT_MINUTES", 30))
 
+    # Support / Maintainer (live chat)
+    SUPPORT_CHAT_ID: Final = os.getenv("SUPPORT_CHAT_ID")  # Group/channel ID where support staff monitor
+    MAINTAINER_IDS: Final = os.getenv("MAINTAINER_IDS", "")  # Comma-separated Telegram IDs of app maintainers
+
     # Monitoring
     MONITORING_HOST: Final = os.getenv("MONITORING_HOST", "localhost")
     MONITORING_PORT: Final = int(os.getenv("MONITORING_PORT", 9090))

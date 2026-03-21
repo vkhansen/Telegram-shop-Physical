@@ -3,11 +3,12 @@ from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from bot.database import Database
-from bot.database.models.main import Order, OrderItem
+from bot.database.models.main import Order, OrderItem, Goods, ShoppingCart, Review
 from bot.database.methods import query_user_orders, count_user_orders
 from bot.keyboards import back, simple_buttons
 from bot.i18n import localize
 from bot.config import EnvKeys
+from bot.utils.invoice import generate_invoice_text
 
 router = Router()
 
@@ -293,17 +294,36 @@ async def view_order_details(call: CallbackQuery, state: FSMContext):
             # For expired, canceled, cancelled, etc. - go to all orders
             view_filter = 'all'
 
-        buttons = [
-            (localize("btn.back_to_orders"), f"view_orders_{view_filter}")
-        ]
+        buttons = []
+
+        # Reorder button for delivered orders
+        if order.order_status == 'delivered':
+            buttons.append((localize("btn.reorder"), f"reorder_{order.id}"))
+
+        # Review button for delivered orders (if not yet reviewed)
+        if order.order_status == 'delivered':
+            existing_review = session.query(Review).filter(
+                Review.order_id == order.id,
+                Review.user_id == user_id
+            ).first()
+            if not existing_review:
+                buttons.append((localize("btn.review_order"), f"review_prompt_{order.id}"))
+
+        # Invoice/receipt button for any order
+        buttons.append((localize("btn.invoice"), f"invoice_{order.id}"))
 
         # Add help button for pending orders
         if order.order_status in ('reserved', 'pending') and order.payment_method == 'bitcoin':
-            buttons.insert(0, (localize("btn.need_help"), "help_pending_order"))
+            buttons.append((localize("btn.need_help"), "help_pending_order"))
 
         # Add Chat with Driver button for out_for_delivery orders (Card 13)
         if order.order_status == 'out_for_delivery':
-            buttons.insert(0, (localize("btn.chat_with_driver"), f"chat_with_driver_{order.id}"))
+            buttons.append((localize("btn.chat_with_driver"), f"chat_with_driver_{order.id}"))
+
+        # Support ticket button
+        buttons.append((localize("btn.create_ticket_for_order"), f"create_ticket_for_order_{order.id}"))
+
+        buttons.append((localize("btn.back_to_orders"), f"view_orders_{view_filter}"))
 
         markup = simple_buttons(buttons, per_row=1)
 
@@ -330,4 +350,87 @@ async def help_pending_order(call: CallbackQuery):
     await call.message.edit_text(
         text,
         reply_markup=back("my_orders")
+    )
+
+
+@router.callback_query(F.data.startswith('reorder_'))
+async def reorder_handler(call: CallbackQuery):
+    """Copy items from a previous order into the shopping cart."""
+    user_id = call.from_user.id
+    order_id = int(call.data.replace('reorder_', ''))
+
+    with Database().session() as session:
+        order = session.query(Order).filter(
+            Order.id == order_id,
+            Order.buyer_id == user_id
+        ).first()
+
+        if not order:
+            await call.answer(localize("myorders.order_not_found"), show_alert=True)
+            return
+
+        items = session.query(OrderItem).filter(OrderItem.order_id == order.id).all()
+        added = 0
+        skipped = 0
+
+        for item in items:
+            # Check item still exists and has stock
+            good = session.query(Goods).filter(Goods.name == item.item_name).first()
+            if not good or good.available_quantity < item.quantity:
+                skipped += 1
+                continue
+
+            # Add to cart or update quantity
+            cart_item = session.query(ShoppingCart).filter_by(
+                user_id=user_id, item_name=item.item_name
+            ).first()
+
+            if cart_item:
+                cart_item.quantity += item.quantity
+                if item.selected_modifiers:
+                    cart_item.selected_modifiers = item.selected_modifiers
+            else:
+                cart_item = ShoppingCart(
+                    user_id=user_id,
+                    item_name=item.item_name,
+                    quantity=item.quantity,
+                    selected_modifiers=item.selected_modifiers
+                )
+                session.add(cart_item)
+            added += 1
+
+        session.commit()
+
+    text = localize("reorder.success", added=added, skipped=skipped)
+    buttons = [
+        (localize("btn.cart"), "view_cart"),
+        (localize("btn.back_to_orders"), f"view_order_{order_id}")
+    ]
+    await call.message.edit_text(text, reply_markup=simple_buttons(buttons, per_row=1))
+
+
+@router.callback_query(F.data.startswith('invoice_'))
+async def invoice_handler(call: CallbackQuery):
+    """Generate and show invoice/receipt for an order."""
+    user_id = call.from_user.id
+    order_id = int(call.data.replace('invoice_', ''))
+
+    # Verify ownership
+    with Database().session() as session:
+        order = session.query(Order).filter(
+            Order.id == order_id,
+            Order.buyer_id == user_id
+        ).first()
+        if not order:
+            await call.answer(localize("myorders.order_not_found"), show_alert=True)
+            return
+
+    invoice_text = generate_invoice_text(order_id)
+    if not invoice_text:
+        await call.answer(localize("invoice.not_available"), show_alert=True)
+        return
+
+    await call.message.edit_text(
+        f"<pre>{invoice_text}</pre>",
+        reply_markup=back(f"view_order_{order_id}")
     )

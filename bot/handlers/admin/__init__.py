@@ -9,6 +9,11 @@ from .user_management_states import router as user_management_router
 from .reference_code_management import router as reference_code_management_router
 from .settings_management import router as settings_management_router
 from .order_management import router as order_management_router
+from .coupon_management import router as coupon_management_router
+from .accounting_handler import router as accounting_router
+from .ticket_management import router as ticket_management_router
+from .segmented_broadcast import router as segmented_broadcast_router
+from .store_management import router as store_management_router
 
 from aiogram import Router
 
@@ -24,3 +29,8 @@ router.include_router(shop_management_router)
 router.include_router(update_position_router)
 router.include_router(user_management_router)
 router.include_router(order_management_router)
+router.include_router(coupon_management_router)
+router.include_router(accounting_router)
+router.include_router(ticket_management_router)
+router.include_router(segmented_broadcast_router)
+router.include_router(store_management_router)

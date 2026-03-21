@@ -64,3 +64,16 @@ def localize(key: str, /, locale: str | None = None, **kwargs: Any) -> str:
             logger.error(f"Failed to format translation key '{key}' with kwargs {kwargs}: {e}")
 
     return str(text)
+
+
+def validate_translations() -> list[str]:
+    """Check all locales have the same translation keys. Returns list of warnings."""
+    warnings = []
+    all_keys = set()
+    for d in TRANSLATIONS.values():
+        all_keys |= set(d.keys())
+    for locale, d in TRANSLATIONS.items():
+        missing = all_keys - set(d.keys())
+        if missing:
+            warnings.append(f"Locale '{locale}' missing {len(missing)} keys: {', '.join(sorted(missing)[:5])}...")
+    return warnings

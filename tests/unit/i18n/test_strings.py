@@ -3,6 +3,7 @@ import pytest
 import re
 
 from bot.i18n.strings import TRANSLATIONS
+from bot.i18n.main import validate_translations
 
 
 @pytest.mark.unit
@@ -70,3 +71,16 @@ class TestThaiTranslations:
             assert any(ord(c) > 127 for c in result), f"Expected Thai text, got: {result}"
 
         get_locale.cache_clear()
+
+
+@pytest.mark.unit
+class TestTranslationCompleteness:
+    """Test that all locales have the same translation keys."""
+
+    def test_validate_translations_no_warnings(self):
+        """All locales should have the same set of translation keys."""
+        warnings = validate_translations()
+        assert warnings == [], (
+            f"Translation validation failed with {len(warnings)} warning(s):\n"
+            + "\n".join(warnings)
+        )

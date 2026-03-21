@@ -352,6 +352,13 @@ class Order(Database.BASE):
     delivery_photo_at = Column(DateTime(timezone=True), nullable=True)
     delivery_photo_by = Column(BigInteger, nullable=True)
 
+    # Coupon / promo code
+    coupon_code = Column(String(32), nullable=True)
+    coupon_discount = Column(Numeric(12, 2), nullable=True, default=0)
+
+    # Multi-store
+    store_id = Column(Integer, ForeignKey('stores.id', ondelete="SET NULL"), nullable=True)
+
     buyer = relationship("User", foreign_keys=lambda: [Order.buyer_id])
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
 
@@ -588,6 +595,183 @@ class InventoryLog(Database.BASE):
         self.order_id = order_id
         self.admin_id = admin_id
         self.comment = comment
+
+
+class Coupon(Database.BASE):
+    """Coupon / promo code for discounts."""
+    __tablename__ = 'coupons'
+
+    id = Column(Integer, primary_key=True)
+    code = Column(String(32), unique=True, nullable=False, index=True)
+    discount_type = Column(String(10), nullable=False)  # 'percent' or 'fixed'
+    discount_value = Column(Numeric(12, 2), nullable=False)  # % or fixed amount
+    min_order = Column(Numeric(12, 2), nullable=True, default=0)  # Minimum order to apply
+    max_discount = Column(Numeric(12, 2), nullable=True)  # Cap for percent discounts
+    valid_from = Column(DateTime(timezone=True), nullable=True)
+    valid_until = Column(DateTime(timezone=True), nullable=True)
+    max_uses = Column(Integer, nullable=True)  # None = unlimited
+    current_uses = Column(Integer, nullable=False, default=0)
+    max_uses_per_user = Column(Integer, nullable=False, default=1)
+    is_active = Column(Boolean, nullable=False, default=True, index=True)
+    created_by = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    note = Column(Text, nullable=True)
+
+    usages = relationship("CouponUsage", back_populates="coupon", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index('ix_coupons_active_valid', 'is_active', 'valid_until'),
+    )
+
+    def __init__(self, code: str, discount_type: str, discount_value, created_by: int = None,
+                 min_order=0, max_discount=None, valid_from=None, valid_until=None,
+                 max_uses=None, max_uses_per_user=1, note=None, **kw: Any):
+        super().__init__(**kw)
+        self.code = code.upper()
+        self.discount_type = discount_type
+        self.discount_value = discount_value
+        self.min_order = min_order
+        self.max_discount = max_discount
+        self.valid_from = valid_from
+        self.valid_until = valid_until
+        self.max_uses = max_uses
+        self.max_uses_per_user = max_uses_per_user
+        self.created_by = created_by
+        self.note = note
+
+
+class CouponUsage(Database.BASE):
+    __tablename__ = 'coupon_usages'
+
+    id = Column(Integer, primary_key=True)
+    coupon_id = Column(Integer, ForeignKey('coupons.id', ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), nullable=False, index=True)
+    order_id = Column(Integer, ForeignKey('orders.id', ondelete="SET NULL"), nullable=True)
+    discount_applied = Column(Numeric(12, 2), nullable=False)
+    used_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    coupon = relationship("Coupon", back_populates="usages")
+
+    __table_args__ = (
+        Index('ix_coupon_usages_user_coupon', 'user_id', 'coupon_id'),
+    )
+
+    def __init__(self, coupon_id: int, user_id: int, discount_applied, order_id: int = None, **kw: Any):
+        super().__init__(**kw)
+        self.coupon_id = coupon_id
+        self.user_id = user_id
+        self.order_id = order_id
+        self.discount_applied = discount_applied
+
+
+class Review(Database.BASE):
+    """Product / order review with rating."""
+    __tablename__ = 'reviews'
+
+    id = Column(Integer, primary_key=True)
+    order_id = Column(Integer, ForeignKey('orders.id', ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), nullable=False, index=True)
+    item_name = Column(String(100), ForeignKey('goods.name', ondelete="CASCADE"), nullable=True)
+    rating = Column(Integer, nullable=False)  # 1-5
+    comment = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    order = relationship("Order", foreign_keys=lambda: [Review.order_id])
+    user = relationship("User", foreign_keys=lambda: [Review.user_id])
+
+    __table_args__ = (
+        UniqueConstraint('order_id', 'user_id', name='uq_review_order_user'),
+        Index('ix_reviews_item_rating', 'item_name', 'rating'),
+    )
+
+    def __init__(self, order_id: int, user_id: int, rating: int, comment: str = None,
+                 item_name: str = None, **kw: Any):
+        super().__init__(**kw)
+        self.order_id = order_id
+        self.user_id = user_id
+        self.rating = rating
+        self.comment = comment
+        self.item_name = item_name
+
+
+class SupportTicket(Database.BASE):
+    """Support ticket for customer issues."""
+    __tablename__ = 'support_tickets'
+
+    id = Column(Integer, primary_key=True)
+    ticket_code = Column(String(8), unique=True, nullable=False, index=True)
+    user_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), nullable=False, index=True)
+    subject = Column(String(200), nullable=False)
+    status = Column(String(20), nullable=False, default='open')  # open, in_progress, resolved, closed
+    priority = Column(String(10), nullable=False, default='normal')  # low, normal, high, urgent
+    order_id = Column(Integer, ForeignKey('orders.id', ondelete="SET NULL"), nullable=True)
+    assigned_to = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+
+    user = relationship("User", foreign_keys=lambda: [SupportTicket.user_id])
+    messages = relationship("TicketMessage", back_populates="ticket", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index('ix_support_tickets_user_status', 'user_id', 'status'),
+        Index('ix_support_tickets_status', 'status'),
+    )
+
+    def __init__(self, ticket_code: str, user_id: int, subject: str, status: str = 'open',
+                 priority: str = 'normal', order_id: int = None, **kw: Any):
+        super().__init__(**kw)
+        self.ticket_code = ticket_code
+        self.user_id = user_id
+        self.subject = subject
+        self.status = status
+        self.priority = priority
+        self.order_id = order_id
+
+
+class TicketMessage(Database.BASE):
+    __tablename__ = 'ticket_messages'
+
+    id = Column(Integer, primary_key=True)
+    ticket_id = Column(Integer, ForeignKey('support_tickets.id', ondelete="CASCADE"), nullable=False, index=True)
+    sender_id = Column(BigInteger, nullable=False)
+    sender_role = Column(String(10), nullable=False)  # 'user' or 'admin'
+    message_text = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    ticket = relationship("SupportTicket", back_populates="messages")
+
+    def __init__(self, ticket_id: int, sender_id: int, sender_role: str, message_text: str, **kw: Any):
+        super().__init__(**kw)
+        self.ticket_id = ticket_id
+        self.sender_id = sender_id
+        self.sender_role = sender_role
+        self.message_text = message_text
+
+
+class Store(Database.BASE):
+    """Store / branch location for multi-location support."""
+    __tablename__ = 'stores'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(200), unique=True, nullable=False)
+    address = Column(Text, nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    phone = Column(String(50), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True, index=True)
+    is_default = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    def __init__(self, name: str, address: str = None, latitude: float = None,
+                 longitude: float = None, phone: str = None, is_default: bool = False, **kw: Any):
+        super().__init__(**kw)
+        self.name = name
+        self.address = address
+        self.latitude = latitude
+        self.longitude = longitude
+        self.phone = phone
+        self.is_default = is_default
 
 
 def register_models():

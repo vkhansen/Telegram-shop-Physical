@@ -46,6 +46,15 @@ class HelpStates(StatesGroup):
     waiting_help_message = State()
 
 
+class SupportStates(StatesGroup):
+    """FSM for support ticket system."""
+    choosing_type = State()        # bug_report / feedback / live_chat
+    waiting_subject = State()      # Ticket subject line
+    waiting_description = State()  # Detailed description
+    waiting_screenshot = State()   # Optional screenshot
+    live_chatting = State()        # Active live chat with maintainer
+
+
 class CartStates(StatesGroup):
     """FSM for shopping cart checkout flow."""
     viewing_cart = State()
