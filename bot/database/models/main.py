@@ -319,6 +319,12 @@ class Order(Database.BASE):
     driver_live_location_message_id = Column(Integer, nullable=True)  # Message ID of live location shared with customer
     driver_id = Column(BigInteger, nullable=True)  # Telegram ID of assigned driver/rider
 
+    # Customer live location + chat session (Card 15)
+    customer_live_location_message_id = Column(Integer, nullable=True)  # Message ID of customer's live location
+    chat_opened_at = Column(DateTime(timezone=True), nullable=True)  # When chat session started
+    chat_closed_at = Column(DateTime(timezone=True), nullable=True)  # When chat session ended
+    chat_post_delivery_until = Column(DateTime(timezone=True), nullable=True)  # Post-delivery chat window end
+
     # PromptPay payment (Card 1)
     payment_receipt_photo = Column(String(255), nullable=True)  # Telegram file_id of payment slip
     payment_verified_by = Column(BigInteger, nullable=True)  # Admin who verified
@@ -327,7 +333,10 @@ class Order(Database.BASE):
     # Delivery type (Card 3)
     delivery_type = Column(String(20), nullable=False, default="door")  # door | dead_drop | pickup
     drop_instructions = Column(Text, nullable=True)
-    drop_location_photo = Column(String(255), nullable=True)  # Telegram file_id
+    drop_location_photo = Column(String(255), nullable=True)  # Telegram file_id (legacy single photo)
+    drop_latitude = Column(Float, nullable=True)   # Dead drop GPS lat
+    drop_longitude = Column(Float, nullable=True)  # Dead drop GPS lng
+    drop_media = Column(JSON, nullable=True)  # List of {"file_id": str, "type": "photo"|"video"}
 
     # Delivery photo proof (Card 4)
     delivery_photo = Column(String(255), nullable=True)  # Telegram file_id
@@ -351,6 +360,8 @@ class Order(Database.BASE):
                  bonus_applied=0, latitude: float = None, longitude: float = None,
                  google_maps_link: str = None, delivery_type: str = 'door',
                  drop_instructions: str = None, drop_location_photo: str = None,
+                 drop_latitude: float = None, drop_longitude: float = None,
+                 drop_media: list = None,
                  **kw: Any):
         super().__init__(**kw)
         self.buyer_id = buyer_id
@@ -371,6 +382,9 @@ class Order(Database.BASE):
         self.delivery_type = delivery_type
         self.drop_instructions = drop_instructions
         self.drop_location_photo = drop_location_photo
+        self.drop_latitude = drop_latitude
+        self.drop_longitude = drop_longitude
+        self.drop_media = drop_media
 
 
 class OrderItem(Database.BASE):
@@ -506,6 +520,8 @@ class DeliveryChatMessage(Database.BASE):
     photo_file_id = Column(String(255), nullable=True)  # If photo was sent
     location_lat = Column(Float, nullable=True)  # If location was shared
     location_lng = Column(Float, nullable=True)
+    is_live_location = Column(Boolean, nullable=False, default=False)  # True if from live location share (Card 15)
+    live_location_update_count = Column(Integer, nullable=True)  # Nth update of a live location session (Card 15)
     telegram_message_id = Column(Integer, nullable=True)  # Original message ID
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
@@ -518,6 +534,7 @@ class DeliveryChatMessage(Database.BASE):
     def __init__(self, order_id: int, sender_id: int, sender_role: str,
                  message_text: str = None, photo_file_id: str = None,
                  location_lat: float = None, location_lng: float = None,
+                 is_live_location: bool = False, live_location_update_count: int = None,
                  telegram_message_id: int = None, **kw: Any):
         super().__init__(**kw)
         self.order_id = order_id
@@ -527,6 +544,8 @@ class DeliveryChatMessage(Database.BASE):
         self.photo_file_id = photo_file_id
         self.location_lat = location_lat
         self.location_lng = location_lng
+        self.is_live_location = is_live_location
+        self.live_location_update_count = live_location_update_count
         self.telegram_message_id = telegram_message_id
 
 

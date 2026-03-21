@@ -625,3 +625,149 @@ async def customer_chat_message(message: Message, state: FSMContext):
         except Exception as e:
             logger.error(f"Failed to relay customer message for order {order.order_code}: {e}")
             await message.answer(localize("order.delivery.chat_unavailable"))
+
+
+# ===========================================================================
+# WIRED HANDLER: GPS Choice Callbacks (Card 15)
+# ===========================================================================
+
+@router.callback_query(F.data == "delivery_gps_static")
+async def gps_choice_static(call: CallbackQuery, state: FSMContext):
+    """Customer chose to send a single static location."""
+    await call.answer()
+    await call.message.edit_text(localize("delivery.gps.static_sent"))
+
+    # Set state to expect a location message
+    await state.set_state(DeliveryChatStates.waiting_customer_gps_choice)
+    await state.update_data(gps_mode="static")
+
+    # Prompt user to tap the attachment -> location
+    await call.message.answer(
+        "📎 Tap the attachment icon → Location → Send your current location"
+    )
+
+
+@router.callback_query(F.data == "delivery_gps_live")
+async def gps_choice_live(call: CallbackQuery, state: FSMContext):
+    """Customer chose to share live location."""
+    await call.answer()
+    await call.message.edit_text(localize("delivery.gps.live_started"))
+
+    await state.set_state(DeliveryChatStates.waiting_customer_gps_choice)
+    await state.update_data(gps_mode="live")
+
+    await call.message.answer(
+        "📎 Tap the attachment icon → Location → Share Live Location"
+    )
+
+
+@router.callback_query(F.data == "delivery_gps_skip")
+async def gps_choice_skip(call: CallbackQuery, state: FSMContext):
+    """Customer chose to skip GPS sharing."""
+    await call.answer()
+    await call.message.edit_text(localize("delivery.gps.skipped"))
+
+    # Enter chat mode directly
+    data = await state.get_data()
+    order_id = data.get("chat_order_id")
+    if order_id:
+        await state.set_state(DeliveryChatStates.chatting_with_driver)
+    else:
+        await state.clear()
+
+
+@router.message(DeliveryChatStates.waiting_customer_gps_choice, F.location)
+async def handle_gps_choice_location(message: Message, state: FSMContext):
+    """Handle the location message after customer chose static or live GPS."""
+    data = await state.get_data()
+    gps_mode = data.get("gps_mode", "static")
+    order_id = data.get("chat_order_id")
+
+    if not order_id:
+        await state.clear()
+        await message.answer(localize("order.delivery.chat_no_active_delivery"))
+        return
+
+    with Database().session() as session:
+        order = session.query(Order).filter_by(id=order_id).first()
+        if not order:
+            await state.clear()
+            return
+
+        if message.location.live_period or gps_mode == "live":
+            await handle_customer_live_location(message.bot, order, message)
+            await message.answer(localize("delivery.gps.live_started"))
+        else:
+            await handle_customer_static_location(message.bot, order, message)
+            await message.answer(localize("delivery.gps.static_sent"))
+
+    # Transition to chat mode
+    await state.set_state(DeliveryChatStates.chatting_with_driver)
+
+
+# ===========================================================================
+# WIRED HANDLER: Live Location Edit Events (Card 15)
+# ===========================================================================
+
+@router.edited_message(F.location, F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP}))
+async def edited_location_rider_group(message: Message):
+    """
+    Capture live location updates from driver in the rider group.
+    Telegram sends edited_message events when a live location pin moves.
+    """
+    rider_group_id = EnvKeys.RIDER_GROUP_ID
+    if not rider_group_id or str(message.chat.id) != str(rider_group_id):
+        return
+
+    if message.from_user and message.from_user.is_bot:
+        return
+
+    sender_id = message.from_user.id
+
+    with Database().session() as session:
+        order = session.query(Order).filter(
+            Order.driver_id == sender_id,
+            Order.order_status.in_(['out_for_delivery', 'delivered']),
+        ).order_by(Order.created_at.desc()).first()
+
+        if not order:
+            return
+
+        try:
+            await handle_live_location_update(message.bot, order, message, "driver")
+        except Exception as e:
+            logger.error(f"Failed to log driver live location update for order {order.order_code}: {e}")
+
+
+@router.edited_message(F.location, F.chat.type == ChatType.PRIVATE)
+async def edited_location_customer(message: Message):
+    """
+    Capture live location updates from customer in private chat.
+    Telegram sends edited_message events when a live location pin moves.
+    Relays the updated position to the rider group.
+    """
+    sender_id = message.from_user.id
+
+    with Database().session() as session:
+        order = session.query(Order).filter(
+            Order.buyer_id == sender_id,
+            Order.customer_live_location_message_id.isnot(None),
+            Order.order_status.in_(['out_for_delivery', 'confirmed', 'preparing', 'ready']),
+        ).order_by(Order.created_at.desc()).first()
+
+        if not order:
+            return
+
+        try:
+            await handle_live_location_update(message.bot, order, message, "customer")
+
+            # Also relay updated location to rider group
+            rider_group_id = EnvKeys.RIDER_GROUP_ID
+            if rider_group_id:
+                await message.bot.send_location(
+                    int(rider_group_id),
+                    latitude=message.location.latitude,
+                    longitude=message.location.longitude,
+                )
+        except Exception as e:
+            logger.error(f"Failed to log customer live location update for order {order.order_code}: {e}")

@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-> **0% → In Progress** | `░░░░░░░░░░░░░░░░░░░░` | Design complete, implementation starting.
+> **75% Complete** | `███████████████░░░░░` | Models, handler, keyboards, states, i18n done. Wiring into main router + tests remaining.
 
 **Phase:** 4 — Delivery Experience
 **Priority:** High
@@ -168,19 +168,21 @@ def is_chat_active(order: Order) -> bool:
 
 ## Acceptance Criteria
 
-- [ ] Customer receives GPS prompt when order goes `out_for_delivery`
-- [ ] Customer can send single static GPS location
-- [ ] Customer can share live GPS location (Telegram live location)
-- [ ] Customer's live location forwarded to rider group for driver
-- [ ] Driver's live location forwarded to customer (Card 13 enhancement)
-- [ ] Live location edit events captured and logged
-- [ ] Chat session active from `confirmed` through `delivered` + post-delivery window
-- [ ] Post-delivery chat window configurable via env var
-- [ ] Chat session closed message after window expires
-- [ ] All GPS points logged in `delivery_chat_messages` with `is_live_location` flag
-- [ ] All chat messages logged with full metadata
-- [ ] Admin can retrieve full chat + location history via `get_chat_history()`
-- [ ] i18n strings for all 7 locales
+- [x] Customer receives GPS prompt when order goes `out_for_delivery`
+- [x] Customer can send single static GPS location
+- [x] Customer can share live GPS location (Telegram live location)
+- [x] Customer's live location forwarded to rider group for driver
+- [x] Driver's live location forwarded to customer (Card 13 enhancement)
+- [x] Live location edit events captured and logged
+- [x] Chat session active from `confirmed` through `delivered` + post-delivery window
+- [x] Post-delivery chat window configurable via env var
+- [x] Chat session closed message after window expires
+- [x] All GPS points logged in `delivery_chat_messages` with `is_live_location` flag
+- [x] All chat messages logged with full metadata
+- [x] Admin can retrieve full chat + location history via `get_chat_history()`
+- [x] i18n strings for 5 main locales (ru, en, th, ar, fa — ps/fr fallback to en)
+- [ ] Wire into main router (edited_message handler for live location updates)
+- [ ] Unit tests
 
 ## Test Plan
 

@@ -30,7 +30,7 @@ class TestDeliveryTypeFields:
         assert order.delivery_type == "door"
 
     def test_order_delivery_type_dead_drop(self, db_with_roles, db_session):
-        """Dead drop delivery type with instructions and photo"""
+        """Dead drop delivery type with instructions, GPS, and media"""
         user = User(telegram_id=800002, registration_date=datetime.now(timezone.utc))
         db_session.add(user)
         db_session.commit()
@@ -43,7 +43,13 @@ class TestDeliveryTypeFields:
             phone_number="0898765432",
             delivery_type="dead_drop",
             drop_instructions="Leave with security guard at lobby desk",
-            drop_location_photo="AgACAgIAAxk_fake_photo_id"
+            drop_location_photo="AgACAgIAAxk_fake_photo_id",
+            drop_latitude=13.7563,
+            drop_longitude=100.5018,
+            drop_media=[
+                {"file_id": "AgACAgIAAxk_photo1", "type": "photo"},
+                {"file_id": "BAACAgIAAxk_video1", "type": "video"},
+            ]
         )
         db_session.add(order)
         db_session.commit()
@@ -52,6 +58,11 @@ class TestDeliveryTypeFields:
         assert order.delivery_type == "dead_drop"
         assert order.drop_instructions == "Leave with security guard at lobby desk"
         assert order.drop_location_photo == "AgACAgIAAxk_fake_photo_id"
+        assert order.drop_latitude == pytest.approx(13.7563)
+        assert order.drop_longitude == pytest.approx(100.5018)
+        assert len(order.drop_media) == 2
+        assert order.drop_media[0]["type"] == "photo"
+        assert order.drop_media[1]["type"] == "video"
 
     def test_order_delivery_type_pickup(self, db_with_roles, db_session):
         """Pickup delivery type"""
@@ -73,6 +84,9 @@ class TestDeliveryTypeFields:
         assert order.delivery_type == "pickup"
         assert order.drop_instructions is None
         assert order.drop_location_photo is None
+        assert order.drop_latitude is None
+        assert order.drop_longitude is None
+        assert order.drop_media is None
 
     def test_order_drop_fields_nullable(self, db_with_roles, db_session):
         """Drop instructions and photo should be nullable"""
@@ -93,6 +107,9 @@ class TestDeliveryTypeFields:
 
         assert order.drop_instructions is None
         assert order.drop_location_photo is None
+        assert order.drop_latitude is None
+        assert order.drop_longitude is None
+        assert order.drop_media is None
 
 
 @pytest.mark.unit

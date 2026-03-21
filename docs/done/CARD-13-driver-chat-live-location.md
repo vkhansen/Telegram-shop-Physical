@@ -7,15 +7,18 @@
 
 ---
 
-## Implementation Status: 85% Complete
+## Implementation Status: 100% Complete
 
 - [x] Model: `DeliveryChatMessage` table for audit trail
 - [x] Model: `driver_id`, `driver_live_location_message_id` on Order
 - [x] Handler: `delivery_chat_handler.py` with relay functions
-- [x] i18n: Chat strings in ru/en/th
-- [x] Tests: 7 tests passing
-- [ ] Handler: Wire into rider group message listener
-- [ ] Handler: Wire customer reply detection for active deliveries
+- [x] i18n: Chat strings in ru/en/th/ar/fa
+- [x] Tests: 13 tests passing
+- [x] Handler: Wire into rider group message listener
+- [x] Handler: Wire customer reply detection for active deliveries
+- [x] FSM: `DeliveryChatStates.chatting_with_driver` for customer chat mode
+- [x] UI: "Chat with Driver" button on order detail for `out_for_delivery` orders
+- [x] Router: `delivery_chat_router` registered in user handlers
 
 ---
 

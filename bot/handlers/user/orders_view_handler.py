@@ -285,7 +285,7 @@ async def view_order_details(call: CallbackQuery, state: FSMContext):
             text += localize("myorders.detail.delivered_thanks_message") + "\n"
 
         # Map order status to view filter
-        if order.order_status in ('reserved', 'pending', 'confirmed'):
+        if order.order_status in ('reserved', 'pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery'):
             view_filter = 'active'
         elif order.order_status == 'delivered':
             view_filter = 'delivered'
@@ -300,6 +300,10 @@ async def view_order_details(call: CallbackQuery, state: FSMContext):
         # Add help button for pending orders
         if order.order_status in ('reserved', 'pending') and order.payment_method == 'bitcoin':
             buttons.insert(0, (localize("btn.need_help"), "help_pending_order"))
+
+        # Add Chat with Driver button for out_for_delivery orders (Card 13)
+        if order.order_status == 'out_for_delivery':
+            buttons.insert(0, (localize("btn.chat_with_driver"), f"chat_with_driver_{order.id}"))
 
         markup = simple_buttons(buttons, per_row=1)
 

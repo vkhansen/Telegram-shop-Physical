@@ -26,11 +26,19 @@ class OrderStates(StatesGroup):
     waiting_location = State()  # GPS location sharing (Card 2)
     waiting_delivery_type = State()  # Door / Dead Drop / Pickup (Card 3)
     waiting_drop_instructions = State()  # Dead drop instructions (Card 3)
-    waiting_drop_photo = State()  # Dead drop location photo (Card 3)
+    waiting_drop_gps = State()  # Dead drop GPS location (Card 3)
+    waiting_drop_media = State()  # Dead drop photos/videos — multiple (Card 3)
+    waiting_drop_photo = State()  # Dead drop location photo — legacy (Card 3)
     waiting_phone_number = State()
     waiting_delivery_note = State()
     waiting_bonus_amount = State()  # For applying referral bonus to order
     waiting_payment_method = State()
+
+
+class DeliveryChatStates(StatesGroup):
+    """FSM for delivery chat flow (Card 13 + Card 15)."""
+    chatting_with_driver = State()  # Customer is in active chat relay mode (Card 13)
+    waiting_customer_gps_choice = State()  # GPS choice prompt (Card 15)
 
 
 class HelpStates(StatesGroup):

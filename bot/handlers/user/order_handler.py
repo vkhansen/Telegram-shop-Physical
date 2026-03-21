@@ -140,24 +140,114 @@ async def delivery_type_pickup(call: CallbackQuery, state: FSMContext):
 
 @router.message(OrderStates.waiting_drop_instructions)
 async def process_drop_instructions(message: Message, state: FSMContext):
-    """Collect dead drop instructions text"""
+    """Collect dead drop instructions text, then ask for GPS location"""
     instructions = message.text.strip()
     await state.update_data(drop_instructions=instructions)
 
-    # Ask for optional photo of drop location
+    # Ask for GPS location of the dead drop
     await message.answer(
-        localize("order.delivery.drop_photo_prompt"),
+        localize("order.delivery.drop_gps_prompt"),
+        reply_markup=ReplyKeyboardMarkup(
+            keyboard=[[KeyboardButton(
+                text=localize("btn.share_drop_location"),
+                request_location=True
+            )]],
+            resize_keyboard=True,
+            one_time_keyboard=True,
+        )
+    )
+    await state.set_state(OrderStates.waiting_drop_gps)
+
+
+@router.message(OrderStates.waiting_drop_gps, F.location)
+async def process_drop_gps(message: Message, state: FSMContext):
+    """Save GPS coordinates for the dead drop location"""
+    await state.update_data(
+        drop_latitude=message.location.latitude,
+        drop_longitude=message.location.longitude,
+    )
+    await message.answer(
+        localize("order.delivery.drop_gps_saved"),
+        reply_markup=ReplyKeyboardRemove(),
+    )
+
+    # Now ask for photos/videos of the drop location
+    await state.update_data(drop_media=[])
+    await message.answer(
+        localize("order.delivery.drop_media_prompt"),
         reply_markup=simple_buttons([
-            (localize("btn.skip_drop_photo"), "skip_drop_photo")
+            (localize("btn.skip_drop_media"), "skip_drop_media")
         ], per_row=1)
     )
-    await state.set_state(OrderStates.waiting_drop_photo)
+    await state.set_state(OrderStates.waiting_drop_media)
 
+
+@router.message(OrderStates.waiting_drop_media, F.photo)
+async def process_drop_media_photo(message: Message, state: FSMContext):
+    """Accumulate a photo for the dead drop location"""
+    file_id = message.photo[-1].file_id
+    data = await state.get_data()
+    media_list = data.get('drop_media', [])
+    media_list.append({"file_id": file_id, "type": "photo"})
+    await state.update_data(drop_media=media_list)
+
+    await message.answer(
+        localize("order.delivery.drop_media_saved", count=len(media_list)),
+        reply_markup=simple_buttons([
+            (localize("btn.drop_media_done"), "done_drop_media"),
+            (localize("btn.skip_drop_media"), "skip_drop_media"),
+        ], per_row=1)
+    )
+
+
+@router.message(OrderStates.waiting_drop_media, F.video)
+async def process_drop_media_video(message: Message, state: FSMContext):
+    """Accumulate a video for the dead drop location"""
+    file_id = message.video.file_id
+    data = await state.get_data()
+    media_list = data.get('drop_media', [])
+    media_list.append({"file_id": file_id, "type": "video"})
+    await state.update_data(drop_media=media_list)
+
+    await message.answer(
+        localize("order.delivery.drop_media_saved", count=len(media_list)),
+        reply_markup=simple_buttons([
+            (localize("btn.drop_media_done"), "done_drop_media"),
+            (localize("btn.skip_drop_media"), "skip_drop_media"),
+        ], per_row=1)
+    )
+
+
+@router.callback_query(F.data == "done_drop_media", OrderStates.waiting_drop_media)
+async def done_drop_media(call: CallbackQuery, state: FSMContext):
+    """User finished uploading drop media — proceed to phone number"""
+    await call.answer()
+    await call.message.edit_text(localize("order.delivery.phone_prompt"))
+    await call.message.answer(
+        localize("order.delivery.phone_prompt"),
+        reply_markup=back("view_cart")
+    )
+    await state.set_state(OrderStates.waiting_phone_number)
+
+
+@router.callback_query(F.data == "skip_drop_media", OrderStates.waiting_drop_media)
+async def skip_drop_media(call: CallbackQuery, state: FSMContext):
+    """User skipped drop location media"""
+    await call.answer()
+    await call.message.edit_text(localize("order.delivery.phone_prompt"))
+    await call.message.answer(
+        localize("order.delivery.phone_prompt"),
+        reply_markup=back("view_cart")
+    )
+    await state.set_state(OrderStates.waiting_phone_number)
+
+
+# --- Legacy single-photo handlers (kept for backward compat) ---
 
 @router.message(OrderStates.waiting_drop_photo, F.photo)
 async def process_drop_photo(message: Message, state: FSMContext):
-    """Save photo of drop location"""
-    photo_file_id = message.photo[-1].file_id  # Largest resolution
+    """Save photo of drop location (legacy single-photo flow)"""
+    photo_file_id = message.photo[-1].file_id
     await state.update_data(drop_location_photo=photo_file_id)
 
     await message.answer(localize("order.delivery.drop_photo_saved"))
@@ -170,7 +260,7 @@ async def process_drop_photo(message: Message, state: FSMContext):
 
 @router.callback_query(F.data == "skip_drop_photo", OrderStates.waiting_drop_photo)
 async def skip_drop_photo(call: CallbackQuery, state: FSMContext):
-    """User skipped drop location photo"""
+    """User skipped drop location photo (legacy flow)"""
     await call.answer()
     await call.message.edit_text(localize("order.delivery.phone_prompt"))
     await call.message.answer(
@@ -570,6 +660,14 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
         )
         return
 
+    # Dead drop fields from FSM state
+    fsm_data = await state.get_data()
+    dd_type = fsm_data.get('delivery_type', 'door')
+    dd_instructions = fsm_data.get('drop_instructions')
+    dd_lat = fsm_data.get('drop_latitude')
+    dd_lng = fsm_data.get('drop_longitude')
+    dd_media = fsm_data.get('drop_media')
+
     # Get customer info
     with Database().session() as session:
         customer_info = session.query(CustomerInfo).filter_by(
@@ -596,7 +694,12 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
                 order_status="pending",
                 latitude=customer_info.latitude,
                 longitude=customer_info.longitude,
-                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude else None
+                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude else None,
+                delivery_type=dd_type,
+                drop_instructions=dd_instructions,
+                drop_latitude=dd_lat,
+                drop_longitude=dd_lng,
+                drop_media=dd_media,
             )
             session.add(order)
             session.flush()  # Get the order ID
@@ -735,9 +838,14 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
     # Calculate total
     total_amount = await calculate_cart_total(user_id)
 
-    # Get bonus_applied from state
+    # Get state data (bonus + dead drop fields)
     data = await state.get_data()
     bonus_applied = Decimal(str(data.get('bonus_applied', 0)))
+    dd_type = data.get('delivery_type', 'door')
+    dd_instructions = data.get('drop_instructions')
+    dd_lat = data.get('drop_latitude')
+    dd_lng = data.get('drop_longitude')
+    dd_media = data.get('drop_media')
 
     # Calculate final amount after bonus
     final_amount = total_amount - bonus_applied
@@ -792,7 +900,12 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
                 order_status="pending",
                 latitude=customer_info.latitude,
                 longitude=customer_info.longitude,
-                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude else None
+                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude else None,
+                delivery_type=dd_type,
+                drop_instructions=dd_instructions,
+                drop_latitude=dd_lat,
+                drop_longitude=dd_lng,
+                drop_media=dd_media,
             )
             session.add(order)
             session.flush()  # Get the order ID
@@ -968,9 +1081,14 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
     # Calculate total
     total_amount = await calculate_cart_total(user_id)
 
-    # Get bonus_applied from state
+    # Get state data (bonus + dead drop fields)
     data = await state.get_data()
     bonus_applied = Decimal(str(data.get('bonus_applied', 0)))
+    dd_type = data.get('delivery_type', 'door')
+    dd_instructions = data.get('drop_instructions')
+    dd_lat = data.get('drop_latitude')
+    dd_lng = data.get('drop_longitude')
+    dd_media = data.get('drop_media')
 
     # Calculate final amount after bonus
     final_amount = total_amount - bonus_applied
@@ -1015,7 +1133,12 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
                 order_status="pending",
                 latitude=customer_info.latitude,
                 longitude=customer_info.longitude,
-                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude else None
+                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude else None,
+                delivery_type=dd_type,
+                drop_instructions=dd_instructions,
+                drop_latitude=dd_lat,
+                drop_longitude=dd_lng,
+                drop_media=dd_media,
             )
             session.add(order)
             session.flush()  # Get the order ID
@@ -1191,6 +1314,11 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
     total_amount = await calculate_cart_total(user_id)
     data = await state.get_data()
     bonus_applied = Decimal(str(data.get('bonus_applied', 0)))
+    dd_type = data.get('delivery_type', 'door')
+    dd_instructions = data.get('drop_instructions')
+    dd_lat = data.get('drop_latitude')
+    dd_lng = data.get('drop_longitude')
+    dd_media = data.get('drop_media')
     final_amount = total_amount - bonus_applied
 
     with Database().session() as session:
@@ -1218,7 +1346,12 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
                 order_status="pending",
                 latitude=customer_info.latitude,
                 longitude=customer_info.longitude,
-                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude else None
+                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude else None,
+                delivery_type=dd_type,
+                drop_instructions=dd_instructions,
+                drop_latitude=dd_lat,
+                drop_longitude=dd_lng,
+                drop_media=dd_media,
             )
             session.add(order)
             session.flush()
