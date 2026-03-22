@@ -2,19 +2,35 @@
 
 from bot.ai.schemas import (
     AdjustStockAction,
+    AssignDriverAction,
+    BanUserAction,
     BulkPriceUpdateAction,
+    ChangeOrderStatusAction,
     CreateCategoryAction,
+    CreateCouponAction,
     CreateItemAction,
+    CreateReferenceCodeAction,
     DataMappingProposal,
+    DeactivateReferenceCodeAction,
     DeleteCategoryAction,
     DeleteItemAction,
+    GenerateItemImagesAction,
     GetStatsAction,
+    ListCouponsAction,
+    ListReferenceCodesAction,
+    ListStoresAction,
     LookupUserAction,
     MenuImportAction,
+    RevenueReportAction,
     SearchChatMessagesAction,
     SearchDeliveriesAction,
     SearchOrdersAction,
+    SendBroadcastAction,
+    ToggleCouponAction,
+    ToggleStoreAction,
+    UnbanUserAction,
     UpdateItemAction,
+    UpdateItemImageAction,
     ViewInventoryAction,
 )
 
@@ -75,19 +91,45 @@ def schema_to_tool(model_class) -> dict:
 
 
 ALL_TOOLS = [
+    # Menu
     schema_to_tool(CreateItemAction),
     schema_to_tool(UpdateItemAction),
+    schema_to_tool(UpdateItemImageAction),
+    schema_to_tool(GenerateItemImagesAction),
     schema_to_tool(DeleteItemAction),
     schema_to_tool(BulkPriceUpdateAction),
     schema_to_tool(AdjustStockAction),
     schema_to_tool(CreateCategoryAction),
     schema_to_tool(DeleteCategoryAction),
+    # Orders
+    schema_to_tool(ChangeOrderStatusAction),
+    schema_to_tool(AssignDriverAction),
+    # Users
+    schema_to_tool(BanUserAction),
+    schema_to_tool(UnbanUserAction),
+    # Coupons
+    schema_to_tool(CreateCouponAction),
+    schema_to_tool(ListCouponsAction),
+    schema_to_tool(ToggleCouponAction),
+    # Reference codes
+    schema_to_tool(CreateReferenceCodeAction),
+    schema_to_tool(ListReferenceCodesAction),
+    schema_to_tool(DeactivateReferenceCodeAction),
+    # Broadcast
+    schema_to_tool(SendBroadcastAction),
+    # Stores
+    schema_to_tool(ListStoresAction),
+    schema_to_tool(ToggleStoreAction),
+    # Reports
+    schema_to_tool(RevenueReportAction),
+    # Search / query
     schema_to_tool(SearchOrdersAction),
     schema_to_tool(SearchChatMessagesAction),
     schema_to_tool(SearchDeliveriesAction),
     schema_to_tool(LookupUserAction),
     schema_to_tool(GetStatsAction),
     schema_to_tool(ViewInventoryAction),
+    # Import
     schema_to_tool(MenuImportAction),
     schema_to_tool(DataMappingProposal),
 ]

@@ -1,14 +1,96 @@
 version: '3.8'
 
 services:
+  # ── Tailscale VPN Gateway ───────────────────────────────────────────
+  # All admin-facing services (DB, Redis, monitoring) are reachable ONLY
+  # through the Tailscale network.  No ports are published to 0.0.0.0.
+  #
+  # Setup:
+  #   1. Create an auth key at https://login.tailscale.com/admin/settings/keys
+  #      (reusable + ephemeral recommended)
+  #   2. Set TS_AUTHKEY in your .env file
+  #   3. After `docker compose up`, find this node in your Tailscale admin
+  #      console — it will appear as "telegram-shop"
+  #   4. Connect via Tailscale IP:  psql -h <tailscale-ip> -p 5432
+  #
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: telegram_shop_tailscale
+    hostname: telegram-shop
+    environment:
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: true
+      TS_EXTRA_ARGS: "--hostname=telegram-shop"
+    volumes:
+      - tailscale_state:/var/lib/tailscale
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "tailscale", "status", "--json"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - bot_network
+    # Tailscale needs these capabilities in userspace mode
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+  # ── pgweb — Read-Only Database Explorer ────────────────────────────
+  # Password-protected web UI for browsing the database schema and data.
+  # Access via Tailscale IP on port 8081.  Read-only mode prevents writes.
+  pgweb:
+    image: sosedoff/pgweb
+    container_name: telegram_shop_pgweb
+    environment:
+      PGWEB_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+      PGWEB_AUTH_USER: ${PGWEB_USER:-admin}
+      PGWEB_AUTH_PASS: ${PGWEB_PASSWORD}
+      PGWEB_READONLY: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    # No public ports — access via Tailscale only
+    networks:
+      - bot_network
+
+  # ── Tailscale TCP Proxy ─────────────────────────────────────────────
+  # Forwards Tailscale-accessible ports to internal Docker services.
+  # This lets you reach DB/Redis/monitoring via the Tailscale IP without
+  # exposing anything on the host's public interface.
+  tailscale-proxy:
+    image: alpine/socat:latest
+    container_name: telegram_shop_ts_proxy
+    depends_on:
+      tailscale:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    network_mode: "service:tailscale"
+    # Forward four ports from Tailscale interface → internal services
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        socat TCP-LISTEN:5432,fork,reuseaddr TCP:db:5432 &
+        socat TCP-LISTEN:6379,fork,reuseaddr TCP:redis:6379 &
+        socat TCP-LISTEN:9090,fork,reuseaddr TCP:bot:9090 &
+        socat TCP-LISTEN:8081,fork,reuseaddr TCP:pgweb:8081 &
+        wait
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     container_name: telegram_shop_redis
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
+    # No public ports — access via Tailscale only
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
@@ -33,8 +115,7 @@ services:
       LC_ALL: en_US.UTF-8
     volumes:
       - db_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # No public ports — access via Tailscale only
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 5s
@@ -67,8 +148,7 @@ services:
       # Logging configuration
       LOG_TO_STDOUT: 1
       LOG_TO_FILE: 1
-    ports:
-      - "9090:9090"
+    # No public ports — monitoring accessible via Tailscale only
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
@@ -92,6 +172,8 @@ volumes:
   db_data:
     driver: local
   redis_data:
+    driver: local
+  tailscale_state:
     driver: local
 
 networks:

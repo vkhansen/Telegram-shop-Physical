@@ -24,15 +24,19 @@ from bot.database.methods.read import (
     select_today_orders,
     select_today_users,
 )
-from bot.database.methods.update import update_item
+from bot.database.methods.update import ban_user, unban_user, update_item
 from bot.database.models.main import (
     Categories,
+    Coupon,
     DeliveryChatMessage,
     Goods,
     Order,
     OrderItem,
+    ReferenceCode,
+    Store,
     User,
 )
+from bot.utils.order_status import is_valid_transition, get_allowed_transitions
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +68,14 @@ async def execute_query(action: BaseModel) -> dict:
             return _lookup_user(action)
         case "propose_mapping":
             return {"mapping": action.model_dump()}
+        case "list_coupons":
+            return _list_coupons(action)
+        case "list_refcodes":
+            return _list_refcodes(action)
+        case "list_stores":
+            return _list_stores(action)
+        case "revenue_report":
+            return _revenue_report(action)
         case _:
             return {"error": f"Unknown query action: {action.action}"}
 
@@ -75,6 +87,8 @@ async def execute_mutation(action: BaseModel, admin_id: int) -> dict:
             return _exec_create_item(action, admin_id)
         case "update_item":
             return _exec_update_item(action, admin_id)
+        case "update_item_image":
+            return _exec_update_item_image(action, admin_id)
         case "delete_item":
             return _exec_delete_item(action, admin_id)
         case "bulk_price_update":
@@ -87,6 +101,26 @@ async def execute_mutation(action: BaseModel, admin_id: int) -> dict:
             return _exec_delete_category(action, admin_id)
         case "import_menu":
             return _exec_import_menu(action, admin_id)
+        case "change_order_status":
+            return _exec_change_order_status(action, admin_id)
+        case "assign_driver":
+            return _exec_assign_driver(action, admin_id)
+        case "ban_user":
+            return _exec_ban_user(action, admin_id)
+        case "unban_user":
+            return _exec_unban_user(action, admin_id)
+        case "create_coupon":
+            return _exec_create_coupon(action, admin_id)
+        case "toggle_coupon":
+            return _exec_toggle_coupon(action, admin_id)
+        case "create_refcode":
+            return _exec_create_refcode(action, admin_id)
+        case "deactivate_refcode":
+            return _exec_deactivate_refcode(action, admin_id)
+        case "send_broadcast":
+            return await _exec_send_broadcast(action, admin_id)
+        case "toggle_store":
+            return _exec_toggle_store(action, admin_id)
         case _:
             return {"error": f"Unknown mutation action: {action.action}"}
 
@@ -160,11 +194,11 @@ def _search_chat(action) -> dict:
             else:
                 q = q.filter(DeliveryChatMessage.location_lat.is_(None))
         if action.date_from:
-            q = q.filter(DeliveryChatMessage.sent_at >= _day_start(action.date_from))
+            q = q.filter(DeliveryChatMessage.created_at >= _day_start(action.date_from))
         if action.date_to:
-            q = q.filter(DeliveryChatMessage.sent_at < _day_end(action.date_to))
+            q = q.filter(DeliveryChatMessage.created_at < _day_end(action.date_to))
 
-        msgs = q.order_by(DeliveryChatMessage.sent_at.desc()).limit(action.limit).all()
+        msgs = q.order_by(DeliveryChatMessage.created_at.desc()).limit(action.limit).all()
         result = []
         for m in msgs:
             result.append({
@@ -173,7 +207,7 @@ def _search_chat(action) -> dict:
                 "sender_id": m.sender_id,
                 "text": m.message_text,
                 "has_photo": m.photo_file_id is not None,
-                "sent_at": str(m.sent_at),
+                "sent_at": str(m.created_at),
             })
         return {"messages": result, "count": len(result)}
 
@@ -351,6 +385,24 @@ def _exec_update_item(action, admin_id: int) -> dict:
     return {"success": True, "updated": action.item_name}
 
 
+def _exec_update_item_image(action, admin_id: int) -> dict:
+    if not action.photo_file_id:
+        return {"error": "No photo attached. Please send a photo with your message to update the item image."}
+
+    existing = get_item_info(action.item_name)
+    if not existing:
+        return {"error": f"Item '{action.item_name}' not found"}
+
+    with Database().session() as s:
+        goods = s.query(Goods).filter(Goods.name == action.item_name).first()
+        if goods:
+            goods.image_file_id = action.photo_file_id
+            s.commit()
+
+    logger.info("AI admin %s updated image for '%s'", admin_id, action.item_name)
+    return {"success": True, "updated_image": action.item_name}
+
+
 def _exec_delete_item(action, admin_id: int) -> dict:
     if not action.confirm:
         return {"error": "Deletion requires confirm=True"}
@@ -505,3 +557,375 @@ def _exec_import_menu(action, admin_id: int) -> dict:
         "skipped": len(skipped),
         "failed": len(failed),
     }
+
+
+# ── Order management ────────────────────────────────────────────────
+
+def _exec_change_order_status(action, admin_id: int) -> dict:
+    with Database().session() as s:
+        order = s.query(Order).filter(Order.order_code == action.order_code).first()
+        if not order:
+            return {"error": f"Order '{action.order_code}' not found"}
+        if not action.confirm:
+            return {"error": "Status change requires confirm=True"}
+
+        current = order.order_status
+        if not is_valid_transition(current, action.new_status):
+            allowed = get_allowed_transitions(current)
+            return {
+                "error": f"Cannot transition from '{current}' to '{action.new_status}'",
+                "allowed_transitions": list(allowed),
+            }
+
+        order.order_status = action.new_status
+        if action.new_status == "delivered":
+            order.completed_at = datetime.datetime.now(datetime.UTC)
+        s.commit()
+
+    logger.info("AI admin %s changed order %s: %s → %s",
+                admin_id, action.order_code, current, action.new_status)
+    return {
+        "success": True,
+        "order_code": action.order_code,
+        "old_status": current,
+        "new_status": action.new_status,
+    }
+
+
+def _exec_assign_driver(action, admin_id: int) -> dict:
+    with Database().session() as s:
+        order = s.query(Order).filter(Order.order_code == action.order_code).first()
+        if not order:
+            return {"error": f"Order '{action.order_code}' not found"}
+
+        order.driver_id = action.driver_id
+        s.commit()
+
+    logger.info("AI admin %s assigned driver %d to order %s",
+                admin_id, action.driver_id, action.order_code)
+    return {"success": True, "order_code": action.order_code, "driver_id": action.driver_id}
+
+
+# ── User management ────────────────────────────────────────────────
+
+def _exec_ban_user(action, admin_id: int) -> dict:
+    if not action.confirm:
+        return {"error": "Ban requires confirm=True"}
+
+    user = check_user(action.telegram_id)
+    if not user:
+        return {"error": f"User {action.telegram_id} not found"}
+
+    success = ban_user(action.telegram_id, banned_by=admin_id, reason=action.reason)
+    if not success:
+        return {"error": f"Could not ban user {action.telegram_id} (already banned or is owner)"}
+
+    logger.info("AI admin %s banned user %s, reason: %s",
+                admin_id, action.telegram_id, action.reason)
+    return {"success": True, "banned": action.telegram_id}
+
+
+def _exec_unban_user(action, admin_id: int) -> dict:
+    if not action.confirm:
+        return {"error": "Unban requires confirm=True"}
+
+    success = unban_user(action.telegram_id)
+    if not success:
+        return {"error": f"Could not unban user {action.telegram_id} (not found or not banned)"}
+
+    logger.info("AI admin %s unbanned user %s", admin_id, action.telegram_id)
+    return {"success": True, "unbanned": action.telegram_id}
+
+
+# ── Coupon management ──────────────────────────────────────────────
+
+def _exec_create_coupon(action, admin_id: int) -> dict:
+    with Database().session() as s:
+        existing = s.query(Coupon).filter(Coupon.code == action.code.upper()).first()
+        if existing:
+            return {"error": f"Coupon '{action.code.upper()}' already exists"}
+
+        valid_until = None
+        if action.valid_until:
+            valid_until = datetime.datetime.strptime(action.valid_until, "%Y-%m-%d")
+
+        coupon = Coupon(
+            code=action.code.upper(),
+            discount_type=action.discount_type,
+            discount_value=float(action.discount_value),
+            min_order=float(action.min_order),
+            max_discount=float(action.max_discount) if action.max_discount else None,
+            max_uses=action.max_uses,
+            max_uses_per_user=action.max_uses_per_user,
+            valid_until=valid_until,
+            created_by=admin_id,
+            note=action.note,
+        )
+        s.add(coupon)
+        s.commit()
+
+    logger.info("AI admin %s created coupon '%s'", admin_id, action.code.upper())
+    return {"success": True, "created": action.code.upper()}
+
+
+def _list_coupons(action) -> dict:
+    with Database().session() as s:
+        q = s.query(Coupon)
+        if action.active_only:
+            q = q.filter(Coupon.is_active.is_(True))
+        coupons = q.order_by(Coupon.created_at.desc()).limit(action.limit).all()
+        result = []
+        for c in coupons:
+            result.append({
+                "code": c.code,
+                "discount_type": c.discount_type,
+                "discount_value": str(c.discount_value),
+                "min_order": str(c.min_order) if c.min_order else "0",
+                "max_uses": c.max_uses,
+                "current_uses": c.current_uses,
+                "is_active": c.is_active,
+                "valid_until": str(c.valid_until) if c.valid_until else None,
+                "note": c.note,
+            })
+        return {"coupons": result, "count": len(result)}
+
+
+def _exec_toggle_coupon(action, admin_id: int) -> dict:
+    with Database().session() as s:
+        coupon = s.query(Coupon).filter(Coupon.code == action.code.upper()).first()
+        if not coupon:
+            return {"error": f"Coupon '{action.code.upper()}' not found"}
+        coupon.is_active = action.is_active
+        s.commit()
+
+    logger.info("AI admin %s toggled coupon '%s' to %s",
+                admin_id, action.code.upper(), action.is_active)
+    return {"success": True, "code": action.code.upper(), "is_active": action.is_active}
+
+
+# ── Reference code management ─────────────────────────────────────
+
+def _exec_create_refcode(action, admin_id: int) -> dict:
+    import random
+    import string
+
+    code = "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+    expires_at = None
+    if action.expires_in_hours > 0:
+        expires_at = datetime.datetime.now(datetime.UTC) + datetime.timedelta(
+            hours=action.expires_in_hours
+        )
+
+    with Database().session() as s:
+        refcode = ReferenceCode(
+            code=code,
+            created_by=admin_id,
+            expires_at=expires_at,
+            max_uses=action.max_uses if action.max_uses > 0 else None,
+            note=action.note,
+            is_admin_code=True,
+        )
+        s.add(refcode)
+        s.commit()
+
+    logger.info("AI admin %s created refcode '%s'", admin_id, code)
+    return {"success": True, "code": code, "expires_at": str(expires_at) if expires_at else None}
+
+
+def _list_refcodes(action) -> dict:
+    with Database().session() as s:
+        q = s.query(ReferenceCode)
+        if action.active_only:
+            q = q.filter(ReferenceCode.is_active.is_(True))
+        codes = q.order_by(ReferenceCode.created_at.desc()).limit(action.limit).all()
+        result = []
+        for rc in codes:
+            result.append({
+                "code": rc.code,
+                "is_active": rc.is_active,
+                "max_uses": rc.max_uses,
+                "current_uses": rc.current_uses,
+                "expires_at": str(rc.expires_at) if rc.expires_at else None,
+                "note": rc.note,
+                "created_at": str(rc.created_at),
+            })
+        return {"reference_codes": result, "count": len(result)}
+
+
+def _exec_deactivate_refcode(action, admin_id: int) -> dict:
+    with Database().session() as s:
+        refcode = s.query(ReferenceCode).filter(ReferenceCode.code == action.code).first()
+        if not refcode:
+            return {"error": f"Reference code '{action.code}' not found"}
+        refcode.is_active = False
+        s.commit()
+
+    logger.info("AI admin %s deactivated refcode '%s'", admin_id, action.code)
+    return {"success": True, "deactivated": action.code}
+
+
+# ── Broadcast ──────────────────────────────────────────────────────
+
+async def _exec_send_broadcast(action, admin_id: int) -> dict:
+    if not action.confirm:
+        return {"error": "Broadcast requires confirm=True"}
+
+    from bot.database.methods.read import get_all_users
+
+    # Determine target user IDs
+    if action.segment == "all":
+        user_ids = get_all_users()
+    else:
+        user_ids = _get_segment_users(action.segment)
+
+    if not user_ids:
+        return {"error": f"No users found in segment '{action.segment}'"}
+
+    # We return the count for Grok to confirm — actual sending is handled
+    # by the conversation handler which has access to the bot instance.
+    logger.info("AI admin %s broadcast to %d users (segment: %s)",
+                admin_id, len(user_ids), action.segment)
+    return {
+        "success": True,
+        "segment": action.segment,
+        "target_count": len(user_ids),
+        "message_preview": action.message[:100],
+        "user_ids": user_ids,
+    }
+
+
+def _get_segment_users(segment: str) -> list[int]:
+    """Get user IDs for a broadcast segment."""
+    with Database().session() as s:
+        from bot.database.models.main import CustomerInfo
+        now = datetime.datetime.now(datetime.UTC)
+
+        if segment == "high_spenders":
+            from sqlalchemy import func
+            avg_spend = s.query(func.avg(CustomerInfo.total_spendings)).scalar() or 0
+            threshold = float(avg_spend) * 2
+            users = s.query(CustomerInfo.telegram_id).filter(
+                CustomerInfo.total_spendings >= threshold
+            ).all()
+            return [u[0] for u in users]
+
+        elif segment == "recent_buyers":
+            cutoff = now - datetime.timedelta(days=7)
+            users = s.query(Order.buyer_id).filter(
+                Order.created_at >= cutoff
+            ).distinct().all()
+            return [u[0] for u in users if u[0]]
+
+        elif segment == "inactive":
+            cutoff = now - datetime.timedelta(days=30)
+            active = {u[0] for u in s.query(Order.buyer_id).filter(
+                Order.created_at >= cutoff
+            ).distinct().all() if u[0]}
+            all_users = {u[0] for u in s.query(User.telegram_id).all()}
+            return list(all_users - active)
+
+        elif segment == "new_users":
+            cutoff = now - datetime.timedelta(days=7)
+            users = s.query(User.telegram_id).filter(
+                User.registration_date >= cutoff
+            ).all()
+            return [u[0] for u in users]
+
+        return []
+
+
+# ── Store management ───────────────────────────────────────────────
+
+def _list_stores(action) -> dict:
+    with Database().session() as s:
+        q = s.query(Store)
+        if action.active_only:
+            q = q.filter(Store.is_active.is_(True))
+        stores = q.order_by(Store.name).all()
+        result = []
+        for st in stores:
+            result.append({
+                "id": st.id,
+                "name": st.name,
+                "address": st.address,
+                "phone": st.phone,
+                "is_active": st.is_active,
+                "is_default": st.is_default,
+                "latitude": st.latitude,
+                "longitude": st.longitude,
+            })
+        return {"stores": result, "count": len(result)}
+
+
+def _exec_toggle_store(action, admin_id: int) -> dict:
+    with Database().session() as s:
+        store = s.query(Store).filter(Store.name == action.store_name).first()
+        if not store:
+            return {"error": f"Store '{action.store_name}' not found"}
+        store.is_active = action.is_active
+        s.commit()
+
+    logger.info("AI admin %s toggled store '%s' to %s",
+                admin_id, action.store_name, action.is_active)
+    return {"success": True, "store": action.store_name, "is_active": action.is_active}
+
+
+# ── Revenue report ─────────────────────────────────────────────────
+
+def _revenue_report(action) -> dict:
+    now = datetime.datetime.now(datetime.UTC)
+    periods = {
+        "today": now.replace(hour=0, minute=0, second=0, microsecond=0),
+        "week": now - datetime.timedelta(days=7),
+        "month": now - datetime.timedelta(days=30),
+        "all": datetime.datetime(2000, 1, 1),
+    }
+    since = periods[action.period]
+
+    with Database().session() as s:
+        from sqlalchemy import func
+
+        q = s.query(Order).filter(
+            Order.created_at >= since,
+            Order.order_status == "delivered",
+        )
+        orders = q.all()
+
+        total_revenue = sum(float(o.total_price) for o in orders)
+        order_count = len(orders)
+        avg_value = total_revenue / order_count if order_count else 0
+
+        result = {
+            "period": action.period,
+            "total_revenue": f"{total_revenue:.2f}",
+            "order_count": order_count,
+            "avg_order_value": f"{avg_value:.2f}",
+        }
+
+        if action.include_by_payment:
+            by_payment = {}
+            for o in orders:
+                method = o.payment_method or "unknown"
+                by_payment[method] = by_payment.get(method, 0) + float(o.total_price)
+            result["by_payment_method"] = {
+                k: f"{v:.2f}" for k, v in by_payment.items()
+            }
+
+        if action.include_top_products:
+            items = s.query(
+                OrderItem.item_name,
+                func.sum(OrderItem.quantity).label("qty"),
+                func.sum(OrderItem.price * OrderItem.quantity).label("revenue"),
+            ).join(Order).filter(
+                Order.created_at >= since,
+                Order.order_status == "delivered",
+            ).group_by(OrderItem.item_name).order_by(
+                func.sum(OrderItem.price * OrderItem.quantity).desc()
+            ).limit(10).all()
+            result["top_products"] = [
+                {"name": name, "qty_sold": int(qty), "revenue": f"{float(rev):.2f}"}
+                for name, qty, rev in items
+            ]
+
+        return result

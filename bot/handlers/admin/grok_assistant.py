@@ -13,6 +13,7 @@ from aiogram.types import CallbackQuery, Message
 from bot.ai.data_parser import extract_content
 from bot.ai.executor import execute_mutation, execute_query
 from bot.ai.grok_client import call_grok
+from bot.ai.image_gen import generate_and_save_item_image, get_items_missing_images
 from bot.ai.prompts import build_system_prompt
 from bot.ai.schemas import MUTATION_TOOLS, TOOL_SCHEMA_MAP
 from bot.ai.tool_defs import ALL_TOOLS
@@ -129,6 +130,11 @@ async def handle_chat_message(message: Message, state: FSMContext):
     user_content = await extract_content(message)
     history.append({"role": "user", "content": user_content})
 
+    # Capture photo file_id if admin attached a photo (for image updates)
+    photo_file_id = None
+    if message.photo:
+        photo_file_id = message.photo[-1].file_id  # Largest resolution
+
     # Send typing indicator
     await message.bot.send_chat_action(message.chat.id, "typing")
 
@@ -152,7 +158,8 @@ async def handle_chat_message(message: Message, state: FSMContext):
     if assistant_msg.get("tool_calls"):
         for tool_call in assistant_msg["tool_calls"]:
             result = await _process_tool_call(
-                tool_call, message.from_user.id
+                tool_call, message.from_user.id, photo_file_id,
+                bot=message.bot, chat_id=message.chat.id,
             )
             history.append({
                 "role": "tool",
@@ -172,7 +179,10 @@ async def handle_chat_message(message: Message, state: FSMContext):
             while followup_msg.get("tool_calls") and depth < 3:
                 depth += 1
                 for tc in followup_msg["tool_calls"]:
-                    res = await _process_tool_call(tc, message.from_user.id)
+                    res = await _process_tool_call(
+                        tc, message.from_user.id, photo_file_id,
+                        bot=message.bot, chat_id=message.chat.id,
+                    )
                     history.append({
                         "role": "tool",
                         "tool_call_id": tc["id"],
@@ -199,7 +209,13 @@ async def handle_chat_message(message: Message, state: FSMContext):
         await message.answer(chunk, reply_markup=_exit_keyboard())
 
 
-async def _process_tool_call(tool_call: dict, admin_id: int) -> dict:
+async def _process_tool_call(
+    tool_call: dict,
+    admin_id: int,
+    photo_file_id: str | None = None,
+    bot=None,
+    chat_id: int | None = None,
+) -> dict:
     """Validate tool call against Pydantic schema and execute."""
     func_name = tool_call["function"]["name"]
 
@@ -207,6 +223,10 @@ async def _process_tool_call(tool_call: dict, admin_id: int) -> dict:
         args = json.loads(tool_call["function"]["arguments"])
     except json.JSONDecodeError as e:
         return {"error": f"Invalid JSON in tool arguments: {e}"}
+
+    # Inject photo_file_id for image update actions
+    if func_name == "update_item_image" and photo_file_id:
+        args["photo_file_id"] = photo_file_id
 
     schema_class = TOOL_SCHEMA_MAP.get(func_name)
     if not schema_class:
@@ -222,11 +242,73 @@ async def _process_tool_call(tool_call: dict, admin_id: int) -> dict:
             "hint": "Ask the admin for the missing/invalid fields",
         }
 
+    # Special handling: AI image generation needs bot + chat_id
+    if func_name == "generate_item_images":
+        return await _handle_generate_images(validated, admin_id, bot, chat_id)
+
     # Execute
     if func_name in MUTATION_TOOLS:
         return await execute_mutation(validated, admin_id)
     else:
         return await execute_query(validated)
+
+
+async def _handle_generate_images(action, admin_id: int, bot, chat_id: int) -> dict:
+    """Handle AI image generation — needs bot instance for Telegram upload."""
+    if not action.confirm:
+        return {"error": "Image generation requires confirm=True (costs API credits)"}
+    if not bot or not chat_id:
+        return {"error": "Image generation requires an active Telegram session"}
+
+    # Determine which items to generate for
+    if action.all_missing:
+        items = get_items_missing_images()
+    else:
+        items = []
+        with Database().session() as s:
+            for name in action.item_names:
+                goods = s.query(Goods).filter(Goods.name == name).first()
+                if goods:
+                    items.append({
+                        "name": goods.name,
+                        "description": goods.description,
+                        "category_name": goods.category_name,
+                    })
+                else:
+                    return {"error": f"Item '{name}' not found"}
+
+    if not items:
+        return {"success": True, "message": "No items need images", "generated": 0}
+
+    # Generate images one by one, reporting progress
+    generated = []
+    failed = []
+    for item in items:
+        try:
+            await bot.send_chat_action(chat_id, "upload_photo")
+            result = await generate_and_save_item_image(
+                bot=bot,
+                chat_id=chat_id,
+                item_name=item["name"],
+                description=item["description"],
+                category=item["category_name"],
+            )
+            if result.get("success"):
+                generated.append(item["name"])
+            else:
+                failed.append({"item": item["name"], "error": result.get("error", "Unknown")})
+        except Exception as e:
+            failed.append({"item": item["name"], "error": str(e)})
+
+    logger.info("AI admin %s generated %d images (%d failed)",
+                admin_id, len(generated), len(failed))
+    return {
+        "success": True,
+        "generated": len(generated),
+        "generated_items": generated,
+        "failed": len(failed),
+        "failed_items": failed,
+    }
 
 
 def _split_message(text: str, max_len: int = 4000) -> list[str]:
