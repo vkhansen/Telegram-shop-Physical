@@ -1,8 +1,10 @@
 """Action executor — validated Pydantic models to database calls (Card 17)."""
 
+import asyncio
 import datetime
 import logging
 from decimal import Decimal
+from functools import partial
 
 from pydantic import BaseModel
 
@@ -56,34 +58,40 @@ def _day_end(date_str: str) -> datetime.datetime:
     return datetime.datetime.combine(d, datetime.time.min) + datetime.timedelta(days=1)
 
 
+async def _run_sync(func, *args):
+    """Run a synchronous function in a thread executor to avoid blocking the event loop."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, partial(func, *args))
+
+
 async def execute_query(action: BaseModel) -> dict:
     """Execute read-only database queries."""
     match action.action:
         case "search_orders":
-            return _search_orders(action)
+            return await _run_sync(_search_orders, action)
         case "search_chat":
-            return _search_chat(action)
+            return await _run_sync(_search_chat, action)
         case "search_deliveries":
-            return _search_deliveries(action)
+            return await _run_sync(_search_deliveries, action)
         case "view_inventory":
-            return _view_inventory(action)
+            return await _run_sync(_view_inventory, action)
         case "get_stats":
-            return _get_stats(action)
+            return await _run_sync(_get_stats, action)
         case "lookup_user":
-            return _lookup_user(action)
+            return await _run_sync(_lookup_user, action)
         case "propose_mapping":
             return {"mapping": action.model_dump()}
         case "list_item_media":
             from bot.ai.image_gen import list_item_media
-            return list_item_media(action.item_name)
+            return await _run_sync(list_item_media, action.item_name)
         case "list_coupons":
-            return _list_coupons(action)
+            return await _run_sync(_list_coupons, action)
         case "list_refcodes":
-            return _list_refcodes(action)
+            return await _run_sync(_list_refcodes, action)
         case "list_stores":
-            return _list_stores(action)
+            return await _run_sync(_list_stores, action)
         case "revenue_report":
-            return _revenue_report(action)
+            return await _run_sync(_revenue_report, action)
         case _:
             return {"error": f"Unknown query action: {action.action}"}
 
@@ -92,48 +100,48 @@ async def execute_mutation(action: BaseModel, admin_id: int) -> dict:
     """Execute validated mutation with audit logging."""
     match action.action:
         case "create_item":
-            return _exec_create_item(action, admin_id)
+            return await _run_sync(_exec_create_item, action, admin_id)
         case "update_item":
-            return _exec_update_item(action, admin_id)
+            return await _run_sync(_exec_update_item, action, admin_id)
         case "update_item_image":
-            return _exec_update_item_image(action, admin_id)
+            return await _run_sync(_exec_update_item_image, action, admin_id)
         case "generate_item_images":
             # Handled specially in grok_assistant.py (needs bot instance)
             return {"error": "generate_item_images must be handled by the conversation handler"}
         case "remove_item_media":
-            return _exec_remove_item_media(action, admin_id)
+            return await _run_sync(_exec_remove_item_media, action, admin_id)
         case "delete_item":
-            return _exec_delete_item(action, admin_id)
+            return await _run_sync(_exec_delete_item, action, admin_id)
         case "bulk_price_update":
-            return _exec_bulk_price_update(action, admin_id)
+            return await _run_sync(_exec_bulk_price_update, action, admin_id)
         case "adjust_stock":
-            return _exec_adjust_stock(action, admin_id)
+            return await _run_sync(_exec_adjust_stock, action, admin_id)
         case "create_category":
-            return _exec_create_category(action, admin_id)
+            return await _run_sync(_exec_create_category, action, admin_id)
         case "delete_category":
-            return _exec_delete_category(action, admin_id)
+            return await _run_sync(_exec_delete_category, action, admin_id)
         case "import_menu":
-            return _exec_import_menu(action, admin_id)
+            return await _run_sync(_exec_import_menu, action, admin_id)
         case "change_order_status":
-            return _exec_change_order_status(action, admin_id)
+            return await _run_sync(_exec_change_order_status, action, admin_id)
         case "assign_driver":
-            return _exec_assign_driver(action, admin_id)
+            return await _run_sync(_exec_assign_driver, action, admin_id)
         case "ban_user":
-            return _exec_ban_user(action, admin_id)
+            return await _run_sync(_exec_ban_user, action, admin_id)
         case "unban_user":
-            return _exec_unban_user(action, admin_id)
+            return await _run_sync(_exec_unban_user, action, admin_id)
         case "create_coupon":
-            return _exec_create_coupon(action, admin_id)
+            return await _run_sync(_exec_create_coupon, action, admin_id)
         case "toggle_coupon":
-            return _exec_toggle_coupon(action, admin_id)
+            return await _run_sync(_exec_toggle_coupon, action, admin_id)
         case "create_refcode":
-            return _exec_create_refcode(action, admin_id)
+            return await _run_sync(_exec_create_refcode, action, admin_id)
         case "deactivate_refcode":
-            return _exec_deactivate_refcode(action, admin_id)
+            return await _run_sync(_exec_deactivate_refcode, action, admin_id)
         case "send_broadcast":
             return await _exec_send_broadcast(action, admin_id)
         case "toggle_store":
-            return _exec_toggle_store(action, admin_id)
+            return await _run_sync(_exec_toggle_store, action, admin_id)
         case _:
             return {"error": f"Unknown mutation action: {action.action}"}
 

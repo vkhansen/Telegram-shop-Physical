@@ -497,9 +497,9 @@ async def reply_ticket(call: CallbackQuery, state: FSMContext):
     )
 
 
-@router.message(TicketStates.waiting_reply)
+@router.message(TicketStates.waiting_reply, F.text)
 async def process_ticket_reply(message: Message, state: FSMContext):
-    """Save the user's reply to the ticket."""
+    """Save the user's reply to the ticket. LOGIC-18 fix: Added F.text filter."""
     msg_text = message.text.strip()
     if not msg_text:
         await message.answer(localize("ticket.reply_prompt"))

@@ -77,7 +77,11 @@ async def loc_method_gps(call: CallbackQuery, state: FSMContext):
         resize_keyboard=True,
         one_time_keyboard=True
     )
-    await call.message.edit_text(localize("order.delivery.gps_prompt"))
+    # LOGIC-21 fix: Don't send duplicate text — just delete old inline message
+    try:
+        await call.message.delete()
+    except Exception:
+        pass
     await call.message.answer(
         localize("order.delivery.gps_prompt"),
         reply_markup=location_kb
@@ -315,7 +319,11 @@ async def delivery_type_door(call: CallbackQuery, state: FSMContext):
     """User selected door delivery"""
     await call.answer()
     await state.update_data(delivery_type="door")
-    await call.message.edit_text(localize("order.delivery.phone_prompt"))
+    # LOGIC-21 fix: Don't send duplicate text
+    try:
+        await call.message.delete()
+    except Exception:
+        pass
     await call.message.answer(
         localize("order.delivery.phone_prompt"),
         reply_markup=back("view_cart")
@@ -339,7 +347,11 @@ async def delivery_type_pickup(call: CallbackQuery, state: FSMContext):
     """User selected self-pickup — skip address/location details"""
     await call.answer()
     await state.update_data(delivery_type="pickup")
-    await call.message.edit_text(localize("order.delivery.phone_prompt"))
+    # LOGIC-21 fix: Don't send duplicate text
+    try:
+        await call.message.delete()
+    except Exception:
+        pass
     await call.message.answer(
         localize("order.delivery.phone_prompt"),
         reply_markup=back("view_cart")

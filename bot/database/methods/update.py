@@ -95,7 +95,7 @@ def update_category(category_name: str, new_name: str) -> None:
     """Rename a category with proper transaction handling."""
     with Database().session() as s:
         try:
-            s.begin()
+            # LOGIC-12 fix: Removed explicit s.begin() — session context manager handles transactions
 
             # Block the category
             category = s.query(Categories).filter(

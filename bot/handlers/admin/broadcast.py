@@ -19,8 +19,8 @@ from bot.monitoring import get_metrics
 
 router = Router()
 
-# Global mailing list manager
-broadcast_manager: Optional[BroadcastManager] = None
+# LOGIC-16 fix: Per-admin broadcast managers to prevent concurrent broadcast conflicts
+_broadcast_managers: dict[int, BroadcastManager] = {}
 
 
 @router.callback_query(F.data == "send_message", HasPermissionFilter(permission=Permission.BROADCAST))
@@ -36,7 +36,7 @@ async def send_message_callback_handler(call: CallbackQuery, state: FSMContext):
 @router.message(BroadcastFSM.waiting_message, F.text)
 async def broadcast_messages(message: Message, state: FSMContext):
     """Executing mailing with progress bar"""
-    global broadcast_manager
+    admin_id = message.from_user.id
 
     try:
         # Validate broadcast message
@@ -76,12 +76,13 @@ async def broadcast_messages(message: Message, state: FSMContext):
             except (TelegramBadRequest, TelegramForbiddenError) as e:
                 audit_logger.warning(f"Failed to update broadcast progress message: {e}")
 
-        # Start the mailing
+        # LOGIC-16 fix: Per-admin broadcast manager
         broadcast_manager = BroadcastManager(
             bot=message.bot,
             batch_size=30,
             batch_delay=1.0
         )
+        _broadcast_managers[admin_id] = broadcast_manager
 
         # Track broadcast start
         metrics = get_metrics()

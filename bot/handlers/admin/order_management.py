@@ -165,9 +165,11 @@ async def order_detail_handler(call: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data.startswith("order_status_"), HasPermissionFilter(permission=Permission.SHOP_MANAGE))
 async def order_status_change_handler(call: CallbackQuery, state: FSMContext):
     """Change order status with validation and notifications."""
-    parts = call.data.split("_", 3)  # order_status_{id}_{new_status}
-    order_id = int(parts[2])
-    new_status = parts[3]
+    # LOGIC-15 fix: Use prefix removal for robust parsing of multi-word statuses
+    # e.g., "order_status_42_out_for_delivery" → id=42, status="out_for_delivery"
+    rest = call.data.removeprefix("order_status_")
+    order_id_str, new_status = rest.split("_", 1)
+    order_id = int(order_id_str)
 
     with Database().session() as session:
         order = session.query(Order).filter_by(id=order_id).first()

@@ -19,6 +19,16 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
+def _upsert_bot_setting(session, key: str, value: str) -> None:
+    """Insert or update a BotSettings row within an existing session."""
+    setting = session.query(BotSettings).filter_by(setting_key=key).first()
+    if setting:
+        setting.setting_value = value
+    else:
+        session.add(BotSettings(setting_key=key, setting_value=value))
+    session.commit()
+
+
 @router.callback_query(F.data == "settings_management", HasPermissionFilter(Permission.SETTINGS_MANAGE))
 async def settings_menu(call: CallbackQuery, state: FSMContext):
     """
@@ -92,20 +102,7 @@ async def process_referral_percent(message: Message, state: FSMContext):
 
         # Update database
         with Database().session() as session:
-            setting = session.query(BotSettings).filter_by(
-                setting_key='reference_bonus_percent'
-            ).first()
-
-            if setting:
-                setting.setting_value = str(percent_value)
-            else:
-                setting = BotSettings(
-                    setting_key='reference_bonus_percent',
-                    setting_value=str(percent_value)
-                )
-                session.add(setting)
-
-            session.commit()
+            _upsert_bot_setting(session, 'reference_bonus_percent', str(percent_value))
 
         # Show confirmation
         status_text = "enabled" if percent_value > 0 else "disabled"
@@ -175,20 +172,7 @@ async def process_order_timeout(message: Message, state: FSMContext):
 
         # Update database
         with Database().session() as session:
-            setting = session.query(BotSettings).filter_by(
-                setting_key='cash_order_timeout_hours'
-            ).first()
-
-            if setting:
-                setting.setting_value = str(timeout_hours)
-            else:
-                setting = BotSettings(
-                    setting_key='cash_order_timeout_hours',
-                    setting_value=str(timeout_hours)
-                )
-                session.add(setting)
-
-            session.commit()
+            _upsert_bot_setting(session, 'cash_order_timeout_hours', str(timeout_hours))
 
         # Calculate days for display
         days = timeout_hours / 24
@@ -252,20 +236,7 @@ async def select_timezone_from_button(call: CallbackQuery, state: FSMContext):
 
     # Update database
     with Database().session() as session:
-        setting = session.query(BotSettings).filter_by(
-            setting_key='timezone'
-        ).first()
-
-        if setting:
-            setting.setting_value = timezone_str
-        else:
-            setting = BotSettings(
-                setting_key='timezone',
-                setting_value=timezone_str
-            )
-            session.add(setting)
-
-        session.commit()
+        _upsert_bot_setting(session, 'timezone', timezone_str)
 
     # Hot reload timezone
     timezone.reload_timezone()
@@ -334,20 +305,7 @@ async def process_timezone_input(message: Message, state: FSMContext):
 
     # Update database
     with Database().session() as session:
-        setting = session.query(BotSettings).filter_by(
-            setting_key='timezone'
-        ).first()
-
-        if setting:
-            setting.setting_value = timezone_str
-        else:
-            setting = BotSettings(
-                setting_key='timezone',
-                setting_value=timezone_str
-            )
-            session.add(setting)
-
-        session.commit()
+        _upsert_bot_setting(session, 'timezone', timezone_str)
 
     # Hot reload timezone
     timezone.reload_timezone()

@@ -50,10 +50,13 @@ async def query_user_bought_items(user_id: int, offset: int = 0, limit: int = 10
         if count_only:
             return query.count()
 
-        return query.order_by(desc(BoughtGoods.bought_datetime)) \
+        # LOGIC-24 fix: Expunge objects from session so they survive session close
+        results = query.order_by(desc(BoughtGoods.bought_datetime)) \
             .offset(offset) \
             .limit(limit) \
             .all()
+        s.expunge_all()
+        return results
 
 
 async def query_all_users(offset: int = 0, limit: int = 10, count_only: bool = False) -> Any:
@@ -124,10 +127,13 @@ async def query_referral_earnings_from_user(referrer_id: int, referral_id: int, 
         if count_only:
             return query.count()
 
-        return query.order_by(desc(ReferralEarnings.created_at)) \
+        # LOGIC-24 fix: Expunge objects from session
+        results = query.order_by(desc(ReferralEarnings.created_at)) \
             .offset(offset) \
             .limit(limit) \
             .all()
+        s.expunge_all()
+        return results
 
 
 async def query_all_referral_earnings(referrer_id: int, offset: int = 0, limit: int = 10,
@@ -141,7 +147,10 @@ async def query_all_referral_earnings(referrer_id: int, offset: int = 0, limit: 
         if count_only:
             return query.count()
 
-        return query.order_by(desc(ReferralEarnings.created_at)) \
+        # LOGIC-24 fix: Expunge objects from session
+        results = query.order_by(desc(ReferralEarnings.created_at)) \
             .offset(offset) \
             .limit(limit) \
             .all()
+        s.expunge_all()
+        return results

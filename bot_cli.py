@@ -118,14 +118,13 @@ async def complete_order_by_code(order_code: str):
             print("   Make sure the order code is correct")
             return
 
-        # Check if already completed
-        if order.order_status == 'completed':
-            print(f"⚠️  Order {order_code} is already completed")
+        # LOGIC-17 fix: Use correct status values (delivered/cancelled, not completed/canceled)
+        if order.order_status == 'delivered':
+            print(f"⚠️  Order {order_code} is already delivered")
             return
 
-        # Check if canceled
-        if order.order_status == 'canceled':
-            print(f"❌ Cannot complete canceled order {order_code}")
+        if order.order_status == 'cancelled':
+            print(f"❌ Cannot complete cancelled order {order_code}")
             return
 
         # Get buyer information - username from Telegram API

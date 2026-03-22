@@ -277,11 +277,9 @@ async def start_bot() -> None:
             )
         except Exception as e:
             logging.error(f"Bot polling error: {e}")
-            # Saving the state in case of emergency termination
-            await __on_shutdown(dp, bot)
             raise
         finally:
-            # Correctly closing connections
+            # LOGIC-14 fix: Only shutdown once (removed duplicate from except block)
             await __on_shutdown(dp, bot)
 
             if cache_scheduler:

@@ -239,14 +239,15 @@ def deduct_inventory(order_id: int, admin_id: int = None, session: Session = Non
                 session.rollback()
                 return False, f"Item '{order_item.item_name}' not found"
 
+            # LOGIC-11 fix: Check BEFORE mutation
+            if goods.stock_quantity < order_item.quantity:
+                session.rollback()
+                return False, f"Stock would go negative for '{order_item.item_name}'"
+
             # Deduct from both stock_quantity and reserved_quantity
             goods.stock_quantity -= order_item.quantity
             goods.reserved_quantity -= order_item.quantity
 
-            # Safety check
-            if goods.stock_quantity < 0:
-                session.rollback()
-                return False, f"Stock would go negative for '{order_item.item_name}'"
             if goods.reserved_quantity < 0:
                 goods.reserved_quantity = 0  # Fix if somehow went negative
 

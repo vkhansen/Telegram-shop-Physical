@@ -57,7 +57,10 @@ class SecurityMiddleware(BaseMiddleware):
         }
 
     def generate_token(self, user_id: int, action: str) -> str:
-        """CSRF token generation"""
+        """CSRF token generation.
+        SEC-07 note: In Telegram Bot API, callbacks are inherently CSRF-protected
+        since only the button recipient can trigger them. These tokens add
+        replay-attack protection for critical actions."""
         timestamp = str(int(time.time()))
         data = f"{user_id}:{action}:{timestamp}"
 
@@ -126,10 +129,12 @@ class SecurityMiddleware(BaseMiddleware):
 
             # Checking critical actions
             if self.is_critical_action(event.data):
-                # Logging a critical action
+                # SEC-07 fix: Log critical action with audit trail
                 audit_logger.info(
                     f"Critical action: user={user.id}, action={event.data[:50]}"
                 )
+                # Inject CSRF helper into handler data for opt-in verification
+                data['csrf_manager'] = self
 
                 # Check that the callback is not too old (protection against replay attacks)
                 if hasattr(event.message, 'date'):

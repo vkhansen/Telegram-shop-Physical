@@ -749,7 +749,8 @@ class InventoryLog(Database.BASE):
     __tablename__ = 'inventory_log'
 
     id = Column(Integer, primary_key=True)
-    item_name = Column(String(100), ForeignKey('goods.name', ondelete="CASCADE"), nullable=False)
+    # LOGIC-13 fix: SET NULL on delete to preserve audit trail when items/categories are deleted
+    item_name = Column(String(100), ForeignKey('goods.name', ondelete="SET NULL"), nullable=True)
     change_type = Column(String(20), nullable=False)  # reserve, release, deduct, add, manual, expired
     quantity_change = Column(Integer, nullable=False)  # Can be negative or positive
     order_id = Column(Integer, ForeignKey('orders.id', ondelete="SET NULL"), nullable=True, index=True)

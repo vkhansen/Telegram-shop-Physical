@@ -14,7 +14,8 @@ def delete_item(item_name: str) -> None:
 
 
 def delete_category(category_name: str) -> None:
-    """Delete a category and all products/stock inside it."""
+    """Delete a category and its products.
+    LOGIC-13 fix: InventoryLog FK changed to SET NULL so audit trail is preserved."""
     with Database().session() as s:
         s.query(Categories).filter(Categories.name == category_name).delete(synchronize_session=False)
 

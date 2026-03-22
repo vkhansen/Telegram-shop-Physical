@@ -75,6 +75,12 @@ async def admin_create_refcode_expires(message: Message, state: FSMContext):
         message: Message with expiration hours
         state: FSM context
     """
+    # SEC-06 fix: Permission check on FSM state handler
+    user_role = check_role(message.from_user.id)
+    if not (user_role & (Permission.SHOP_MANAGE | Permission.ADMINS_MANAGE)):
+        await message.answer("❌ Access denied")
+        await state.clear()
+        return
     try:
         expires_hours = int(message.text)
         if expires_hours < 0:
@@ -108,6 +114,12 @@ async def admin_create_refcode_max_uses(message: Message, state: FSMContext):
         message: Message with max uses
         state: FSM context
     """
+    # SEC-06 fix: Permission check on FSM state handler
+    user_role = check_role(message.from_user.id)
+    if not (user_role & (Permission.SHOP_MANAGE | Permission.ADMINS_MANAGE)):
+        await message.answer("❌ Access denied")
+        await state.clear()
+        return
     try:
         max_uses = int(message.text)
         if max_uses < 0:
@@ -140,6 +152,12 @@ async def admin_create_refcode_note(message: Message, state: FSMContext):
         message: Message with note
         state: FSM context
     """
+    # SEC-06 fix: Permission check on FSM state handler
+    user_role = check_role(message.from_user.id)
+    if not (user_role & (Permission.SHOP_MANAGE | Permission.ADMINS_MANAGE)):
+        await message.answer("❌ Access denied")
+        await state.clear()
+        return
     note = None if message.text.lower() == 'skip' else message.text
     user_id = message.from_user.id
     username = message.from_user.username or f"admin_{user_id}"

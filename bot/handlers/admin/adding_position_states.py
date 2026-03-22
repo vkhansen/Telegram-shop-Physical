@@ -232,15 +232,20 @@ async def media_skip(call: CallbackQuery, state):
 @router.message(AddItemFSM.waiting_item_price, F.text)
 async def add_item_price(message: Message, state):
     """Validate price, ask for category."""
+    # LOGIC-22 fix: Accept decimal prices (e.g., "9.99") not just integers
     price_text = (message.text or "").strip()
-    if not price_text.isdigit():
+    try:
+        price_value = float(price_text)
+        if price_value <= 0:
+            raise ValueError("Price must be positive")
+    except ValueError:
         await message.answer(
             localize('admin.goods.add.price.invalid'),
             reply_markup=back('goods_management'),
         )
         return
 
-    await state.update_data(item_price=int(price_text))
+    await state.update_data(item_price=price_value)
     await message.answer(
         localize('admin.goods.add.prompt.category'),
         reply_markup=back('goods_management'),

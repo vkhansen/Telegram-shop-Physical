@@ -63,13 +63,12 @@ async def logs_callback_handler(call: CallbackQuery):
     """
     files_to_send = []
 
-    # Check audit log file
-    audit_file_path = "logs/audit.log"
+    # LOGIC-07 fix: Wrap strings in Path() objects
+    audit_file_path = Path("logs/audit.log")
     if audit_file_path.exists() and audit_file_path.stat().st_size > 0:
         files_to_send.append(('audit', audit_file_path))
 
-    # Check bot log file
-    bot_file_path = "logs/bot.log"
+    bot_file_path = Path("logs/bot.log")
     if bot_file_path.exists() and bot_file_path.stat().st_size > 0:
         files_to_send.append(('bot', bot_file_path))
 
@@ -103,6 +102,7 @@ async def statistics_callback_handler(call: CallbackQuery):
         daily_stats = await stats_cache.get_daily_stats(today_str)
         global_stats = await stats_cache.get_global_stats()
 
+        # LOGIC-27 fix: Use cached categories count instead of DB query inside cached branch
         text = localize(
             "admin.shop.stats.template",
             today_users=daily_stats['users'],
@@ -110,7 +110,7 @@ async def statistics_callback_handler(call: CallbackQuery):
             users=global_stats['total_users'],
             items=global_stats['total_items'],
             goods=global_stats['total_goods'],
-            categories=select_count_categories(),
+            categories=global_stats.get('total_categories', select_count_categories()),
             currency=EnvKeys.PAY_CURRENCY
         )
 

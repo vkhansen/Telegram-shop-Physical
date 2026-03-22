@@ -4,6 +4,7 @@ from decimal import Decimal
 from functools import wraps
 
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 
 from bot.caching import get_cache_manager
 from bot.database.models import (
@@ -38,15 +39,17 @@ def async_cached(ttl: int = 300, key_prefix: str = ""):
                 # Trying to get it from the cache
                 cached_value = await cache.get(cache_key)
                 if cached_value is not None:
-                    return cached_value
+                    # LOGIC-23 fix: Handle None sentinel
+                    return None if cached_value == "__NONE__" else cached_value
 
             # Execute synchronous function in executor
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(None, sync_func, *args)
 
-            # Save to cache
-            if cache and result is not None:
-                await cache.set(cache_key, result, ttl)
+            # LOGIC-23 fix: Cache None results too (use sentinel to distinguish cache miss)
+            if cache:
+                cache_value = result if result is not None else "__NONE__"
+                await cache.set(cache_key, cache_value, ttl)
 
             return result
 
@@ -62,11 +65,14 @@ def _day_window(date_str: str) -> tuple[datetime.datetime, datetime.datetime]:
     return start, end
 
 
-def check_user(telegram_id: int | str) -> User | None:
-    """Return user by Telegram ID or None if not found."""
+def check_user(telegram_id: int | str) -> dict | None:
+    """Return user dict by Telegram ID or None if not found.
+    LOGIC-19 fix: Filter out SQLAlchemy internal state from __dict__."""
     with Database().session() as s:
         result = s.query(User).filter(User.telegram_id == telegram_id).one_or_none()
-        return result.__dict__ if result else None
+        if not result:
+            return None
+        return {k: v for k, v in result.__dict__.items() if not k.startswith('_')}
 
 
 def check_role(telegram_id: int) -> int:
@@ -428,7 +434,9 @@ async def query_user_orders(user_id: int, status: str = None, limit: int = 10, o
         List of Order objects with items
     """
     with Database().session() as session:
-        query = session.query(Order).filter(Order.buyer_id == user_id)
+        query = session.query(Order).options(
+            joinedload(Order.items)
+        ).filter(Order.buyer_id == user_id)
 
         if status:
             query = query.filter(Order.order_status == status)
@@ -440,14 +448,11 @@ async def query_user_orders(user_id: int, status: str = None, limit: int = 10, o
         # Return order data as dicts to avoid session issues
         result = []
         for order in orders:
-            # Get order items
-            order_items = session.query(OrderItem).filter(OrderItem.order_id == order.id).all()
-
             items_data = [{
                 'item_name': item.item_name,
                 'price': float(item.price),
                 'quantity': item.quantity
-            } for item in order_items]
+            } for item in order.items]
 
             result.append({
                 'id': order.id,
@@ -545,6 +550,16 @@ def select_admins_cached():
 
 # ── Brand / multi-store queries ───────────────────────────────────────
 
+def _brand_to_dict(b) -> dict:
+    """Convert a Brand ORM instance to a plain dict."""
+    return {
+        'id': b.id, 'name': b.name, 'slug': b.slug,
+        'description': b.description, 'logo_file_id': b.logo_file_id,
+        'is_active': b.is_active, 'promptpay_id': b.promptpay_id,
+        'promptpay_name': b.promptpay_name, 'timezone': b.timezone,
+    }
+
+
 def get_all_brands(active_only: bool = True) -> list[dict]:
     """Return list of brands as dicts."""
     with Database().session() as s:
@@ -552,15 +567,7 @@ def get_all_brands(active_only: bool = True) -> list[dict]:
         if active_only:
             q = q.filter(Brand.is_active.is_(True))
         brands = q.order_by(Brand.name).all()
-        return [
-            {
-                'id': b.id, 'name': b.name, 'slug': b.slug,
-                'description': b.description, 'logo_file_id': b.logo_file_id,
-                'is_active': b.is_active, 'promptpay_id': b.promptpay_id,
-                'promptpay_name': b.promptpay_name, 'timezone': b.timezone,
-            }
-            for b in brands
-        ]
+        return [_brand_to_dict(b) for b in brands]
 
 
 def get_brand(brand_id: int) -> dict | None:
@@ -569,12 +576,7 @@ def get_brand(brand_id: int) -> dict | None:
         b = s.query(Brand).filter_by(id=brand_id).first()
         if not b:
             return None
-        return {
-            'id': b.id, 'name': b.name, 'slug': b.slug,
-            'description': b.description, 'logo_file_id': b.logo_file_id,
-            'is_active': b.is_active, 'promptpay_id': b.promptpay_id,
-            'promptpay_name': b.promptpay_name, 'timezone': b.timezone,
-        }
+        return _brand_to_dict(b)
 
 
 def get_brand_by_slug(slug: str) -> dict | None:
@@ -583,12 +585,7 @@ def get_brand_by_slug(slug: str) -> dict | None:
         b = s.query(Brand).filter_by(slug=slug).first()
         if not b:
             return None
-        return {
-            'id': b.id, 'name': b.name, 'slug': b.slug,
-            'description': b.description, 'logo_file_id': b.logo_file_id,
-            'is_active': b.is_active, 'promptpay_id': b.promptpay_id,
-            'promptpay_name': b.promptpay_name, 'timezone': b.timezone,
-        }
+        return _brand_to_dict(b)
 
 
 def get_stores_for_brand(brand_id: int, active_only: bool = True) -> list[dict]:
@@ -648,15 +645,7 @@ def get_user_brands(user_id: int) -> list[dict]:
             return []
 
         brands = s.query(Brand).filter(Brand.id.in_(brand_ids)).order_by(Brand.name).all()
-        return [
-            {
-                'id': b.id, 'name': b.name, 'slug': b.slug,
-                'description': b.description, 'logo_file_id': b.logo_file_id,
-                'is_active': b.is_active, 'promptpay_id': b.promptpay_id,
-                'promptpay_name': b.promptpay_name, 'timezone': b.timezone,
-            }
-            for b in brands
-        ]
+        return [_brand_to_dict(b) for b in brands]
 
 
 def is_superadmin(user_id: int) -> bool:

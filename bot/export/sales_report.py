@@ -36,7 +36,7 @@ def generate_sales_csv(from_date=None, to_date=None) -> str:
     ])
 
     with Database().session() as session:
-        query = session.query(Order).filter(Order.status == "delivered")
+        query = session.query(Order).filter(Order.order_status == "delivered")
         query = _apply_date_filter(query, from_date, to_date)
         query = query.order_by(Order.created_at.asc())
 
@@ -84,20 +84,18 @@ def generate_revenue_by_product_csv(from_date=None, to_date=None) -> str:
                 func.avg(OrderItem.price).label("avg_price"),
             )
             .join(Order, Order.id == OrderItem.order_id)
-            .filter(Order.status == "delivered")
+            .filter(Order.order_status == "delivered")
         )
         query = _apply_date_filter(query, from_date, to_date)
         query = query.group_by(OrderItem.item_name)
         query = query.order_by(func.sum(OrderItem.price * OrderItem.quantity).desc())
 
         for row in query.all():
-            # Attempt to resolve category from Goods table
+            # LOGIC-26 fix: Use category_name FK, not nonexistent category_id
             category_name = ""
             good = session.query(Goods).filter_by(name=row.item_name).first()
-            if good and good.category_id:
-                cat = session.query(Categories).filter_by(id=good.category_id).first()
-                if cat:
-                    category_name = cat.name
+            if good and good.category_name:
+                category_name = good.category_name
 
             avg_price = Decimal(str(row.avg_price)).quantize(Decimal("0.01")) if row.avg_price else Decimal(0)
             writer.writerow([
@@ -134,7 +132,7 @@ def generate_payment_reconciliation_csv(from_date=None, to_date=None) -> str:
                 func.sum(Order.total_price).label("total_revenue"),
                 func.avg(Order.total_price).label("avg_order_value"),
             )
-            .filter(Order.status == "delivered")
+            .filter(Order.order_status == "delivered")
         )
         query = _apply_date_filter(query, from_date, to_date)
         query = query.group_by(Order.payment_method)
@@ -176,7 +174,7 @@ def get_revenue_summary(from_date=None, to_date=None) -> dict:
                 func.coalesce(func.sum(Order.total_price), 0).label("total_revenue"),
                 func.avg(Order.total_price).label("avg_order_value"),
             )
-            .filter(Order.status == "delivered")
+            .filter(Order.order_status == "delivered")
         )
         totals_query = _apply_date_filter(totals_query, from_date, to_date)
         totals = totals_query.one()
@@ -195,7 +193,7 @@ def get_revenue_summary(from_date=None, to_date=None) -> dict:
                 Order.payment_method,
                 func.sum(Order.total_price).label("revenue"),
             )
-            .filter(Order.status == "delivered")
+            .filter(Order.order_status == "delivered")
         )
         payment_query = _apply_date_filter(payment_query, from_date, to_date)
         payment_query = payment_query.group_by(Order.payment_method)
@@ -212,7 +210,7 @@ def get_revenue_summary(from_date=None, to_date=None) -> dict:
                 func.sum(OrderItem.price * OrderItem.quantity).label("revenue"),
             )
             .join(Order, Order.id == OrderItem.order_id)
-            .filter(Order.status == "delivered")
+            .filter(Order.order_status == "delivered")
         )
         products_query = _apply_date_filter(products_query, from_date, to_date)
         products_query = (

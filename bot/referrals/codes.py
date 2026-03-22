@@ -149,13 +149,15 @@ def validate_reference_code(code: str, user_id: int) -> Tuple[bool, str, Optiona
         if not ref_code.is_active:
             return False, "This reference code has been deactivated", None
 
-        # Check if expired
+        # LOGIC-25 fix: Ensure consistent timezone comparison
         if ref_code.expires_at:
             now = get_localized_time()
-            # Make expires_at timezone-aware if it isn't
             expires_at = ref_code.expires_at
+            # Normalize both to timezone-aware for safe comparison
             if expires_at.tzinfo is None:
                 expires_at = pytz.UTC.localize(expires_at)
+            if now.tzinfo is None:
+                now = pytz.UTC.localize(now)
 
             if now > expires_at:
                 return False, "This reference code has expired", None

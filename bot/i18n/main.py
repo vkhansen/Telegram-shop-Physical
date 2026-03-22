@@ -1,4 +1,5 @@
 from __future__ import annotations
+import contextvars
 from functools import lru_cache
 from typing import Any
 
@@ -6,8 +7,10 @@ from bot.config import EnvKeys
 from .strings import TRANSLATIONS, DEFAULT_LOCALE
 from bot.logger_mesh import logger
 
-# Thread-local-style per-request locale override
-_request_locale: str | None = None
+# LOGIC-10 fix: Use contextvars instead of global variable for async safety
+_request_locale: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    '_request_locale', default=None
+)
 
 
 @lru_cache(maxsize=1)
@@ -18,13 +21,12 @@ def get_locale() -> str:
 
 def set_request_locale(locale: str | None) -> None:
     """Set the locale for the current request (called by middleware)."""
-    global _request_locale
-    _request_locale = locale
+    _request_locale.set(locale)
 
 
 def get_request_locale() -> str | None:
     """Get the per-request locale override."""
-    return _request_locale
+    return _request_locale.get()
 
 
 def get_user_locale(telegram_id: int) -> str | None:
@@ -49,7 +51,7 @@ def localize(key: str, /, locale: str | None = None, **kwargs: Any) -> str:
     Get translation by key.
     Priority: explicit locale param > request locale > BOT_LOCALE > DEFAULT_LOCALE.
     """
-    loc = locale or _request_locale or get_locale()
+    loc = locale or _request_locale.get() or get_locale()
 
     text = TRANSLATIONS.get(loc, {}).get(key)
     if text is None:

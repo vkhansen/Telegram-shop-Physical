@@ -22,22 +22,49 @@ from bot.utils import LazyPaginator
 router = Router()
 
 
-def _item_button_text(item_name: str) -> str:
-    """Build display text for an item button in the items list.
+# PERF-01 fix: Cache item display data to avoid N+1 DB queries
+_item_display_cache: dict[str, tuple] = {}
 
-    Appends prep time if available, and marks sold-out items.
-    """
+
+def _warm_item_display_cache(item_names: list[str]) -> None:
+    """Batch-load display data for multiple items in a single query."""
+    if not item_names:
+        return
+    uncached = [n for n in item_names if n not in _item_display_cache]
+    if not uncached:
+        return
     with Database().session() as sess:
-        g = sess.query(
+        rows = sess.query(
+            GoodsModel.name,
             GoodsModel.prep_time_minutes,
             GoodsModel.sold_out_today,
             GoodsModel.is_active,
             GoodsModel.daily_limit,
             GoodsModel.daily_sold_count,
-        ).filter(GoodsModel.name == item_name).first()
+        ).filter(GoodsModel.name.in_(uncached)).all()
+        for row in rows:
+            _item_display_cache[row[0]] = row[1:]
 
-    if not g:
-        return item_name
+
+def _item_button_text(item_name: str) -> str:
+    """Build display text for an item button in the items list.
+
+    Appends prep time if available, and marks sold-out items.
+    """
+    g = _item_display_cache.get(item_name)
+    if g is None:
+        # Fallback single query if not pre-cached
+        with Database().session() as sess:
+            row = sess.query(
+                GoodsModel.prep_time_minutes,
+                GoodsModel.sold_out_today,
+                GoodsModel.is_active,
+                GoodsModel.daily_limit,
+                GoodsModel.daily_sold_count,
+            ).filter(GoodsModel.name == item_name).first()
+        if not row:
+            return item_name
+        g = row
 
     prep_time, sold_out, is_active, daily_limit, daily_sold = g
 

@@ -84,15 +84,20 @@ async def update_item_price_and_finish(message: Message, state):
     Validate price and complete the update.
     Stock is managed separately via the stock management interface.
     """
+    # LOGIC-22 fix: Accept decimal prices (e.g., "9.99")
     price_text = message.text.strip()
-    if not price_text.isdigit():
+    try:
+        price_value = float(price_text)
+        if price_value <= 0:
+            raise ValueError("Price must be positive")
+    except ValueError:
         await message.answer(
             localize('admin.goods.add.price.invalid'),
             reply_markup=back('goods_management')
         )
         return
 
-    await state.update_data(item_price=int(price_text))
+    await state.update_data(item_price=price_value)
     data = await state.get_data()
     item_old_name = data.get('item_old_name')
     item_new_name = data.get('item_new_name')

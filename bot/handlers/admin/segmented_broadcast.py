@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
@@ -67,7 +67,7 @@ def _get_segment_user_ids(segment_type: str) -> list[int]:
 
         elif segment_type == "recent_buyers":
             # Users who placed an order in the last 7 days
-            cutoff = datetime.utcnow() - timedelta(days=7)
+            cutoff = datetime.now(timezone.utc) - timedelta(days=7)
             rows = (
                 session.query(Order.buyer_id)
                 .filter(Order.created_at >= cutoff)
@@ -78,7 +78,7 @@ def _get_segment_user_ids(segment_type: str) -> list[int]:
 
         elif segment_type == "inactive":
             # Users who have NOT placed an order in the last 30 days
-            cutoff = datetime.utcnow() - timedelta(days=30)
+            cutoff = datetime.now(timezone.utc) - timedelta(days=30)
             recent_buyer_ids = (
                 session.query(Order.buyer_id)
                 .filter(Order.created_at >= cutoff)
@@ -98,7 +98,7 @@ def _get_segment_user_ids(segment_type: str) -> list[int]:
 
         elif segment_type == "new_users":
             # Users registered in the last 7 days
-            cutoff = datetime.utcnow() - timedelta(days=7)
+            cutoff = datetime.now(timezone.utc) - timedelta(days=7)
             rows = (
                 session.query(User.telegram_id)
                 .filter(User.registration_date >= cutoff)
