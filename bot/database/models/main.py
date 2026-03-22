@@ -103,6 +103,7 @@ class User(Database.BASE):
     banned_at = Column(DateTime(timezone=True), nullable=True)
     banned_by = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="SET NULL"), nullable=True)
     ban_reason = Column(Text, nullable=True)
+    privacy_accepted_at = Column(DateTime(timezone=True), nullable=True)  # PDPA privacy notice acceptance timestamp
     user_goods = relationship("BoughtGoods", back_populates="user_telegram_id")
 
     referral_earnings_received = relationship(
@@ -118,7 +119,7 @@ class User(Database.BASE):
 
     def __init__(self, telegram_id: int, registration_date: datetime.datetime, referral_id=None,
                  role_id: int = 1, is_banned: bool = False, banned_at=None, banned_by=None,
-                 ban_reason: str = None, locale: str = None, **kw: Any):
+                 ban_reason: str = None, locale: str = None, privacy_accepted_at=None, **kw: Any):
         super().__init__(**kw)
         self.telegram_id = telegram_id
         self.role_id = role_id
@@ -129,6 +130,7 @@ class User(Database.BASE):
         self.banned_at = banned_at
         self.banned_by = banned_by
         self.ban_reason = ban_reason
+        self.privacy_accepted_at = privacy_accepted_at
 
 
 class Brand(Database.BASE):

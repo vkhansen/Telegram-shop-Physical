@@ -415,6 +415,23 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.note_prompt": "📝 Есть ли какие-то особые инструкции по доставке? (Необязательно)\n\nВы можете пропустить это, нажав на кнопку ниже.",
         "order.delivery.info_save_error": "❌ Ошибка сохранения информации о доставке. Пожалуйста, попробуйте еще раз.",
 
+        # Location Method Choice
+        "order.delivery.location_method_prompt": "📍 Как вы хотите указать адрес доставки?\n\nВыберите один из вариантов ниже:",
+        "btn.location_method.gps": "📡 Отправить GPS через Telegram",
+        "btn.location_method.live_gps": "📍 Поделиться живой геолокацией",
+        "btn.location_method.google_link": "🗺 Отправить ссылку Google Maps",
+        "btn.location_method.type_address": "✍️ Ввести адрес вручную",
+        "order.delivery.gps_prompt": "📍 Нажмите кнопку ниже, чтобы отправить своё местоположение:",
+        "order.delivery.gps_hint": "📍 Пожалуйста, используйте кнопку ниже для отправки GPS-локации, или нажмите «Назад» чтобы выбрать другой способ.",
+        "order.delivery.live_gps_prompt": "📍 Чтобы поделиться живой геолокацией:\n\n1. Нажмите на скрепку 📎 внизу\n2. Выберите «Геолокация»\n3. Нажмите «Трансляция геолокации»\n4. Выберите время трансляции\n\nВодитель сможет видеть ваше местоположение в реальном времени!",
+        "order.delivery.live_gps_saved": "✅ Живая геолокация получена! Водитель сможет отслеживать ваше местоположение.",
+        "order.delivery.live_gps_hint": "📍 Пожалуйста, отправьте живую геолокацию через меню вложений (📎 → Геолокация → Трансляция).",
+        "order.delivery.google_link_prompt": "🗺 Вставьте ссылку Google Maps с вашим местоположением.\n\nОткройте Google Maps, найдите нужное место, нажмите «Поделиться» и скопируйте ссылку сюда.",
+        "order.delivery.google_link_invalid": "❌ Не удалось распознать ссылку Google Maps. Убедитесь, что ссылка начинается с google.com/maps или goo.gl/maps.",
+        "order.delivery.address_confirm_prompt": "📍 Ваш адрес:\n<b>{address}</b>\n\n🔗 <a href=\"{maps_link}\">Посмотреть на карте</a>\n\nАдрес верный?",
+        "btn.address_confirm_yes": "✅ Да, всё верно",
+        "btn.address_confirm_retry": "✏️ Нет, ввести заново",
+
         # GPS Location (Card 2)
         "order.delivery.location_prompt": "📍 Хотите поделиться GPS-локацией для более точной доставки?\n\nНажмите кнопку ниже или пропустите этот шаг.",
         "order.delivery.location_saved": "✅ Локация сохранена!",
@@ -804,6 +821,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.menu.segment_broadcast": "📣 Targeted Broadcast",
         "admin.menu.stores": "🏪 Stores",
         "admin.menu.tickets": "🎫 Tickets",
+        "admin.menu.ai_assistant": "🤖 AI Assistant",
         "admin.segment.all_users": "👥 All Users",
         "admin.segment.count": "📊 Segment: <b>{segment}</b>\nUsers: <b>{count}</b>\n\nType your broadcast message:",
         "admin.segment.empty": "No users in this segment.",
@@ -978,6 +996,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 
         # === Admin Tickets ===
         "admin.menu.tickets": "🎫 Тикеты",
+        "admin.menu.ai_assistant": "🤖 AI Ассистент",
         "admin.ticket.title": "🎫 <b>Тикеты поддержки</b>",
         "admin.ticket.list": "Открытые тикеты:",
         "admin.ticket.empty": "Нет открытых тикетов.",
@@ -1029,6 +1048,37 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.store.btn_default": "⭐ По умолчанию",
         "admin.store.empty": "Точки не настроены.",
         "admin.store.name_exists": "Точка с таким названием уже существует.",
+
+        # === PDPA Privacy Policy ===
+        "btn.privacy": "🔒 Политика конфиденциальности",
+        "privacy.notice": (
+            "🔒 <b>Уведомление о конфиденциальности (PDPA)</b>\n\n"
+            "Мы соблюдаем Закон о защите персональных данных Таиланда (PDPA).\n\n"
+            "<b>Данные, которые мы собираем:</b>\n"
+            "• Имя / телефон / адрес доставки\n"
+            "• Детали и история заказов\n"
+            "• Telegram ID\n\n"
+            "<b>Цели обработки:</b>\n"
+            "• Оформление и доставка заказов (договорная необходимость)\n"
+            "• Предотвращение мошенничества\n"
+            "• Маркетинг — только с вашего отдельного согласия\n\n"
+            "<b>Срок хранения:</b> до удаления вами или 2 года после последнего заказа\n\n"
+            "<b>Передача данных:</b> ресторанам, курьерам, платёжным системам — только для выполнения заказа. "
+            "Мы не продаём ваши данные.\n\n"
+            "<b>Ваши права по PDPA:</b>\n"
+            "• Доступ / исправление / удаление данных\n"
+            "• Отзыв согласия (для маркетинга)\n"
+            "• Возражение / перенос данных\n"
+            "• Жалоба в PDPC\n\n"
+            "<b>Контроллер данных:</b> {company}\n"
+            "Контакт: {email}\n\n"
+            "Продолжая использование бота, вы подтверждаете ознакомление с данной политикой."
+        ),
+        "privacy.btn_full_policy": "📄 Полная политика",
+        "privacy.btn_accept": "✅ Принять и продолжить",
+        "privacy.accepted": "✅ Вы приняли политику конфиденциальности.",
+        "privacy.already_accepted": "✅ Вы уже приняли политику конфиденциальности.",
+        "privacy.no_url": "Полная политика конфиденциальности пока не настроена.",
     },
 
     "en": {
@@ -1407,6 +1457,23 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.note_prompt": "📝 Any special delivery instructions? (Optional)\n\nYou can skip this by clicking the button below.",
         "order.delivery.info_save_error": "❌ Error saving delivery information. Please try again.",
 
+        # Location Method Choice
+        "order.delivery.location_method_prompt": "📍 How would you like to share your delivery location?\n\nChoose one of the options below:",
+        "btn.location_method.gps": "📡 Send GPS via Telegram",
+        "btn.location_method.live_gps": "📍 Share Live Location",
+        "btn.location_method.google_link": "🗺 Share a Google Maps link",
+        "btn.location_method.type_address": "✍️ Type an address",
+        "order.delivery.gps_prompt": "📍 Tap the button below to share your location:",
+        "order.delivery.gps_hint": "📍 Please use the button below to share your GPS location, or tap 'Back' to choose a different method.",
+        "order.delivery.live_gps_prompt": "📍 To share your live location:\n\n1. Tap the attachment icon 📎 below\n2. Select 'Location'\n3. Tap 'Share My Live Location'\n4. Choose a duration\n\nThe driver will be able to see your location in real time!",
+        "order.delivery.live_gps_saved": "✅ Live location received! The driver will be able to track your location.",
+        "order.delivery.live_gps_hint": "📍 Please share your live location via the attachment menu (📎 → Location → Share Live Location).",
+        "order.delivery.google_link_prompt": "🗺 Paste a Google Maps link with your location.\n\nOpen Google Maps, find the location, tap 'Share' and copy the link here.",
+        "order.delivery.google_link_invalid": "❌ Could not recognize the Google Maps link. Make sure it starts with google.com/maps or goo.gl/maps.",
+        "order.delivery.address_confirm_prompt": "📍 Your address:\n<b>{address}</b>\n\n🔗 <a href=\"{maps_link}\">View on map</a>\n\nIs this correct?",
+        "btn.address_confirm_yes": "✅ Yes, that's correct",
+        "btn.address_confirm_retry": "✏️ No, re-enter address",
+
         # GPS Location (Card 2)
         "order.delivery.location_prompt": "📍 Would you like to share your GPS location for more accurate delivery?\n\nTap the button below or skip this step.",
         "order.delivery.location_saved": "✅ Location saved!",
@@ -1776,6 +1843,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.menu.segment_broadcast": "📣 Targeted Broadcast",
         "admin.menu.stores": "🏪 Stores",
         "admin.menu.tickets": "🎫 Tickets",
+        "admin.menu.ai_assistant": "🤖 AI Assistant",
         "admin.segment.all_users": "👥 All Users",
         "admin.segment.count": "📊 Segment: <b>{segment}</b>\nUsers: <b>{count}</b>\n\nType your broadcast message:",
         "admin.segment.empty": "No users in this segment.",
@@ -1950,6 +2018,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 
         # === Admin Tickets ===
         "admin.menu.tickets": "🎫 Tickets",
+        "admin.menu.ai_assistant": "🤖 AI Assistant",
         "admin.ticket.title": "🎫 <b>Support Tickets</b>",
         "admin.ticket.list": "Open/In Progress Tickets:",
         "admin.ticket.empty": "No open tickets.",
@@ -2001,6 +2070,37 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.store.btn_default": "⭐ Set as Default",
         "admin.store.empty": "No stores configured.",
         "admin.store.name_exists": "A store with this name already exists.",
+
+        # === PDPA Privacy Policy ===
+        "btn.privacy": "🔒 Privacy Policy",
+        "privacy.notice": (
+            "🔒 <b>Privacy Notice (PDPA)</b>\n\n"
+            "We comply with Thailand's Personal Data Protection Act (PDPA).\n\n"
+            "<b>Data we collect:</b>\n"
+            "• Name / phone / delivery address\n"
+            "• Order details & history\n"
+            "• Telegram ID\n\n"
+            "<b>Purposes:</b>\n"
+            "• Order fulfillment & delivery (contractual necessity)\n"
+            "• Fraud prevention & identity verification\n"
+            "• Marketing — only with your separate consent\n\n"
+            "<b>Retention:</b> Until you request deletion, or 2 years after your last order\n\n"
+            "<b>Data sharing:</b> Restaurants, delivery riders, payment providers — only as needed for your order. "
+            "We never sell your data.\n\n"
+            "<b>Your PDPA rights:</b>\n"
+            "• Access / correct / delete your data\n"
+            "• Withdraw consent (for marketing)\n"
+            "• Object to processing / request data portability\n"
+            "• File a complaint with the PDPC\n\n"
+            "<b>Data controller:</b> {company}\n"
+            "Contact: {email}\n\n"
+            "By continuing to use this bot, you acknowledge and accept this policy."
+        ),
+        "privacy.btn_full_policy": "📄 Read Full Policy",
+        "privacy.btn_accept": "✅ Accept & Continue",
+        "privacy.accepted": "✅ You have accepted the privacy policy.",
+        "privacy.already_accepted": "✅ You have already accepted the privacy policy.",
+        "privacy.no_url": "Full privacy policy page is not configured yet.",
     },
 
     "th": {
@@ -2379,6 +2479,23 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.note_prompt": "📝 มีคำแนะนำพิเศษสำหรับการจัดส่งหรือไม่? (ไม่บังคับ)\n\nคุณสามารถข้ามขั้นตอนนี้โดยกดปุ่มด้านล่าง",
         "order.delivery.info_save_error": "❌ เกิดข้อผิดพลาดในการบันทึกข้อมูลการจัดส่ง กรุณาลองอีกครั้ง",
 
+        # Location Method Choice
+        "order.delivery.location_method_prompt": "📍 คุณต้องการแจ้งที่อยู่จัดส่งอย่างไร?\n\nเลือกวิธีด้านล่าง:",
+        "btn.location_method.gps": "📡 ส่ง GPS ผ่าน Telegram",
+        "btn.location_method.live_gps": "📍 แชร์ตำแหน่งสด",
+        "btn.location_method.google_link": "🗺 ส่งลิงก์ Google Maps",
+        "btn.location_method.type_address": "✍️ พิมพ์ที่อยู่",
+        "order.delivery.gps_prompt": "📍 กดปุ่มด้านล่างเพื่อแชร์ตำแหน่งของคุณ:",
+        "order.delivery.gps_hint": "📍 กรุณาใช้ปุ่มด้านล่างเพื่อแชร์ตำแหน่ง GPS หรือกด 'กลับ' เพื่อเลือกวิธีอื่น",
+        "order.delivery.live_gps_prompt": "📍 วิธีแชร์ตำแหน่งสด:\n\n1. กดไอคอนแนบไฟล์ 📎 ด้านล่าง\n2. เลือก 'ตำแหน่ง'\n3. กด 'แชร์ตำแหน่งสด'\n4. เลือกระยะเวลา\n\nคนขับจะเห็นตำแหน่งของคุณแบบเรียลไทม์!",
+        "order.delivery.live_gps_saved": "✅ ได้รับตำแหน่งสดแล้ว! คนขับจะสามารถติดตามตำแหน่งของคุณได้",
+        "order.delivery.live_gps_hint": "📍 กรุณาแชร์ตำแหน่งสดผ่านเมนูแนบไฟล์ (📎 → ตำแหน่ง → แชร์ตำแหน่งสด)",
+        "order.delivery.google_link_prompt": "🗺 วางลิงก์ Google Maps ที่มีตำแหน่งของคุณ\n\nเปิด Google Maps ค้นหาตำแหน่ง กด 'แชร์' แล้วคัดลอกลิงก์มาวางที่นี่",
+        "order.delivery.google_link_invalid": "❌ ไม่สามารถรับรู้ลิงก์ Google Maps ได้ กรุณาตรวจสอบว่าลิงก์เริ่มต้นด้วย google.com/maps หรือ goo.gl/maps",
+        "order.delivery.address_confirm_prompt": "📍 ที่อยู่ของคุณ:\n<b>{address}</b>\n\n🔗 <a href=\"{maps_link}\">ดูบนแผนที่</a>\n\nถูกต้องหรือไม่?",
+        "btn.address_confirm_yes": "✅ ใช่ ถูกต้อง",
+        "btn.address_confirm_retry": "✏️ ไม่ใช่ กรอกใหม่",
+
         # GPS Location (Card 2)
         "order.delivery.location_prompt": "📍 คุณต้องการแชร์ตำแหน่ง GPS เพื่อการจัดส่งที่แม่นยำยิ่งขึ้นหรือไม่?\n\nกดปุ่มด้านล่างหรือข้ามขั้นตอนนี้",
         "order.delivery.location_saved": "✅ บันทึกตำแหน่งแล้ว!",
@@ -2748,6 +2865,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.menu.segment_broadcast": "📣 Targeted Broadcast",
         "admin.menu.stores": "🏪 Stores",
         "admin.menu.tickets": "🎫 Tickets",
+        "admin.menu.ai_assistant": "🤖 AI Assistant",
         "admin.segment.all_users": "👥 All Users",
         "admin.segment.count": "📊 Segment: <b>{segment}</b>\nUsers: <b>{count}</b>\n\nType your broadcast message:",
         "admin.segment.empty": "No users in this segment.",
@@ -2833,6 +2951,37 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "ticket.subject_prompt": "Enter the subject:",
         "ticket.title": "🎫 <b>Support Tickets</b>",
         "ticket.view_title": "🎫 <b>Ticket #{code}</b>\nStatus: {status}\nSubject: {subject}\nCreated: {date}",
+
+        # === PDPA Privacy Policy ===
+        "btn.privacy": "🔒 นโยบายความเป็นส่วนตัว",
+        "privacy.notice": (
+            "🔒 <b>นโยบายความเป็นส่วนตัว (PDPA)</b>\n\n"
+            "เราปฏิบัติตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA) อย่างเคร่งครัด\n\n"
+            "<b>ข้อมูลที่เราเก็บ:</b>\n"
+            "• ชื่อ-นามสกุล / เบอร์โทรศัพท์ / ที่อยู่จัดส่ง\n"
+            "• รายละเอียดคำสั่งซื้อ / ประวัติการสั่ง\n"
+            "• Telegram ID\n\n"
+            "<b>วัตถุประสงค์หลัก:</b>\n"
+            "• ดำเนินการสั่งซื้อและส่งอาหาร (จำเป็นตามสัญญา)\n"
+            "• ป้องกันการฉ้อโกง / ยืนยันตัวตน\n"
+            "• ส่งโปรโมชัน/ข่าวสาร — ต้องยินยอมแยกต่างหาก\n\n"
+            "<b>ระยะเวลาการเก็บ:</b> จนกว่าคุณจะลบข้อมูล หรือ 2 ปีหลังคำสั่งซื้อสุดท้าย\n\n"
+            "<b>เราแชร์ข้อมูลกับ:</b> ร้านอาหาร พนักงานส่งอาหาร ผู้ให้บริการชำระเงิน — เฉพาะที่จำเป็นสำหรับคำสั่งซื้อ "
+            "ไม่ขายข้อมูลของคุณให้ใคร\n\n"
+            "<b>สิทธิของคุณตาม PDPA:</b>\n"
+            "• เข้าถึง / แก้ไข / ลบข้อมูล\n"
+            "• ถอนความยินยอม (สำหรับการตลาด)\n"
+            "• คัดค้านการประมวลผล / ขอให้โอนย้ายข้อมูล\n"
+            "• ร้องเรียนต่อ PDPC\n\n"
+            "<b>ผู้ควบคุมข้อมูล:</b> {company}\n"
+            "ติดต่อ: {email}\n\n"
+            "หากคุณใช้บอทต่อ แสดงว่าคุณได้รับทราบและยอมรับนโยบายนี้แล้ว"
+        ),
+        "privacy.btn_full_policy": "📄 อ่านนโยบายฉบับเต็ม",
+        "privacy.btn_accept": "✅ ยอมรับและดำเนินการต่อ",
+        "privacy.accepted": "✅ คุณยอมรับนโยบายความเป็นส่วนตัวแล้ว",
+        "privacy.already_accepted": "✅ คุณยอมรับนโยบายความเป็นส่วนตัวแล้ว",
+        "privacy.no_url": "ยังไม่ได้ตั้งค่าหน้านโยบายความเป็นส่วนตัวฉบับเต็ม",
     },
 
     "ar": {
@@ -3211,6 +3360,23 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.note_prompt": "📝 هل لديك تعليمات توصيل خاصة؟ (اختياري)\n\nيمكنك تخطي ذلك بالنقر على الزر أدناه.",
         "order.delivery.info_save_error": "❌ خطأ في حفظ معلومات التوصيل. يرجى المحاولة مرة أخرى.",
 
+        # Location Method Choice
+        "order.delivery.location_method_prompt": "📍 كيف تريد مشاركة موقع التوصيل؟\n\nاختر أحد الخيارات أدناه:",
+        "btn.location_method.gps": "📡 إرسال GPS عبر Telegram",
+        "btn.location_method.live_gps": "📍 مشاركة الموقع المباشر",
+        "btn.location_method.google_link": "🗺 مشاركة رابط Google Maps",
+        "btn.location_method.type_address": "✍️ كتابة العنوان",
+        "order.delivery.gps_prompt": "📍 انقر على الزر أدناه لمشاركة موقعك:",
+        "order.delivery.gps_hint": "📍 يرجى استخدام الزر أدناه لمشاركة موقع GPS، أو انقر 'رجوع' لاختيار طريقة أخرى.",
+        "order.delivery.live_gps_prompt": "📍 لمشاركة موقعك المباشر:\n\n1. انقر على أيقونة المرفقات 📎 أدناه\n2. اختر 'الموقع'\n3. انقر 'مشاركة الموقع المباشر'\n4. اختر المدة\n\nسيتمكن السائق من رؤية موقعك في الوقت الفعلي!",
+        "order.delivery.live_gps_saved": "✅ تم استلام الموقع المباشر! سيتمكن السائق من تتبع موقعك.",
+        "order.delivery.live_gps_hint": "📍 يرجى مشاركة موقعك المباشر عبر قائمة المرفقات (📎 ← الموقع ← مشاركة الموقع المباشر).",
+        "order.delivery.google_link_prompt": "🗺 الصق رابط Google Maps بموقعك.\n\nافتح Google Maps، ابحث عن الموقع، انقر 'مشاركة' وانسخ الرابط هنا.",
+        "order.delivery.google_link_invalid": "❌ لم يتم التعرف على رابط Google Maps. تأكد أنه يبدأ بـ google.com/maps أو goo.gl/maps.",
+        "order.delivery.address_confirm_prompt": "📍 عنوانك:\n<b>{address}</b>\n\n🔗 <a href=\"{maps_link}\">عرض على الخريطة</a>\n\nهل هذا صحيح؟",
+        "btn.address_confirm_yes": "✅ نعم، صحيح",
+        "btn.address_confirm_retry": "✏️ لا، أعد الإدخال",
+
         # GPS Location (Card 2)
         "order.delivery.location_prompt": "📍 هل تريد مشاركة موقع GPS لتوصيل أكثر دقة؟\n\nانقر على الزر أدناه أو تخطَّ هذه الخطوة.",
         "order.delivery.location_saved": "✅ تم حفظ الموقع!",
@@ -3580,6 +3746,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.menu.segment_broadcast": "📣 Targeted Broadcast",
         "admin.menu.stores": "🏪 Stores",
         "admin.menu.tickets": "🎫 Tickets",
+        "admin.menu.ai_assistant": "🤖 AI Assistant",
         "admin.segment.all_users": "👥 All Users",
         "admin.segment.count": "📊 Segment: <b>{segment}</b>\nUsers: <b>{count}</b>\n\nType your broadcast message:",
         "admin.segment.empty": "No users in this segment.",
@@ -3987,6 +4154,23 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.note_prompt": "📝 دستورالعمل خاصی برای تحویل دارید؟ (اختیاری)\n\nمی\u200cتوانید با کلیک دکمه زیر رد کنید.",
         "order.delivery.info_save_error": "❌ خطا در ذخیره اطلاعات تحویل. لطفاً دوباره امتحان کنید.",
 
+        # Location Method Choice
+        "order.delivery.location_method_prompt": "📍 چگونه می\u200cخواهید آدرس تحویل خود را مشخص کنید?\n\nیکی از گزینه\u200cهای زیر را انتخاب کنید:",
+        "btn.location_method.gps": "📡 ارسال GPS از طریق Telegram",
+        "btn.location_method.live_gps": "📍 اشتراک موقعیت زنده",
+        "btn.location_method.google_link": "🗺 ارسال لینک Google Maps",
+        "btn.location_method.type_address": "✍️ تایپ آدرس",
+        "order.delivery.gps_prompt": "📍 دکمه زیر را بزنید تا موقعیت خود را ارسال کنید:",
+        "order.delivery.gps_hint": "📍 لطفاً از دکمه زیر برای ارسال موقعیت GPS استفاده کنید، یا 'بازگشت' را بزنید تا روش دیگری انتخاب کنید.",
+        "order.delivery.live_gps_prompt": "📍 برای اشتراک موقعیت زنده:\n\n1. روی آیکون پیوست 📎 در پایین بزنید\n2. 'موقعیت' را انتخاب کنید\n3. 'اشتراک موقعیت زنده' را بزنید\n4. مدت زمان را انتخاب کنید\n\nراننده می\u200cتواند موقعیت شما را در لحظه ببیند!",
+        "order.delivery.live_gps_saved": "✅ موقعیت زنده دریافت شد! راننده می\u200cتواند موقعیت شما را پیگیری کند.",
+        "order.delivery.live_gps_hint": "📍 لطفاً موقعیت زنده خود را از منوی پیوست ارسال کنید (📎 ← موقعیت ← اشتراک موقعیت زنده).",
+        "order.delivery.google_link_prompt": "🗺 لینک Google Maps با موقعیت خود را اینجا قرار دهید.\n\nGoogle Maps را باز کنید، موقعیت را پیدا کنید، 'اشتراک' را بزنید و لینک را اینجا کپی کنید.",
+        "order.delivery.google_link_invalid": "❌ لینک Google Maps شناسایی نشد. مطمئن شوید با google.com/maps یا goo.gl/maps شروع می\u200cشود.",
+        "order.delivery.address_confirm_prompt": "📍 آدرس شما:\n<b>{address}</b>\n\n🔗 <a href=\"{maps_link}\">مشاهده روی نقشه</a>\n\nآیا درست است؟",
+        "btn.address_confirm_yes": "✅ بله، درست است",
+        "btn.address_confirm_retry": "✏️ نه، دوباره وارد کنم",
+
         # GPS Location (Card 2)
         "order.delivery.location_prompt": "📍 آیا می\u200cخواهید موقعیت GPS خود را برای تحویل دقیق\u200cتر به اشتراک بگذارید؟\n\nدکمه زیر را بزنید یا این مرحله را رد کنید.",
         "order.delivery.location_saved": "✅ موقعیت ذخیره شد!",
@@ -4346,6 +4530,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.menu.segment_broadcast": "📣 Targeted Broadcast",
         "admin.menu.stores": "🏪 Stores",
         "admin.menu.tickets": "🎫 Tickets",
+        "admin.menu.ai_assistant": "🤖 AI Assistant",
         "admin.segment.all_users": "👥 All Users",
         "admin.segment.count": "📊 Segment: <b>{segment}</b>\nUsers: <b>{count}</b>\n\nType your broadcast message:",
         "admin.segment.empty": "No users in this segment.",
@@ -4764,6 +4949,23 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.note_prompt": "📝 د رسولو ځانګړي لارښوونې لرئ؟ (اختیاري)\n\nتاسو کولی شئ لاندې تڼۍ فشار ورکړئ تېر شئ.",
         "order.delivery.info_save_error": "❌ د رسولو معلوماتو خوندي کولو کې تېروتنه. مهرباني وکړئ بیا هڅه وکړئ.",
 
+        # Location Method Choice
+        "order.delivery.location_method_prompt": "📍 تاسو د رسولو پته څنګه شریکول غواړئ?\n\nلاندې یو انتخاب وکړئ:",
+        "btn.location_method.gps": "📡 د Telegram له لارې GPS واستوئ",
+        "btn.location_method.live_gps": "📍 ژوندی موقعیت شریک کړئ",
+        "btn.location_method.google_link": "🗺 د Google Maps لینک شریک کړئ",
+        "btn.location_method.type_address": "✍️ پته ولیکئ",
+        "order.delivery.gps_prompt": "📍 لاندې تڼۍ فشار ورکړئ ترڅو خپل موقعیت واستوئ:",
+        "order.delivery.gps_hint": "📍 مهرباني وکړئ لاندې تڼۍ وکاروئ ترڅو GPS موقعیت واستوئ، یا 'شاته' فشار ورکړئ ترڅو بل لار وټاکئ.",
+        "order.delivery.live_gps_prompt": "📍 د ژوندي موقعیت شریکولو لپاره:\n\n1. لاندې د ضمیمې آیکون 📎 فشار ورکړئ\n2. 'موقعیت' وټاکئ\n3. 'ژوندی موقعیت شریک کړئ' فشار ورکړئ\n4. مودې وټاکئ\n\nموټروان به ستاسو موقعیت په ریال ټایم وګوري!",
+        "order.delivery.live_gps_saved": "✅ ژوندی موقعیت ترلاسه شو! موټروان به ستاسو موقعیت وڅاري.",
+        "order.delivery.live_gps_hint": "📍 مهرباني وکړئ خپل ژوندی موقعیت د ضمیمې مینو له لارې واستوئ (📎 ← موقعیت ← ژوندی موقعیت شریک کړئ).",
+        "order.delivery.google_link_prompt": "🗺 د Google Maps لینک دلته ولیکئ.\n\nGoogle Maps خلاص کړئ، ځای ومومئ، 'شریکول' فشار ورکړئ او لینک دلته کاپي کړئ.",
+        "order.delivery.google_link_invalid": "❌ د Google Maps لینک وپېژندل نه شو. ډاډ ترلاسه کړئ چې له google.com/maps یا goo.gl/maps سره پیل کېږي.",
+        "order.delivery.address_confirm_prompt": "📍 ستاسو پته:\n<b>{address}</b>\n\n🔗 <a href=\"{maps_link}\">په نقشه کې وګورئ</a>\n\nایا سمه ده؟",
+        "btn.address_confirm_yes": "✅ هو، سمه ده",
+        "btn.address_confirm_retry": "✏️ نه، بیا ولیکئ",
+
         # GPS Location (Card 2)
         "order.delivery.location_prompt": "📍 ایا غواړئ د دقیق رسولو لپاره خپل GPS موقعیت شریک کړئ؟\n\nلاندې تڼۍ فشار ورکړئ یا دا مرحله تېره کړئ.",
         "order.delivery.location_saved": "✅ موقعیت خوندي شو!",
@@ -5083,6 +5285,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.menu.segment_broadcast": "📣 Targeted Broadcast",
         "admin.menu.stores": "🏪 Stores",
         "admin.menu.tickets": "🎫 Tickets",
+        "admin.menu.ai_assistant": "🤖 AI Assistant",
         "admin.segment.all_users": "👥 All Users",
         "admin.segment.count": "📊 Segment: <b>{segment}</b>\nUsers: <b>{count}</b>\n\nType your broadcast message:",
         "admin.segment.empty": "No users in this segment.",
@@ -5541,6 +5744,23 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.note_prompt": "📝 Des instructions de livraison spéciales ? (Optionnel)\n\nVous pouvez passer en cliquant sur le bouton ci-dessous.",
         "order.delivery.info_save_error": "❌ Erreur lors de l'enregistrement des informations de livraison. Veuillez réessayer.",
 
+        # Location Method Choice
+        "order.delivery.location_method_prompt": "📍 Comment souhaitez-vous indiquer votre adresse de livraison ?\n\nChoisissez une option ci-dessous :",
+        "btn.location_method.gps": "📡 Envoyer GPS via Telegram",
+        "btn.location_method.live_gps": "📍 Partager la position en direct",
+        "btn.location_method.google_link": "🗺 Partager un lien Google Maps",
+        "btn.location_method.type_address": "✍️ Saisir une adresse",
+        "order.delivery.gps_prompt": "📍 Appuyez sur le bouton ci-dessous pour partager votre position :",
+        "order.delivery.gps_hint": "📍 Veuillez utiliser le bouton ci-dessous pour partager votre position GPS, ou appuyez sur 'Retour' pour choisir une autre méthode.",
+        "order.delivery.live_gps_prompt": "📍 Pour partager votre position en direct :\n\n1. Appuyez sur l'icône de pièce jointe 📎 ci-dessous\n2. Sélectionnez 'Position'\n3. Appuyez sur 'Partager ma position en direct'\n4. Choisissez une durée\n\nLe livreur pourra voir votre position en temps réel !",
+        "order.delivery.live_gps_saved": "✅ Position en direct reçue ! Le livreur pourra suivre votre position.",
+        "order.delivery.live_gps_hint": "📍 Veuillez partager votre position en direct via le menu des pièces jointes (📎 → Position → Partager la position en direct).",
+        "order.delivery.google_link_prompt": "🗺 Collez un lien Google Maps avec votre emplacement.\n\nOuvrez Google Maps, trouvez l'emplacement, appuyez sur 'Partager' et copiez le lien ici.",
+        "order.delivery.google_link_invalid": "❌ Impossible de reconnaître le lien Google Maps. Assurez-vous qu'il commence par google.com/maps ou goo.gl/maps.",
+        "order.delivery.address_confirm_prompt": "📍 Votre adresse :\n<b>{address}</b>\n\n🔗 <a href=\"{maps_link}\">Voir sur la carte</a>\n\nEst-ce correct ?",
+        "btn.address_confirm_yes": "✅ Oui, c'est correct",
+        "btn.address_confirm_retry": "✏️ Non, ressaisir l'adresse",
+
         # GPS Location (Card 2)
         "order.delivery.location_prompt": "📍 Souhaitez-vous partager votre position GPS pour une livraison plus précise ?\n\nAppuyez sur le bouton ci-dessous ou passez cette étape.",
         "order.delivery.location_saved": "✅ Position enregistrée !",
@@ -5860,6 +6080,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.menu.segment_broadcast": "📣 Targeted Broadcast",
         "admin.menu.stores": "🏪 Stores",
         "admin.menu.tickets": "🎫 Tickets",
+        "admin.menu.ai_assistant": "🤖 AI Assistant",
         "admin.segment.all_users": "👥 All Users",
         "admin.segment.count": "📊 Segment: <b>{segment}</b>\nUsers: <b>{count}</b>\n\nType your broadcast message:",
         "admin.segment.empty": "No users in this segment.",

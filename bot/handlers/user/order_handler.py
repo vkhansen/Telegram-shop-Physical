@@ -2,7 +2,9 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
 import html
+import re
 from decimal import Decimal
+from urllib.parse import quote_plus
 
 from bot.database import Database
 from bot.database.models.main import Order, OrderItem, CustomerInfo, ShoppingCart
@@ -21,12 +23,235 @@ from bot.monitoring import get_metrics
 router = Router()
 
 
+# ---------------------------------------------------------------------------
+# Helper: extract lat/lng from Google Maps URLs
+# ---------------------------------------------------------------------------
+_MAPS_COORD_PATTERNS = [
+    re.compile(r'@(-?\d+\.\d+),(-?\d+\.\d+)'),           # maps/@lat,lng
+    re.compile(r'q=(-?\d+\.\d+),(-?\d+\.\d+)'),           # maps?q=lat,lng
+    re.compile(r'll=(-?\d+\.\d+),(-?\d+\.\d+)'),          # ll=lat,lng
+    re.compile(r'/(-?\d+\.\d+),(-?\d+\.\d+)'),            # generic /lat,lng in path
+]
+
+
+def _extract_coords_from_url(url: str):
+    """Return (lat, lng) floats or None if no coords found."""
+    for pat in _MAPS_COORD_PATTERNS:
+        m = pat.search(url)
+        if m:
+            lat, lng = float(m.group(1)), float(m.group(2))
+            if -90 <= lat <= 90 and -180 <= lng <= 180:
+                return lat, lng
+    return None
+
+
+async def show_location_method_choice(target, state: FSMContext, *, edit: bool = False):
+    """Show the 4-option location method picker."""
+    text = localize("order.delivery.location_method_prompt")
+    kb = simple_buttons([
+        (localize("btn.location_method.gps"), "loc_method_gps"),
+        (localize("btn.location_method.live_gps"), "loc_method_live_gps"),
+        (localize("btn.location_method.google_link"), "loc_method_google_link"),
+        (localize("btn.location_method.type_address"), "loc_method_type_address"),
+    ], per_row=1)
+    if edit and hasattr(target, 'edit_text'):
+        await target.edit_text(text, reply_markup=kb)
+    else:
+        await target.answer(text, reply_markup=kb)
+    await state.set_state(OrderStates.waiting_location_method)
+
+
+# ---------------------------------------------------------------------------
+# Step 1: Location method choice
+# ---------------------------------------------------------------------------
+
+@router.callback_query(F.data == "loc_method_gps", OrderStates.waiting_location_method)
+async def loc_method_gps(call: CallbackQuery, state: FSMContext):
+    """User chose GPS via Telegram"""
+    await call.answer()
+    location_kb = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=localize("btn.share_location"), request_location=True)],
+            [KeyboardButton(text=localize("btn.back"))]
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=True
+    )
+    await call.message.edit_text(localize("order.delivery.gps_prompt"))
+    await call.message.answer(
+        localize("order.delivery.gps_prompt"),
+        reply_markup=location_kb
+    )
+    await state.set_state(OrderStates.waiting_location)
+
+
+@router.callback_query(F.data == "loc_method_live_gps", OrderStates.waiting_location_method)
+async def loc_method_live_gps(call: CallbackQuery, state: FSMContext):
+    """User chose to share live location"""
+    await call.answer()
+    await call.message.edit_text(
+        localize("order.delivery.live_gps_prompt"),
+        reply_markup=back("view_cart")
+    )
+    await state.set_state(OrderStates.waiting_live_location)
+
+
+@router.callback_query(F.data == "loc_method_google_link", OrderStates.waiting_location_method)
+async def loc_method_google_link(call: CallbackQuery, state: FSMContext):
+    """User chose to paste a Google Maps link"""
+    await call.answer()
+    await call.message.edit_text(
+        localize("order.delivery.google_link_prompt"),
+        reply_markup=back("view_cart")
+    )
+    await state.set_state(OrderStates.waiting_google_maps_link)
+
+
+@router.callback_query(F.data == "loc_method_type_address", OrderStates.waiting_location_method)
+async def loc_method_type_address(call: CallbackQuery, state: FSMContext):
+    """User chose to type an address"""
+    await call.answer()
+    await call.message.edit_text(
+        localize("order.delivery.address_prompt"),
+        reply_markup=back("view_cart")
+    )
+    await state.set_state(OrderStates.waiting_delivery_address)
+
+
+# ---------------------------------------------------------------------------
+# Option 1: GPS via Telegram
+# ---------------------------------------------------------------------------
+
+@router.message(OrderStates.waiting_location, F.location)
+async def process_location(message: Message, state: FSMContext):
+    """Process shared GPS location"""
+    lat = message.location.latitude
+    lng = message.location.longitude
+    maps_link = f"https://www.google.com/maps?q={lat},{lng}"
+
+    await state.update_data(
+        latitude=lat, longitude=lng,
+        google_maps_link=maps_link,
+        delivery_address=maps_link,
+    )
+
+    await message.answer(
+        localize("order.delivery.location_saved"),
+        reply_markup=ReplyKeyboardRemove()
+    )
+
+    # Proceed to delivery type
+    await ask_delivery_type(message, state)
+
+
+@router.message(OrderStates.waiting_location)
+async def location_not_shared(message: Message, state: FSMContext):
+    """User sent text instead of location — nudge them or go back"""
+    if message.text and message.text.strip() == localize("btn.back"):
+        await message.answer(
+            localize("order.delivery.location_method_prompt"),
+            reply_markup=ReplyKeyboardRemove()
+        )
+        await show_location_method_choice(message, state)
+        return
+
+    await message.answer(
+        localize("order.delivery.gps_hint"),
+        reply_markup=ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text=localize("btn.share_location"), request_location=True)],
+                [KeyboardButton(text=localize("btn.back"))]
+            ],
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+    )
+
+
+# ---------------------------------------------------------------------------
+# Option 1b: Live Location via Telegram
+# ---------------------------------------------------------------------------
+
+@router.message(OrderStates.waiting_live_location, F.location)
+async def process_live_location(message: Message, state: FSMContext):
+    """Process shared live location"""
+    lat = message.location.latitude
+    lng = message.location.longitude
+    maps_link = f"https://www.google.com/maps?q={lat},{lng}"
+    is_live = bool(message.location.live_period)
+
+    await state.update_data(
+        latitude=lat, longitude=lng,
+        google_maps_link=maps_link,
+        delivery_address=maps_link,
+        live_location_message_id=message.message_id if is_live else None,
+        live_location_shared=is_live,
+    )
+
+    if is_live:
+        await message.answer(localize("order.delivery.live_gps_saved"))
+    else:
+        # User sent a static location instead — still accept it
+        await message.answer(localize("order.delivery.location_saved"))
+
+    await ask_delivery_type(message, state)
+
+
+@router.message(OrderStates.waiting_live_location)
+async def live_location_not_shared(message: Message, state: FSMContext):
+    """User sent text instead of live location — remind them"""
+    await message.answer(
+        localize("order.delivery.live_gps_hint"),
+        reply_markup=back("view_cart")
+    )
+
+
+# ---------------------------------------------------------------------------
+# Option 2: Google Maps link
+# ---------------------------------------------------------------------------
+
+@router.message(OrderStates.waiting_google_maps_link)
+async def process_google_maps_link(message: Message, state: FSMContext):
+    """Parse coordinates from a Google Maps link"""
+    text = (message.text or "").strip()
+
+    # Basic URL validation
+    if not text or not any(domain in text.lower() for domain in ["google.com/maps", "maps.google", "goo.gl/maps", "maps.app.goo.gl"]):
+        await message.answer(
+            localize("order.delivery.google_link_invalid"),
+            reply_markup=back("view_cart")
+        )
+        return
+
+    coords = _extract_coords_from_url(text)
+    if coords:
+        lat, lng = coords
+        maps_link = f"https://www.google.com/maps?q={lat},{lng}"
+        await state.update_data(
+            latitude=lat, longitude=lng,
+            google_maps_link=maps_link,
+            delivery_address=maps_link,
+        )
+        await message.answer(localize("order.delivery.location_saved"))
+        await ask_delivery_type(message, state)
+    else:
+        # Could not extract coords — save the link as-is and ask user to confirm
+        await state.update_data(
+            google_maps_link=text,
+            delivery_address=text,
+        )
+        await message.answer(localize("order.delivery.location_saved"))
+        await ask_delivery_type(message, state)
+
+
+# ---------------------------------------------------------------------------
+# Option 3: Type an address → search & confirm
+# ---------------------------------------------------------------------------
+
 @router.message(OrderStates.waiting_delivery_address)
 async def process_delivery_address(message: Message, state: FSMContext):
-    """
-    Collect delivery address from user
-    """
-    delivery_address = message.text.strip()
+    """Collect delivery address from user, then ask to confirm via map link"""
+    delivery_address = (message.text or "").strip()
 
     if len(delivery_address) < 5:
         await message.answer(
@@ -38,54 +263,38 @@ async def process_delivery_address(message: Message, state: FSMContext):
     # Save to state
     await state.update_data(delivery_address=delivery_address)
 
-    # Ask for GPS location (optional)
-    location_kb = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text=localize("btn.share_location"), request_location=True)],
-            [KeyboardButton(text=localize("btn.skip_location"))]
-        ],
-        resize_keyboard=True,
-        one_time_keyboard=True
-    )
+    # Generate Google Maps search link for the address
+    search_url = f"https://www.google.com/maps/search/{quote_plus(delivery_address)}"
+    await state.update_data(google_maps_link=search_url)
+
+    # Ask user to confirm the address
     await message.answer(
-        localize("order.delivery.location_prompt"),
-        reply_markup=location_kb
+        localize("order.delivery.address_confirm_prompt",
+                 address=html.escape(delivery_address),
+                 maps_link=search_url),
+        reply_markup=simple_buttons([
+            (localize("btn.address_confirm_yes"), "address_confirm_yes"),
+            (localize("btn.address_confirm_retry"), "address_confirm_retry"),
+        ], per_row=1),
+        parse_mode="HTML",
+        disable_web_page_preview=True,
     )
-    await state.set_state(OrderStates.waiting_location)
+    await state.set_state(OrderStates.waiting_address_confirm)
 
 
-@router.message(OrderStates.waiting_location, F.location)
-async def process_location(message: Message, state: FSMContext):
-    """
-    Process shared GPS location
-    """
-    lat = message.location.latitude
-    lng = message.location.longitude
-    maps_link = f"https://www.google.com/maps?q={lat},{lng}"
-
-    await state.update_data(latitude=lat, longitude=lng, google_maps_link=maps_link)
-
-    await message.answer(
-        localize("order.delivery.location_saved"),
-        reply_markup=ReplyKeyboardRemove()
-    )
-
-    # Ask for delivery type (Card 3)
-    await ask_delivery_type(message, state)
+@router.callback_query(F.data == "address_confirm_yes", OrderStates.waiting_address_confirm)
+async def address_confirmed(call: CallbackQuery, state: FSMContext):
+    """User confirmed the searched address"""
+    await call.answer()
+    await call.message.edit_text(localize("order.delivery.location_saved"))
+    await ask_delivery_type(call.message, state)
 
 
-@router.message(OrderStates.waiting_location)
-async def skip_location(message: Message, state: FSMContext):
-    """
-    User skipped GPS location or sent text instead
-    """
-    await message.answer(
-        localize("order.delivery.location_saved"),
-        reply_markup=ReplyKeyboardRemove()
-    )
-
-    # Ask for delivery type (Card 3)
-    await ask_delivery_type(message, state)
+@router.callback_query(F.data == "address_confirm_retry", OrderStates.waiting_address_confirm)
+async def address_retry(call: CallbackQuery, state: FSMContext):
+    """User wants to re-enter address"""
+    await call.answer()
+    await show_location_method_choice(call.message, state, edit=True)
 
 
 async def ask_delivery_type(message: Message, state: FSMContext):

@@ -12,10 +12,12 @@ from .review_handler import router as review_router
 from .search_handler import router as search_router
 from .shop_and_goods import router as shop_and_goods_router
 from .store_selection import router as store_selection_router
+from .privacy_handler import router as privacy_router
 from .ticket_handler import router as ticket_router
 
 router = Router()
 router.include_router(main_router)
+router.include_router(privacy_router)
 router.include_router(store_selection_router)  # Must come before shop_and_goods (handles "shop" callback)
 router.include_router(reference_code_router)
 router.include_router(help_router)

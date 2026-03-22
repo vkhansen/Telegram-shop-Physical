@@ -22,8 +22,12 @@ class ReferenceCodeStates(StatesGroup):
 
 class OrderStates(StatesGroup):
     """FSM for order placement flow."""
+    waiting_location_method = State()  # Choose: GPS / Live GPS / Google Maps link / Type address
     waiting_delivery_address = State()
+    waiting_address_confirm = State()  # Confirm searched address
+    waiting_google_maps_link = State()  # Paste Google Maps link
     waiting_location = State()  # GPS location sharing (Card 2)
+    waiting_live_location = State()  # Live location sharing
     waiting_delivery_type = State()  # Door / Dead Drop / Pickup (Card 3)
     waiting_drop_instructions = State()  # Dead drop instructions (Card 3)
     waiting_drop_gps = State()  # Dead drop GPS location (Card 3)
@@ -73,3 +77,10 @@ class SettingsFSM(StatesGroup):
     waiting_timezone = State()
     waiting_promptpay_id = State()
     waiting_promptpay_name = State()
+
+
+class GrokAssistantStates(StatesGroup):
+    """FSM for Grok AI admin assistant (Card 17)."""
+    chatting = State()               # Main conversation loop
+    awaiting_confirmation = State()  # Waiting for yes/no on mutation
+    awaiting_file = State()          # Waiting for CSV/data upload

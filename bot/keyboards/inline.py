@@ -16,6 +16,7 @@ def main_menu(role: int, channel: str | None = None, helper: str | None = None) 
     kb.button(text=localize("btn.rules"), callback_data="rules")
     kb.button(text=localize("btn.profile"), callback_data="profile")
     kb.button(text=localize("btn.my_tickets"), callback_data="support_tickets")
+    kb.button(text=localize("btn.privacy"), callback_data="privacy_view")
     if helper:
         kb.button(text=localize("btn.support"), url=f"tg://user?id={helper}")
     if channel:
@@ -59,6 +60,7 @@ def admin_console_keyboard() -> InlineKeyboardMarkup:
     kb.button(text=localize("btn.settings"), callback_data="settings_management")
     kb.button(text=localize("admin.menu.broadcast"), callback_data="send_message")
     kb.button(text=localize("admin.menu.segment_broadcast"), callback_data="segmented_broadcast")
+    kb.button(text=localize("admin.menu.ai_assistant"), callback_data="ai_assistant")
     kb.button(text=localize("btn.back"), callback_data="back_to_menu")
     kb.adjust(1)
     return kb.as_markup()

@@ -421,22 +421,16 @@ async def checkout_cart_handler(call: CallbackQuery, state: FSMContext):
 
             await call.message.edit_text(text, reply_markup=simple_buttons(buttons, per_row=1))
         else:
-            # No saved info, start collecting
-            await call.message.edit_text(
-                localize("order.delivery.address_prompt"),
-                reply_markup=back("view_cart")
-            )
-            await state.set_state(OrderStates.waiting_delivery_address)
+            # No saved info, start collecting — show location method choice
+            from bot.handlers.user.order_handler import show_location_method_choice
+            await show_location_method_choice(call.message, state, edit=True)
 
 
 @router.callback_query(F.data == "update_delivery_info")
 async def update_delivery_info_handler(call: CallbackQuery, state: FSMContext):
     """Start flow to update delivery information"""
-    await call.message.edit_text(
-        localize("order.delivery.address_prompt"),
-        reply_markup=back("view_cart")
-    )
-    await state.set_state(OrderStates.waiting_delivery_address)
+    from bot.handlers.user.order_handler import show_location_method_choice
+    await show_location_method_choice(call.message, state, edit=True)
 
 
 @router.callback_query(F.data == "confirm_delivery_info")

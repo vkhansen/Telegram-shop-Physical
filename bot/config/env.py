@@ -64,6 +64,16 @@ class EnvKeys(ABC):
     SUPPORT_CHAT_ID: Final = os.getenv("SUPPORT_CHAT_ID")  # Group/channel ID where support staff monitor
     MAINTAINER_IDS: Final = os.getenv("MAINTAINER_IDS", "")  # Comma-separated Telegram IDs of app maintainers
 
+    # Grok AI Assistant (Card 17)
+    GROK_API_KEY: Final = os.getenv("GROK_API_KEY", "")
+    GROK_MODEL: Final = os.getenv("GROK_MODEL", "grok-3-mini")
+    GROK_TIMEOUT: Final = int(os.getenv("GROK_TIMEOUT", 30))
+
+    # PDPA Privacy Policy
+    PRIVACY_POLICY_URL: Final = os.getenv("PRIVACY_POLICY_URL", "")
+    PRIVACY_CONTACT_EMAIL: Final = os.getenv("PRIVACY_CONTACT_EMAIL", "")
+    PRIVACY_COMPANY_NAME: Final = os.getenv("PRIVACY_COMPANY_NAME", "")
+
     # Monitoring
     MONITORING_HOST: Final = os.getenv("MONITORING_HOST", "localhost")
     MONITORING_PORT: Final = int(os.getenv("MONITORING_PORT", 9090))

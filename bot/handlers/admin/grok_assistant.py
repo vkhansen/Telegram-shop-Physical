@@ -1,0 +1,248 @@
+"""Grok AI Admin Assistant — Telegram handler + conversation loop (Card 17).
+
+Entry point: callback_data == "ai_assistant" from admin console.
+"""
+
+import json
+import logging
+
+from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message
+
+from bot.ai.data_parser import extract_content
+from bot.ai.executor import execute_mutation, execute_query
+from bot.ai.grok_client import call_grok
+from bot.ai.prompts import build_system_prompt
+from bot.ai.schemas import MUTATION_TOOLS, TOOL_SCHEMA_MAP
+from bot.ai.tool_defs import ALL_TOOLS
+from bot.config.env import EnvKeys
+from bot.database import Database
+from bot.database.models.main import Categories, Goods
+from bot.filters import HasPermissionFilter
+from bot.keyboards.inline import back
+from bot.states.user_state import GrokAssistantStates
+
+logger = logging.getLogger(__name__)
+router = Router()
+
+# Max conversation history messages to keep (prevent token overflow)
+MAX_HISTORY = 50
+
+
+def _get_menu_context() -> tuple[list[dict], list[dict]]:
+    """Load current categories and items for the system prompt."""
+    with Database().session() as s:
+        cats = s.query(Categories).order_by(Categories.sort_order).all()
+        cat_list = [{"name": c.name} for c in cats]
+
+        items = s.query(Goods).filter(Goods.is_active.is_(True)).order_by(Goods.name).all()
+        item_list = [
+            {
+                "name": g.name,
+                "price": str(g.price),
+                "category_name": g.category_name,
+                "stock_quantity": g.stock_quantity,
+            }
+            for g in items
+        ]
+    return cat_list, item_list
+
+
+def _trim_history(history: list[dict]) -> list[dict]:
+    """Keep system message + last MAX_HISTORY messages."""
+    if len(history) <= MAX_HISTORY + 1:
+        return history
+    # Always keep system prompt (index 0)
+    return [history[0]] + history[-(MAX_HISTORY):]
+
+
+def _exit_keyboard():
+    return back("console", text="Exit AI Assistant")
+
+
+# ── Entry Point ──────────────────────────────────────────────────────
+
+@router.callback_query(
+    F.data == "ai_assistant",
+    HasPermissionFilter(permission=16),  # SHOP_MANAGE
+)
+async def start_assistant(callback: CallbackQuery, state: FSMContext):
+    """Entry point from admin console."""
+    if not EnvKeys.GROK_API_KEY:
+        await callback.message.edit_text(
+            "AI Assistant is not configured. Set GROK_API_KEY in .env.",
+            reply_markup=back("console"),
+        )
+        await callback.answer()
+        return
+
+    categories, items = _get_menu_context()
+    currency = EnvKeys.PAY_CURRENCY or "THB"
+    system_prompt = build_system_prompt(categories, items, currency)
+
+    await state.set_state(GrokAssistantStates.chatting)
+    await state.update_data(
+        grok_history=[{"role": "system", "content": system_prompt}],
+        pending_action=None,
+    )
+
+    await callback.message.edit_text(
+        "AI Assistant ready. You can:\n"
+        "- Ask about orders, deliveries, or customers\n"
+        "- Update menu items and prices\n"
+        "- Send a CSV/file to import menu data\n"
+        "- Ask anything about your shop data\n\n"
+        "Type /exit_ai to leave.",
+        reply_markup=_exit_keyboard(),
+    )
+    await callback.answer()
+
+
+# ── Exit ─────────────────────────────────────────────────────────────
+
+@router.message(GrokAssistantStates.chatting, F.text == "/exit_ai")
+@router.message(GrokAssistantStates.awaiting_confirmation, F.text == "/exit_ai")
+@router.message(GrokAssistantStates.awaiting_file, F.text == "/exit_ai")
+async def exit_assistant(message: Message, state: FSMContext):
+    """Exit the AI assistant."""
+    await state.clear()
+    await message.answer("AI Assistant closed.", reply_markup=back("console"))
+
+
+@router.callback_query(F.data == "exit_ai_assistant")
+async def exit_assistant_cb(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await callback.message.edit_text("AI Assistant closed.", reply_markup=back("console"))
+    await callback.answer()
+
+
+# ── Main Chat Loop ───────────────────────────────────────────────────
+
+@router.message(GrokAssistantStates.chatting)
+async def handle_chat_message(message: Message, state: FSMContext):
+    """Main conversation loop — every message goes to Grok."""
+    data = await state.get_data()
+    history = data.get("grok_history", [])
+
+    # Extract content from message (text, CSV, photo, etc.)
+    user_content = await extract_content(message)
+    history.append({"role": "user", "content": user_content})
+
+    # Send typing indicator
+    await message.bot.send_chat_action(message.chat.id, "typing")
+
+    try:
+        response = await call_grok(
+            messages=history,
+            tools=ALL_TOOLS,
+        )
+    except Exception as e:
+        logger.error("Grok API call failed: %s", e)
+        await message.answer(
+            f"AI service error: {e}\nPlease try again.",
+            reply_markup=_exit_keyboard(),
+        )
+        return
+
+    assistant_msg = response["choices"][0]["message"]
+    history.append(assistant_msg)
+
+    # Process tool calls if present
+    if assistant_msg.get("tool_calls"):
+        for tool_call in assistant_msg["tool_calls"]:
+            result = await _process_tool_call(
+                tool_call, message.from_user.id
+            )
+            history.append({
+                "role": "tool",
+                "tool_call_id": tool_call["id"],
+                "content": json.dumps(result, default=str),
+            })
+
+        # Get Grok's follow-up response with tool results
+        try:
+            await message.bot.send_chat_action(message.chat.id, "typing")
+            followup = await call_grok(messages=history, tools=ALL_TOOLS)
+            followup_msg = followup["choices"][0]["message"]
+            history.append(followup_msg)
+
+            # Handle nested tool calls (Grok may chain actions)
+            depth = 0
+            while followup_msg.get("tool_calls") and depth < 3:
+                depth += 1
+                for tc in followup_msg["tool_calls"]:
+                    res = await _process_tool_call(tc, message.from_user.id)
+                    history.append({
+                        "role": "tool",
+                        "tool_call_id": tc["id"],
+                        "content": json.dumps(res, default=str),
+                    })
+                await message.bot.send_chat_action(message.chat.id, "typing")
+                followup = await call_grok(messages=history, tools=ALL_TOOLS)
+                followup_msg = followup["choices"][0]["message"]
+                history.append(followup_msg)
+
+            reply_text = followup_msg.get("content") or "Done."
+        except Exception as e:
+            logger.error("Grok follow-up failed: %s", e)
+            reply_text = f"Action executed but follow-up failed: {e}"
+    else:
+        reply_text = assistant_msg.get("content") or "I didn't understand. Could you rephrase?"
+
+    # Trim history to prevent token overflow
+    history = _trim_history(history)
+    await state.update_data(grok_history=history)
+
+    # Send response (split if too long for Telegram)
+    for chunk in _split_message(reply_text):
+        await message.answer(chunk, reply_markup=_exit_keyboard())
+
+
+async def _process_tool_call(tool_call: dict, admin_id: int) -> dict:
+    """Validate tool call against Pydantic schema and execute."""
+    func_name = tool_call["function"]["name"]
+
+    try:
+        args = json.loads(tool_call["function"]["arguments"])
+    except json.JSONDecodeError as e:
+        return {"error": f"Invalid JSON in tool arguments: {e}"}
+
+    schema_class = TOOL_SCHEMA_MAP.get(func_name)
+    if not schema_class:
+        return {"error": f"Unknown tool: {func_name}"}
+
+    # Pydantic validation — the hard guardrail
+    try:
+        validated = schema_class.model_validate(args)
+    except Exception as e:
+        return {
+            "error": "Validation failed",
+            "details": str(e),
+            "hint": "Ask the admin for the missing/invalid fields",
+        }
+
+    # Execute
+    if func_name in MUTATION_TOOLS:
+        return await execute_mutation(validated, admin_id)
+    else:
+        return await execute_query(validated)
+
+
+def _split_message(text: str, max_len: int = 4000) -> list[str]:
+    """Split long messages for Telegram's 4096 char limit."""
+    if len(text) <= max_len:
+        return [text]
+
+    chunks = []
+    while text:
+        if len(text) <= max_len:
+            chunks.append(text)
+            break
+        # Find a good split point
+        split_at = text.rfind("\n", 0, max_len)
+        if split_at == -1:
+            split_at = max_len
+        chunks.append(text[:split_at])
+        text = text[split_at:].lstrip("\n")
+    return chunks

@@ -14,6 +14,7 @@ from .accounting_handler import router as accounting_router
 from .ticket_management import router as ticket_management_router
 from .segmented_broadcast import router as segmented_broadcast_router
 from .store_management import router as store_management_router
+from .grok_assistant import router as grok_assistant_router
 
 from aiogram import Router
 
@@ -34,3 +35,4 @@ router.include_router(accounting_router)
 router.include_router(ticket_management_router)
 router.include_router(segmented_broadcast_router)
 router.include_router(store_management_router)
+router.include_router(grok_assistant_router)

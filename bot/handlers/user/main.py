@@ -164,7 +164,11 @@ async def set_locale_callback(call: CallbackQuery, state: FSMContext):
             )
 
             await call.message.edit_text(confirm_msg)
-            await show_main_menu(call.message, state)
+
+            # Show PDPA privacy notice before main menu (Card: Privacy)
+            await state.update_data(after_privacy="register")
+            from bot.handlers.user.privacy_handler import show_privacy_notice
+            await show_privacy_notice(call.message, state)
             return
 
         # Reference codes enabled — save locale temporarily and prompt for code
