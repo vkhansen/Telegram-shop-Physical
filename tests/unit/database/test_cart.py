@@ -76,17 +76,19 @@ class TestShoppingCart:
 
     @pytest.mark.asyncio
     async def test_add_to_cart_exceeds_stock(self, db_session, test_user, test_goods_low_stock):
-        """Test adding more items than available stock"""
+        """Test adding more items than available stock.
+        LOGIC-01: add_to_cart now uses locked row data directly for stock check."""
         with patch('bot.database.methods.read.check_value', return_value=False):
-            with patch('bot.database.methods.read.select_item_values_amount_cached', return_value=2):
-                success, message = await add_to_cart(
-                    test_user.telegram_id,
-                    test_goods_low_stock.name,
-                    5
-                )
+            # test_goods_low_stock has stock=5, reserved=0, so available=5
+            # Requesting 10 should exceed stock
+            success, message = await add_to_cart(
+                test_user.telegram_id,
+                test_goods_low_stock.name,
+                10
+            )
 
-                assert success == False
-                assert "available" in message.lower()
+            assert success == False
+            assert "available" in message.lower()
 
     @pytest.mark.asyncio
     async def test_add_to_cart_nonexistent_item(self, db_session, test_user):
