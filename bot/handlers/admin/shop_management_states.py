@@ -250,6 +250,9 @@ async def show_user_info(call: CallbackQuery):
     back_target = "users_list" if origin == "user" else "admins_list"
 
     user = await check_user_cached(user_id)
+    if not user:
+        await call.answer(localize('admin.users.not_found'), show_alert=True)
+        return
     user_info = await call.message.bot.get_chat(user_id)
     items = select_user_items(user_id)
     role = check_role_name_by_id(user.get('role_id'))

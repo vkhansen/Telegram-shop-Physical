@@ -138,7 +138,7 @@ async def review_rate(call: CallbackQuery, state: FSMContext):
     # Ask for optional comment
     buttons = [(localize("review.skip_comment"), "review_skip_comment")]
     await call.message.edit_text(
-        localize("review.comment_prompt"),
+        localize("review.comment_prompt", rating=rating),
         reply_markup=simple_buttons(buttons),
     )
     await state.set_state(ReviewStates.waiting_comment)

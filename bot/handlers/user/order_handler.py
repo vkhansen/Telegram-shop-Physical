@@ -809,7 +809,7 @@ async def finalize_order_and_payment(message: Message, state: FSMContext, user_i
                 if customer_info.delivery_note != delivery_note:
                     log_customer_info_change(
                         user_id, username, "DELIVERY_NOTE",
-                        customer_info.delivery_note, delivery_address
+                        customer_info.delivery_note, delivery_note
                     )
                     customer_info.delivery_note = delivery_note
 

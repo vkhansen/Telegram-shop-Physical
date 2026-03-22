@@ -145,7 +145,7 @@ async def admin_reply_ticket(call: CallbackQuery, state: FSMContext):
     )
 
 
-@router.message(AdminTicketStates.waiting_reply)
+@router.message(AdminTicketStates.waiting_reply, HasPermissionFilter(permission=Permission.USERS_MANAGE))
 async def process_admin_reply(message: Message, state: FSMContext):
     """Save the admin's reply to the ticket."""
     msg_text = message.text.strip()

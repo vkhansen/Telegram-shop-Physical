@@ -98,14 +98,16 @@ async def accounting_summary(call: CallbackQuery, state: FSMContext):
         for i, (name, rev) in enumerate(summary.get("top_products", [])[:5], 1)
     ) or "  N/A"
 
-    text = (
-        f"{localize('admin.accounting.summary')}\n"
-        f"<b>{period_label}</b>\n\n"
-        f"<b>Total Revenue:</b> {summary.get('total_revenue', 0):.2f}\n"
-        f"<b>Order Count:</b> {summary.get('order_count', 0)}\n"
-        f"<b>Avg Order Value:</b> {summary.get('avg_value', 0):.2f}\n\n"
-        f"<b>Breakdown by Payment:</b>\n{payment_lines}\n\n"
-        f"<b>Top 5 Products:</b>\n{top_lines}"
+    from bot.config import EnvKeys
+    text = localize(
+        "admin.accounting.summary",
+        period=period_label,
+        total=f"{summary.get('total_revenue', 0):.2f}",
+        currency=EnvKeys.PAY_CURRENCY,
+        orders=summary.get("order_count", 0),
+        avg=f"{summary.get('avg_value', 0):.2f}",
+        payments=payment_lines,
+        products=top_lines,
     )
 
     await call.message.edit_text(

@@ -97,13 +97,15 @@ class TestCreateOperations:
 
     @pytest.mark.asyncio
     async def test_add_to_cart_insufficient_stock(self, db_session, test_user, test_goods):
-        """Test adding item to cart with insufficient stock"""
+        """Test adding item to cart with insufficient stock.
+        LOGIC-01: add_to_cart now uses locked row data directly for stock check."""
         with patch('bot.database.methods.read.check_value', return_value=False):
-            with patch('bot.database.methods.read.select_item_values_amount_cached', return_value=1):
-                success, message = await add_to_cart(test_user.telegram_id, test_goods.name, 5)
+            # test_goods has stock=100, reserved=0, so available=100
+            # Request quantity > 100 to trigger insufficient stock
+            success, message = await add_to_cart(test_user.telegram_id, test_goods.name, 200)
 
-                assert success == False
-                assert "available" in message.lower()
+            assert success == False
+            assert "available" in message.lower()
 
 
 @pytest.mark.unit

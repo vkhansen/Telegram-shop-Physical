@@ -33,7 +33,7 @@ async def send_message_callback_handler(call: CallbackQuery, state: FSMContext):
     await state.set_state(BroadcastFSM.waiting_message)
 
 
-@router.message(BroadcastFSM.waiting_message, F.text)
+@router.message(BroadcastFSM.waiting_message, F.text, HasPermissionFilter(permission=Permission.BROADCAST))
 async def broadcast_messages(message: Message, state: FSMContext):
     """Executing mailing with progress bar"""
     admin_id = message.from_user.id

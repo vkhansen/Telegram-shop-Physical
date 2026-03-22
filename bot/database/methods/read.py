@@ -170,8 +170,13 @@ def select_item_values_amount(item_name: str) -> int:
 
 
 def check_value(item_name: str) -> bool:
-    """For physical goods, always returns False (no infinite items). Kept for backward compatibility."""
-    return False
+    """Return True if item has unlimited stock (prepared items with stock_quantity=0)."""
+    with Database().session() as s:
+        goods = s.query(Goods).filter_by(name=item_name).first()
+        if not goods:
+            return False
+        # Prepared items with stock_quantity=0 are unlimited (made to order)
+        return goods.is_prepared and goods.stock_quantity == 0
 
 
 def select_user_items(buyer_id: int | str) -> int:

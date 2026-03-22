@@ -564,6 +564,9 @@ async def process_admin_for_purpose(call: CallbackQuery):
         return
 
     admin_role_id = get_role_id_by_name('ADMIN')
+    if not admin_role_id:
+        await call.answer("Role not found", show_alert=True)
+        return
     set_role(user_id, admin_role_id)
 
     # Track admin role assignment
@@ -618,6 +621,9 @@ async def process_admin_for_remove(call: CallbackQuery):
         return
 
     user_role_id = get_role_id_by_name('USER')
+    if not user_role_id:
+        await call.answer("Role not found", show_alert=True)
+        return
     set_role(user_id, user_role_id)
 
     # Track admin role revocation

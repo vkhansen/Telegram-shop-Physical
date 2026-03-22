@@ -136,7 +136,7 @@ async def segment_selected(call: CallbackQuery, state: FSMContext):
     await state.set_state(SegmentBroadcastStates.waiting_message)
 
 
-@router.message(SegmentBroadcastStates.waiting_message, F.text)
+@router.message(SegmentBroadcastStates.waiting_message, F.text, HasPermissionFilter(permission=Permission.BROADCAST))
 async def process_segment_broadcast(message: Message, state: FSMContext):
     """Send the broadcast message to the selected segment."""
     data = await state.get_data()

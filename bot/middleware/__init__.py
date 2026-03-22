@@ -5,3 +5,4 @@ from bot.middleware.rate_limit import (
     setup_rate_limiting
 )
 from bot.middleware.security import SecurityMiddleware, AuthenticationMiddleware
+from bot.middleware.locale import LocaleMiddleware

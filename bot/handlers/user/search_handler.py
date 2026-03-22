@@ -71,7 +71,7 @@ async def process_search_query(message: Message, state: FSMContext):
     buttons.append((localize("btn.back"), "back_to_menu"))
 
     await message.answer(
-        localize("search.results_title"),
+        localize("search.results_title", query=query),
         reply_markup=simple_buttons(buttons),
     )
     await state.clear()

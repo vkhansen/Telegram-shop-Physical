@@ -426,7 +426,7 @@ async def _finalize_ticket(message: Message, state: FSMContext, from_callback: b
     await _notify_maintainers(message.bot, notification, screenshot)
 
     await state.clear()
-    confirm = localize("ticket.created", ticket_code=ticket_code)
+    confirm = localize("ticket.created", code=ticket_code)
     if from_callback:
         await message.edit_text(confirm, reply_markup=back("support_menu"))
     else:
@@ -529,7 +529,7 @@ async def process_ticket_reply(message: Message, state: FSMContext):
 
     await state.clear()
     await message.answer(
-        localize("ticket.reply_prompt") + "\n\n" + localize("ticket.created", ticket_code=""),
+        localize("ticket.reply_prompt") + "\n\n" + localize("ticket.created", code=ticket_id),
         reply_markup=back(f"view_ticket_{ticket_id}"),
     )
 

@@ -102,9 +102,9 @@ async def start_assistant(callback: CallbackQuery, state: FSMContext):
 
 # ── Exit ─────────────────────────────────────────────────────────────
 
-@router.message(GrokAssistantStates.chatting, F.text == "/exit_ai")
-@router.message(GrokAssistantStates.awaiting_confirmation, F.text == "/exit_ai")
-@router.message(GrokAssistantStates.awaiting_file, F.text == "/exit_ai")
+@router.message(GrokAssistantStates.chatting, F.text == "/exit_ai", HasPermissionFilter(permission=16))
+@router.message(GrokAssistantStates.awaiting_confirmation, F.text == "/exit_ai", HasPermissionFilter(permission=16))
+@router.message(GrokAssistantStates.awaiting_file, F.text == "/exit_ai", HasPermissionFilter(permission=16))
 async def exit_assistant(message: Message, state: FSMContext):
     """Exit the AI assistant."""
     await state.clear()
@@ -120,7 +120,7 @@ async def exit_assistant_cb(callback: CallbackQuery, state: FSMContext):
 
 # ── Main Chat Loop ───────────────────────────────────────────────────
 
-@router.message(GrokAssistantStates.chatting)
+@router.message(GrokAssistantStates.chatting, HasPermissionFilter(permission=16))
 async def handle_chat_message(message: Message, state: FSMContext):
     """Main conversation loop — every message goes to Grok."""
     data = await state.get_data()

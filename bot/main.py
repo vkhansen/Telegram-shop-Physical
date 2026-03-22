@@ -14,7 +14,7 @@ from bot.database.models import register_models
 from bot.logger_mesh import configure_logging
 
 from bot.config import EnvKeys, get_redis_storage, timezone
-from bot.middleware import setup_rate_limiting, RateLimitConfig, SecurityMiddleware, AuthenticationMiddleware
+from bot.middleware import setup_rate_limiting, RateLimitConfig, SecurityMiddleware, AuthenticationMiddleware, LocaleMiddleware
 from bot.caching import init_cache_manager, get_cache_manager, CacheScheduler
 from bot.monitoring import RecoveryManager, StateManager, init_metrics, get_metrics, AnalyticsMiddleware, \
     MonitoringServer
@@ -98,10 +98,14 @@ async def __on_start_up(dp: Dispatcher, bot: Bot) -> None:
     # Add security middleware
     security_middleware = SecurityMiddleware()
     auth_middleware = AuthenticationMiddleware()
+    locale_middleware = LocaleMiddleware()
 
-    # First authentication, then security, then rate limiting
+    # First authentication, then locale, then security, then rate limiting
     dp.message.middleware(auth_middleware)
     dp.callback_query.middleware(auth_middleware)
+
+    dp.message.middleware(locale_middleware)
+    dp.callback_query.middleware(locale_middleware)
 
     dp.message.middleware(security_middleware)
     dp.callback_query.middleware(security_middleware)
