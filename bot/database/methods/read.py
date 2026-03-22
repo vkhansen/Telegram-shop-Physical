@@ -17,6 +17,7 @@ from bot.database.models import (
     Operations,
     Order,
     OrderItem,
+    Permission,
     ReferralEarnings,
     Role,
     ShoppingCart,

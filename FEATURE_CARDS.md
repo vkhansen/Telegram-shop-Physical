@@ -1204,3 +1204,15 @@ BOT_LOCALE=th
 | `bot/tasks/reservation_cleaner.py` | 9,12 | New statuses, timezone |
 | `requirements.txt` | 1 | New dependencies |
 | `.env.example` | 1,6,9,10,12 | New env var examples |
+
+---
+
+## Phase 3: Platform Scale
+
+### Card 19: Multi-Brand / Multi-Store Telegram Bot Coordination Platform
+
+> See full card: [`docs/CARD-19-multi-brand-bot-coordination.md`](docs/CARD-19-multi-brand-bot-coordination.md)
+
+**Phase:** 3 — Platform Scale | **Priority:** High | **Effort:** Very High (10–14 days)
+
+**Summary:** One backend process manages N independent Telegram bots, each representing a brand. Adds `BotConfig` model, `BotPool` multi-bot runtime, `BrandContextMiddleware` for automatic brand context injection, store selector UI, brand-scoped queries, per-brand rate limiting, encrypted token storage, and CLI-based bot management. Backward-compatible: single-bot deployments work unchanged with `MULTI_BOT_ENABLED=false`.

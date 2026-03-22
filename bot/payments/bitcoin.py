@@ -52,17 +52,31 @@ def load_bitcoin_addresses_from_file() -> int:
     return loaded_count
 
 
-def get_available_bitcoin_address() -> Optional[str]:
+def get_available_bitcoin_address(user_id: int = None, order_id: int = None) -> Optional[str]:
     """
-    Get an available (unused) Bitcoin address
+    Atomically claim an available (unused) Bitcoin address.
+    SEC-04 fix: Uses SELECT FOR UPDATE SKIP LOCKED to prevent double assignment.
 
     Returns:
         Bitcoin address string or None if no addresses available
     """
     with Database().session() as session:
-        btc_addr = session.query(BitcoinAddress).filter_by(is_used=False).first()
+        btc_addr = (
+            session.query(BitcoinAddress)
+            .filter_by(is_used=False)
+            .with_for_update(skip_locked=True)
+            .first()
+        )
 
         if btc_addr:
+            # Atomically mark as used in the same transaction
+            btc_addr.is_used = True
+            if user_id:
+                btc_addr.used_by = user_id
+            if order_id:
+                btc_addr.order_id = order_id
+            btc_addr.used_at = datetime.now()
+            session.commit()
             return btc_addr.address
 
     return None

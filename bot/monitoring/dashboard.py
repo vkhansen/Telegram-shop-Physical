@@ -1,3 +1,5 @@
+import base64
+import os
 from aiohttp import web
 import json
 from sqlalchemy import func, select
@@ -9,13 +11,52 @@ from bot.database.models.main import Order, ShoppingCart, Goods, BitcoinAddress
 from bot.logger_mesh import logger
 
 
+# SEC-03 fix: API key middleware for monitoring dashboard
+MONITORING_API_KEY = os.getenv("MONITORING_API_KEY", "")
+
+
+@web.middleware
+async def auth_middleware(request, handler):
+    """Require API key or basic auth for all monitoring endpoints."""
+    if not MONITORING_API_KEY:
+        # No key configured — allow health check only, block rest
+        if request.path == '/health':
+            return await handler(request)
+        return web.json_response(
+            {"error": "MONITORING_API_KEY not configured"},
+            status=503
+        )
+
+    # Check X-API-Key header
+    api_key = request.headers.get("X-API-Key", "")
+    if api_key == MONITORING_API_KEY:
+        return await handler(request)
+
+    # Check query param ?key=
+    if request.query.get("key") == MONITORING_API_KEY:
+        return await handler(request)
+
+    # Check Basic Auth (username ignored, password = API key)
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Basic "):
+        try:
+            decoded = base64.b64decode(auth_header[6:]).decode()
+            _, password = decoded.split(":", 1)
+            if password == MONITORING_API_KEY:
+                return await handler(request)
+        except Exception:
+            pass
+
+    return web.json_response({"error": "Unauthorized"}, status=401)
+
+
 class MonitoringServer:
     """monitoring server with UI"""
 
     def __init__(self, host: str = None, port: int = None):
         self.host = host or EnvKeys.MONITORING_HOST
         self.port = port or EnvKeys.MONITORING_PORT
-        self.app = web.Application()
+        self.app = web.Application(middlewares=[auth_middleware])
         self.runner = None
         self._setup_routes()
 

@@ -32,11 +32,20 @@ def log_inventory_change(item_name: str, change_type: str, quantity_change: int,
         comment: Additional comment (optional)
         session: Database session (optional, will create if not provided)
     """
-    should_commit = session is None
+    # LOGIC-04 fix: properly enter context manager when no session provided
     if session is None:
-        session = Database().session()
-
-    try:
+        with Database().session() as session:
+            log_entry = InventoryLog(
+                item_name=item_name,
+                change_type=change_type,
+                quantity_change=quantity_change,
+                order_id=order_id,
+                admin_id=admin_id,
+                comment=comment
+            )
+            session.add(log_entry)
+            session.commit()
+    else:
         log_entry = InventoryLog(
             item_name=item_name,
             change_type=change_type,
@@ -46,16 +55,6 @@ def log_inventory_change(item_name: str, change_type: str, quantity_change: int,
             comment=comment
         )
         session.add(log_entry)
-
-        if should_commit:
-            session.commit()
-    except Exception as e:
-        if should_commit:
-            session.rollback()
-        raise e
-    finally:
-        if should_commit:
-            session.close()
 
 
 def reserve_inventory(order_id: int, items: List[Dict[str, any]], payment_method: str = None, session: Session = None) -> Tuple[bool, str]:
@@ -374,11 +373,17 @@ async def cleanup_expired_reservations() -> Tuple[int, List[str]]:
     Find and release expired reservations.
     Called by background task every 1-2 minutes.
 
+    LOGIC-03 fix: Collect data inside session, close it, then send notifications.
+
     Returns:
         Tuple of (count: int, order_codes: List[str])
     """
+    # Phase 1: DB operations — collect data and commit
+    notifications_to_send = []
+    count = 0
+    order_codes = []
+
     with Database().session() as session:
-        # Find expired orders
         now = datetime.now(timezone.utc)
         expired_orders = session.query(Order).filter(
             and_(
@@ -387,11 +392,7 @@ async def cleanup_expired_reservations() -> Tuple[int, List[str]]:
             )
         ).all()
 
-        count = 0
-        order_codes = []
-
         for order in expired_orders:
-            # Release reservation
             success, message = release_reservation(
                 order.id,
                 reason="Reservation timeout expired",
@@ -399,10 +400,8 @@ async def cleanup_expired_reservations() -> Tuple[int, List[str]]:
             )
 
             if success:
-                # Mark order as expired
                 order.order_status = 'expired'
 
-                # Refund referral bonus if it was applied
                 if order.bonus_applied and order.bonus_applied > 0:
                     customer_info = session.query(CustomerInfo).filter_by(
                         telegram_id=order.buyer_id
@@ -413,48 +412,30 @@ async def cleanup_expired_reservations() -> Tuple[int, List[str]]:
                         customer_info.bonus_balance += order.bonus_applied
                         new_bonus_balance = customer_info.bonus_balance
 
-                        # Get buyer username for CSV sync
                         buyer_username = get_username_by_telegram_id(order.buyer_id) or f"user_{order.buyer_id}"
-
-                        # Sync to CSV file
                         sync_customer_to_csv(order.buyer_id, buyer_username)
 
-                        # Send notification to customer about bonus refund
-                        try:
-                            from bot.payments.notifications import get_shared_bot
-                            bot = get_shared_bot()
-
-                            notification_text = (
-                                f"⏱️ <b>Order Expired</b>\n\n"
-                                f"Your order <b>{order.order_code}</b> has expired due to payment timeout.\n\n"
-                                f"💰 <b>Bonus Refund: ${order.bonus_applied}</b>\n"
-                                f"📊 New Bonus Balance: <b>${new_bonus_balance}</b>\n\n"
-                                f"Your referral bonus has been returned to your account.\n"
-                                f"You can use it for your next order!"
-                            )
-
-                            await bot.send_message(order.buyer_id, notification_text)
-                            logger.info(f"Bonus refund notification sent for expired order {order.order_code} (buyer: {order.buyer_id})")
-
-                        except Exception as e:
-                            logger.warning(f"Failed to send bonus refund notification for order {order.order_code}: {e}")
-                            # Continue execution even if notification fails
+                        # Queue notification for after session close
+                        currency = EnvKeys.PAY_CURRENCY
+                        notifications_to_send.append({
+                            'buyer_id': order.buyer_id,
+                            'order_code': order.order_code,
+                            'bonus_applied': order.bonus_applied,
+                            'new_bonus_balance': new_bonus_balance,
+                            'currency': currency,
+                        })
 
                         logger.info(
-                            f"Refunded bonus ${order.bonus_applied} to buyer {order.buyer_id} "
-                            f"(order: {order.order_code}, old balance: ${old_bonus_balance}, "
-                            f"new balance: ${new_bonus_balance})"
+                            f"Refunded bonus {currency}{order.bonus_applied} to buyer {order.buyer_id} "
+                            f"(order: {order.order_code}, old balance: {currency}{old_bonus_balance}, "
+                            f"new balance: {currency}{new_bonus_balance})"
                         )
 
-                # Get order items for logging
                 order_items = session.query(OrderItem).filter_by(order_id=order.id).all()
-                if order_items:
-                    items_list = [f"{item.item_name} x {item.quantity}" for item in order_items]
-                    items_summary = ", ".join(items_list)
-                else:
-                    items_summary = "N/A"
+                items_summary = ", ".join(
+                    f"{item.item_name} x {item.quantity}" for item in order_items
+                ) if order_items else "N/A"
 
-                # Log order cancellation
                 buyer_username = get_username_by_telegram_id(order.buyer_id) or f"user_{order.buyer_id}"
                 log_order_cancellation(
                     order_id=order.id,
@@ -471,4 +452,28 @@ async def cleanup_expired_reservations() -> Tuple[int, List[str]]:
 
         session.commit()
 
-        return count, order_codes
+    # Phase 2: Send notifications OUTSIDE the DB session (LOGIC-03 fix)
+    if notifications_to_send:
+        try:
+            from bot.payments.notifications import get_shared_bot
+            bot = get_shared_bot()
+
+            for notif in notifications_to_send:
+                try:
+                    currency = notif['currency']
+                    notification_text = (
+                        f"⏱️ <b>Order Expired</b>\n\n"
+                        f"Your order <b>{notif['order_code']}</b> has expired due to payment timeout.\n\n"
+                        f"💰 <b>Bonus Refund: {currency}{notif['bonus_applied']}</b>\n"
+                        f"📊 New Bonus Balance: <b>{currency}{notif['new_bonus_balance']}</b>\n\n"
+                        f"Your referral bonus has been returned to your account.\n"
+                        f"You can use it for your next order!"
+                    )
+                    await bot.send_message(notif['buyer_id'], notification_text)
+                    logger.info(f"Bonus refund notification sent for expired order {notif['order_code']}")
+                except Exception as e:
+                    logger.warning(f"Failed to send bonus refund notification for order {notif['order_code']}: {e}")
+        except Exception as e:
+            logger.warning(f"Failed to initialize bot for notifications: {e}")
+
+    return count, order_codes

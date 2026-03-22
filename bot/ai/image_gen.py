@@ -6,8 +6,8 @@ to the Goods model.
 """
 
 import base64
-import io
 import logging
+import uuid
 
 import aiohttp
 from aiogram import Bot
@@ -99,32 +99,135 @@ async def generate_and_save_item_image(
     )
 
     file_id = msg.photo[-1].file_id
+    media_id = str(uuid.uuid4())[:8]
 
-    # Save to database
-    with Database().session() as s:
-        goods = s.query(Goods).filter(Goods.name == item_name).first()
-        if goods:
-            goods.image_file_id = file_id
-            s.commit()
-        else:
-            return {"error": f"Item '{item_name}' not found in database"}
+    # Save to media array in database
+    _add_media_entry(item_name, file_id, is_ai_generated=True, media_id=media_id)
 
-    logger.info("Generated and saved AI image for '%s'", item_name)
-    return {"success": True, "item": item_name, "file_id": file_id}
+    logger.info("Generated and saved AI image for '%s' (media_id=%s)", item_name, media_id)
+    return {"success": True, "item": item_name, "file_id": file_id, "media_id": media_id}
 
 
 def get_items_missing_images() -> list[dict]:
-    """Return all active menu items that have no image_file_id."""
+    """Return all active menu items that have no images (neither image_file_id nor media)."""
     with Database().session() as s:
         items = s.query(Goods).filter(
             Goods.is_active.is_(True),
             Goods.image_file_id.is_(None),
         ).order_by(Goods.category_name, Goods.name).all()
-        return [
-            {
+
+        result = []
+        for g in items:
+            # Also skip items that already have media entries
+            if g.media and isinstance(g.media, list) and len(g.media) > 0:
+                continue
+            result.append({
                 "name": g.name,
                 "description": g.description,
                 "category_name": g.category_name,
-            }
-            for g in items
-        ]
+            })
+        return result
+
+
+def _add_media_entry(
+    item_name: str,
+    file_id: str,
+    is_ai_generated: bool = False,
+    media_id: str | None = None,
+    media_type: str = "photo",
+    caption: str | None = None,
+) -> str:
+    """Add a media entry to an item's media array.
+
+    Returns the media_id of the added entry.
+    """
+    media_id = media_id or str(uuid.uuid4())[:8]
+    entry = {
+        "id": media_id,
+        "file_id": file_id,
+        "type": media_type,
+        "is_ai_generated": is_ai_generated,
+    }
+    if caption:
+        entry["caption"] = caption
+
+    with Database().session() as s:
+        goods = s.query(Goods).filter(Goods.name == item_name).first()
+        if not goods:
+            raise ValueError(f"Item '{item_name}' not found")
+
+        media_list = list(goods.media) if goods.media and isinstance(goods.media, list) else []
+        media_list.append(entry)
+        goods.media = media_list
+
+        # Also set image_file_id if it's the first image (for backward compat)
+        if not goods.image_file_id:
+            goods.image_file_id = file_id
+
+        s.commit()
+
+    return media_id
+
+
+def remove_media_entry(item_name: str, media_id: str) -> dict:
+    """Remove a specific media entry from an item by its media_id.
+
+    Returns the removed entry or error.
+    """
+    with Database().session() as s:
+        goods = s.query(Goods).filter(Goods.name == item_name).first()
+        if not goods:
+            return {"error": f"Item '{item_name}' not found"}
+
+        media_list = list(goods.media) if goods.media and isinstance(goods.media, list) else []
+
+        # Find and remove the entry
+        removed = None
+        new_list = []
+        for entry in media_list:
+            if entry.get("id") == media_id:
+                removed = entry
+            else:
+                new_list.append(entry)
+
+        if not removed:
+            return {"error": f"Media '{media_id}' not found on item '{item_name}'"}
+
+        goods.media = new_list if new_list else None
+
+        # Update image_file_id: set to first remaining image, or clear
+        remaining_photos = [e for e in new_list if e.get("type") == "photo"]
+        if remaining_photos:
+            goods.image_file_id = remaining_photos[0]["file_id"]
+        elif removed.get("file_id") == goods.image_file_id:
+            goods.image_file_id = None
+
+        s.commit()
+
+    return {"success": True, "removed": removed}
+
+
+def list_item_media(item_name: str) -> dict:
+    """List all media entries for an item."""
+    with Database().session() as s:
+        goods = s.query(Goods).filter(Goods.name == item_name).first()
+        if not goods:
+            return {"error": f"Item '{item_name}' not found"}
+
+        media_list = goods.media if goods.media and isinstance(goods.media, list) else []
+
+        entries = []
+        for entry in media_list:
+            entries.append({
+                "id": entry.get("id", "legacy"),
+                "type": entry.get("type", "photo"),
+                "is_ai_generated": entry.get("is_ai_generated", False),
+                "caption": entry.get("caption"),
+            })
+
+        return {
+            "item": item_name,
+            "image_count": len(entries),
+            "images": entries,
+            "has_primary": goods.image_file_id is not None,
+        }

@@ -6,6 +6,11 @@ from decimal import Decimal
 
 from pydantic import BaseModel
 
+
+def _escape_like(value: str) -> str:
+    """Escape SQL LIKE wildcards to prevent wildcard injection (SEC-05, SEC-10)."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
 from bot.database import Database
 from bot.database.methods.create import create_category, create_item
 from bot.database.methods.delete import delete_category, delete_item
@@ -68,6 +73,9 @@ async def execute_query(action: BaseModel) -> dict:
             return _lookup_user(action)
         case "propose_mapping":
             return {"mapping": action.model_dump()}
+        case "list_item_media":
+            from bot.ai.image_gen import list_item_media
+            return list_item_media(action.item_name)
         case "list_coupons":
             return _list_coupons(action)
         case "list_refcodes":
@@ -89,6 +97,11 @@ async def execute_mutation(action: BaseModel, admin_id: int) -> dict:
             return _exec_update_item(action, admin_id)
         case "update_item_image":
             return _exec_update_item_image(action, admin_id)
+        case "generate_item_images":
+            # Handled specially in grok_assistant.py (needs bot instance)
+            return {"error": "generate_item_images must be handled by the conversation handler"}
+        case "remove_item_media":
+            return _exec_remove_item_media(action, admin_id)
         case "delete_item":
             return _exec_delete_item(action, admin_id)
         case "bulk_price_update":
@@ -182,7 +195,8 @@ def _search_chat(action) -> dict:
         if action.sender_role:
             q = q.filter(DeliveryChatMessage.sender_role == action.sender_role)
         if action.keyword:
-            q = q.filter(DeliveryChatMessage.message_text.ilike(f"%{action.keyword}%"))
+            escaped = _escape_like(action.keyword)
+            q = q.filter(DeliveryChatMessage.message_text.ilike(f"%{escaped}%", escape="\\"))
         if action.has_photo is not None:
             if action.has_photo:
                 q = q.filter(DeliveryChatMessage.photo_file_id.isnot(None))
@@ -393,14 +407,27 @@ def _exec_update_item_image(action, admin_id: int) -> dict:
     if not existing:
         return {"error": f"Item '{action.item_name}' not found"}
 
-    with Database().session() as s:
-        goods = s.query(Goods).filter(Goods.name == action.item_name).first()
-        if goods:
-            goods.image_file_id = action.photo_file_id
-            s.commit()
+    from bot.ai.image_gen import _add_media_entry
+    media_id = _add_media_entry(
+        action.item_name, action.photo_file_id,
+        is_ai_generated=False,
+    )
 
-    logger.info("AI admin %s updated image for '%s'", admin_id, action.item_name)
-    return {"success": True, "updated_image": action.item_name}
+    logger.info("AI admin %s added image for '%s' (media_id=%s)",
+                admin_id, action.item_name, media_id)
+    return {"success": True, "updated_image": action.item_name, "media_id": media_id}
+
+
+def _exec_remove_item_media(action, admin_id: int) -> dict:
+    if not action.confirm:
+        return {"error": "Media removal requires confirm=True"}
+
+    from bot.ai.image_gen import remove_media_entry
+    result = remove_media_entry(action.item_name, action.media_id)
+    if result.get("success"):
+        logger.info("AI admin %s removed media '%s' from '%s'",
+                    admin_id, action.media_id, action.item_name)
+    return result
 
 
 def _exec_delete_item(action, admin_id: int) -> dict:

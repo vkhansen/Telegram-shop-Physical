@@ -211,6 +211,21 @@ class GenerateItemImagesAction(BaseModel):
         return self
 
 
+class ListItemMediaAction(BaseModel):
+    """List all images/media for a menu item, showing which are AI-generated."""
+    action: Literal["list_item_media"] = "list_item_media"
+    item_name: str = Field(..., min_length=1, max_length=100)
+
+
+class RemoveItemMediaAction(BaseModel):
+    """Remove a specific image from a menu item by its media ID."""
+    action: Literal["remove_item_media"] = "remove_item_media"
+    item_name: str = Field(..., min_length=1, max_length=100)
+    media_id: str = Field(..., min_length=1, max_length=20,
+        description="The ID of the media entry to remove (from list_item_media)")
+    confirm: bool = Field(..., description="Must be True to proceed")
+
+
 # ── Order Management Schemas ─────────────────────────────────────────
 
 class ChangeOrderStatusAction(BaseModel):
@@ -415,6 +430,8 @@ TOOL_SCHEMA_MAP: dict[str, type[BaseModel]] = {
     "update_item": UpdateItemAction,
     "update_item_image": UpdateItemImageAction,
     "generate_item_images": GenerateItemImagesAction,
+    "list_item_media": ListItemMediaAction,
+    "remove_item_media": RemoveItemMediaAction,
     "delete_item": DeleteItemAction,
     "bulk_price_update": BulkPriceUpdateAction,
     "create_category": CreateCategoryAction,
@@ -457,11 +474,12 @@ READ_TOOLS = {
     "search_orders", "search_chat", "search_deliveries",
     "lookup_user", "get_stats", "view_inventory", "propose_mapping",
     "list_coupons", "list_refcodes", "list_stores", "revenue_report",
+    "list_item_media",
 }
 
 MUTATION_TOOLS = {
     "create_item", "update_item", "update_item_image",
-    "generate_item_images", "delete_item",
+    "generate_item_images", "remove_item_media", "delete_item",
     "bulk_price_update", "adjust_stock",
     "create_category", "delete_category", "import_menu",
     "change_order_status", "assign_driver",

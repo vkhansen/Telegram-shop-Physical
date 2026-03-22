@@ -602,8 +602,9 @@ Choose your payment method:
 ```
 Order #XKJF92
 
-Total: $45.00 USD
-Amount due: 0.00082 BTC
+Total: ฿1,350.00 THB
+Rate: 1 BTC = ฿2,450,000 THB
+Amount due: 0.00055102 BTC
 
 Send exactly this amount to:
 bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
@@ -612,9 +613,27 @@ bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
 
 ⏳ Waiting for payment...
 This address expires in 60 minutes.
+Rate locked for 2 minutes — refreshes automatically if unpaid.
 
 Your order will be automatically confirmed
 once the payment is detected on-chain.
+```
+
+### USDT Example (THB → USD conversion shown)
+
+```
+Order #XKJF92
+
+Total: ฿1,350.00 THB
+Rate: 1 USDT = ฿34.50 THB
+Amount due: 39.13 USDT (Solana)
+
+Send exactly this amount to:
+7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU
+
+[QR CODE]
+
+⏳ Waiting for payment...
 ```
 
 ### Payment Detected (auto-updated message)
@@ -624,7 +643,7 @@ Order #XKJF92
 
 ✅ Payment detected!
 TX: abc123...def456
-Amount: 0.00082 BTC
+Amount: 0.00055102 BTC
 Confirmations: 1/2
 
 ⏳ Waiting for 1 more confirmation...
@@ -637,7 +656,7 @@ Order #XKJF92
 
 ✅ Payment confirmed!
 TX: abc123...def456
-Amount: 0.00082 BTC
+Amount: 0.00055102 BTC
 Confirmations: 2/2
 
 Your order is now being processed.

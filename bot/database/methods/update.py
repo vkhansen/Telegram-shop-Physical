@@ -43,14 +43,28 @@ def update_item(item_name: str, new_name: str, description: str, price, category
             if session.query(Goods).filter(Goods.name == new_name).first():
                 return False, localize("admin.goods.update.position.exists")
 
-            # Create a new product with existing stock quantities
+            # LOGIC-05 fix: Copy ALL fields when renaming, not just stock quantities
             new_goods = Goods(
                 name=new_name,
                 price=price,
                 description=description,
                 category_name=category,
                 stock_quantity=goods.stock_quantity,
-                reserved_quantity=goods.reserved_quantity
+                reserved_quantity=goods.reserved_quantity,
+                image_file_id=goods.image_file_id,
+                media=goods.media,
+                modifiers=goods.modifiers,
+                prep_time_minutes=goods.prep_time_minutes,
+                allergens=goods.allergens,
+                is_active=goods.is_active,
+                sold_out_today=goods.sold_out_today,
+                daily_limit=goods.daily_limit,
+                daily_sold_count=goods.daily_sold_count,
+                available_from=goods.available_from,
+                available_until=goods.available_until,
+                calories=goods.calories,
+                brand_id=goods.brand_id,
+                item_type=goods.item_type,
             )
             session.add(new_goods)
             session.flush()

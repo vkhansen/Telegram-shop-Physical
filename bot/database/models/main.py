@@ -239,7 +239,7 @@ class Goods(Database.BASE):
 
     # Restaurant-specific fields (primarily for item_type='prepared')
     image_file_id = Column(String(255), nullable=True)  # Telegram file_id for menu photo
-    media = Column(JSON, nullable=True)  # Multiple media: [{"file_id": str, "type": "photo"|"video", "caption": str}]
+    media = Column(JSON, nullable=True)  # Multiple media: [{"id": str, "file_id": str, "type": "photo"|"video", "is_ai_generated": bool, "caption": str}]
     prep_time_minutes = Column(Integer, nullable=True)  # Kitchen prep time in minutes
     allergens = Column(String(500), nullable=True)  # Comma-separated: "gluten,dairy,nuts"
     is_active = Column(Boolean, nullable=False, default=True, index=True)  # Permanent on/off

@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import exists
+from sqlalchemy.exc import IntegrityError
 
 from bot.database import Database
 from bot.database.models import Brand, Categories, Goods, ShoppingCart, User
@@ -88,8 +89,8 @@ async def add_to_cart(user_id: int, item_name: str, quantity: int = 1,
 
     try:
         with Database().session() as session:
-            # Check if item exists and has stock
-            good = session.query(Goods).filter_by(name=item_name).first()
+            # LOGIC-01 fix: Lock item row to prevent overselling race condition
+            good = session.query(Goods).filter_by(name=item_name).with_for_update().first()
             if not good:
                 return False, "Item not found"
 
@@ -111,13 +112,13 @@ async def add_to_cart(user_id: int, item_name: str, quantity: int = 1,
                 except Exception:
                     pass  # If timezone fails, allow the order
 
-            # Check stock availability
+            # Check stock availability using locked row data
             is_unlimited = check_value(item_name)
             if not is_unlimited:
-                available_stock = await select_item_values_amount_cached(item_name)
+                available_stock = good.stock_quantity - good.reserved_quantity
                 existing_cart = session.query(ShoppingCart).filter_by(
                     user_id=user_id, item_name=item_name
-                ).first()
+                ).with_for_update().first()
 
                 current_cart_qty = existing_cart.quantity if existing_cart else 0
                 total_requested = current_cart_qty + quantity
@@ -159,23 +160,28 @@ async def add_to_cart(user_id: int, item_name: str, quantity: int = 1,
 def create_brand(name: str, slug: str, description: str = None,
                  logo_file_id: str = None, promptpay_id: str = None,
                  promptpay_name: str = None, timezone: str = None) -> int | None:
-    """Create a new brand. Returns brand ID or None if name/slug already exists."""
-    with Database().session() as s:
-        if s.query(exists().where(Brand.slug == slug)).scalar():
-            return None
-        if s.query(exists().where(Brand.name == name)).scalar():
-            return None
-        brand = Brand(
-            name=name,
-            slug=slug,
-            description=description,
-            logo_file_id=logo_file_id,
-            promptpay_id=promptpay_id,
-            promptpay_name=promptpay_name,
-            timezone=timezone,
-        )
-        s.add(brand)
-        s.flush()
-        brand_id = brand.id
-        s.commit()
-        return brand_id
+    """Create a new brand. Returns brand ID or None if name/slug already exists.
+    LOGIC-02 fix: Catch IntegrityError for concurrent insert race condition."""
+    try:
+        with Database().session() as s:
+            if s.query(exists().where(Brand.slug == slug)).scalar():
+                return None
+            if s.query(exists().where(Brand.name == name)).scalar():
+                return None
+            brand = Brand(
+                name=name,
+                slug=slug,
+                description=description,
+                logo_file_id=logo_file_id,
+                promptpay_id=promptpay_id,
+                promptpay_name=promptpay_name,
+                timezone=timezone,
+            )
+            s.add(brand)
+            s.flush()
+            brand_id = brand.id
+            s.commit()
+            return brand_id
+    except IntegrityError:
+        logger.warning(f"Brand creation race condition: name={name}, slug={slug}")
+        return None

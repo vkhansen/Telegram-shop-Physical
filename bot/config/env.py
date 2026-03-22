@@ -78,5 +78,5 @@ class EnvKeys(ABC):
     MONITORING_HOST: Final = os.getenv("MONITORING_HOST", "localhost")
     MONITORING_PORT: Final = int(os.getenv("MONITORING_PORT", 9090))
 
-    # Database (for manual deploy)
-    DATABASE_URL: Final = "postgresql+psycopg2://user:password@localhost:5432/db_name"  # (setup if you deploy manually)
+    # Database (for manual deploy) — SEC-02 fix: require env var, no hardcoded credentials
+    DATABASE_URL: Final = os.environ.get("DATABASE_URL")  # must be set in environment
