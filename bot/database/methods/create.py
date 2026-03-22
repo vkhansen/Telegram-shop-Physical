@@ -2,8 +2,8 @@ from datetime import datetime
 
 from sqlalchemy import exists
 
-from bot.database.models import User, Goods, Categories, ShoppingCart
 from bot.database import Database
+from bot.database.models import Brand, Categories, Goods, ShoppingCart, User
 from bot.logger_mesh import logger
 
 
@@ -24,8 +24,17 @@ def create_user(telegram_id: int, registration_date: datetime, referral_id: int 
         )
 
 
-def create_item(item_name: str, item_description: str, item_price: int, category_name: str) -> None:
-    """Insert item (goods); commit."""
+def create_item(item_name: str, item_description: str, item_price: int, category_name: str,
+                image_file_id: str = None, media: list = None,
+                prep_time_minutes: int = None, allergens: str = None,
+                daily_limit: int = None, available_from: str = None,
+                available_until: str = None, calories: int = None,
+                brand_id: int = None, item_type: str = 'prepared') -> None:
+    """Insert item (goods); commit.
+
+    item_type: 'product' for packaged/shelf-stable goods (e.g., bottled water),
+               'prepared' for made-to-order/perishable items (e.g., pad thai).
+    """
     with Database().session() as s:
         if s.query(exists().where(Goods.name == item_name)).scalar():
             return
@@ -35,20 +44,31 @@ def create_item(item_name: str, item_description: str, item_price: int, category
                 description=item_description,
                 price=item_price,
                 category_name=category_name,
+                image_file_id=image_file_id,
+                media=media,
+                prep_time_minutes=prep_time_minutes,
+                allergens=allergens,
+                daily_limit=daily_limit,
+                available_from=available_from,
+                available_until=available_until,
+                calories=calories,
+                brand_id=brand_id,
+                item_type=item_type,
             )
         )
 
 
-def create_category(category_name: str) -> None:
+def create_category(category_name: str, brand_id: int = None) -> None:
     """Insert category; commit."""
     with Database().session() as s:
         if s.query(exists().where(Categories.name == category_name)).scalar():
             return
-        s.add(Categories(name=category_name))
+        s.add(Categories(name=category_name, brand_id=brand_id))
 
 
 async def add_to_cart(user_id: int, item_name: str, quantity: int = 1,
-                      selected_modifiers: dict = None) -> tuple[bool, str]:
+                      selected_modifiers: dict = None,
+                      brand_id: int = None, store_id: int = None) -> tuple[bool, str]:
     """
     Add item to cart or update quantity if already exists
 
@@ -57,6 +77,8 @@ async def add_to_cart(user_id: int, item_name: str, quantity: int = 1,
         item_name: Name of the item to add
         quantity: Quantity to add (default 1)
         selected_modifiers: Selected modifier choices (Card 8)
+        brand_id: Brand ID for multi-brand support
+        store_id: Store/branch ID for multi-store support
 
     Returns:
         Tuple of (success, message)
@@ -70,6 +92,24 @@ async def add_to_cart(user_id: int, item_name: str, quantity: int = 1,
             good = session.query(Goods).filter_by(name=item_name).first()
             if not good:
                 return False, "Item not found"
+
+            # Check item is active and available
+            if not good.is_active:
+                return False, "This item is currently unavailable"
+            if good.sold_out_today:
+                return False, "This item is sold out for today"
+            if good.daily_limit is not None:
+                if good.daily_sold_count >= good.daily_limit:
+                    return False, "Daily limit reached for this item"
+            # Time window check
+            if good.available_from and good.available_until:
+                from bot.config.timezone import get_current_time
+                try:
+                    now_str = get_current_time().strftime("%H:%M")
+                    if now_str < good.available_from or now_str > good.available_until:
+                        return False, f"This item is only available {good.available_from}-{good.available_until}"
+                except Exception:
+                    pass  # If timezone fails, allow the order
 
             # Check stock availability
             is_unlimited = check_value(item_name)
@@ -85,11 +125,12 @@ async def add_to_cart(user_id: int, item_name: str, quantity: int = 1,
                 if available_stock < total_requested:
                     return False, f"Only {available_stock} items available in stock"
 
-            # Add or update cart item
-            cart_item = session.query(ShoppingCart).filter_by(
-                user_id=user_id,
-                item_name=item_name
-            ).first()
+            # Add or update cart item (scoped by brand)
+            cart_filter = {'user_id': user_id, 'item_name': item_name}
+            if brand_id is not None:
+                cart_filter['brand_id'] = brand_id
+
+            cart_item = session.query(ShoppingCart).filter_by(**cart_filter).first()
 
             if cart_item:
                 cart_item.quantity += quantity
@@ -101,7 +142,9 @@ async def add_to_cart(user_id: int, item_name: str, quantity: int = 1,
                     user_id=user_id,
                     item_name=item_name,
                     quantity=quantity,
-                    selected_modifiers=selected_modifiers
+                    selected_modifiers=selected_modifiers,
+                    brand_id=brand_id,
+                    store_id=store_id,
                 )
                 session.add(cart_item)
 
@@ -111,3 +154,28 @@ async def add_to_cart(user_id: int, item_name: str, quantity: int = 1,
     except Exception as e:
         logger.error(f"Error adding to cart: {e}")
         return False, str(e)
+
+
+def create_brand(name: str, slug: str, description: str = None,
+                 logo_file_id: str = None, promptpay_id: str = None,
+                 promptpay_name: str = None, timezone: str = None) -> int | None:
+    """Create a new brand. Returns brand ID or None if name/slug already exists."""
+    with Database().session() as s:
+        if s.query(exists().where(Brand.slug == slug)).scalar():
+            return None
+        if s.query(exists().where(Brand.name == name)).scalar():
+            return None
+        brand = Brand(
+            name=name,
+            slug=slug,
+            description=description,
+            logo_file_id=logo_file_id,
+            promptpay_id=promptpay_id,
+            promptpay_name=promptpay_name,
+            timezone=timezone,
+        )
+        s.add(brand)
+        s.flush()
+        brand_id = brand.id
+        s.commit()
+        return brand_id

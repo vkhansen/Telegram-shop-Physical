@@ -8,9 +8,9 @@ Provides:
 - Kitchen/rider group notifications on status change
 - Delivery photo enforcement for dead drop orders
 """
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from aiogram import Router, F, Bot
+from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
@@ -24,7 +24,7 @@ from bot.keyboards.inline import back, simple_buttons
 from bot.logger_mesh import audit_logger
 from bot.states.user_state import AdminOrderStates
 from bot.utils.delivery_types import needs_delivery_photo
-from bot.utils.order_status import is_valid_transition, get_allowed_transitions
+from bot.utils.order_status import get_allowed_transitions, is_valid_transition
 
 router = Router()
 
@@ -199,7 +199,7 @@ async def order_status_change_handler(call: CallbackQuery, state: FSMContext):
 
         # Set timestamps
         if new_status == "delivered":
-            order.completed_at = datetime.now(timezone.utc)
+            order.completed_at = datetime.now(UTC)
             # Set post-delivery chat window (Card 15)
             from bot.handlers.user.delivery_chat_handler import set_post_delivery_window
             set_post_delivery_window(session, order)
@@ -245,12 +245,12 @@ async def delivery_photo_received(message: Message, state: FSMContext):
 
         # Save delivery photo
         order.delivery_photo = photo_file_id
-        order.delivery_photo_at = datetime.now(timezone.utc)
+        order.delivery_photo_at = datetime.now(UTC)
         order.delivery_photo_by = message.from_user.id
 
         # Now mark as delivered
         order.order_status = "delivered"
-        order.completed_at = datetime.now(timezone.utc)
+        order.completed_at = datetime.now(UTC)
 
         from bot.handlers.user.delivery_chat_handler import set_post_delivery_window
         set_post_delivery_window(session, order)
@@ -371,7 +371,7 @@ async def rider_mark_delivered(call: CallbackQuery):
             return
 
         order.order_status = "delivered"
-        order.completed_at = datetime.now(timezone.utc)
+        order.completed_at = datetime.now(UTC)
 
         from bot.handlers.user.delivery_chat_handler import set_post_delivery_window
         set_post_delivery_window(session, order)
@@ -402,34 +402,83 @@ async def _send_status_notifications(bot: Bot, order: Order, new_status: str, se
                 await prompt_customer_gps(bot, order)
             except Exception:
                 pass
-        elif new_status == "delivered":
-            await _notify_customer_status(bot, order)
-        elif new_status in ("preparing", "ready"):
+        elif new_status == "delivered" or new_status in ("preparing", "ready"):
             await _notify_customer_status(bot, order)
     except Exception as e:
         audit_logger.warning(f"Failed to send notification for order {order.order_code}: {e}")
 
 
 async def _send_kitchen_notification(bot: Bot, order: Order, session):
-    """Send formatted order to kitchen group (Card 9)."""
-    kitchen_group_id = EnvKeys.KITCHEN_GROUP_ID
+    """Send formatted order to kitchen group (Card 9). Uses per-branch group if available."""
+    from bot.database.models.main import Goods, Store
+
+    # Per-branch kitchen group takes priority
+    kitchen_group_id = None
+    if order.store_id:
+        store = session.query(Store).filter_by(id=order.store_id).first()
+        if store and store.kitchen_group_id:
+            kitchen_group_id = str(store.kitchen_group_id)
+
+    # Fallback to env var
+    if not kitchen_group_id:
+        kitchen_group_id = EnvKeys.KITCHEN_GROUP_ID
+
     if not kitchen_group_id:
         return
 
     items = session.query(OrderItem).filter_by(order_id=order.id).all()
-    items_text = "\n".join(
-        f"  - {it.item_name} x{it.quantity}"
-        for it in items
-    ) or "N/A"
+
+    item_lines = []
+    prep_times = []
+    for it in items:
+        # Build modifier text
+        if it.selected_modifiers:
+            mod_parts = []
+            for gk, sel in it.selected_modifiers.items():
+                if isinstance(sel, list):
+                    mod_parts.append(f"{gk}: {', '.join(sel)}")
+                else:
+                    mod_parts.append(f"{gk}: {sel}")
+            mod_text = " | " + "; ".join(mod_parts)
+        else:
+            mod_text = ""
+
+        item_lines.append(f"  - {it.item_name} x{it.quantity}{mod_text}")
+
+        # Look up prep time from Goods
+        goods = session.query(Goods).filter(Goods.name == it.item_name).first()
+        prep = goods.prep_time_minutes if goods and goods.prep_time_minutes else None
+        if prep:
+            prep_times.append(prep * it.quantity)
+
+    items_text = "\n".join(item_lines) or "N/A"
+
+    # Calculate total prep time (parallel kitchen work = max of all items)
+    max_prep_time = max(prep_times) if prep_times else None
+    now = datetime.now(UTC)
+
+    prep_info = ""
+    if max_prep_time is not None:
+        from datetime import timedelta
+        estimated_ready = now + timedelta(minutes=max_prep_time)
+        prep_info = (
+            f"\n⏱ Prep time: {max_prep_time} min\n"
+            f"🕐 Est. ready: {estimated_ready.strftime('%H:%M UTC')}"
+        )
+        # Update order with prep estimates
+        order.total_prep_time_minutes = max_prep_time
+        order.estimated_ready_at = estimated_ready
+        session.flush()
 
     text = (
         f"🔔 <b>New Order: {order.order_code}</b>\n\n"
         f"Items:\n{items_text}\n\n"
         f"Note: {order.delivery_note or 'None'}\n"
         f"Type: {order.delivery_type}"
+        f"{prep_info}"
     )
 
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
             text=localize("kitchen.btn.start_preparing"),
@@ -450,8 +499,20 @@ async def _send_kitchen_notification(bot: Bot, order: Order, session):
 
 
 async def _send_rider_notification(bot: Bot, order: Order, session):
-    """Send order details to rider group (Card 9)."""
-    rider_group_id = EnvKeys.RIDER_GROUP_ID
+    """Send order details to rider group (Card 9). Uses per-branch group if available."""
+    from bot.database.models.main import Store
+
+    # Per-branch rider group takes priority
+    rider_group_id = None
+    if order.store_id:
+        store = session.query(Store).filter_by(id=order.store_id).first()
+        if store and store.rider_group_id:
+            rider_group_id = str(store.rider_group_id)
+
+    # Fallback to env var
+    if not rider_group_id:
+        rider_group_id = EnvKeys.RIDER_GROUP_ID
+
     if not rider_group_id:
         return
 
@@ -468,7 +529,7 @@ async def _send_rider_notification(bot: Bot, order: Order, session):
     if order.delivery_note:
         text += f"Note: {order.delivery_note}\n"
 
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
             text=localize("rider.btn.picked_up"),

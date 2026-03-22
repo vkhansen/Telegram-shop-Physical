@@ -1,57 +1,63 @@
 """
 Tests for bot/database/methods/read.py - comprehensive coverage of all read functions.
 """
-import pytest
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from datetime import datetime, timezone, timedelta
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch
+
+import pytest
 
 from bot.database.methods.read import (
-    check_user,
-    check_role,
-    get_role_id_by_name,
-    check_role_name_by_id,
-    select_max_role_id,
-    select_today_users,
-    get_user_count,
-    select_admins,
-    get_all_users,
-    get_bought_item_info,
-    get_item_info,
-    get_goods_info,
-    check_item,
+    _day_window,
+    calculate_cart_total,
     check_category,
-    select_item_values_amount,
-    check_value,
-    select_user_items,
-    select_bought_item,
-    select_count_items,
-    select_count_goods,
-    select_count_categories,
-    select_count_bought_items,
-    select_today_orders,
-    select_all_orders,
-    select_today_operations,
-    select_all_operations,
-    select_user_operations,
+    check_item,
+    check_role,
+    check_role_cached,
+    check_role_name_by_id,
+    check_user,
+    check_user_cached,
     check_user_referrals,
-    get_user_referral,
-    get_referral_earnings_stats,
+    check_value,
+    count_user_orders,
+    get_all_users,
+    get_bot_setting,
+    get_bought_item_info,
+    get_cart_items,
+    get_goods_info,
+    get_item_info,
     get_one_referral_earning,
     get_reference_bonus_percent,
-    get_bot_setting,
-    get_cart_items,
+    get_referral_earnings_stats,
+    get_role_id_by_name,
+    get_user_count,
+    get_user_referral,
     query_user_orders,
-    count_user_orders,
-    calculate_cart_total,
-    check_user_cached,
-    check_role_cached,
+    select_admins,
+    select_all_operations,
+    select_all_orders,
+    select_bought_item,
+    select_count_bought_items,
+    select_count_categories,
+    select_count_goods,
+    select_count_items,
+    select_item_values_amount,
     select_item_values_amount_cached,
-    _day_window,
+    select_max_role_id,
+    select_today_operations,
+    select_today_orders,
+    select_today_users,
+    select_user_items,
+    select_user_operations,
 )
 from bot.database.models.main import (
-    User, Goods, Categories, BoughtGoods, Operations,
-    ReferralEarnings, BotSettings, ShoppingCart, Order, OrderItem, Role,
+    BotSettings,
+    BoughtGoods,
+    Goods,
+    Operations,
+    Order,
+    ReferralEarnings,
+    User,
 )
 
 
@@ -141,7 +147,7 @@ class TestRoleLookups:
 
     def test_select_max_role_id(self, db_with_roles):
         max_id = select_max_role_id()
-        assert max_id == 3  # OWNER role
+        assert max_id == 4  # SUPERADMIN role
 
     def test_select_max_role_id_empty(self, db_session):
         """With no roles, should return None"""
@@ -172,7 +178,7 @@ class TestUserCounts:
         assert count == 1  # test_admin has role_id=2
 
     def test_select_today_users(self, db_with_roles, test_user):
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
         count = select_today_users(today)
         assert count >= 1
 
@@ -302,7 +308,7 @@ class TestBoughtItems:
             value="item value",
             price=test_goods.price,
             buyer_id=test_user.telegram_id,
-            bought_datetime=datetime.now(timezone.utc),
+            bought_datetime=datetime.now(UTC),
             unique_id=111111
         )
         db_with_roles.add(bought)
@@ -318,7 +324,7 @@ class TestBoughtItems:
             value="test value",
             price=Decimal("99.99"),
             buyer_id=test_user.telegram_id,
-            bought_datetime=datetime.now(timezone.utc),
+            bought_datetime=datetime.now(UTC),
             unique_id=222222
         )
         db_with_roles.add(bought)
@@ -339,7 +345,7 @@ class TestBoughtItems:
                 value=f"value_{i}",
                 price=Decimal("10.00"),
                 buyer_id=test_user.telegram_id,
-                bought_datetime=datetime.now(timezone.utc),
+                bought_datetime=datetime.now(UTC),
                 unique_id=300000 + i
             )
             db_with_roles.add(bought)
@@ -358,7 +364,7 @@ class TestBoughtItems:
             value="v",
             price=Decimal("10.00"),
             buyer_id=test_user.telegram_id,
-            bought_datetime=datetime.now(timezone.utc),
+            bought_datetime=datetime.now(UTC),
             unique_id=400000
         )
         db_with_roles.add(bought)
@@ -382,7 +388,7 @@ class TestOrderRevenue:
         assert result == Decimal(0)
 
     def test_select_today_orders_with_data(self, db_with_roles, test_user, test_goods):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         bought = BoughtGoods(
             name=test_goods.name,
             value="v",
@@ -409,7 +415,7 @@ class TestOrderRevenue:
                 value=f"v{i}",
                 price=Decimal("25.00"),
                 buyer_id=test_user.telegram_id,
-                bought_datetime=datetime.now(timezone.utc),
+                bought_datetime=datetime.now(UTC),
                 unique_id=600000 + i
             )
             db_with_roles.add(bought)
@@ -429,7 +435,7 @@ class TestOperations:
         assert result == Decimal(0)
 
     def test_select_today_operations_with_data(self, db_with_roles, test_user):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         op = Operations(
             user_id=test_user.telegram_id,
             operation_value=Decimal("100.00"),
@@ -450,7 +456,7 @@ class TestOperations:
         op = Operations(
             user_id=test_user.telegram_id,
             operation_value=Decimal("200.00"),
-            operation_time=datetime.now(timezone.utc)
+            operation_time=datetime.now(UTC)
         )
         db_with_roles.add(op)
         db_with_roles.commit()
@@ -463,7 +469,7 @@ class TestOperations:
             op = Operations(
                 user_id=test_user.telegram_id,
                 operation_value=val,
-                operation_time=datetime.now(timezone.utc)
+                operation_time=datetime.now(UTC)
             )
             db_with_roles.add(op)
         db_with_roles.commit()
@@ -491,7 +497,7 @@ class TestReferrals:
             ref_user = User(
                 telegram_id=700000 + i,
                 role_id=1,
-                registration_date=datetime.now(timezone.utc),
+                registration_date=datetime.now(UTC),
                 referral_id=test_user.telegram_id
             )
             db_with_roles.add(ref_user)
@@ -508,7 +514,7 @@ class TestReferrals:
         referred = User(
             telegram_id=750000,
             role_id=1,
-            registration_date=datetime.now(timezone.utc),
+            registration_date=datetime.now(UTC),
             referral_id=test_user.telegram_id
         )
         db_with_roles.add(referred)

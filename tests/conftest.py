@@ -1,13 +1,14 @@
 """
 Pytest configuration and shared fixtures for all tests
 """
-import os
-import pytest
 import asyncio
+import os
+from collections.abc import Generator
+from datetime import UTC, datetime
 from decimal import Decimal
-from datetime import datetime, timezone
-from typing import Generator
 from unittest.mock import AsyncMock, patch
+
+import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -22,8 +23,21 @@ os.environ['LOG_TO_FILE'] = '0'
 
 from bot.database.main import Database
 from bot.database.models.main import (
-    Role, User, Categories, Goods, ReferenceCode, Order, OrderItem, CustomerInfo, BitcoinAddress, BotSettings,
-    ShoppingCart
+    BitcoinAddress,
+    BotSettings,
+    BranchInventory,
+    Brand,
+    BrandStaff,
+    Categories,
+    CustomerInfo,
+    Goods,
+    Order,
+    OrderItem,
+    ReferenceCode,
+    Role,
+    ShoppingCart,
+    Store,
+    User,
 )
 
 
@@ -114,8 +128,9 @@ def db_with_roles(db_session: Session) -> Session:
     user_role = Role(name='USER', permissions=1)
     admin_role = Role(name='ADMIN', permissions=31)  # All permissions except OWN
     owner_role = Role(name='OWNER', permissions=127)  # All permissions
+    superadmin_role = Role(name='SUPERADMIN', permissions=255)  # All permissions including SUPER
 
-    db_session.add_all([user_role, admin_role, owner_role])
+    db_session.add_all([user_role, admin_role, owner_role, superadmin_role])
     db_session.commit()
 
     return db_session
@@ -127,7 +142,7 @@ def test_user(db_with_roles: Session) -> User:
     user = User(
         telegram_id=123456789,
         role_id=1,
-        registration_date=datetime.now(timezone.utc),
+        registration_date=datetime.now(UTC),
         referral_id=None
     )
     db_with_roles.add(user)
@@ -142,7 +157,7 @@ def test_admin(db_with_roles: Session) -> User:
     admin = User(
         telegram_id=987654321,
         role_id=2,
-        registration_date=datetime.now(timezone.utc),
+        registration_date=datetime.now(UTC),
         referral_id=None
     )
     db_with_roles.add(admin)
@@ -152,9 +167,37 @@ def test_admin(db_with_roles: Session) -> User:
 
 
 @pytest.fixture
-def test_category(db_session: Session) -> Categories:
+def test_brand(db_session: Session) -> Brand:
+    """Create a test brand"""
+    brand = Brand(name="Test Brand", slug="test-brand", description="A test brand")
+    db_session.add(brand)
+    db_session.commit()
+    db_session.refresh(brand)
+    return brand
+
+
+@pytest.fixture
+def test_store(db_session: Session, test_brand: Brand) -> Store:
+    """Create a test store/branch"""
+    store = Store(
+        name="Test Branch",
+        brand_id=test_brand.id,
+        address="123 Test St",
+        latitude=13.7563,
+        longitude=100.5018,
+        phone="+66123456789",
+        is_default=True,
+    )
+    db_session.add(store)
+    db_session.commit()
+    db_session.refresh(store)
+    return store
+
+
+@pytest.fixture
+def test_category(db_session: Session, test_brand: Brand) -> Categories:
     """Create a test category"""
-    category = Categories(name="Test Category")
+    category = Categories(name="Test Category", brand_id=test_brand.id)
     db_session.add(category)
     db_session.commit()
     db_session.refresh(category)
@@ -162,7 +205,7 @@ def test_category(db_session: Session) -> Categories:
 
 
 @pytest.fixture
-def test_goods(db_session: Session, test_category: Categories) -> Goods:
+def test_goods(db_session: Session, test_category: Categories, test_brand: Brand) -> Goods:
     """Create test goods with stock"""
     goods = Goods(
         name="Test Product",
@@ -170,7 +213,9 @@ def test_goods(db_session: Session, test_category: Categories) -> Goods:
         description="Test product description",
         category_name=test_category.name,
         stock_quantity=100,
-        reserved_quantity=0
+        reserved_quantity=0,
+        brand_id=test_brand.id,
+        item_type='product',
     )
     db_session.add(goods)
     db_session.commit()
@@ -179,7 +224,7 @@ def test_goods(db_session: Session, test_category: Categories) -> Goods:
 
 
 @pytest.fixture
-def test_goods_low_stock(db_session: Session, test_category: Categories) -> Goods:
+def test_goods_low_stock(db_session: Session, test_category: Categories, test_brand: Brand) -> Goods:
     """Create test goods with low stock"""
     goods = Goods(
         name="Low Stock Product",
@@ -187,7 +232,9 @@ def test_goods_low_stock(db_session: Session, test_category: Categories) -> Good
         description="Low stock product",
         category_name=test_category.name,
         stock_quantity=5,
-        reserved_quantity=0
+        reserved_quantity=0,
+        brand_id=test_brand.id,
+        item_type='product',
     )
     db_session.add(goods)
     db_session.commit()
@@ -312,7 +359,7 @@ def populated_database(
 
 
 @pytest.fixture
-def multiple_products(db_session: Session, test_category: Categories) -> list[Goods]:
+def multiple_products(db_session: Session, test_category: Categories, test_brand: Brand) -> list[Goods]:
     """Create multiple test products"""
     products = []
     for i in range(5):
@@ -322,7 +369,9 @@ def multiple_products(db_session: Session, test_category: Categories) -> list[Go
             description=f"Description for product {i + 1}",
             category_name=test_category.name,
             stock_quantity=50 + i * 10,
-            reserved_quantity=0
+            reserved_quantity=0,
+            brand_id=test_brand.id,
+            item_type='prepared' if i % 2 == 0 else 'product',
         )
         db_session.add(goods)
         products.append(goods)
@@ -335,11 +384,11 @@ def multiple_products(db_session: Session, test_category: Categories) -> list[Go
 
 
 @pytest.fixture
-def multiple_categories(db_session: Session) -> list[Categories]:
+def multiple_categories(db_session: Session, test_brand: Brand) -> list[Categories]:
     """Create multiple test categories"""
     categories = []
     for i in range(3):
-        category = Categories(name=f"Category {i + 1}")
+        category = Categories(name=f"Category {i + 1}", brand_id=test_brand.id)
         db_session.add(category)
         categories.append(category)
 
@@ -348,6 +397,45 @@ def multiple_categories(db_session: Session) -> list[Categories]:
         db_session.refresh(category)
 
     return categories
+
+
+@pytest.fixture
+def test_brand_staff(db_session: Session, test_brand: Brand, test_admin: User) -> BrandStaff:
+    """Create a test brand staff entry (admin as brand owner)"""
+    staff = BrandStaff(
+        brand_id=test_brand.id,
+        user_id=test_admin.telegram_id,
+        role='owner',
+    )
+    db_session.add(staff)
+    db_session.commit()
+    db_session.refresh(staff)
+    return staff
+
+
+@pytest.fixture
+def test_branch_inventory(db_session: Session, test_store: Store, test_goods: Goods) -> BranchInventory:
+    """Create test branch inventory"""
+    inv = BranchInventory(
+        store_id=test_store.id,
+        item_name=test_goods.name,
+        stock_quantity=50,
+        reserved_quantity=0,
+    )
+    db_session.add(inv)
+    db_session.commit()
+    db_session.refresh(inv)
+    return inv
+
+
+@pytest.fixture
+def second_brand(db_session: Session) -> Brand:
+    """Create a second brand for multi-brand tests"""
+    brand = Brand(name="Second Brand", slug="second-brand", description="Another brand")
+    db_session.add(brand)
+    db_session.commit()
+    db_session.refresh(brand)
+    return brand
 
 
 # Async fixtures

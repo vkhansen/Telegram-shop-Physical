@@ -1,30 +1,36 @@
 from typing import Any
-from sqlalchemy import func, desc
+
+from sqlalchemy import desc, func
+
 from bot.database import Database
-from bot.database.models import (
-    Categories, Goods, User, BoughtGoods,
-    ReferralEarnings, Role
-)
+from bot.database.models import BoughtGoods, Categories, Goods, ReferralEarnings, Role, User
 
 
-async def query_categories(offset: int = 0, limit: int = 10, count_only: bool = False) -> Any:
-    """Query categories with pagination"""
+async def query_categories(offset: int = 0, limit: int = 10, count_only: bool = False,
+                           brand_id: int = None) -> Any:
+    """Query categories with pagination, optionally filtered by brand."""
     with Database().session() as s:
-        if count_only:
-            return s.query(func.count(Categories.name)).scalar() or 0
+        query = s.query(Categories.name)
+        if brand_id is not None:
+            query = query.filter(Categories.brand_id == brand_id)
 
-        return [row[0] for row in s.query(Categories.name)
-        .order_by(Categories.name.asc())
+        if count_only:
+            return query.count()
+
+        return [row[0] for row in query
+        .order_by(Categories.sort_order.asc(), Categories.name.asc())
         .offset(offset)
         .limit(limit)
         .all()]
 
 
 async def query_items_in_category(category_name: str, offset: int = 0, limit: int = 10,
-                                  count_only: bool = False) -> Any:
-    """Query items in category with pagination"""
+                                  count_only: bool = False, brand_id: int = None) -> Any:
+    """Query items in category with pagination, optionally filtered by brand."""
     with Database().session() as s:
         query = s.query(Goods.name).filter(Goods.category_name == category_name)
+        if brand_id is not None:
+            query = query.filter(Goods.brand_id == brand_id)
 
         if count_only:
             return query.count()

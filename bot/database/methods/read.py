@@ -2,13 +2,26 @@ import asyncio
 import datetime
 from decimal import Decimal
 from functools import wraps
-from typing import Optional, Dict
 
 from sqlalchemy import func
 
-from bot.database.models import Database, User, Goods, Categories, Role, BoughtGoods, \
-    Operations, ReferralEarnings, BotSettings, ShoppingCart, OrderItem, Order
 from bot.caching import get_cache_manager
+from bot.database.models import (
+    BotSettings,
+    BoughtGoods,
+    Brand,
+    BrandStaff,
+    Categories,
+    Database,
+    Goods,
+    Operations,
+    Order,
+    OrderItem,
+    ReferralEarnings,
+    Role,
+    ShoppingCart,
+    User,
+)
 
 
 # Wrapper for synchronous functions to asynchronous functions with caching
@@ -48,7 +61,7 @@ def _day_window(date_str: str) -> tuple[datetime.datetime, datetime.datetime]:
     return start, end
 
 
-def check_user(telegram_id: int | str) -> Optional[User]:
+def check_user(telegram_id: int | str) -> User | None:
     """Return user by Telegram ID or None if not found."""
     with Database().session() as s:
         result = s.query(User).filter(User.telegram_id == telegram_id).one_or_none()
@@ -65,7 +78,7 @@ def check_role(telegram_id: int) -> int:
         return perms or 0
 
 
-def get_role_id_by_name(role_name: str) -> Optional[int]:
+def get_role_id_by_name(role_name: str) -> int | None:
     """Return role id by name or None."""
     with Database().session() as s:
         return s.query(Role.id).filter(Role.name == role_name).scalar()
@@ -77,7 +90,7 @@ def check_role_name_by_id(role_id: int) -> str:
         return s.query(Role.name).filter(Role.id == role_id).one()[0]
 
 
-def select_max_role_id() -> Optional[int]:
+def select_max_role_id() -> int | None:
     """Return max role id (or None if no roles)."""
     with Database().session() as s:
         return s.query(func.max(Role.id)).scalar()
@@ -243,14 +256,14 @@ def check_user_referrals(user_id: int) -> int:
         return s.query(User).filter(User.referral_id == user_id).count()
 
 
-def get_user_referral(user_id: int) -> Optional[int]:
+def get_user_referral(user_id: int) -> int | None:
     """Return referral_id of the user or None."""
     with Database().session() as s:
         result = s.query(User.referral_id).filter(User.telegram_id == user_id).first()
         return result[0] if result else None
 
 
-def get_referral_earnings_stats(referrer_id: int) -> Dict:
+def get_referral_earnings_stats(referrer_id: int) -> dict:
     """
     Get statistics on user referral charges.
     """
@@ -281,13 +294,24 @@ def get_one_referral_earning(earning_id: int) -> dict | None:
         return result.__dict__ if result else None
 
 
-def get_reference_bonus_percent() -> Decimal:
+def get_reference_bonus_percent(brand_id: int = None) -> Decimal:
     """
     Get reference_bonus_percent from bot_settings.
+    Tries brand-specific first, then global fallback.
     Returns Decimal value (default 0).
     """
     with Database().session() as s:
-        setting = s.query(BotSettings).filter(BotSettings.setting_key == 'reference_bonus_percent').first()
+        setting = None
+        if brand_id is not None:
+            setting = s.query(BotSettings).filter(
+                BotSettings.setting_key == 'reference_bonus_percent',
+                BotSettings.brand_id == brand_id
+            ).first()
+        if not setting:
+            setting = s.query(BotSettings).filter(
+                BotSettings.setting_key == 'reference_bonus_percent',
+                BotSettings.brand_id.is_(None)
+            ).first()
         if setting and setting.setting_value:
             try:
                 return Decimal(str(setting.setting_value))
@@ -296,30 +320,44 @@ def get_reference_bonus_percent() -> Decimal:
         return Decimal(0)
 
 
-def get_bot_setting(setting_key: str, default: str = None, value_type: type = str) -> any:
+def get_bot_setting(setting_key: str, default: str = None, value_type: type = str,
+                    brand_id: int = None) -> any:
     """
     Get a setting value from BotSettings.
+    If brand_id is given, tries brand-specific first, then falls back to global (brand_id=NULL).
 
     Args:
         setting_key: The setting key to retrieve
         default: Default value if setting not found or invalid
         value_type: Type to convert the value to (str, int, float, Decimal)
+        brand_id: Optional brand ID for brand-specific settings
 
     Returns:
         Setting value converted to specified type, or default value
     """
     with Database().session() as s:
-        setting = s.query(BotSettings).filter(BotSettings.setting_key == setting_key).first()
+        setting = None
+        # Try brand-specific first
+        if brand_id is not None:
+            setting = s.query(BotSettings).filter(
+                BotSettings.setting_key == setting_key,
+                BotSettings.brand_id == brand_id
+            ).first()
+        # Fall back to global
+        if not setting:
+            setting = s.query(BotSettings).filter(
+                BotSettings.setting_key == setting_key,
+                BotSettings.brand_id.is_(None)
+            ).first()
         if setting and setting.setting_value:
             try:
                 if value_type == int:
                     return int(setting.setting_value)
-                elif value_type == float:
+                if value_type == float:
                     return float(setting.setting_value)
-                elif value_type == Decimal:
+                if value_type == Decimal:
                     return Decimal(str(setting.setting_value))
-                else:
-                    return str(setting.setting_value)
+                return str(setting.setting_value)
             except (ValueError, TypeError):
                 pass  # Fall through to return default
 
@@ -328,9 +366,9 @@ def get_bot_setting(setting_key: str, default: str = None, value_type: type = st
             try:
                 if value_type == int and not isinstance(default, int):
                     return int(default)
-                elif value_type == float and not isinstance(default, float):
+                if value_type == float and not isinstance(default, float):
                     return float(default)
-                elif value_type == Decimal and not isinstance(default, Decimal):
+                if value_type == Decimal and not isinstance(default, Decimal):
                     return Decimal(str(default))
             except (ValueError, TypeError):
                 pass
@@ -502,6 +540,134 @@ def get_user_count_cached():
 def select_admins_cached():
     """Cached number of admins"""
     return select_admins()
+
+
+# ── Brand / multi-store queries ───────────────────────────────────────
+
+def get_all_brands(active_only: bool = True) -> list[dict]:
+    """Return list of brands as dicts."""
+    with Database().session() as s:
+        q = s.query(Brand)
+        if active_only:
+            q = q.filter(Brand.is_active.is_(True))
+        brands = q.order_by(Brand.name).all()
+        return [
+            {
+                'id': b.id, 'name': b.name, 'slug': b.slug,
+                'description': b.description, 'logo_file_id': b.logo_file_id,
+                'is_active': b.is_active, 'promptpay_id': b.promptpay_id,
+                'promptpay_name': b.promptpay_name, 'timezone': b.timezone,
+            }
+            for b in brands
+        ]
+
+
+def get_brand(brand_id: int) -> dict | None:
+    """Return brand by ID as dict, or None."""
+    with Database().session() as s:
+        b = s.query(Brand).filter_by(id=brand_id).first()
+        if not b:
+            return None
+        return {
+            'id': b.id, 'name': b.name, 'slug': b.slug,
+            'description': b.description, 'logo_file_id': b.logo_file_id,
+            'is_active': b.is_active, 'promptpay_id': b.promptpay_id,
+            'promptpay_name': b.promptpay_name, 'timezone': b.timezone,
+        }
+
+
+def get_brand_by_slug(slug: str) -> dict | None:
+    """Return brand by slug as dict, or None."""
+    with Database().session() as s:
+        b = s.query(Brand).filter_by(slug=slug).first()
+        if not b:
+            return None
+        return {
+            'id': b.id, 'name': b.name, 'slug': b.slug,
+            'description': b.description, 'logo_file_id': b.logo_file_id,
+            'is_active': b.is_active, 'promptpay_id': b.promptpay_id,
+            'promptpay_name': b.promptpay_name, 'timezone': b.timezone,
+        }
+
+
+def get_stores_for_brand(brand_id: int, active_only: bool = True) -> list[dict]:
+    """Return list of stores/branches for a brand."""
+    with Database().session() as s:
+        from bot.database.models.main import Store
+        q = s.query(Store).filter(Store.brand_id == brand_id)
+        if active_only:
+            q = q.filter(Store.is_active.is_(True))
+        stores = q.order_by(Store.name).all()
+        return [
+            {
+                'id': st.id, 'name': st.name, 'address': st.address,
+                'latitude': st.latitude, 'longitude': st.longitude,
+                'phone': st.phone, 'is_active': st.is_active,
+                'is_default': st.is_default,
+                'kitchen_group_id': st.kitchen_group_id,
+                'rider_group_id': st.rider_group_id,
+            }
+            for st in stores
+        ]
+
+
+def can_manage_brand(user_id: int, brand_id: int) -> bool:
+    """Check if a user can manage a brand (SUPERADMIN or brand staff with owner/admin role)."""
+    with Database().session() as s:
+        # Check SUPERADMIN
+        user = s.query(User).filter_by(telegram_id=user_id).first()
+        if user:
+            role = s.query(Role).filter_by(id=user.role_id).first()
+            if role and role.has_permission(Permission.SUPER):
+                return True
+
+        # Check BrandStaff
+        staff = s.query(BrandStaff).filter(
+            BrandStaff.user_id == user_id,
+            BrandStaff.brand_id == brand_id,
+            BrandStaff.role.in_(['owner', 'admin'])
+        ).first()
+        return staff is not None
+
+
+def get_user_brands(user_id: int) -> list[dict]:
+    """Return brands that a user has staff access to."""
+    with Database().session() as s:
+        # Check if superadmin
+        user = s.query(User).filter_by(telegram_id=user_id).first()
+        if user:
+            role = s.query(Role).filter_by(id=user.role_id).first()
+            if role and role.has_permission(Permission.SUPER):
+                return get_all_brands(active_only=False)
+
+        # Get brands via staff assignment
+        staff_entries = s.query(BrandStaff).filter_by(user_id=user_id).all()
+        brand_ids = list(set(entry.brand_id for entry in staff_entries))
+        if not brand_ids:
+            return []
+
+        brands = s.query(Brand).filter(Brand.id.in_(brand_ids)).order_by(Brand.name).all()
+        return [
+            {
+                'id': b.id, 'name': b.name, 'slug': b.slug,
+                'description': b.description, 'logo_file_id': b.logo_file_id,
+                'is_active': b.is_active, 'promptpay_id': b.promptpay_id,
+                'promptpay_name': b.promptpay_name, 'timezone': b.timezone,
+            }
+            for b in brands
+        ]
+
+
+def is_superadmin(user_id: int) -> bool:
+    """Check if user has SUPERADMIN (SUPER permission)."""
+    with Database().session() as s:
+        user = s.query(User).filter_by(telegram_id=user_id).first()
+        if not user:
+            return False
+        role = s.query(Role).filter_by(id=user.role_id).first()
+        if not role:
+            return False
+        return role.has_permission(Permission.SUPER)
 
 
 # Cache invalidation functions

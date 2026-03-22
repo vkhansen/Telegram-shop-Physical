@@ -1,14 +1,14 @@
-from aiogram import Router, F
+from aiogram import F, Router
 from aiogram.types import CallbackQuery, Message
 
-from bot.i18n import localize
-from bot.database.models import Permission
 from bot.database.methods import check_category_cached, create_category, delete_category, update_category
-from bot.keyboards.inline import back, simple_buttons
+from bot.database.models import Permission
 from bot.filters import HasPermissionFilter
+from bot.i18n import localize
+from bot.keyboards.inline import back, simple_buttons
 from bot.logger_mesh import audit_logger
-from bot.utils import CategoryRequest
 from bot.states import CategoryFSM
+from bot.utils import CategoryRequest
 
 router = Router()
 
@@ -56,7 +56,8 @@ async def process_category_for_add(message: Message, state):
                 reply_markup=back("categories_management"),
             )
         else:
-            create_category(category_name)
+            data = await state.get_data()
+            create_category(category_name, brand_id=data.get('current_brand_id'))
             await message.answer(
                 localize("admin.categories.add.success"),
                 reply_markup=back("categories_management"),

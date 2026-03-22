@@ -3,11 +3,24 @@ from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
-    Column, Integer, String, BigInteger, ForeignKey, Text, Boolean,
-    DateTime, Numeric, Float, Index, UniqueConstraint, func, JSON
+    JSON,
+    BigInteger,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
 )
-from bot.database.main import Database
 from sqlalchemy.orm import relationship
+
+from bot.database.main import Database
 
 
 class Permission:
@@ -18,6 +31,7 @@ class Permission:
     SHOP_MANAGE = 16
     ADMINS_MANAGE = 32
     OWN = 64
+    SUPER = 128  # Platform superadmin
 
 
 class Role(Database.BASE):
@@ -29,7 +43,7 @@ class Role(Database.BASE):
     users = relationship('User', backref='role', lazy='dynamic')
 
     def __init__(self, name: str, permissions=None, **kwargs):
-        super(Role, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         if self.permissions is None:
             self.permissions = 0
         self.name = name
@@ -44,6 +58,9 @@ class Role(Database.BASE):
             'OWNER': [Permission.USE, Permission.BROADCAST,
                       Permission.SETTINGS_MANAGE, Permission.USERS_MANAGE, Permission.SHOP_MANAGE,
                       Permission.ADMINS_MANAGE, Permission.OWN],
+            'SUPERADMIN': [Permission.USE, Permission.BROADCAST,
+                           Permission.SETTINGS_MANAGE, Permission.USERS_MANAGE, Permission.SHOP_MANAGE,
+                           Permission.ADMINS_MANAGE, Permission.OWN, Permission.SUPER],
         }
         default_role = 'USER'
         with Database().session() as s:
@@ -114,43 +131,183 @@ class User(Database.BASE):
         self.ban_reason = ban_reason
 
 
+class Brand(Database.BASE):
+    """Brand / restaurant entity. Each brand is an independent business."""
+    __tablename__ = 'brands'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(200), unique=True, nullable=False)
+    slug = Column(String(50), unique=True, nullable=False)
+    description = Column(Text, nullable=True)
+    logo_file_id = Column(String(255), nullable=True)  # Telegram photo file_id
+    is_active = Column(Boolean, nullable=False, default=True, index=True)
+    promptpay_id = Column(String(20), nullable=True)
+    promptpay_name = Column(String(200), nullable=True)
+    timezone = Column(String(50), nullable=True)  # Override, null = platform default
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    # Relationships
+    stores = relationship("Store", back_populates="brand", cascade="all, delete-orphan")
+    staff = relationship("BrandStaff", back_populates="brand", cascade="all, delete-orphan")
+    categories = relationship("Categories", back_populates="brand")
+    goods = relationship("Goods", back_populates="brand")
+
+    def __init__(self, name: str, slug: str, description: str = None,
+                 logo_file_id: str = None, promptpay_id: str = None,
+                 promptpay_name: str = None, timezone: str = None, **kw: Any):
+        super().__init__(**kw)
+        self.name = name
+        self.slug = slug
+        self.description = description
+        self.logo_file_id = logo_file_id
+        self.promptpay_id = promptpay_id
+        self.promptpay_name = promptpay_name
+        self.timezone = timezone
+
+
+class BrandStaff(Database.BASE):
+    """Staff assignment per brand/branch."""
+    __tablename__ = 'brand_staff'
+
+    id = Column(Integer, primary_key=True)
+    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(String(20), nullable=False)  # 'owner', 'admin', 'kitchen', 'rider'
+    store_id = Column(Integer, ForeignKey('stores.id', ondelete="SET NULL"), nullable=True)  # null = all branches
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    brand = relationship("Brand", back_populates="staff")
+    user = relationship("User", foreign_keys=lambda: [BrandStaff.user_id])
+    store = relationship("Store", foreign_keys=lambda: [BrandStaff.store_id])
+
+    __table_args__ = (
+        UniqueConstraint('brand_id', 'user_id', 'store_id', name='uq_brand_user_store'),
+        Index('ix_brand_staff_brand_role', 'brand_id', 'role'),
+    )
+
+    def __init__(self, brand_id: int, user_id: int, role: str, store_id: int = None, **kw: Any):
+        super().__init__(**kw)
+        self.brand_id = brand_id
+        self.user_id = user_id
+        self.role = role
+        self.store_id = store_id
+
+
 class Categories(Database.BASE):
     __tablename__ = 'categories'
     name = Column(String(100), primary_key=True)
+    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="CASCADE"), nullable=True, index=True)
     sort_order = Column(Integer, nullable=False, default=0)  # Menu ordering (Card 8)
+    description = Column(Text, nullable=True)  # Category description
+    image_file_id = Column(String(255), nullable=True)  # Telegram file_id for category cover
+    available_from = Column(String(5), nullable=True)  # "06:00" - breakfast menu starts
+    available_until = Column(String(5), nullable=True)  # "11:00" - breakfast menu ends
     item = relationship("Goods", back_populates="category")
+    brand = relationship("Brand", back_populates="categories")
 
-    def __init__(self, name: str, sort_order: int = 0, **kw: Any):
+    def __init__(self, name: str, sort_order: int = 0, description: str = None,
+                 image_file_id: str = None, available_from: str = None,
+                 available_until: str = None, brand_id: int = None, **kw: Any):
         super().__init__(**kw)
         self.name = name
         self.sort_order = sort_order
+        self.description = description
+        self.image_file_id = image_file_id
+        self.available_from = available_from
+        self.available_until = available_until
+        self.brand_id = brand_id
 
 
 class Goods(Database.BASE):
     __tablename__ = 'goods'
     name = Column(String(100), primary_key=True)
+    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="CASCADE"), nullable=True, index=True)
     price = Column(Numeric(12, 2), nullable=False)
     description = Column(Text, nullable=False)
     category_name = Column(String(100), ForeignKey('categories.name', ondelete="CASCADE", onupdate="CASCADE"),
                            nullable=False, index=True)
-    stock_quantity = Column(Integer, nullable=False, default=0)  # Total stock in warehouse
-    reserved_quantity = Column(Integer, nullable=False, default=0)  # Reserved in pending orders
+    # Item type: distinguishes packaged goods from prepared food
+    # 'product' = shelf-stable / pre-packaged (e.g., bottled water, snacks) — tracked by inventory count
+    # 'prepared' = made-to-order / perishable (e.g., pad thai, coffee) — tracked by daily limit & prep time
+    item_type = Column(String(20), nullable=False, default='prepared', index=True)
+
+    stock_quantity = Column(Integer, nullable=False, default=0)  # Total stock (fallback for single-branch)
+    reserved_quantity = Column(Integer, nullable=False, default=0)  # Reserved (fallback for single-branch)
     modifiers = Column(JSON, nullable=True)  # Modifier schema for restaurant items (Card 8)
+
+    # Restaurant-specific fields (primarily for item_type='prepared')
+    image_file_id = Column(String(255), nullable=True)  # Telegram file_id for menu photo
+    media = Column(JSON, nullable=True)  # Multiple media: [{"file_id": str, "type": "photo"|"video", "caption": str}]
+    prep_time_minutes = Column(Integer, nullable=True)  # Kitchen prep time in minutes
+    allergens = Column(String(500), nullable=True)  # Comma-separated: "gluten,dairy,nuts"
+    is_active = Column(Boolean, nullable=False, default=True, index=True)  # Permanent on/off
+    sold_out_today = Column(Boolean, nullable=False, default=False)  # Temporary "86'd" flag
+    daily_limit = Column(Integer, nullable=True)  # Max units per day (NULL = unlimited)
+    daily_sold_count = Column(Integer, nullable=False, default=0)  # Reset daily by scheduler
+    available_from = Column(String(5), nullable=True)  # "06:00" HH:MM availability start
+    available_until = Column(String(5), nullable=True)  # "22:00" HH:MM availability end
+    calories = Column(Integer, nullable=True)  # Nutritional info
+
     category = relationship("Categories", back_populates="item")
+    brand = relationship("Brand", back_populates="goods")
 
     @property
     def available_quantity(self) -> int:
         """Calculate available stock (total - reserved)"""
         return max(0, self.stock_quantity - self.reserved_quantity)
 
+    @property
+    def daily_remaining(self) -> int | None:
+        """How many more can be sold today. None if no daily limit."""
+        if self.daily_limit is None:
+            return None
+        return max(0, self.daily_limit - self.daily_sold_count)
+
+    @property
+    def is_product(self) -> bool:
+        """True if this is a packaged/shelf-stable item (e.g., bottled water)."""
+        return self.item_type == 'product'
+
+    @property
+    def is_prepared(self) -> bool:
+        """True if this is a made-to-order/perishable item (e.g., pad thai)."""
+        return self.item_type == 'prepared'
+
+    @property
+    def is_currently_available(self) -> bool:
+        """Check if item is orderable right now (ignores time window - use check_time_window())."""
+        if not self.is_active or self.sold_out_today:
+            return False
+        if self.daily_limit is not None and self.daily_sold_count >= self.daily_limit:
+            return False
+        # Products require inventory; prepared items may have unlimited stock (stock_quantity=0 means unlimited for prepared)
+        if self.is_product and self.available_quantity <= 0:
+            return False
+        return True
+
     def __init__(self, name: str, price, description: str, category_name: str,
-                 stock_quantity: int = 0, **kw: Any):
+                 stock_quantity: int = 0, image_file_id: str = None,
+                 media: list = None, prep_time_minutes: int = None,
+                 allergens: str = None, daily_limit: int = None,
+                 available_from: str = None, available_until: str = None,
+                 calories: int = None, brand_id: int = None,
+                 item_type: str = 'prepared', **kw: Any):
         super().__init__(**kw)
         self.name = name
+        self.brand_id = brand_id
+        self.item_type = item_type
         self.price = price
         self.description = description
         self.category_name = category_name
         self.stock_quantity = stock_quantity
+        self.image_file_id = image_file_id
+        self.media = media
+        self.prep_time_minutes = prep_time_minutes
+        self.allergens = allergens
+        self.daily_limit = daily_limit
+        self.available_from = available_from
+        self.available_until = available_until
+        self.calories = calories
 
 
 class BoughtGoods(Database.BASE):
@@ -309,6 +466,8 @@ class Order(Database.BASE):
     # Kitchen & delivery workflow (Card 9)
     kitchen_group_message_id = Column(Integer, nullable=True)
     rider_group_message_id = Column(Integer, nullable=True)
+    estimated_ready_at = Column(DateTime(timezone=True), nullable=True)  # Calculated from prep times
+    total_prep_time_minutes = Column(Integer, nullable=True)  # Sum/max of item prep times
 
     # Delivery zones & time slots (Card 10)
     delivery_zone = Column(String(50), nullable=True)
@@ -356,11 +515,14 @@ class Order(Database.BASE):
     coupon_code = Column(String(32), nullable=True)
     coupon_discount = Column(Numeric(12, 2), nullable=True, default=0)
 
-    # Multi-store
+    # Multi-brand / multi-store
+    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="SET NULL"), nullable=True, index=True)
     store_id = Column(Integer, ForeignKey('stores.id', ondelete="SET NULL"), nullable=True)
 
     buyer = relationship("User", foreign_keys=lambda: [Order.buyer_id])
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+    brand = relationship("Brand", foreign_keys=lambda: [Order.brand_id])
+    store = relationship("Store", foreign_keys=lambda: [Order.store_id])
 
     __table_args__ = (
         Index('ix_orders_buyer_status', 'buyer_id', 'order_status'),
@@ -487,14 +649,22 @@ class BotSettings(Database.BASE):
     __tablename__ = 'bot_settings'
 
     id = Column(Integer, primary_key=True)
-    setting_key = Column(String(100), unique=True, nullable=False, index=True)
+    setting_key = Column(String(100), nullable=False, index=True)
     setting_value = Column(Text, nullable=True)
+    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="CASCADE"), nullable=True, index=True)
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
-    def __init__(self, setting_key: str, setting_value: str = None, **kw: Any):
+    brand = relationship("Brand", foreign_keys=lambda: [BotSettings.brand_id])
+
+    __table_args__ = (
+        UniqueConstraint('setting_key', 'brand_id', name='uq_setting_key_brand'),
+    )
+
+    def __init__(self, setting_key: str, setting_value: str = None, brand_id: int = None, **kw: Any):
         super().__init__(**kw)
         self.setting_key = setting_key
         self.setting_value = setting_value
+        self.brand_id = brand_id
 
 
 class ShoppingCart(Database.BASE):
@@ -505,23 +675,31 @@ class ShoppingCart(Database.BASE):
     item_name = Column(String(100), ForeignKey('goods.name', ondelete="CASCADE"), nullable=False)
     quantity = Column(Integer, nullable=False, default=1)
     selected_modifiers = Column(JSON, nullable=True)  # Selected modifier choices (Card 8)
+    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="CASCADE"), nullable=True, index=True)
+    store_id = Column(Integer, ForeignKey('stores.id', ondelete="SET NULL"), nullable=True, index=True)
     added_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     user = relationship("User", foreign_keys=lambda: [ShoppingCart.user_id])
     item = relationship("Goods", foreign_keys=lambda: [ShoppingCart.item_name])
+    brand = relationship("Brand", foreign_keys=lambda: [ShoppingCart.brand_id])
+    store = relationship("Store", foreign_keys=lambda: [ShoppingCart.store_id])
 
     __table_args__ = (
-        UniqueConstraint('user_id', 'item_name', name='uq_cart_user_item'),
+        UniqueConstraint('user_id', 'item_name', 'brand_id', name='uq_cart_user_item_brand'),
         Index('ix_shopping_cart_user_added', 'user_id', 'added_at'),
+        Index('ix_shopping_cart_user_brand', 'user_id', 'brand_id'),
     )
 
     def __init__(self, user_id: int, item_name: str, quantity: int = 1,
-                 selected_modifiers: dict = None, **kw: Any):
+                 selected_modifiers: dict = None, brand_id: int = None,
+                 store_id: int = None, **kw: Any):
         super().__init__(**kw)
         self.user_id = user_id
         self.item_name = item_name
         self.quantity = quantity
         self.selected_modifiers = selected_modifiers
+        self.brand_id = brand_id
+        self.store_id = store_id
 
 
 class DeliveryChatMessage(Database.BASE):
@@ -754,30 +932,77 @@ class Store(Database.BASE):
     __tablename__ = 'stores'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(200), unique=True, nullable=False)
+    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="CASCADE"), nullable=True, index=True)
+    name = Column(String(200), nullable=False)
     address = Column(Text, nullable=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     phone = Column(String(50), nullable=True)
     is_active = Column(Boolean, nullable=False, default=True, index=True)
     is_default = Column(Boolean, nullable=False, default=False)
+    kitchen_group_id = Column(BigInteger, nullable=True)  # Per-branch kitchen Telegram group
+    rider_group_id = Column(BigInteger, nullable=True)  # Per-branch rider Telegram group
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
+    brand = relationship("Brand", back_populates="stores")
+    inventory = relationship("BranchInventory", back_populates="store", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        UniqueConstraint('brand_id', 'name', name='uq_store_brand_name'),
+    )
+
     def __init__(self, name: str, address: str = None, latitude: float = None,
-                 longitude: float = None, phone: str = None, is_default: bool = False, **kw: Any):
+                 longitude: float = None, phone: str = None, is_default: bool = False,
+                 brand_id: int = None, kitchen_group_id: int = None,
+                 rider_group_id: int = None, **kw: Any):
         super().__init__(**kw)
         self.name = name
+        self.brand_id = brand_id
         self.address = address
         self.latitude = latitude
         self.longitude = longitude
         self.phone = phone
         self.is_default = is_default
+        self.kitchen_group_id = kitchen_group_id
+        self.rider_group_id = rider_group_id
+
+
+class BranchInventory(Database.BASE):
+    """Per-branch inventory tracking. Overrides Goods.stock_quantity for multi-branch brands."""
+    __tablename__ = 'branch_inventory'
+
+    id = Column(Integer, primary_key=True)
+    store_id = Column(Integer, ForeignKey('stores.id', ondelete="CASCADE"), nullable=False, index=True)
+    item_name = Column(String(100), ForeignKey('goods.name', ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    stock_quantity = Column(Integer, nullable=False, default=0)
+    reserved_quantity = Column(Integer, nullable=False, default=0)
+
+    store = relationship("Store", back_populates="inventory")
+    item = relationship("Goods", foreign_keys=lambda: [BranchInventory.item_name])
+
+    __table_args__ = (
+        UniqueConstraint('store_id', 'item_name', name='uq_branch_inventory_store_item'),
+        Index('ix_branch_inventory_item', 'item_name'),
+    )
+
+    @property
+    def available_quantity(self) -> int:
+        return max(0, self.stock_quantity - self.reserved_quantity)
+
+    def __init__(self, store_id: int, item_name: str, stock_quantity: int = 0,
+                 reserved_quantity: int = 0, **kw: Any):
+        super().__init__(**kw)
+        self.store_id = store_id
+        self.item_name = item_name
+        self.stock_quantity = stock_quantity
+        self.reserved_quantity = reserved_quantity
 
 
 def register_models():
     """Create all database tables and insert default roles"""
     import logging
     import time
+
     from sqlalchemy.exc import OperationalError
 
     max_retries = 5
@@ -798,6 +1023,14 @@ def register_models():
             # Insert default roles
             Role.insert_roles()
             logging.info("Default roles inserted")
+
+            # Ensure a default brand exists for migration
+            _ensure_default_brand(db)
+            logging.info("Default brand ensured")
+
+            # Assign SUPERADMIN role to OWNER_ID
+            _assign_superadmin_role(db)
+
             return  # Success - exit function
 
         except OperationalError as e:
@@ -823,3 +1056,81 @@ def register_models():
         except Exception as e:
             logging.error(f"Failed to create database tables: {e}", exc_info=True)
             raise
+
+
+def _ensure_default_brand(db):
+    """Create a default brand and assign all existing unbranded data to it."""
+    import logging
+
+    from sqlalchemy import exists
+
+    with db.session() as s:
+        # Check if any brand exists
+        has_brand = s.query(exists().where(Brand.id.isnot(None))).scalar()
+        if has_brand:
+            return
+
+        # Create default brand
+        default_brand = Brand(
+            name="Default Brand",
+            slug="default",
+            description="Default brand (auto-created during migration)",
+        )
+        s.add(default_brand)
+        s.flush()  # Get the ID
+
+        brand_id = default_brand.id
+
+        # Assign all unbranded categories to the default brand
+        s.query(Categories).filter(Categories.brand_id.is_(None)).update(
+            {Categories.brand_id: brand_id}, synchronize_session=False
+        )
+
+        # Assign all unbranded goods to the default brand
+        s.query(Goods).filter(Goods.brand_id.is_(None)).update(
+            {Goods.brand_id: brand_id}, synchronize_session=False
+        )
+
+        # Assign all unbranded stores to the default brand
+        s.query(Store).filter(Store.brand_id.is_(None)).update(
+            {Store.brand_id: brand_id}, synchronize_session=False
+        )
+
+        # Assign all unbranded orders to the default brand
+        s.query(Order).filter(Order.brand_id.is_(None)).update(
+            {Order.brand_id: brand_id}, synchronize_session=False
+        )
+
+        # Assign all unbranded bot settings to the default brand (leave global ones as null)
+        # Don't auto-assign settings — they should remain global unless explicitly scoped
+
+        s.commit()
+        logging.info(f"Created default brand (id={brand_id}) and assigned existing data")
+
+
+def _assign_superadmin_role(db):
+    """Assign SUPERADMIN role to OWNER_ID from env."""
+    import logging
+    import os
+
+    owner_id = os.environ.get('OWNER_ID')
+    if not owner_id:
+        return
+
+    try:
+        owner_id = int(owner_id)
+    except (ValueError, TypeError):
+        return
+
+    with db.session() as s:
+        # Get SUPERADMIN role id
+        superadmin_role = s.query(Role).filter_by(name='SUPERADMIN').first()
+        if not superadmin_role:
+            return
+
+        # Check if user exists and update role
+        user = s.query(User).filter_by(telegram_id=owner_id).first()
+        if user and user.role_id != superadmin_role.id:
+            user.role_id = superadmin_role.id
+            s.commit()
+            logging.info(f"Assigned SUPERADMIN role to OWNER_ID={owner_id}")
