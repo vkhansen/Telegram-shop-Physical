@@ -33,6 +33,7 @@ async def settings_menu(call: CallbackQuery, state: FSMContext):
     current_timezone = timezone.get_timezone()
     promptpay_id = get_bot_setting('promptpay_id') or EnvKeys.PROMPTPAY_ID or "Not set"
     promptpay_name = get_bot_setting('promptpay_account_name') or EnvKeys.PROMPTPAY_ACCOUNT_NAME or "Not set"
+    current_currency = get_bot_setting('pay_currency') or EnvKeys.PAY_CURRENCY
 
     await call.message.edit_text(
         f"⚙️ <b>Bot Settings</b>\n\n"
@@ -40,7 +41,8 @@ async def settings_menu(call: CallbackQuery, state: FSMContext):
         f"• Referral Bonus: <b>{current_percent}%</b>\n"
         f"• Order Timeout: <b>{current_timeout} hours</b>\n"
         f"• Timezone: <b>{current_timezone}</b>\n"
-        f"• PromptPay: <b>{promptpay_id}</b> ({promptpay_name})\n\n"
+        f"• PromptPay: <b>{promptpay_id}</b> ({promptpay_name})\n"
+        f"• Currency: <b>{current_currency}</b>\n\n"
         f"Select a setting to modify:",
         reply_markup=settings_management_keyboard(),
         parse_mode='HTML'
@@ -615,3 +617,56 @@ async def process_promptpay_name(message: Message, state: FSMContext):
         parse_mode='HTML'
     )
     await state.clear()
+
+
+# === Currency Selection ===
+
+SUPPORTED_CURRENCIES = [
+    ("🇹🇭 THB (Thai Baht)", "THB"),
+    ("🇺🇸 USD (US Dollar)", "USD"),
+    ("🇪🇺 EUR (Euro)", "EUR"),
+    ("🇬🇧 GBP (British Pound)", "GBP"),
+    ("🇯🇵 JPY (Japanese Yen)", "JPY"),
+    ("🇷🇺 RUB (Russian Ruble)", "RUB"),
+    ("🇦🇪 AED (UAE Dirham)", "AED"),
+    ("🇸🇦 SAR (Saudi Riyal)", "SAR"),
+    ("🇮🇷 IRR (Iranian Rial)", "IRR"),
+    ("🇦🇫 AFN (Afghan Afghani)", "AFN"),
+    ("🇲🇾 MYR (Malaysian Ringgit)", "MYR"),
+    ("🇸🇬 SGD (Singapore Dollar)", "SGD"),
+    ("₿ BTC (Bitcoin)", "BTC"),
+]
+
+
+@router.callback_query(F.data == "setting_currency", HasPermissionFilter(Permission.SETTINGS_MANAGE))
+async def set_currency_start(call: CallbackQuery, state: FSMContext):
+    """Show currency selection menu."""
+    from bot.keyboards.inline import simple_buttons
+    current = get_bot_setting('pay_currency') or EnvKeys.PAY_CURRENCY
+
+    buttons = [(label, f"currency_select_{code}") for label, code in SUPPORTED_CURRENCIES]
+    buttons.append((localize("btn.back"), "settings_management"))
+
+    await call.message.edit_text(
+        f"💱 <b>Currency Selection</b>\n\n"
+        f"Current: <b>{current}</b>\n\n"
+        f"Select currency:",
+        reply_markup=simple_buttons(buttons, per_row=2),
+    )
+
+
+@router.callback_query(F.data.startswith("currency_select_"), HasPermissionFilter(Permission.SETTINGS_MANAGE))
+async def set_currency_confirm(call: CallbackQuery, state: FSMContext):
+    """Save selected currency."""
+    currency_code = call.data.replace("currency_select_", "")
+
+    with Database().session() as session:
+        setting = session.query(BotSettings).filter_by(setting_key='pay_currency').first()
+        if setting:
+            setting.setting_value = currency_code
+        else:
+            session.add(BotSettings(setting_key='pay_currency', setting_value=currency_code))
+        session.commit()
+
+    await call.answer(f"Currency set to {currency_code}", show_alert=True)
+    await settings_menu(call, state)

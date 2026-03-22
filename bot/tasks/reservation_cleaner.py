@@ -32,6 +32,20 @@ async def run_reservation_cleaner():
             await asyncio.sleep(120)
 
 
+async def reset_daily_counters():
+    """Reset daily sold counts and sold_out_today flags at midnight."""
+    from bot.database import Database
+    from bot.database.models.main import Goods
+
+    with Database().session() as session:
+        session.query(Goods).update({
+            Goods.daily_sold_count: 0,
+            Goods.sold_out_today: False
+        }, synchronize_session=False)
+        session.commit()
+    logger.info("Daily counters reset for all items")
+
+
 def start_reservation_cleaner():
     """
     Start the reservation cleaner task in the background.

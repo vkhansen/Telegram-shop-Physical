@@ -73,6 +73,7 @@ def settings_management_keyboard() -> InlineKeyboardMarkup:
     kb.button(text=localize("btn.order_timeout"), callback_data="setting_order_timeout")
     kb.button(text=localize("btn.timezone"), callback_data="setting_timezone")
     kb.button(text=localize("btn.promptpay_account"), callback_data="setting_promptpay")
+    kb.button(text=localize("btn.currency"), callback_data="setting_currency")
     kb.button(text=localize("btn.back"), callback_data="console")
     kb.adjust(1)
     return kb.as_markup()

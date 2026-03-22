@@ -426,3 +426,43 @@ async def process_stock_quantity(message: Message, state: FSMContext):
             )
 
     await state.clear()
+
+
+# ---------------------------------------------------------------------------
+# Quick-toggle handlers for sold-out and active status
+# ---------------------------------------------------------------------------
+
+@router.callback_query(F.data.startswith("toggle_soldout_"), HasPermissionFilter(permission=Permission.SHOP_MANAGE))
+async def toggle_sold_out(call: CallbackQuery):
+    """Quick toggle sold-out-today flag for an item."""
+    from bot.database import Database
+    from bot.database.models.main import Goods
+
+    item_name = call.data.replace("toggle_soldout_", "")
+    with Database().session() as session:
+        good = session.query(Goods).filter_by(name=item_name).first()
+        if not good:
+            await call.answer("Item not found", show_alert=True)
+            return
+        good.sold_out_today = not good.sold_out_today
+        new_status = "SOLD OUT" if good.sold_out_today else "Available"
+        session.commit()
+    await call.answer(f"{item_name}: {new_status}", show_alert=True)
+
+
+@router.callback_query(F.data.startswith("toggle_active_"), HasPermissionFilter(permission=Permission.SHOP_MANAGE))
+async def toggle_active(call: CallbackQuery):
+    """Toggle active/inactive for an item."""
+    from bot.database import Database
+    from bot.database.models.main import Goods
+
+    item_name = call.data.replace("toggle_active_", "")
+    with Database().session() as session:
+        good = session.query(Goods).filter_by(name=item_name).first()
+        if not good:
+            await call.answer("Item not found", show_alert=True)
+            return
+        good.is_active = not good.is_active
+        new_status = "Active" if good.is_active else "Inactive"
+        session.commit()
+    await call.answer(f"{item_name}: {new_status}", show_alert=True)

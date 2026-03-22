@@ -224,13 +224,13 @@ async def start_bot() -> None:
     logging.getLogger("aiohttp.server").setLevel(logging.WARNING)
     logging.getLogger("aiohttp.web").setLevel(logging.WARNING)
 
-    # Checking critical environment variables
-    if not EnvKeys.TOKEN:
-        logging.critical("Bot token not set! Please set TOKEN environment variable.")
-        sys.exit(1)
-
-    if not EnvKeys.OWNER_ID:
-        logging.critical("Owner ID not set! Please set OWNER_ID environment variable.")
+    # ── Preflight checks ──────────────────────────────────────────
+    from bot.preflight import run_preflight
+    preflight_report = await run_preflight()
+    if not preflight_report.ok:
+        logging.critical(
+            "Preflight checks failed! Fix the issues above before starting the bot."
+        )
         sys.exit(1)
 
     # Retrieve storage (Redis or Memory)
