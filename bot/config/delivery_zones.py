@@ -59,8 +59,9 @@ def get_delivery_zone(lat: float, lon: float,
     if lat is None or lon is None:
         return None
 
-    r_lat = restaurant_lat or RESTAURANT_LAT
-    r_lon = restaurant_lon or RESTAURANT_LNG
+    # MISC-02 fix: Use 'is None' check since 0.0 is a valid coordinate
+    r_lat = RESTAURANT_LAT if restaurant_lat is None else restaurant_lat
+    r_lon = RESTAURANT_LNG if restaurant_lon is None else restaurant_lon
 
     distance = calculate_distance(lat, lon, r_lat, r_lon)
 

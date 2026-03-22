@@ -1,35 +1,13 @@
 #!/usr/bin/env bash
-# teardown.sh — Stop and remove all containers
-# Usage:
-#   ./teardown.sh          — stop containers (preserves data)
-#   ./teardown.sh --clean  — stop containers AND remove volumes (wipes all data)
+# teardown.sh - Stop all containers, KEEP database and volumes
+# Usage: ./teardown.sh
 
-set -euo pipefail
+set -uo pipefail
 
-CLEAN=false
+echo "Telegram Shop - Teardown (preserving data)"
 
-for arg in "$@"; do
-    case "$arg" in
-        --clean) CLEAN=true ;;
-        -h|--help)
-            echo "Usage: $0 [--clean]"
-            echo "  --clean  Remove volumes (wipes DB, Redis, Tailscale state)"
-            exit 0
-            ;;
-        *) echo "Unknown option: $arg"; exit 1 ;;
-    esac
-done
+echo "Force-stopping all containers..."
+docker kill $(docker ps -q) 2>/dev/null || true
+docker-compose down --remove-orphans --timeout 5 2>/dev/null || true
 
-echo "=== Telegram Shop — Teardown ==="
-
-if $CLEAN; then
-    echo "Stopping containers and removing volumes..."
-    docker-compose down -v
-    echo "All containers stopped. Volumes removed (DB, Redis, Tailscale state wiped)."
-else
-    echo "Stopping containers..."
-    docker-compose down
-    echo "All containers stopped. Volumes preserved."
-fi
-
-echo "=== Teardown complete ==="
+echo "All containers stopped. Database and volumes preserved."

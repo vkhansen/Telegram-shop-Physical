@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# rebuild.sh — Teardown and rebuild all Docker containers
+# rebuild.sh - Teardown and rebuild all Docker containers
 # Usage:
-#   ./rebuild.sh            — rebuild everything (preserves DB/Redis data)
-#   ./rebuild.sh --clean    — full teardown: removes volumes (DB data, Redis, Tailscale state)
-#   ./rebuild.sh --bot-only — rebuild only the bot container
+#   ./rebuild.sh            - rebuild everything, preserves DB/Redis data
+#   ./rebuild.sh --clean    - full teardown, removes volumes and all data
+#   ./rebuild.sh --bot-only - rebuild only the bot container
 
-set -euo pipefail
+set -uo pipefail
 
 CLEAN=false
 BOT_ONLY=false
@@ -24,11 +24,12 @@ for arg in "$@"; do
     esac
 done
 
-echo "=== Telegram Shop — Rebuild ==="
+echo "Telegram Shop - Rebuild"
 
 if $BOT_ONLY; then
     echo "[1/3] Stopping bot container..."
-    docker-compose stop bot
+    docker kill telegram_shop_bot 2>/dev/null || true
+    docker-compose rm -f bot 2>/dev/null || true
 
     echo "[2/3] Rebuilding bot image..."
     docker-compose build --no-cache bot
@@ -36,20 +37,21 @@ if $BOT_ONLY; then
     echo "[3/3] Starting bot container..."
     docker-compose up -d bot
 
-    echo "=== Bot rebuilt successfully ==="
+    echo "Bot rebuilt successfully"
     docker-compose ps
     exit 0
 fi
 
-echo "[1/4] Stopping all containers..."
-docker-compose down
+echo "[1/4] Force-stopping all containers..."
+docker kill $(docker ps -q) 2>/dev/null || true
+docker-compose down --remove-orphans --timeout 5 2>/dev/null || true
 
 if $CLEAN; then
-    echo "[2/4] Removing volumes (DB data, Redis, Tailscale state)..."
-    docker-compose down -v
-    echo "  WARNING: All data has been wiped!"
+    echo "[2/4] Removing volumes and all data..."
+    docker-compose down -v --timeout 5 2>/dev/null || true
+    echo "WARNING: All data has been wiped!"
 else
-    echo "[2/4] Keeping volumes (DB data preserved)"
+    echo "[2/4] Keeping volumes, DB data preserved"
 fi
 
 echo "[3/4] Rebuilding images..."
@@ -59,5 +61,5 @@ echo "[4/4] Starting all containers..."
 docker-compose up -d
 
 echo ""
-echo "=== Rebuild complete ==="
+echo "Rebuild complete"
 docker-compose ps

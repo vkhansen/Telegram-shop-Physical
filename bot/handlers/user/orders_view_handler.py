@@ -9,6 +9,7 @@ from bot.keyboards import back, simple_buttons
 from bot.i18n import localize
 from bot.config import EnvKeys
 from bot.utils.invoice import generate_invoice_text
+from bot.utils.constants import STATUS_EMOJI
 
 router = Router()
 
@@ -140,18 +141,7 @@ async def view_orders_list(call: CallbackQuery, state: FSMContext):
     buttons = []
     for order in orders:
         # Format order summary
-        status_emoji = {
-            'pending': '⏳',
-            'reserved': '🔒',
-            'confirmed': '✅',
-            'preparing': '👨‍🍳',
-            'ready': '✅',
-            'out_for_delivery': '🛵',
-            'delivered': '📦',
-            'cancelled': '❌',
-            'canceled': '❌',
-            'expired': '⏱️'
-        }.get(order['order_status'], '❓')
+        status_emoji = STATUS_EMOJI.get(order['order_status'], '❓')
 
         date_str = order['created_at'].strftime('%Y-%m-%d %H:%M')
 

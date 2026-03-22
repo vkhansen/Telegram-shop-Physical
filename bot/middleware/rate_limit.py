@@ -40,6 +40,46 @@ class RateLimiter:
         self.user_requests: Dict[int, list] = defaultdict(list)
         self.user_actions: Dict[str, Dict[int, list]] = defaultdict(lambda: defaultdict(list))
         self.banned_users: Dict[int, float] = {}
+        self._last_cleanup = time.time()
+        self._cleanup_interval = 300  # Cleanup inactive users every 5 minutes
+
+    def _periodic_cleanup(self):
+        """Remove inactive user entries to prevent unbounded memory growth."""
+        now = time.time()
+        if now - self._last_cleanup < self._cleanup_interval:
+            return
+        self._last_cleanup = now
+
+        # Clean expired bans
+        expired_bans = [
+            uid for uid, ban_time in self.banned_users.items()
+            if now - ban_time > self.config.ban_duration
+        ]
+        for uid in expired_bans:
+            del self.banned_users[uid]
+
+        # Clean user_requests with no recent activity
+        inactive_users = [
+            uid for uid, reqs in self.user_requests.items()
+            if not reqs or now - max(reqs) > self.config.global_window
+        ]
+        for uid in inactive_users:
+            del self.user_requests[uid]
+
+        # Clean user_actions with no recent activity
+        for action in list(self.user_actions.keys()):
+            if action in self.config.action_limits:
+                _, window = self.config.action_limits[action]
+            else:
+                window = self.config.global_window
+            inactive = [
+                uid for uid, reqs in self.user_actions[action].items()
+                if not reqs or now - max(reqs) > window
+            ]
+            for uid in inactive:
+                del self.user_actions[action][uid]
+            if not self.user_actions[action]:
+                del self.user_actions[action]
 
     def _clean_old_requests(self, requests: list, window: int) -> list:
         """Clears old requests outside the window"""
@@ -64,6 +104,7 @@ class RateLimiter:
 
     def check_global_limit(self, user_id: int) -> bool:
         """Checks the global request limit"""
+        self._periodic_cleanup()
         current_time = time.time()
 
         # Clearing old requests

@@ -1,4 +1,5 @@
 import logging
+import time
 from datetime import datetime
 from typing import Optional
 import pytz
@@ -6,9 +7,11 @@ from pytz.exceptions import UnknownTimeZoneError
 
 logger = logging.getLogger(__name__)
 
-# Cache for timezone to avoid DB queries on every log entry
+# MISC-03 fix: Cache with TTL (3600 seconds = 1 hour)
+_TIMEZONE_CACHE_TTL = 3600
 _cached_timezone: Optional[str] = None
 _cached_tz_object: Optional[pytz.tzinfo.BaseTzInfo] = None
+_cache_timestamp: float = 0
 
 
 def get_timezone() -> str:
@@ -19,9 +22,10 @@ def get_timezone() -> str:
         Timezone string (e.g., "UTC", "Europe/Moscow")
         Falls back to "UTC" if not found in database.
     """
-    global _cached_timezone
+    global _cached_timezone, _cache_timestamp
 
-    if _cached_timezone is not None:
+    # MISC-03 fix: Check TTL before using cache
+    if _cached_timezone is not None and (time.time() - _cache_timestamp) < _TIMEZONE_CACHE_TTL:
         return _cached_timezone
 
     # Import here to avoid circular imports
@@ -33,6 +37,7 @@ def get_timezone() -> str:
         try:
             pytz.timezone(timezone_str)
             _cached_timezone = timezone_str
+            _cache_timestamp = time.time()
             logger.debug(f"Timezone loaded from database: {timezone_str}")
         except UnknownTimeZoneError:
             logger.warning(f"Invalid timezone '{timezone_str}' in database, falling back to UTC")
@@ -49,6 +54,7 @@ def get_timezone() -> str:
             # Other database error - worth noting but not critical
             logger.debug(f"Could not read timezone from database ({error_type}), using Asia/Bangkok: {e}")
         _cached_timezone = "Asia/Bangkok"
+        _cache_timestamp = time.time()
 
     return _cached_timezone
 

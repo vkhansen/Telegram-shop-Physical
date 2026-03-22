@@ -25,23 +25,11 @@ from bot.logger_mesh import audit_logger
 from bot.states.user_state import AdminOrderStates
 from bot.utils.delivery_types import needs_delivery_photo
 from bot.utils.order_status import get_allowed_transitions, is_valid_transition
+from bot.utils.constants import STATUS_EMOJI
 
 router = Router()
 
 PAGE_SIZE = 8
-
-# ── Status emoji mapping ──────────────────────────────────────────────
-STATUS_EMOJI = {
-    "pending": "⏳",
-    "reserved": "🔒",
-    "confirmed": "✅",
-    "preparing": "🍳",
-    "ready": "📦",
-    "out_for_delivery": "🚗",
-    "delivered": "✅",
-    "cancelled": "❌",
-    "expired": "⏰",
-}
 
 
 # ── Order list ────────────────────────────────────────────────────────

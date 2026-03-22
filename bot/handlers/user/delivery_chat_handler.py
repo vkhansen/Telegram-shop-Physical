@@ -449,15 +449,14 @@ async def rider_group_message_listener(message: Message):
     """
     Listen for messages in the rider group and relay them to the customer.
 
-    Matches any text, photo, or location message sent in a group/supergroup
-    whose chat ID matches RIDER_GROUP_ID. Looks up the active out_for_delivery
-    order for the sender (driver) and relays the message.
+    LOGIC-37 note: This handler matches all group messages due to aiogram
+    filter limitations. The early return below minimizes overhead.
     """
     rider_group_id = EnvKeys.RIDER_GROUP_ID
     if not rider_group_id:
         return
 
-    # Only handle messages in the configured rider group
+    # LOGIC-37 fix: Early return ASAP to minimize DB queries for non-rider-group messages
     if str(message.chat.id) != str(rider_group_id):
         return
 

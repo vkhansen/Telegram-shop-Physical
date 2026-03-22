@@ -154,7 +154,7 @@ async def add_to_cart(user_id: int, item_name: str, quantity: int = 1,
 
     except Exception as e:
         logger.error(f"Error adding to cart: {e}")
-        return False, str(e)
+        return False, "An error occurred while adding the item to cart"
 
 
 def create_brand(name: str, slug: str, description: str = None,

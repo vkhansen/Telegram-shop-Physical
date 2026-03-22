@@ -76,13 +76,16 @@ def check_user(telegram_id: int | str) -> dict | None:
 
 
 def check_role(telegram_id: int) -> int:
-    """Return permission bitmask for user (0 if none)."""
+    """Return permission bitmask for user (0 if none).
+    LOGIC-29 fix: Single join query instead of two separate queries."""
     with Database().session() as s:
-        role_id = s.query(User.role_id).filter(User.telegram_id == telegram_id).scalar()
-        if not role_id:
-            return 0
-        perms = s.query(Role.permissions).filter(Role.id == role_id).scalar()
-        return perms or 0
+        result = (
+            s.query(Role.permissions)
+            .join(User, User.role_id == Role.id)
+            .filter(User.telegram_id == telegram_id)
+            .scalar()
+        )
+        return result or 0
 
 
 def get_role_id_by_name(role_name: str) -> int | None:

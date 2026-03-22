@@ -203,20 +203,10 @@ async def receive_item_video(message: Message, state):
     )
 
 
-@router.callback_query(F.data == "media_done")
-async def media_done(call: CallbackQuery, state):
-    """Finish media collection, proceed to price."""
-    await call.answer()
-    await call.message.edit_text(
-        localize('admin.goods.add.prompt.price', currency=EnvKeys.PAY_CURRENCY),
-        reply_markup=back('goods_management'),
-    )
-    await state.set_state(AddItemFSM.waiting_item_price)
-
-
-@router.callback_query(F.data == "media_skip")
-async def media_skip(call: CallbackQuery, state):
-    """Skip media, proceed to price."""
+# LOGIC-38 fix: Combined identical media_done and media_skip into single handler
+@router.callback_query(F.data.in_({"media_done", "media_skip"}))
+async def media_done_or_skip(call: CallbackQuery, state):
+    """Finish or skip media collection, proceed to price."""
     await call.answer()
     await call.message.edit_text(
         localize('admin.goods.add.prompt.price', currency=EnvKeys.PAY_CURRENCY),

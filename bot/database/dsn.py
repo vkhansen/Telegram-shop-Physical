@@ -1,5 +1,7 @@
 import os
 from pathlib import Path
+from urllib.parse import quote_plus
+
 from bot.config import EnvKeys
 
 
@@ -13,7 +15,7 @@ def dsn() -> str:
         database = os.getenv("POSTGRES_DB", "telegram_shop")
         driver = os.getenv("DB_DRIVER", "postgresql+psycopg2")
 
-        return f"{driver}://{user}:{password}@{host}:{port}/{database}"
+        return f"{driver}://{quote_plus(user)}:{quote_plus(password)}@{host}:{port}/{database}"
 
     # Local development with hardcoded URL
     return EnvKeys.DATABASE_URL

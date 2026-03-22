@@ -6,6 +6,7 @@ from sqlalchemy import (
     JSON,
     BigInteger,
     Boolean,
+    CheckConstraint,
     Column,
     DateTime,
     Float,
@@ -853,7 +854,8 @@ class Review(Database.BASE):
     order_id = Column(Integer, ForeignKey('orders.id', ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), nullable=False, index=True)
     item_name = Column(String(100), ForeignKey('goods.name', ondelete="CASCADE"), nullable=True)
-    rating = Column(Integer, nullable=False)  # 1-5
+    # PERF-12 fix: Add CheckConstraint to enforce 1-5 range
+    rating = Column(Integer, CheckConstraint('rating >= 1 AND rating <= 5'), nullable=False)  # 1-5
     comment = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 

@@ -556,31 +556,36 @@ def _exec_import_menu(action, admin_id: int) -> dict:
             create_category(cat)
 
     for row in action.items:
-        existing = get_item_info(row.item_name)
-        if existing and action.skip_existing:
-            skipped.append(row.item_name)
-            continue
-        if existing and action.overwrite_existing:
-            update_item(
-                row.item_name, row.item_name,
-                row.description, float(row.price),
-                row.category_name
-            )
-            created.append(row.item_name)
-        elif not existing:
-            create_item(
-                row.item_name, row.description,
-                float(row.price), row.category_name,
-                item_type=row.item_type,
-            )
-            if row.stock_quantity > 0:
-                add_inventory(
-                    row.item_name, row.stock_quantity,
-                    admin_id, comment="AI bulk import"
+        # LOGIC-32 fix: Wrap item operations in try/except to populate failed list
+        try:
+            existing = get_item_info(row.item_name)
+            if existing and action.skip_existing:
+                skipped.append(row.item_name)
+                continue
+            if existing and action.overwrite_existing:
+                update_item(
+                    row.item_name, row.item_name,
+                    row.description, float(row.price),
+                    row.category_name
                 )
-            created.append(row.item_name)
-        else:
-            skipped.append(row.item_name)
+                created.append(row.item_name)
+            elif not existing:
+                create_item(
+                    row.item_name, row.description,
+                    float(row.price), row.category_name,
+                    item_type=row.item_type,
+                )
+                if row.stock_quantity > 0:
+                    add_inventory(
+                        row.item_name, row.stock_quantity,
+                        admin_id, comment="AI bulk import"
+                    )
+                created.append(row.item_name)
+            else:
+                skipped.append(row.item_name)
+        except Exception as e:
+            logger.error("AI import failed for item '%s': %s", row.item_name, e)
+            failed.append(row.item_name)
 
     logger.info(
         "AI admin %s import: %d created, %d skipped",
@@ -821,12 +826,12 @@ async def _exec_send_broadcast(action, admin_id: int) -> dict:
     # by the conversation handler which has access to the bot instance.
     logger.info("AI admin %s broadcast to %d users (segment: %s)",
                 admin_id, len(user_ids), action.segment)
+    # LOGIC-33 fix: Don't return full user_ids list to AI (wastes tokens)
     return {
         "success": True,
         "segment": action.segment,
         "target_count": len(user_ids),
         "message_preview": action.message[:100],
-        "user_ids": user_ids,
     }
 
 

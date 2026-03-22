@@ -1,10 +1,11 @@
-# teardown.ps1 - Stop all containers, KEEP database and volumes
+# teardown-clean.ps1 - Stop all containers AND wipe all data
 # Includes WSL health check
-# Usage: .\teardown.ps1
+# Usage: .\teardown-clean.ps1
+# WARNING: This deletes the database, Redis data, and Tailscale state!
 
 $ErrorActionPreference = "Continue"
 
-Write-Host "Telegram Shop - Teardown (preserving data)" -ForegroundColor Cyan
+Write-Host "Telegram Shop - Full Teardown (WIPING ALL DATA)" -ForegroundColor Red
 
 # Quick WSL/Docker check
 $dockerCheck = docker info 2>&1
@@ -21,6 +22,6 @@ if ("$dockerCheck" -match "error|Cannot connect|Is the docker daemon running") {
 
 Write-Host "Force-stopping all containers..." -ForegroundColor Yellow
 docker ps -q | ForEach-Object { docker kill $_ } 2>$null
-docker-compose down --remove-orphans --timeout 5 2>$null
+docker-compose down -v --remove-orphans --timeout 5 2>$null
 
-Write-Host "All containers stopped. Database and volumes preserved." -ForegroundColor Green
+Write-Host "All containers stopped. All volumes and data wiped." -ForegroundColor Red

@@ -5,9 +5,11 @@ Generated images are uploaded to Telegram to obtain a file_id, then saved
 to the Goods model.
 """
 
+import asyncio
 import base64
 import logging
 import uuid
+from functools import partial
 
 import aiohttp
 from aiogram import Bot
@@ -21,6 +23,18 @@ logger = logging.getLogger(__name__)
 
 GROK_IMAGE_URL = "https://api.x.ai/v1/images/generations"
 IMAGE_MODEL = "grok-2-image"
+
+# Module-level reusable aiohttp session for image generation requests
+_image_session: aiohttp.ClientSession | None = None
+
+
+async def _get_image_session() -> aiohttp.ClientSession:
+    """Get or create the module-level aiohttp session."""
+    global _image_session
+    if _image_session is None or _image_session.closed:
+        timeout = aiohttp.ClientTimeout(total=60)
+        _image_session = aiohttp.ClientSession(timeout=timeout)
+    return _image_session
 
 
 def _build_prompt(item_name: str, description: str, category: str) -> str:
@@ -38,7 +52,6 @@ async def generate_image(prompt: str) -> bytes:
 
     Returns PNG bytes of the generated image.
     """
-    timeout = aiohttp.ClientTimeout(total=60)
     headers = {
         "Authorization": f"Bearer {EnvKeys.GROK_API_KEY}",
         "Content-Type": "application/json",
@@ -51,13 +64,13 @@ async def generate_image(prompt: str) -> bytes:
         "response_format": "b64_json",
     }
 
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        async with session.post(GROK_IMAGE_URL, json=payload, headers=headers) as resp:
-            if resp.status != 200:
-                body = await resp.text()
-                logger.error("Image generation error %s: %s", resp.status, body[:500])
-                raise RuntimeError(f"Image generation API returned {resp.status}")
-            data = await resp.json()
+    session = await _get_image_session()
+    async with session.post(GROK_IMAGE_URL, json=payload, headers=headers) as resp:
+        if resp.status != 200:
+            body = await resp.text()
+            logger.error("Image generation error %s: %s", resp.status, body[:500])
+            raise RuntimeError(f"Image generation API returned {resp.status}")
+        data = await resp.json()
 
     b64_data = data["data"][0]["b64_json"]
     return base64.b64decode(b64_data)
@@ -101,8 +114,11 @@ async def generate_and_save_item_image(
     file_id = msg.photo[-1].file_id
     media_id = str(uuid.uuid4())[:8]
 
-    # Save to media array in database
-    _add_media_entry(item_name, file_id, is_ai_generated=True, media_id=media_id)
+    # Save to media array in database (run sync DB call in executor)
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(
+        None, partial(_add_media_entry, item_name, file_id, True, media_id)
+    )
 
     logger.info("Generated and saved AI image for '%s' (media_id=%s)", item_name, media_id)
     return {"success": True, "item": item_name, "file_id": file_id, "media_id": media_id}

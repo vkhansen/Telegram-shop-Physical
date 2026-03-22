@@ -49,7 +49,7 @@ async def remove_from_cart(cart_id: int, user_id: int) -> tuple[bool, str]:
 
     except Exception as e:
         logger.error(f"Error removing from cart: {e}")
-        return False, str(e)
+        return False, "An error occurred while removing the item from cart"
 
 
 async def clear_cart(user_id: int) -> tuple[bool, str]:
@@ -70,4 +70,4 @@ async def clear_cart(user_id: int) -> tuple[bool, str]:
 
     except Exception as e:
         logger.error(f"Error clearing cart: {e}")
-        return False, str(e)
+        return False, "An error occurred while clearing the cart"

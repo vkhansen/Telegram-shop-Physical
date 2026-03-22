@@ -49,12 +49,13 @@ def is_safe_item_name(name: str) -> bool:
     if len(name) > 100 or len(name) < 1:
         return False
 
-    # Checking for dangerous patterns
+    # LOGIC-31 fix: Allow quotes in names (e.g., Mom's Cookies, 12" Pizza)
+    # Since we use parameterized queries, SQL injection via item names is not possible.
     dangerous_patterns = [
         r"(--|#|\/\*|\*\/)",  # SQL comments
         r"\b(union|select|insert|update|delete|drop|exec)\b",  # SQL keywords
-        r"[<>\"']",  # Potential XSS characters (quotes still blocked for safety)
-        r"\.\.\/",  # Bypassing the path
+        r"[<>]",  # Potential XSS angle brackets only
+        r"\.\.\/",  # Path traversal
     ]
 
     for pattern in dangerous_patterns:

@@ -82,8 +82,8 @@ def update_item(item_name: str, new_name: str, description: str, price, category
             session.query(Goods).filter(Goods.name == item_name).delete(synchronize_session=False)
 
             safe_create_task(invalidate_item_cache(item_name))
-            if new_name != item_name:
-                safe_create_task(invalidate_item_cache(new_name))
+            # LOGIC-30 fix: Removed redundant check — new_name != item_name is always true here
+            safe_create_task(invalidate_item_cache(new_name))
 
             return True, None
 

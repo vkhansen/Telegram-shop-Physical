@@ -25,6 +25,11 @@ async def extract_content(message: Message) -> str:
 
     # Document upload
     if message.document:
+        # Reject files larger than 10 MB to prevent resource exhaustion
+        max_size = 10 * 1024 * 1024  # 10 MB
+        if message.document.file_size and message.document.file_size > max_size:
+            return "[File rejected: exceeds 10 MB size limit]"
+
         file = await message.bot.download(message.document)
         raw = file.read()
         filename = message.document.file_name or ""
@@ -65,17 +70,20 @@ def _parse_csv_to_text(raw: bytes) -> str:
 
     rows = list(reader)
 
+    # LOGIC-35 fix: Don't duplicate first 5 rows in full data section
     preview = f"CSV with {len(rows)} rows, columns: {headers}\n\n"
-    preview += "First 5 rows:\n"
-    for row in rows[:5]:
-        preview += str(dict(row)) + "\n"
-
-    if len(rows) > 5:
+    if len(rows) <= 5:
+        preview += "All rows:\n"
+        for row in rows:
+            preview += str(dict(row)) + "\n"
+    else:
+        preview += "First 5 rows:\n"
+        for row in rows[:5]:
+            preview += str(dict(row)) + "\n"
         preview += f"\n... and {len(rows) - 5} more rows.\n"
-
-    preview += f"\nFull data (all {len(rows)} rows):\n"
-    for row in rows:
-        preview += str(dict(row)) + "\n"
+        preview += f"\nRemaining rows ({len(rows) - 5}):\n"
+        for row in rows[5:]:
+            preview += str(dict(row)) + "\n"
 
     return f"Admin uploaded a CSV file. Please map these columns to menu items.\n\n{preview}"
 

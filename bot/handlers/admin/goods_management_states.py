@@ -322,13 +322,8 @@ async def process_stock_quantity(message: Message, state: FSMContext):
         )
         return
 
+    # LOGIC-28 fix: isdigit() already guarantees non-negative, removed dead code
     quantity = int(quantity_text)
-    if quantity < 0:
-        await message.answer(
-            localize('admin.goods.stock.negative_quantity'),
-            reply_markup=back('goods_management')
-        )
-        return
 
     data = await state.get_data()
     item_name = data.get('stock_item_name')

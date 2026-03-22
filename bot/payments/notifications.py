@@ -105,7 +105,9 @@ def format_order_items(items: list) -> str:
     if not items:
         return "N/A"
 
-    items_list = [f"  • {item.item_name} x {item.quantity} - ${item.price * item.quantity}"
+    # LOGIC-34 fix: Use configured currency instead of hardcoded $
+    currency = EnvKeys.PAY_CURRENCY
+    items_list = [f"  • {item.item_name} x {item.quantity} - {currency}{item.price * item.quantity}"
                   for item in items]
     return "\n".join(items_list)
 
@@ -132,7 +134,7 @@ async def notify_order_delivered(order: Order) -> bool:
     """Send order delivery confirmation to customer."""
     message = localize("order.status.notify_order_delivered",
                        order_code=order.order_code,
-                       total=f"${order.total_price}")
+                       total=f"{EnvKeys.PAY_CURRENCY}{order.total_price}")
 
     return await send_order_notification(order.buyer_id, message)
 
@@ -170,7 +172,7 @@ async def notify_order_modified(order: Order, changes_description: str) -> bool:
     message = localize("order.status.notify_order_modified",
                        order_code=order.order_code,
                        changes=changes_description,
-                       total=f"${order.total_price}")
+                       total=f"{EnvKeys.PAY_CURRENCY}{order.total_price}")
 
     return await send_order_notification(order.buyer_id, message)
 

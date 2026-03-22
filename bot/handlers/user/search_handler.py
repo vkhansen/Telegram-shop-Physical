@@ -40,13 +40,15 @@ async def process_search_query(message: Message, state: FSMContext):
         )
         return
 
-    pattern = f"%{query}%"
+    # Escape SQL LIKE wildcards to prevent wildcard injection
+    escaped = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    pattern = f"%{escaped}%"
 
     with Database().session() as session:
         results = (
             session.query(Goods)
             .filter(
-                Goods.name.ilike(pattern) | Goods.description.ilike(pattern)
+                Goods.name.ilike(pattern, escape="\\") | Goods.description.ilike(pattern, escape="\\")
             )
             .all()
         )

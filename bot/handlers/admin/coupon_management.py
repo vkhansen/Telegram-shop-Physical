@@ -88,9 +88,10 @@ async def create_coupon_start(call: CallbackQuery, state: FSMContext):
     await state.set_state(CouponAdminStates.waiting_code)
 
 
-@router.message(CouponAdminStates.waiting_code)
+@router.message(CouponAdminStates.waiting_code, F.text)
 async def process_coupon_code(message: Message, state: FSMContext):
-    """Process coupon code input. 'random' or 'auto' generates one automatically."""
+    """Process coupon code input. 'random' or 'auto' generates one automatically.
+    LOGIC-39 fix: Added F.text filter to prevent crash on non-text messages."""
     text = message.text.strip()
 
     if text.lower() in ("random", "auto"):
@@ -138,7 +139,7 @@ async def process_discount_type(call: CallbackQuery, state: FSMContext):
     await state.set_state(CouponAdminStates.waiting_discount_value)
 
 
-@router.message(CouponAdminStates.waiting_discount_value)
+@router.message(CouponAdminStates.waiting_discount_value, F.text)
 async def process_discount_value(message: Message, state: FSMContext):
     """Step 3: Enter discount value."""
     try:
@@ -162,7 +163,7 @@ async def process_discount_value(message: Message, state: FSMContext):
     await state.set_state(CouponAdminStates.waiting_min_order)
 
 
-@router.message(CouponAdminStates.waiting_min_order)
+@router.message(CouponAdminStates.waiting_min_order, F.text)
 async def process_min_order(message: Message, state: FSMContext):
     """Step 4: Enter minimum order amount or skip."""
     text = message.text.strip().lower()
@@ -186,7 +187,7 @@ async def process_min_order(message: Message, state: FSMContext):
     await state.set_state(CouponAdminStates.waiting_max_uses)
 
 
-@router.message(CouponAdminStates.waiting_max_uses)
+@router.message(CouponAdminStates.waiting_max_uses, F.text)
 async def process_max_uses(message: Message, state: FSMContext):
     """Step 5: Enter max total uses or skip for unlimited."""
     text = message.text.strip().lower()
@@ -210,7 +211,7 @@ async def process_max_uses(message: Message, state: FSMContext):
     await state.set_state(CouponAdminStates.waiting_expiry)
 
 
-@router.message(CouponAdminStates.waiting_expiry)
+@router.message(CouponAdminStates.waiting_expiry, F.text)
 async def process_expiry(message: Message, state: FSMContext):
     """Step 6: Enter expiry in days or skip for no expiry. Then save."""
     text = message.text.strip().lower()

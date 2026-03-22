@@ -490,7 +490,8 @@ async def process_phone_number(message: Message, state: FSMContext):
     """
     phone_number = message.text.strip()
 
-    if len(phone_number) < 8:
+    # Validate: 8-20 chars, only digits, +, spaces, hyphens, and optional parens
+    if len(phone_number) < 8 or len(phone_number) > 20 or not re.fullmatch(r'[\d\s\+\-\(\)]+', phone_number):
         await message.answer(
             localize("order.delivery.phone_invalid"),
             reply_markup=back("view_cart")

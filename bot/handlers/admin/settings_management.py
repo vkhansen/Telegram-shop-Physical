@@ -12,21 +12,22 @@ from bot.keyboards.inline import back, settings_management_keyboard, timezone_se
 from bot.filters import HasPermissionFilter
 from bot.config import timezone
 from bot.config.env import EnvKeys
-from bot.i18n.strings import localize
+from bot.i18n import localize
 
 logger = logging.getLogger(__name__)
 
 router = Router()
 
 
-def _upsert_bot_setting(session, key: str, value: str) -> None:
+def _upsert_bot_setting(session, key: str, value: str, *, commit: bool = True) -> None:
     """Insert or update a BotSettings row within an existing session."""
     setting = session.query(BotSettings).filter_by(setting_key=key).first()
     if setting:
         setting.setting_value = value
     else:
         session.add(BotSettings(setting_key=key, setting_value=value))
-    session.commit()
+    if commit:
+        session.commit()
 
 
 @router.callback_query(F.data == "settings_management", HasPermissionFilter(Permission.SETTINGS_MANAGE))
@@ -556,14 +557,8 @@ async def process_promptpay_name(message: Message, state: FSMContext):
 
     # Save both settings to database
     with Database().session() as session:
-        for key, value in [('promptpay_id', promptpay_id), ('promptpay_account_name', account_name)]:
-            setting = session.query(BotSettings).filter_by(setting_key=key).first()
-            if setting:
-                setting.setting_value = value
-            else:
-                setting = BotSettings(setting_key=key, setting_value=value)
-                session.add(setting)
-        session.commit()
+        _upsert_bot_setting(session, 'promptpay_id', promptpay_id, commit=False)
+        _upsert_bot_setting(session, 'promptpay_account_name', account_name)
 
     await message.answer(
         f"✅ <b>PromptPay Account Updated!</b>\n\n"
@@ -619,12 +614,7 @@ async def set_currency_confirm(call: CallbackQuery, state: FSMContext):
     currency_code = call.data.replace("currency_select_", "")
 
     with Database().session() as session:
-        setting = session.query(BotSettings).filter_by(setting_key='pay_currency').first()
-        if setting:
-            setting.setting_value = currency_code
-        else:
-            session.add(BotSettings(setting_key='pay_currency', setting_value=currency_code))
-        session.commit()
+        _upsert_bot_setting(session, 'pay_currency', currency_code)
 
     await call.answer(f"Currency set to {currency_code}", show_alert=True)
     await settings_menu(call, state)

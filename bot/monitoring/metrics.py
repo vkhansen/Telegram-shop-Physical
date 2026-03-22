@@ -73,12 +73,23 @@ class MetricsCollector:
         if error_msg:
             logger.error(f"Metric error [{error_type}]: {error_msg}")
 
+    # Maximum number of user IDs to track per conversion step
+    MAX_CONVERSION_SET_SIZE = 50_000
+
     def track_conversion(self, funnel: str, step: str, user_id: int):
         """Tracking conversions in the funnel"""
         if funnel not in self.conversions:
             self.conversions[funnel] = defaultdict(set)
 
-        self.conversions[funnel][step].add(user_id)
+        step_set = self.conversions[funnel][step]
+        if len(step_set) >= self.MAX_CONVERSION_SET_SIZE:
+            # Prune oldest half to prevent unbounded growth.
+            # Sets are unordered, so we just discard roughly half.
+            to_remove = len(step_set) // 2
+            it = iter(step_set)
+            for _ in range(to_remove):
+                step_set.discard(next(it))
+        step_set.add(user_id)
 
     def get_metrics_summary(self) -> Dict[str, Any]:
         """Getting a metrics summary"""

@@ -165,7 +165,10 @@ def create_or_update_customer_info(telegram_id: int, username: str,
 
 def sync_customer_to_csv(telegram_id: int, username: str):
     """
-    Sync a customer's information to the CSV file
+    Sync a customer's information to the CSV file.
+
+    PERF-10 note: This reads/rewrites the entire CSV per update (O(n)).
+    For large user bases, consider periodic batch export instead of per-update sync.
 
     Args:
         telegram_id: Telegram ID
