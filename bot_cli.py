@@ -824,7 +824,7 @@ def create_refcode(args):
         code = create_reference_code(
             created_by=created_by,
             created_by_username='admin_cli',
-            is_admin_code=True,
+            is_admin_code=not getattr(args, 'user_type', False),
             expires_in_hours=expires_in_hours,
             max_uses=max_uses,
             note=args.note
@@ -1343,6 +1343,7 @@ def main():
     create_ref.add_argument('--expires-hours', type=int, default=0, help='Expiration in hours (0 for never)')
     create_ref.add_argument('--max-uses', type=int, default=0, help='Maximum uses (0 for unlimited)')
     create_ref.add_argument('--note', type=str, help='Optional note')
+    create_ref.add_argument('--user-type', action='store_true', help='Create a regular user code (not admin)')
     create_ref.set_defaults(func=create_refcode)
 
     # Disable reference code
