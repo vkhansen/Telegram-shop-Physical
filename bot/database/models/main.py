@@ -527,11 +527,25 @@ class Order(Database.BASE):
     brand = relationship("Brand", foreign_keys=lambda: [Order.brand_id])
     store = relationship("Store", foreign_keys=lambda: [Order.store_id])
 
+    # PERF-13 fix: Add CheckConstraints on status/type columns
     __table_args__ = (
         Index('ix_orders_buyer_status', 'buyer_id', 'order_status'),
         Index('ix_orders_created_at', 'created_at'),
         Index('ix_orders_order_code', 'order_code'),
         Index('ix_orders_reserved_until', 'reserved_until'),  # For cleanup task
+        CheckConstraint(
+            "order_status IN ('pending', 'reserved', 'confirmed', 'preparing', 'ready', "
+            "'out_for_delivery', 'delivered', 'cancelled', 'expired')",
+            name='ck_orders_order_status'
+        ),
+        CheckConstraint(
+            "payment_method IN ('bitcoin', 'cash', 'promptpay')",
+            name='ck_orders_payment_method'
+        ),
+        CheckConstraint(
+            "delivery_type IN ('door', 'dead_drop', 'pickup')",
+            name='ck_orders_delivery_type'
+        ),
     )
 
     def __init__(self, buyer_id: int, total_price, payment_method: str,

@@ -70,36 +70,22 @@ def get_admin_user_id():
 
 async def get_telegram_username(telegram_id: int) -> str:
     """
-    Get Telegram username using Bot API
-
-    Args:
-        telegram_id: Telegram user ID
-
-    Returns:
-        Username (with @ prefix if available) or fallback user_{telegram_id}
+    DRY-07 fix: Delegate to shared implementation in bot.utils.user_utils.
+    Creates a temporary Bot instance since CLI doesn't have one running.
     """
+    bot = Bot(
+        token=EnvKeys.TOKEN,
+        default=DefaultBotProperties(
+            parse_mode="HTML",
+            link_preview_is_disabled=False,
+            protect_content=False,
+        ),
+    )
     try:
-        bot = Bot(
-            token=EnvKeys.TOKEN,
-            default=DefaultBotProperties(
-                parse_mode="HTML",
-                link_preview_is_disabled=False,
-                protect_content=False,
-            ),
-        )
-
-        try:
-            chat = await bot.get_chat(telegram_id)
-            if chat.username:
-                return chat.username
-        finally:
-            await bot.session.close()
-
-    except Exception as e:
-        # If we can't get username from Telegram, use fallback
-        pass
-
-    return f"user_{telegram_id}"
+        from bot.utils.user_utils import get_telegram_username as _get_username
+        return await _get_username(telegram_id, bot)
+    finally:
+        await bot.session.close()
 
 
 async def complete_order_by_code(order_code: str):
@@ -328,7 +314,7 @@ async def cancel_order_by_code(order_code: str):
                         )
 
                         await bot.send_message(order.buyer_id, notification_text)
-                        print(f"📧 Bonus refund notification sent to customer")
+                        print("📧 Bonus refund notification sent to customer")
                     finally:
                         await bot.session.close()
 
@@ -403,8 +389,8 @@ async def confirm_order_with_delivery_time(order_code: str, delivery_time_str: s
             # Make it timezone-aware (UTC)
             delivery_time = delivery_time.replace(tzinfo=timezone.utc)
         except ValueError:
-            print(f"❌ Invalid delivery time format. Use: YYYY-MM-DD HH:MM")
-            print(f"   Example: 2025-11-16 18:45")
+            print("❌ Invalid delivery time format. Use: YYYY-MM-DD HH:MM")
+            print("   Example: 2025-11-16 18:45")
             return
 
         # Update order
@@ -430,9 +416,9 @@ async def confirm_order_with_delivery_time(order_code: str, delivery_time_str: s
             )
 
             if success:
-                print(f"[OK] Notification sent to customer")
+                print("[OK] Notification sent to customer")
             else:
-                print(f"[WARNING] Failed to send notification to customer")
+                print("[WARNING] Failed to send notification to customer")
 
         except Exception as e:
             print(f"[WARNING] Error sending notification: {str(e)[:100]}")
@@ -584,9 +570,9 @@ async def mark_order_delivered(order_code: str):
             success = await notify_order_delivered(order=order)
 
             if success:
-                print(f"📧 Delivery notification sent to customer")
+                print("📧 Delivery notification sent to customer")
             else:
-                print(f"⚠️  Failed to send delivery notification")
+                print("⚠️  Failed to send delivery notification")
 
         except Exception as e:
             print(f"⚠️  Error sending notification: {e}")
@@ -642,7 +628,7 @@ async def add_item_to_order(order_code: str, item_name: str, quantity: int, noti
                 quantity=quantity
             )
             session.add(new_item)
-            print(f"   Added new item to order")
+            print("   Added new item to order")
 
         if order.order_status != 'delivered':
             # Reserve additional inventory
@@ -673,7 +659,7 @@ async def add_item_to_order(order_code: str, item_name: str, quantity: int, noti
                     order=order,
                     changes_description=changes_desc
                 )
-                print(f"📧 Modification notification sent to customer")
+                print("📧 Modification notification sent to customer")
             except Exception as e:
                 print(f"⚠️  Failed to send notification: {e}")
 
@@ -720,7 +706,7 @@ async def remove_item_from_order(order_code: str, item_name: str, quantity: int,
         # Update or remove item
         if order_item.quantity == quantity:
             session.delete(order_item)
-            print(f"   Removed item completely from order")
+            print("   Removed item completely from order")
         else:
             order_item.quantity -= quantity
             print(f"   Updated item quantity: {old_quantity} → {order_item.quantity}")
@@ -747,7 +733,7 @@ async def remove_item_from_order(order_code: str, item_name: str, quantity: int,
                     order=order,
                     changes_description=changes_desc
                 )
-                print(f"📧 Modification notification sent to customer")
+                print("📧 Modification notification sent to customer")
             except Exception as e:
                 print(f"⚠️  Failed to send notification: {e}")
 
@@ -783,8 +769,8 @@ async def update_delivery_time(order_code: str, delivery_time_str: str, notify: 
             # Make it timezone-aware (UTC)
             delivery_time = delivery_time.replace(tzinfo=timezone.utc)
         except ValueError:
-            print(f"❌ Invalid delivery time format. Use: YYYY-MM-DD HH:MM")
-            print(f"   Example: 2025-11-16 18:45")
+            print("❌ Invalid delivery time format. Use: YYYY-MM-DD HH:MM")
+            print("   Example: 2025-11-16 18:45")
             return
 
         old_time = order.delivery_time.strftime('%Y-%m-%d %H:%M') if order.delivery_time else "Not set"
@@ -806,7 +792,7 @@ async def update_delivery_time(order_code: str, delivery_time_str: str, notify: 
                     order=order,
                     changes_description=changes_desc
                 )
-                print(f"📧 Update notification sent to customer")
+                print("📧 Update notification sent to customer")
             except Exception as e:
                 print(f"⚠️  Failed to send notification: {e}")
 
@@ -848,12 +834,12 @@ def create_refcode(args):
         if expires_in_hours:
             print(f"   Expires in: {expires_in_hours} hours")
         else:
-            print(f"   Expires: Never")
+            print("   Expires: Never")
 
         if max_uses:
             print(f"   Max uses: {max_uses}")
         else:
-            print(f"   Max uses: Unlimited")
+            print("   Max uses: Unlimited")
 
         if args.note:
             print(f"   Note: {args.note}")
@@ -1211,7 +1197,7 @@ async def ban_user_cli(args):
         # Get username
         username = await get_telegram_username(user_id)
 
-        print(f"✅ User banned successfully")
+        print("✅ User banned successfully")
         print(f"   User: @{username} (ID: {user_id})")
         print(f"   Reason: {reason}")
 
@@ -1228,7 +1214,7 @@ async def ban_user_cli(args):
                         user_id,
                         f"⛔ <b>You have been banned</b>\n\nReason: {reason}"
                     )
-                    print(f"📧 Ban notification sent to user")
+                    print("📧 Ban notification sent to user")
                 finally:
                     await bot.session.close()
 
@@ -1264,7 +1250,7 @@ async def unban_user_cli(args):
         # Get username
         username = await get_telegram_username(user_id)
 
-        print(f"✅ User unbanned successfully")
+        print("✅ User unbanned successfully")
         print(f"   User: @{username} (ID: {user_id})")
 
         # Try to notify the user
@@ -1280,7 +1266,7 @@ async def unban_user_cli(args):
                         user_id,
                         "✅ <b>You have been unbanned</b>\n\nYou can now use the bot again."
                     )
-                    print(f"📧 Unban notification sent to user")
+                    print("📧 Unban notification sent to user")
                 finally:
                     await bot.session.close()
 

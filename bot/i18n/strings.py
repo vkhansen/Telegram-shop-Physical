@@ -3809,6 +3809,37 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "ticket.subject_prompt": "Enter the subject:",
         "ticket.title": "🎫 <b>Support Tickets</b>",
         "ticket.view_title": "🎫 <b>Ticket #{code}</b>\nStatus: {status}\nSubject: {subject}\nCreated: {date}",
+
+        # === PDPA Privacy Policy ===
+        "btn.privacy": "🔒 سياسة الخصوصية",
+        "privacy.notice": (
+            "🔒 <b>إشعار الخصوصية (PDPA)</b>\n\n"
+            "نحن نلتزم بقانون حماية البيانات الشخصية في تايلاند (PDPA).\n\n"
+            "<b>البيانات التي نجمعها:</b>\n"
+            "• الاسم / الهاتف / عنوان التوصيل\n"
+            "• تفاصيل الطلب والسجل\n"
+            "• معرف تيليجرام\n\n"
+            "<b>الأغراض:</b>\n"
+            "• تنفيذ الطلب والتوصيل (ضرورة تعاقدية)\n"
+            "• منع الاحتيال والتحقق من الهوية\n"
+            "• التسويق — فقط بموافقتك المنفصلة\n\n"
+            "<b>الاحتفاظ:</b> حتى تطلب الحذف، أو سنتين بعد آخر طلب\n\n"
+            "<b>مشاركة البيانات:</b> المطاعم، سائقي التوصيل، مزودي الدفع — فقط حسب الحاجة لطلبك. "
+            "لا نبيع بياناتك أبداً.\n\n"
+            "<b>حقوقك بموجب PDPA:</b>\n"
+            "• الوصول / تصحيح / حذف بياناتك\n"
+            "• سحب الموافقة (للتسويق)\n"
+            "• الاعتراض على المعالجة / طلب نقل البيانات\n"
+            "• تقديم شكوى إلى PDPC\n\n"
+            "<b>مراقب البيانات:</b> {company}\n"
+            "التواصل: {email}\n\n"
+            "باستمرارك في استخدام هذا البوت، فإنك تقر وتقبل هذه السياسة."
+        ),
+        "privacy.btn_full_policy": "📄 قراءة السياسة الكاملة",
+        "privacy.btn_accept": "✅ قبول ومتابعة",
+        "privacy.accepted": "✅ لقد قبلت سياسة الخصوصية.",
+        "privacy.already_accepted": "✅ لقد قبلت سياسة الخصوصية بالفعل.",
+        "privacy.no_url": "لم يتم تكوين صفحة سياسة الخصوصية الكاملة بعد.",
     },
 
     "fa": {
@@ -4605,6 +4636,37 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "delivery.chat.session_closed": "⏹ این جلسه چت پایان یافته است. برای کمک با پشتیبانی تماس بگیرید.",
         "delivery.chat.post_delivery_open": "✅ تحویل داده شد! چت برای {minutes} دقیقه دیگر باز می‌ماند.",
         "delivery.chat.post_delivery_closed": "⏹ پنجره چت پس از تحویل بسته شد.",
+
+        # === PDPA Privacy Policy ===
+        "btn.privacy": "🔒 سیاست حریم خصوصی",
+        "privacy.notice": (
+            "🔒 <b>اطلاعیه حریم خصوصی (PDPA)</b>\n\n"
+            "ما از قانون حفاظت از داده‌های شخصی تایلند (PDPA) پیروی می‌کنیم.\n\n"
+            "<b>داده‌هایی که جمع‌آوری می‌کنیم:</b>\n"
+            "• نام / تلفن / آدرس تحویل\n"
+            "• جزئیات سفارش و سابقه\n"
+            "• شناسه تلگرام\n\n"
+            "<b>اهداف:</b>\n"
+            "• انجام سفارش و تحویل (ضرورت قراردادی)\n"
+            "• جلوگیری از تقلب و تأیید هویت\n"
+            "• بازاریابی — فقط با رضایت جداگانه شما\n\n"
+            "<b>نگهداری:</b> تا زمانی که درخواست حذف کنید، یا ۲ سال پس از آخرین سفارش\n\n"
+            "<b>اشتراک داده:</b> رستوران‌ها، رانندگان تحویل، ارائه‌دهندگان پرداخت — فقط در صورت نیاز برای سفارش شما. "
+            "ما هرگز داده‌های شما را نمی‌فروشیم.\n\n"
+            "<b>حقوق شما طبق PDPA:</b>\n"
+            "• دسترسی / اصلاح / حذف داده‌های شما\n"
+            "• لغو رضایت (برای بازاریابی)\n"
+            "• اعتراض به پردازش / درخواست قابلیت حمل داده\n"
+            "• ارائه شکایت به PDPC\n\n"
+            "<b>کنترل‌کننده داده:</b> {company}\n"
+            "تماس: {email}\n\n"
+            "با ادامه استفاده از این بات، شما این سیاست را تأیید و می‌پذیرید."
+        ),
+        "privacy.btn_full_policy": "📄 مطالعه سیاست کامل",
+        "privacy.btn_accept": "✅ پذیرش و ادامه",
+        "privacy.accepted": "✅ شما سیاست حریم خصوصی را پذیرفتید.",
+        "privacy.already_accepted": "✅ شما قبلاً سیاست حریم خصوصی را پذیرفته‌اید.",
+        "privacy.no_url": "صفحه سیاست حریم خصوصی کامل هنوز پیکربندی نشده است.",
     },
     "ps": {
         # === Common Buttons ===
@@ -5400,6 +5462,37 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "kitchen.btn.mark_ready": "✅ چمتو",
         "rider.btn.picked_up": "📦 ترلاسه شو",
         "rider.btn.delivered": "✅ تحویل شو",
+
+        # === PDPA Privacy Policy ===
+        "btn.privacy": "🔒 د محرمیت تګلاره",
+        "privacy.notice": (
+            "🔒 <b>د محرمیت خبرتیا (PDPA)</b>\n\n"
+            "موږ د تایلند د شخصي معلوماتو د ساتنې قانون (PDPA) سره مطابقت لرو.\n\n"
+            "<b>هغه معلومات چې موږ یې راټولوو:</b>\n"
+            "• نوم / تلیفون / د تحویلۍ پته\n"
+            "• د سفارش توضیحات او تاریخچه\n"
+            "• د تلیګرام پیژندنه\n\n"
+            "<b>موخې:</b>\n"
+            "• د سفارش تکمیل او تحویلي (تړونیزه اړتیا)\n"
+            "• د درغلیو مخنیوی او د پیژندنې تایید\n"
+            "• بازارموندنه — یوازې ستاسو د جلا رضایت سره\n\n"
+            "<b>ساتل:</b> تر هغه چې تاسو د حذف غوښتنه وکړئ، یا ستاسو د وروستي سفارش څخه ۲ کاله وروسته\n\n"
+            "<b>د معلوماتو شریکول:</b> رستورانتونه، د تحویلۍ موټر چلوونکي، د تادیاتو چمتو کوونکي — یوازې ستاسو د سفارش لپاره. "
+            "موږ هیڅکله ستاسو معلومات نه پلورو.\n\n"
+            "<b>ستاسو د PDPA حقونه:</b>\n"
+            "• خپلو معلوماتو ته لاسرسی / سمون / حذف\n"
+            "• رضایت بیرته اخیستل (د بازارموندنې لپاره)\n"
+            "• پروسس ته اعتراض / د معلوماتو لیږدولو غوښتنه\n"
+            "• PDPC ته شکایت ورکول\n\n"
+            "<b>د معلوماتو کنټرولر:</b> {company}\n"
+            "اړیکه: {email}\n\n"
+            "د دې بوټ کارولو ته دوام ورکولو سره، تاسو دا تګلاره منئ او قبلوئ."
+        ),
+        "privacy.btn_full_policy": "📄 بشپړه تګلاره ولولئ",
+        "privacy.btn_accept": "✅ ومنئ او دوام ورکړئ",
+        "privacy.accepted": "✅ تاسو د محرمیت تګلاره ومنله.",
+        "privacy.already_accepted": "✅ تاسو مخکې د محرمیت تګلاره منلې ده.",
+        "privacy.no_url": "د محرمیت بشپړې تګلارې پاڼه لا تر اوسه تنظیم شوې نه ده.",
     },
     "fr": {
         # === Common Buttons ===
@@ -6195,6 +6288,37 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "kitchen.btn.mark_ready": "✅ Pret",
         "rider.btn.picked_up": "📦 Recupere",
         "rider.btn.delivered": "✅ Livre",
+
+        # === PDPA Privacy Policy ===
+        "btn.privacy": "🔒 Politique de confidentialité",
+        "privacy.notice": (
+            "🔒 <b>Avis de confidentialité (PDPA)</b>\n\n"
+            "Nous respectons la loi thaïlandaise sur la protection des données personnelles (PDPA).\n\n"
+            "<b>Données collectées :</b>\n"
+            "• Nom / téléphone / adresse de livraison\n"
+            "• Détails et historique des commandes\n"
+            "• Identifiant Telegram\n\n"
+            "<b>Finalités :</b>\n"
+            "• Exécution des commandes et livraison (nécessité contractuelle)\n"
+            "• Prévention de la fraude et vérification d'identité\n"
+            "• Marketing — uniquement avec votre consentement séparé\n\n"
+            "<b>Conservation :</b> Jusqu'à votre demande de suppression, ou 2 ans après votre dernière commande\n\n"
+            "<b>Partage des données :</b> Restaurants, livreurs, prestataires de paiement — uniquement selon les besoins de votre commande. "
+            "Nous ne vendons jamais vos données.\n\n"
+            "<b>Vos droits PDPA :</b>\n"
+            "• Accéder / corriger / supprimer vos données\n"
+            "• Retirer votre consentement (pour le marketing)\n"
+            "• Vous opposer au traitement / demander la portabilité des données\n"
+            "• Déposer une plainte auprès du PDPC\n\n"
+            "<b>Responsable du traitement :</b> {company}\n"
+            "Contact : {email}\n\n"
+            "En continuant à utiliser ce bot, vous reconnaissez et acceptez cette politique."
+        ),
+        "privacy.btn_full_policy": "📄 Lire la politique complète",
+        "privacy.btn_accept": "✅ Accepter et continuer",
+        "privacy.accepted": "✅ Vous avez accepté la politique de confidentialité.",
+        "privacy.already_accepted": "✅ Vous avez déjà accepté la politique de confidentialité.",
+        "privacy.no_url": "La page de politique de confidentialité complète n'est pas encore configurée.",
     },
 
 }

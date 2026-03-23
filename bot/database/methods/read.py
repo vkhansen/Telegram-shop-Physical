@@ -129,9 +129,10 @@ def select_admins() -> int:
 
 
 def get_all_users() -> list[tuple[int]]:
-    """Return list of all user telegram_ids (as tuples)."""
+    """Return list of all user telegram_ids (as tuples).
+    PERF-04 fix: Use yield_per to stream results in batches."""
     with Database().session() as s:
-        return s.query(User.telegram_id).all()
+        return list(s.query(User.telegram_id).yield_per(500).all())
 
 
 def get_bought_item_info(item_id: str) -> dict | None:

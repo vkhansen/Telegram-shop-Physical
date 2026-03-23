@@ -223,8 +223,8 @@ class TestDeliveryPhotoFields:
 class TestDeliveryTypeEdgeCases:
     """Edge case tests for delivery type fields"""
 
-    def test_empty_string_delivery_type(self, db_with_roles, db_session):
-        """Empty string delivery_type is stored (no DB constraint)"""
+    def test_empty_string_delivery_type_rejected(self, db_with_roles, db_session):
+        """PERF-13: Empty string delivery_type is now rejected by CheckConstraint"""
         user = User(telegram_id=820001, registration_date=datetime.now(timezone.utc))
         db_session.add(user)
         db_session.commit()
@@ -238,10 +238,9 @@ class TestDeliveryTypeEdgeCases:
             delivery_type=""
         )
         db_session.add(order)
-        db_session.commit()
-        db_session.refresh(order)
-
-        assert order.delivery_type == ""
+        with pytest.raises(Exception):
+            db_session.commit()
+        db_session.rollback()
 
     def test_change_delivery_type_after_creation(self, db_with_roles, db_session):
         """Change delivery_type from door to dead_drop after creation"""

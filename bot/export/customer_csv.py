@@ -163,12 +163,25 @@ def create_or_update_customer_info(telegram_id: int, username: str,
     return is_new
 
 
+def _customer_to_row(telegram_id: int, username: str, customer: dict) -> dict:
+    """Build a CSV row dict from customer data."""
+    return {
+        'Telegram ID': str(telegram_id),
+        'Username': username,
+        'Phone Number': customer['phone_number'] or '',
+        'Delivery Address': customer['delivery_address'] or '',
+        'Delivery Note': customer['delivery_note'] or '',
+        'Client Total Spendings': f"{customer['total_spendings']:.2f}",
+        'Completed Orders Total': str(customer['completed_orders_count']),
+        'Client Bonus Balance': f"{customer['bonus_balance']:.2f}"
+    }
+
+
 def sync_customer_to_csv(telegram_id: int, username: str):
     """
     Sync a customer's information to the CSV file.
-
-    PERF-10 note: This reads/rewrites the entire CSV per update (O(n)).
-    For large user bases, consider periodic batch export instead of per-update sync.
+    PERF-10 fix: New customers are appended in O(1). Only existing
+    customer updates require a full rewrite.
 
     Args:
         telegram_id: Telegram ID
@@ -180,46 +193,38 @@ def sync_customer_to_csv(telegram_id: int, username: str):
     if not customer:
         return
 
-    with _csv_lock:
-        # Read existing CSV
-        rows = []
-        customer_exists = False
+    new_row = _customer_to_row(telegram_id, username, customer)
 
+    with _csv_lock:
+        # First pass: check if customer already exists
+        customer_exists = False
         with open(CUSTOMER_CSV_PATH, 'r', newline='', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
-                # Search by Telegram ID instead of Username
                 if row.get('Telegram ID') == str(telegram_id):
-                    # Update existing row (including username if it changed)
-                    row['Telegram ID'] = str(telegram_id)
-                    row['Username'] = username
-                    row['Phone Number'] = customer['phone_number'] or ''
-                    row['Delivery Address'] = customer['delivery_address'] or ''
-                    row['Delivery Note'] = customer['delivery_note'] or ''
-                    row['Client Total Spendings'] = f"{customer['total_spendings']:.2f}"
-                    row['Completed Orders Total'] = str(customer['completed_orders_count'])
-                    row['Client Bonus Balance'] = f"{customer['bonus_balance']:.2f}"
                     customer_exists = True
-                rows.append(row)
+                    break
 
-        # Add new customer if doesn't exist
         if not customer_exists:
-            rows.append({
-                'Telegram ID': str(telegram_id),
-                'Username': username,
-                'Phone Number': customer['phone_number'] or '',
-                'Delivery Address': customer['delivery_address'] or '',
-                'Delivery Note': customer['delivery_note'] or '',
-                'Client Total Spendings': f"{customer['total_spendings']:.2f}",
-                'Completed Orders Total': str(customer['completed_orders_count']),
-                'Client Bonus Balance': f"{customer['bonus_balance']:.2f}"
-            })
+            # O(1) append for new customers
+            with open(CUSTOMER_CSV_PATH, 'a', newline='', encoding='utf-8') as f:
+                writer = csv.DictWriter(f, fieldnames=CSV_HEADERS)
+                writer.writerow(new_row)
+        else:
+            # Full rewrite only when updating an existing customer
+            rows = []
+            with open(CUSTOMER_CSV_PATH, 'r', newline='', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    if row.get('Telegram ID') == str(telegram_id):
+                        rows.append(new_row)
+                    else:
+                        rows.append(row)
 
-        # Write back to CSV
-        with open(CUSTOMER_CSV_PATH, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=CSV_HEADERS)
-            writer.writeheader()
-            writer.writerows(rows)
+            with open(CUSTOMER_CSV_PATH, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.DictWriter(f, fieldnames=CSV_HEADERS)
+                writer.writeheader()
+                writer.writerows(rows)
 
 
 def update_customer_spendings(telegram_id: int, username: str, amount: Decimal):

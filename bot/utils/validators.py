@@ -78,7 +78,7 @@ def validate_telegram_id(telegram_id) -> int:
         tid = int(telegram_id)
         if tid <= 0:
             raise ValueError("Telegram ID must be positive")
-        if tid > 99999999999:  # Max reasonable telegram ID (11 digits)
+        if tid >= 99999999999:  # Max reasonable telegram ID (11 digits)
             raise ValueError("Invalid telegram ID")
         return tid
     except (ValueError, TypeError) as e:
