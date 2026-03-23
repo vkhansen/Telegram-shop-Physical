@@ -444,21 +444,15 @@ async def get_location_trail(order_id: int, sender_role: str = None) -> list[dic
 # WIRED HANDLER: Rider Group Message Listener (Card 13)
 # ===========================================================================
 
-@router.message(F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP}))
+@router.message(
+    F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP}),
+    F.chat.id == int(EnvKeys.RIDER_GROUP_ID) if EnvKeys.RIDER_GROUP_ID else F.text == "__never_match__",
+)
 async def rider_group_message_listener(message: Message):
     """
     Listen for messages in the rider group and relay them to the customer.
-
-    LOGIC-37 note: This handler matches all group messages due to aiogram
-    filter limitations. The early return below minimizes overhead.
+    LOGIC-37 fix: Filter by chat ID so handler only fires for the configured rider group.
     """
-    rider_group_id = EnvKeys.RIDER_GROUP_ID
-    if not rider_group_id:
-        return
-
-    # LOGIC-37 fix: Early return ASAP to minimize DB queries for non-rider-group messages
-    if str(message.chat.id) != str(rider_group_id):
-        return
 
     # Ignore bot's own messages
     if message.from_user and message.from_user.is_bot:
@@ -663,15 +657,17 @@ async def handle_gps_choice_location(message: Message, state: FSMContext):
 # WIRED HANDLER: Live Location Edit Events (Card 15)
 # ===========================================================================
 
-@router.edited_message(F.location, F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP}))
+@router.edited_message(
+    F.location,
+    F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP}),
+    F.chat.id == int(EnvKeys.RIDER_GROUP_ID) if EnvKeys.RIDER_GROUP_ID else F.text == "__never_match__",
+)
 async def edited_location_rider_group(message: Message):
     """
     Capture live location updates from driver in the rider group.
     Telegram sends edited_message events when a live location pin moves.
+    LOGIC-37 fix: Filter by chat ID so handler only fires for rider group.
     """
-    rider_group_id = EnvKeys.RIDER_GROUP_ID
-    if not rider_group_id or str(message.chat.id) != str(rider_group_id):
-        return
 
     if message.from_user and message.from_user.is_bot:
         return

@@ -40,6 +40,27 @@
 ### Rate Limiter max([]) — NOT A BUG
 - `bot/middleware/rate_limit.py:64,77` — `not reqs or now - max(reqs)` short-circuits safely; `max()` never called on empty list
 
+### Rider Group Handler Matches All Groups [MEDIUM] — FIXED 2026-03-23
+- `bot/handlers/user/delivery_chat_handler.py:447,660` — LOGIC-37 fix
+- Added `F.chat.id == int(RIDER_GROUP_ID)` filter so handlers only fire for the configured rider group
+- Previously triggered DB query for every group message the bot received
+
+---
+
+## DRY Report Status (docs/Codebase-DRY-report.md)
+
+**80 issues total — 76 already fixed, 4 remaining (code quality, not bugs):**
+- All 13 CRITICAL issues: FIXED
+- All 19 HIGH issues: FIXED
+- 28/31 MEDIUM issues: FIXED
+- 16/17 LOW issues: FIXED
+
+**Remaining DRY violations (deferred — cosmetic, not bugs):**
+- DRY-02: User profile building duplicated in user_management_states.py (~80 lines)
+- DRY-03: Referral pagination duplicated between user/referral_system.py and admin handler (~200 lines)
+- DRY-05: Session management boilerplate repeated 5x in inventory.py
+- DRY-07: get_telegram_username duplicated in utils/user_utils.py and bot_cli.py
+
 ---
 
 ## MISSING FEATURES (NOT YET IMPLEMENTED)
