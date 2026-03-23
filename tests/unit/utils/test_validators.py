@@ -12,7 +12,8 @@ from bot.utils.validators import (
     SearchQuery,
     validate_telegram_id,
     validate_money_amount,
-    sanitize_html
+    sanitize_html,
+    validate_and_normalize_phone,
 )
 
 
@@ -234,3 +235,61 @@ class TestHelperFunctions:
 
         assert "<b>Safe</b>" in html
         assert "<script>" not in html
+
+
+@pytest.mark.unit
+@pytest.mark.validators
+class TestPhoneValidation:
+    """Tests for validate_and_normalize_phone"""
+
+    # --- Thai local numbers (leading 0) ---
+    def test_thai_mobile_leading_zero(self):
+        assert validate_and_normalize_phone("0812345678") == "+66812345678"
+
+    def test_thai_mobile_with_dashes(self):
+        assert validate_and_normalize_phone("081-234-5678") == "+66812345678"
+
+    def test_thai_mobile_with_spaces(self):
+        assert validate_and_normalize_phone("081 234 5678") == "+66812345678"
+
+    def test_thai_mobile_with_parens(self):
+        assert validate_and_normalize_phone("(081) 234-5678") == "+66812345678"
+
+    # --- Thai numbers already in E.164 ---
+    def test_thai_e164(self):
+        assert validate_and_normalize_phone("+66812345678") == "+66812345678"
+
+    def test_thai_international_no_plus(self):
+        assert validate_and_normalize_phone("66812345678") == "+66812345678"
+
+    # --- Bare local number (no leading 0) ---
+    def test_thai_bare_local(self):
+        assert validate_and_normalize_phone("812345678") == "+66812345678"
+
+    # --- Other country codes ---
+    def test_us_number_with_plus(self):
+        assert validate_and_normalize_phone("+12025551234") == "+12025551234"
+
+    def test_custom_country_code(self):
+        assert validate_and_normalize_phone("09123456789", default_country_code="98") == "+989123456789"
+
+    # --- Rejection cases ---
+    def test_empty_string(self):
+        with pytest.raises(ValueError):
+            validate_and_normalize_phone("")
+
+    def test_whitespace_only(self):
+        with pytest.raises(ValueError):
+            validate_and_normalize_phone("   ")
+
+    def test_too_few_digits(self):
+        with pytest.raises(ValueError):
+            validate_and_normalize_phone("12345")
+
+    def test_contains_letters(self):
+        with pytest.raises(ValueError):
+            validate_and_normalize_phone("081-ABC-5678")
+
+    def test_too_many_digits(self):
+        with pytest.raises(ValueError):
+            validate_and_normalize_phone("+1234567890123456")

@@ -18,6 +18,7 @@ from bot.logger_mesh import logger
 from bot.payments.bitcoin import get_available_bitcoin_address, mark_bitcoin_address_used
 from bot.export import log_order_creation, sync_customer_to_csv
 from bot.utils import generate_unique_order_code, get_telegram_username
+from bot.utils.validators import validate_and_normalize_phone
 from bot.monitoring import get_metrics
 
 router = Router()
@@ -291,7 +292,7 @@ async def address_confirmed(call: CallbackQuery, state: FSMContext):
     """User confirmed the searched address"""
     await call.answer()
     await call.message.edit_text(localize("order.delivery.location_saved"))
-    await ask_delivery_type(call.message, state)
+    await ask_delivery_type(call.message, state, edit=True)
 
 
 @router.callback_query(F.data == "address_confirm_retry", OrderStates.waiting_address_confirm)
@@ -301,16 +302,18 @@ async def address_retry(call: CallbackQuery, state: FSMContext):
     await show_location_method_choice(call.message, state, edit=True)
 
 
-async def ask_delivery_type(message: Message, state: FSMContext):
+async def ask_delivery_type(message: Message, state: FSMContext, *, edit: bool = False):
     """Show delivery type selection (Card 3)"""
-    await message.answer(
-        localize("order.delivery.type_prompt"),
-        reply_markup=simple_buttons([
-            (localize("btn.delivery.door"), "delivery_type_door"),
-            (localize("btn.delivery.dead_drop"), "delivery_type_dead_drop"),
-            (localize("btn.delivery.pickup"), "delivery_type_pickup"),
-        ], per_row=1)
-    )
+    text = localize("order.delivery.type_prompt")
+    kb = simple_buttons([
+        (localize("btn.delivery.door"), "delivery_type_door"),
+        (localize("btn.delivery.dead_drop"), "delivery_type_dead_drop"),
+        (localize("btn.delivery.pickup"), "delivery_type_pickup"),
+    ], per_row=1)
+    if edit and hasattr(message, 'edit_text'):
+        await message.edit_text(text, reply_markup=kb)
+    else:
+        await message.answer(text, reply_markup=kb)
     await state.set_state(OrderStates.waiting_delivery_type)
 
 
@@ -319,12 +322,7 @@ async def delivery_type_door(call: CallbackQuery, state: FSMContext):
     """User selected door delivery"""
     await call.answer()
     await state.update_data(delivery_type="door")
-    # LOGIC-21 fix: Don't send duplicate text
-    try:
-        await call.message.delete()
-    except Exception:
-        pass
-    await call.message.answer(
+    await call.message.edit_text(
         localize("order.delivery.phone_prompt"),
         reply_markup=back("view_cart")
     )
@@ -347,12 +345,7 @@ async def delivery_type_pickup(call: CallbackQuery, state: FSMContext):
     """User selected self-pickup — skip address/location details"""
     await call.answer()
     await state.update_data(delivery_type="pickup")
-    # LOGIC-21 fix: Don't send duplicate text
-    try:
-        await call.message.delete()
-    except Exception:
-        pass
-    await call.message.answer(
+    await call.message.edit_text(
         localize("order.delivery.phone_prompt"),
         reply_markup=back("view_cart")
     )
@@ -435,8 +428,7 @@ async def process_drop_media_video(message: Message, state: FSMContext):
 async def done_drop_media(call: CallbackQuery, state: FSMContext):
     """User finished uploading drop media — proceed to phone number"""
     await call.answer()
-    await call.message.edit_text(localize("order.delivery.phone_prompt"))
-    await call.message.answer(
+    await call.message.edit_text(
         localize("order.delivery.phone_prompt"),
         reply_markup=back("view_cart")
     )
@@ -447,8 +439,7 @@ async def done_drop_media(call: CallbackQuery, state: FSMContext):
 async def skip_drop_media(call: CallbackQuery, state: FSMContext):
     """User skipped drop location media"""
     await call.answer()
-    await call.message.edit_text(localize("order.delivery.phone_prompt"))
-    await call.message.answer(
+    await call.message.edit_text(
         localize("order.delivery.phone_prompt"),
         reply_markup=back("view_cart")
     )
@@ -475,8 +466,7 @@ async def process_drop_photo(message: Message, state: FSMContext):
 async def skip_drop_photo(call: CallbackQuery, state: FSMContext):
     """User skipped drop location photo (legacy flow)"""
     await call.answer()
-    await call.message.edit_text(localize("order.delivery.phone_prompt"))
-    await call.message.answer(
+    await call.message.edit_text(
         localize("order.delivery.phone_prompt"),
         reply_markup=back("view_cart")
     )
@@ -488,20 +478,16 @@ async def process_phone_number(message: Message, state: FSMContext):
     """
     Collect phone number from user
     """
-    phone_number = message.text.strip()
-
-    # SEC-12 fix: Require at least 7 digits, optional leading +, total 8-20 chars
-    digit_count = sum(c.isdigit() for c in phone_number)
-    if (len(phone_number) < 8 or len(phone_number) > 20
-            or digit_count < 7
-            or not re.fullmatch(r'\+?[\d\s\-\(\)]+', phone_number)):
+    try:
+        phone_number = validate_and_normalize_phone(message.text or "")
+    except ValueError:
         await message.answer(
             localize("order.delivery.phone_invalid"),
             reply_markup=back("view_cart")
         )
         return
 
-    # Save to state
+    # Save normalised E.164 number to state
     await state.update_data(phone_number=phone_number)
 
     # Ask for delivery note (optional)
@@ -535,7 +521,6 @@ async def skip_delivery_note_handler(call: CallbackQuery, state: FSMContext):
     await state.update_data(delivery_note="")
 
     # Check if user has bonus balance and ask about applying it
-    await call.message.delete()
     await check_and_ask_about_bonus(call.message, state, user_id=call.from_user.id, from_callback=True)
 
 
@@ -568,13 +553,14 @@ async def check_and_ask_about_bonus(message: Message, state: FSMContext, user_id
                     localize("order.bonus.choose_amount_hint", max_amount=min(bonus_balance, total_amount))
             )
 
-            await message.answer(
-                text,
-                reply_markup=simple_buttons([
-                    (localize("btn.apply_bonus_yes"), "apply_bonus_yes"),
-                    (localize("btn.apply_bonus_no"), "apply_bonus_no")
-                ], per_row=2)
-            )
+            kb = simple_buttons([
+                (localize("btn.apply_bonus_yes"), "apply_bonus_yes"),
+                (localize("btn.apply_bonus_no"), "apply_bonus_no")
+            ], per_row=2)
+            if from_callback:
+                await message.edit_text(text, reply_markup=kb)
+            else:
+                await message.answer(text, reply_markup=kb)
             return
 
     # No bonus or zero bonus - proceed to payment
@@ -617,7 +603,6 @@ async def use_all_bonus_handler(call: CallbackQuery, state: FSMContext):
     bonus_amount = Decimal(amount_str)
 
     await state.update_data(bonus_applied=float(bonus_amount))
-    await call.message.delete()
     await finalize_order_and_payment(call.message, state, user_id=call.from_user.id, from_callback=True)
 
 
@@ -658,11 +643,10 @@ async def apply_bonus_no_handler(call: CallbackQuery, state: FSMContext):
     User doesn't want to apply bonus
     """
     await state.update_data(bonus_applied=0)
-    await call.message.delete()
     await finalize_order_and_payment(call.message, state, user_id=call.from_user.id, from_callback=True)
 
 
-async def show_payment_method_selection(message: Message, state: FSMContext, user_id: int = None):
+async def show_payment_method_selection(message: Message, state: FSMContext, user_id: int = None, from_callback: bool = False):
     """
     Show payment method selection (Bitcoin or Cash)
     """
@@ -704,10 +688,16 @@ async def show_payment_method_selection(message: Message, state: FSMContext, use
 
     payment_buttons.append((localize("order.payment_method.bitcoin"), "payment_method_bitcoin"))
 
-    await message.answer(
-        summary_text,
-        reply_markup=simple_buttons(payment_buttons, per_row=1)
-    )
+    if from_callback:
+        await message.edit_text(
+            summary_text,
+            reply_markup=simple_buttons(payment_buttons, per_row=1)
+        )
+    else:
+        await message.answer(
+            summary_text,
+            reply_markup=simple_buttons(payment_buttons, per_row=1)
+        )
 
     await state.set_state(OrderStates.waiting_payment_method)
 
@@ -846,7 +836,7 @@ async def finalize_order_and_payment(message: Message, state: FSMContext, user_i
         return
 
     # Show payment method selection
-    await show_payment_method_selection(message, state, user_id=user_id)
+    await show_payment_method_selection(message, state, user_id=user_id, from_callback=from_callback)
 
 
 async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):

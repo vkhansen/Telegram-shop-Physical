@@ -71,6 +71,71 @@ class SearchQuery(BaseModel):
         return v.strip()
 
 
+# ---------------------------------------------------------------------------
+# Phone number validation & normalisation (Thai-centric, E.164 output)
+# ---------------------------------------------------------------------------
+
+_PHONE_STRIP_RE = re.compile(r'[\s\-\(\)]')
+
+
+def validate_and_normalize_phone(raw: str, default_country_code: str = "66") -> str:
+    """Validate a phone number and return its E.164 form.
+
+    Accepted inputs (examples for Thailand, country code 66):
+      - "0812345678"   → "+66812345678"   (local with leading 0)
+      - "812345678"    → "+66812345678"   (local without leading 0)
+      - "+66812345678" → "+66812345678"   (already international)
+      - "66812345678"  → "+66812345678"   (international without +)
+
+    Raises ``ValueError`` with a user-friendly reason on invalid input.
+    """
+    # Strip decorative characters
+    phone = _PHONE_STRIP_RE.sub('', raw.strip())
+
+    if not phone:
+        raise ValueError("Phone number is empty")
+
+    # Must contain only digits and an optional leading '+'
+    if not re.fullmatch(r'\+?\d+', phone):
+        raise ValueError("Phone number contains invalid characters")
+
+    # Separate the optional '+' prefix from the digit body
+    has_plus = phone.startswith('+')
+    digits = phone.lstrip('+')
+
+    if len(digits) < 7 or len(digits) > 15:
+        raise ValueError(f"Phone number has {len(digits)} digits; expected 7-15")
+
+    # --- Normalise to E.164 ---
+    # Case 1: already has '+' → trust the caller's country code
+    if has_plus:
+        return f"+{digits}"
+
+    # Case 2: leading '0' → local number, replace 0 with country code
+    if digits.startswith('0'):
+        digits = digits[1:]  # drop leading 0
+        return f"+{default_country_code}{digits}"
+
+    # Case 3: starts with the default country code → treat as international
+    if digits.startswith(default_country_code):
+        local_part = digits[len(default_country_code):]
+        # Thai mobile/landline numbers have 8-9 digits after country code
+        if 7 <= len(local_part) <= 10:
+            return f"+{digits}"
+
+    # Case 4: bare local number (no leading 0, no country code)
+    # Thai numbers without leading 0 are 9 digits (mobile) or 8 digits (landline)
+    if 7 <= len(digits) <= 10:
+        return f"+{default_country_code}{digits}"
+
+    # If nothing matched, the number is ambiguous — return with country code
+    # only if total length is plausible for E.164 (max 15 digits)
+    if len(digits) <= 15:
+        return f"+{digits}"
+
+    raise ValueError(f"Cannot normalise phone number: {raw!r}")
+
+
 # Helper functions for validation
 def validate_telegram_id(telegram_id) -> int:
     """Validate and convert telegram ID"""
