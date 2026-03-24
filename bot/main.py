@@ -70,6 +70,19 @@ async def __on_start_up(dp: Dispatcher, bot: Bot) -> None:
     start_reservation_cleaner()
     logging.info("🧹 Inventory reservation cleaner started - expired reservations will be auto-released every 60s")
 
+    # Load multi-coin crypto addresses and start payment checker (Card 18)
+    if EnvKeys.CRYPTO_PAYMENTS_ENABLED:
+        import asyncio
+        from bot.payments.crypto_addresses import load_all_addresses
+        loaded = load_all_addresses()
+        for coin, count in loaded.items():
+            if count > 0:
+                logging.info("Loaded %d new %s addresses", count, coin.upper())
+
+        from bot.tasks.payment_checker import payment_checker_loop
+        asyncio.ensure_future(payment_checker_loop(bot))
+        logging.info("🔗 Crypto payment checker started (interval=%ds)", EnvKeys.CRYPTO_POLL_INTERVAL)
+
     # Setting Rate Limiting
     rate_config = RateLimitConfig(
         global_limit=30,

@@ -1,8 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
-from aiogram.exceptions import TelegramBadRequest
-
 from bot.database import Database
 from bot.database.models.main import CustomerInfo, Goods
 from bot.database.methods import get_cart_items, calculate_cart_total, add_to_cart, remove_from_cart, clear_cart
@@ -11,7 +9,8 @@ from bot.i18n import localize
 from bot.config import EnvKeys
 from bot.states import CartStates, OrderStates, ModifierSelectionFSM
 from bot.handlers.other import is_safe_item_name
-from bot.monitoring import get_metrics
+from bot.utils.message_utils import safe_edit_text
+from bot.utils.tracking import track_event, track_conversion
 from bot.utils.modifiers import validate_modifier_selection
 
 router = Router()
@@ -63,11 +62,7 @@ async def _show_modifier_group(call: CallbackQuery, state: FSMContext,
 
     markup = modifier_group_keyboard(item_name, group_key, group, selected=current_selection)
 
-    try:
-        await call.message.edit_text(title, reply_markup=markup)
-    except TelegramBadRequest as e:
-        if "message is not modified" not in str(e):
-            raise
+    await safe_edit_text(call.message, title, reply_markup=markup)
 
 
 @router.callback_query(F.data.startswith('add_to_cart_'))
@@ -111,15 +106,8 @@ async def add_to_cart_handler(call: CallbackQuery, state: FSMContext):
     success, message = await add_to_cart(user_id, item_name, quantity=1)
 
     if success:
-        # Track cart addition
-        metrics = get_metrics()
-        if metrics:
-            metrics.track_event("cart_add", user_id, {
-                "item": item_name,
-                "quantity": 1
-            })
-            metrics.track_conversion("customer_journey", "cart_add", user_id)
-
+        track_event("cart_add", user_id, {"item": item_name, "quantity": 1})
+        track_conversion("customer_journey", "cart_add", user_id)
         await call.answer(localize("cart.add_success", item_name=item_name), show_alert=False)
     else:
         await call.answer(localize("cart.add_error", message=message), show_alert=True)
@@ -246,15 +234,8 @@ async def _finish_modifier_selection(call: CallbackQuery, state: FSMContext, sel
                                           selected_modifiers=clean_selected or None)
 
     if success:
-        metrics = get_metrics()
-        if metrics:
-            metrics.track_event("cart_add", user_id, {
-                "item": item_name,
-                "quantity": 1,
-                "modifiers": clean_selected
-            })
-            metrics.track_conversion("customer_journey", "cart_add", user_id)
-
+        track_event("cart_add", user_id, {"item": item_name, "quantity": 1, "modifiers": clean_selected})
+        track_conversion("customer_journey", "cart_add", user_id)
         await call.answer(localize("cart.add_success", item_name=item_name), show_alert=False)
         await call.message.edit_text(
             localize("cart.add_success", item_name=item_name),
@@ -282,13 +263,7 @@ async def view_cart_handler(call: CallbackQuery, state: FSMContext):
     # Calculate total once (avoid duplicate DB query)
     total = sum(item['total'] for item in cart_items)
 
-    # Track cart view
-    metrics = get_metrics()
-    if metrics:
-        metrics.track_event("cart_view", user_id, {
-            "items_count": len(cart_items),
-            "total": float(total)
-        })
+    track_event("cart_view", user_id, {"items_count": len(cart_items), "total": float(total)})
 
     # Build cart display
     text = localize("cart.title")
@@ -318,14 +293,7 @@ async def view_cart_handler(call: CallbackQuery, state: FSMContext):
 
     markup = simple_buttons(buttons, per_row=1)
 
-    try:
-        await call.message.edit_text(text, reply_markup=markup)
-    except TelegramBadRequest as e:
-        if "message is not modified" in str(e):
-            # Message content is identical, no need to update
-            pass
-        else:
-            raise
+    await safe_edit_text(call.message, text, reply_markup=markup)
     await state.set_state(CartStates.viewing_cart)
 
 
@@ -340,11 +308,7 @@ async def remove_cart_item_handler(call: CallbackQuery, state: FSMContext):
     success, message = await remove_from_cart(cart_id, user_id)
 
     if success:
-        # Track cart item removal
-        metrics = get_metrics()
-        if metrics:
-            metrics.track_event("cart_remove", user_id, {"cart_id": cart_id})
-
+        track_event("cart_remove", user_id, {"cart_id": cart_id})
         # Refresh cart view
         await view_cart_handler(call, state)
         await call.answer(localize("cart.removed_success"), show_alert=False)
@@ -362,11 +326,7 @@ async def clear_cart_handler(call: CallbackQuery):
     success, message = await clear_cart(user_id)
 
     if success:
-        # Track cart clearing
-        metrics = get_metrics()
-        if metrics:
-            metrics.track_event("cart_clear", user_id)
-
+        track_event("cart_clear", user_id)
         await call.message.edit_text(
             localize("cart.cleared_success"),
             reply_markup=back("back_to_menu")
@@ -388,11 +348,8 @@ async def checkout_cart_handler(call: CallbackQuery, state: FSMContext):
         await call.answer(localize("cart.empty_alert"), show_alert=True)
         return
 
-    # Track checkout start
-    metrics = get_metrics()
-    if metrics:
-        metrics.track_event("checkout_start", user_id)
-        metrics.track_conversion("customer_journey", "checkout_start", user_id)
+    track_event("checkout_start", user_id)
+    track_conversion("customer_journey", "checkout_start", user_id)
 
     # Check if user has customer info saved
     with Database().session() as session:

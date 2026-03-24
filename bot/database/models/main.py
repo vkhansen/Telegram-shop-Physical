@@ -445,11 +445,13 @@ class Order(Database.BASE):
     buyer_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="SET NULL"), nullable=True, index=True)
     total_price = Column(Numeric(12, 2), nullable=False)
     bonus_applied = Column(Numeric(12, 2), nullable=True, default=0)  # Referral bonus applied to this order
-    payment_method = Column(String(20), nullable=False)  # 'bitcoin', 'cash', or 'promptpay'
+    payment_method = Column(String(20), nullable=False)  # 'bitcoin', 'litecoin', 'solana', 'usdt_sol', 'cash', 'promptpay'
     delivery_address = Column(Text, nullable=False)
     phone_number = Column(String(50), nullable=False)
     delivery_note = Column(Text, nullable=True)
-    bitcoin_address = Column(String(100), nullable=True)
+    bitcoin_address = Column(String(100), nullable=True)  # Legacy — use crypto_address for new coins
+    crypto_address = Column(String(200), nullable=True)   # Generic crypto receive address (Card 18)
+    payment_coin = Column(String(10), nullable=True)      # 'btc', 'ltc', 'sol', 'usdt_sol' (Card 18)
     order_status = Column(String(20), nullable=False,
                           default='pending')  # pending, reserved, confirmed, preparing, ready, out_for_delivery, delivered, cancelled, expired
     reserved_until = Column(DateTime(timezone=True),
@@ -539,7 +541,7 @@ class Order(Database.BASE):
             name='ck_orders_order_status'
         ),
         CheckConstraint(
-            "payment_method IN ('bitcoin', 'cash', 'promptpay')",
+            "payment_method IN ('bitcoin', 'litecoin', 'solana', 'usdt_sol', 'cash', 'promptpay')",
             name='ck_orders_payment_method'
         ),
         CheckConstraint(
@@ -557,6 +559,7 @@ class Order(Database.BASE):
                  drop_instructions: str = None, drop_location_photo: str = None,
                  drop_latitude: float = None, drop_longitude: float = None,
                  drop_media: list = None,
+                 crypto_address: str = None, payment_coin: str = None,
                  **kw: Any):
         super().__init__(**kw)
         self.buyer_id = buyer_id
@@ -568,6 +571,8 @@ class Order(Database.BASE):
         self.phone_number = phone_number
         self.delivery_note = delivery_note
         self.bitcoin_address = bitcoin_address
+        self.crypto_address = crypto_address
+        self.payment_coin = payment_coin
         self.order_status = order_status
         self.reserved_until = reserved_until
         self.delivery_time = delivery_time
@@ -660,6 +665,58 @@ class BitcoinAddress(Database.BASE):
     def __init__(self, address: str, **kw: Any):
         super().__init__(**kw)
         self.address = address
+
+
+class CryptoAddress(Database.BASE):
+    """Multi-coin address pool (Card 18). Generalises BitcoinAddress."""
+    __tablename__ = 'crypto_addresses'
+
+    id = Column(Integer, primary_key=True)
+    coin = Column(String(10), nullable=False, index=True)   # 'btc', 'ltc', 'sol', 'usdt_sol'
+    address = Column(String(200), nullable=False)
+    is_used = Column(Boolean, nullable=False, default=False, index=True)
+    used_by = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="SET NULL"), nullable=True)
+    used_at = Column(DateTime(timezone=True), nullable=True)
+    order_id = Column(Integer, ForeignKey('orders.id', ondelete="SET NULL"), nullable=True)
+
+    user = relationship("User", foreign_keys=lambda: [CryptoAddress.used_by])
+    order = relationship("Order", foreign_keys=lambda: [CryptoAddress.order_id])
+
+    __table_args__ = (
+        UniqueConstraint('coin', 'address', name='uq_coin_address'),
+        Index('ix_crypto_coin_unused', 'coin', 'is_used'),
+    )
+
+
+class CryptoPayment(Database.BASE):
+    """Tracks on-chain verification state for crypto payments (Card 18)."""
+    __tablename__ = 'crypto_payments'
+
+    id = Column(Integer, primary_key=True)
+    order_id = Column(Integer, ForeignKey('orders.id', ondelete="CASCADE"), nullable=False, unique=True)
+    coin = Column(String(10), nullable=False)               # 'btc', 'ltc', 'sol', 'usdt_sol'
+    receive_address = Column(String(200), nullable=False)
+    expected_amount = Column(Numeric(20, 8), nullable=False) # In native coin units
+    expected_amount_usd = Column(Numeric(12, 2), nullable=True)
+    tx_hash = Column(String(200), nullable=True)
+    received_amount = Column(Numeric(20, 8), nullable=True)
+    confirmations = Column(Integer, nullable=False, default=0)
+    required_confirmations = Column(Integer, nullable=False)
+    status = Column(String(20), nullable=False, default='awaiting')  # awaiting → detected → confirmed → expired
+    detected_at = Column(DateTime(timezone=True), nullable=True)
+    confirmed_at = Column(DateTime(timezone=True), nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    last_checked_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    order = relationship("Order", foreign_keys=lambda: [CryptoPayment.order_id])
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('awaiting', 'detected', 'confirmed', 'expired')",
+            name='ck_crypto_payments_status'
+        ),
+    )
 
 
 class BotSettings(Database.BASE):

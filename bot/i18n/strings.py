@@ -327,6 +327,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # === Orders ===
         "order.payment_method.choose": "💳 Выберите способ оплаты:",
         "order.payment_method.bitcoin": "💳 Bitcoin",
+        "order.payment_method.litecoin": "💳 Litecoin",
+        "order.payment_method.solana": "💳 SOL",
+        "order.payment_method.usdt_sol": "💳 USDT (Solana)",
         "order.payment_method.cash": "💵 Оплата наличными при получении",
         "order.status.notify_order_confirmed": (
             "Заказ {order_code} подтвержден! 🎉\n\n"
@@ -634,6 +637,35 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.bitcoin.send_exact": "• Отправьте ТОЧНУЮ сумму, указанную выше",
         "order.payment.bitcoin.title": "💳 <b>Инструкции по оплате Bitcoin</b>",
         "order.payment.bitcoin.total_amount": "Сумма к оплате: <b>{amount} {currency}</b>",
+
+        # Crypto payment (Card 18) — generic strings for all coins
+        "crypto.payment.title": "💳 <b>{coin_name} Payment</b>",
+        "crypto.payment.order_code": "Order: <b>{code}</b>",
+        "crypto.payment.total_fiat": "Total: <b>{amount} {currency}</b>",
+        "crypto.payment.rate": "Rate: 1 {coin} = {rate} {currency}",
+        "crypto.payment.amount_due": "Amount due: <b>{crypto_amount} {coin}</b>",
+        "crypto.payment.address": "<b>Send to this address:</b>\n<code>{address}</code>",
+        "crypto.payment.send_exact": "• Send EXACTLY this amount",
+        "crypto.payment.one_time": "• This address is for ONE-TIME use",
+        "crypto.payment.auto_confirm": "• Your order will be automatically confirmed once the payment is detected on-chain.",
+        "crypto.payment.waiting": "⏳ Waiting for payment...\nThis address expires in {timeout} minutes.",
+        "crypto.payment.no_address": "❌ No {coin} addresses available. Please contact support or choose another payment method.",
+        "crypto.payment_detected": (
+            "✅ <b>Payment detected!</b>\n"
+            "TX: <code>{tx_hash}</code>\n"
+            "Amount: {amount} {coin}\n"
+            "Confirmations: {confirmations}/{required}\n\n"
+            "⏳ Waiting for confirmations..."
+        ),
+        "crypto.payment_confirmed": (
+            "✅ <b>Payment confirmed!</b>\n"
+            "TX: <code>{tx_hash}</code>\n"
+            "Amount: {amount} {coin}\n"
+            "Confirmations: {confirmations}/{required}\n\n"
+            "Your order is now being processed."
+        ),
+        "crypto.payment_expired": "⏰ Payment window for your {coin} order ({order_code}) has expired. Please place a new order.",
+
         "order.payment.cash.admin_contact": "Администратор свяжется с вами в ближайшее время.",
         "order.payment.cash.after_confirm": "После подтверждения вы будете уведомлены о времени доставки.",
         "order.payment.cash.created": "Ваш заказ {code} создан и ожидает подтверждения администратора.",
@@ -1369,6 +1401,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # === Orders ===
         "order.payment_method.choose": "💳 Choose payment method:",
         "order.payment_method.bitcoin": "💳 Bitcoin",
+        "order.payment_method.litecoin": "💳 Litecoin",
+        "order.payment_method.solana": "💳 SOL",
+        "order.payment_method.usdt_sol": "💳 USDT (Solana)",
         "order.payment_method.cash": "💵 Cash on Delivery",
         "order.status.notify_order_confirmed": (
             "Order {order_code} confirmed! 🎉\n\n"
@@ -1656,6 +1691,35 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.bitcoin.send_exact": "• Send the EXACT amount shown above",
         "order.payment.bitcoin.title": "💳 <b>Bitcoin Payment Instructions</b>",
         "order.payment.bitcoin.total_amount": "Total Amount: <b>{amount} {currency}</b>",
+
+        # Crypto payment (Card 18) — generic strings for all coins
+        "crypto.payment.title": "💳 <b>{coin_name} Payment</b>",
+        "crypto.payment.order_code": "Order: <b>{code}</b>",
+        "crypto.payment.total_fiat": "Total: <b>{amount} {currency}</b>",
+        "crypto.payment.rate": "Rate: 1 {coin} = {rate} {currency}",
+        "crypto.payment.amount_due": "Amount due: <b>{crypto_amount} {coin}</b>",
+        "crypto.payment.address": "<b>Send to this address:</b>\n<code>{address}</code>",
+        "crypto.payment.send_exact": "• Send EXACTLY this amount",
+        "crypto.payment.one_time": "• This address is for ONE-TIME use",
+        "crypto.payment.auto_confirm": "• Your order will be automatically confirmed once the payment is detected on-chain.",
+        "crypto.payment.waiting": "⏳ Waiting for payment...\nThis address expires in {timeout} minutes.",
+        "crypto.payment.no_address": "❌ No {coin} addresses available. Please contact support or choose another payment method.",
+        "crypto.payment_detected": (
+            "✅ <b>Payment detected!</b>\n"
+            "TX: <code>{tx_hash}</code>\n"
+            "Amount: {amount} {coin}\n"
+            "Confirmations: {confirmations}/{required}\n\n"
+            "⏳ Waiting for confirmations..."
+        ),
+        "crypto.payment_confirmed": (
+            "✅ <b>Payment confirmed!</b>\n"
+            "TX: <code>{tx_hash}</code>\n"
+            "Amount: {amount} {coin}\n"
+            "Confirmations: {confirmations}/{required}\n\n"
+            "Your order is now being processed."
+        ),
+        "crypto.payment_expired": "⏰ Payment window for your {coin} order ({order_code}) has expired. Please place a new order.",
+
         "order.payment.cash.admin_contact": "Admin will contact you shortly.",
         "order.payment.cash.after_confirm": "After confirmation, you will be notified of the delivery time.",
         "order.payment.cash.created": "Your order {code} has been created and is awaiting admin confirmation.",
@@ -2391,6 +2455,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # === Orders ===
         "order.payment_method.choose": "💳 เลือกวิธีการชำระเงิน:",
         "order.payment_method.bitcoin": "💳 Bitcoin",
+        "order.payment_method.litecoin": "💳 Litecoin",
+        "order.payment_method.solana": "💳 SOL",
+        "order.payment_method.usdt_sol": "💳 USDT (Solana)",
         "order.payment_method.cash": "💵 เก็บเงินปลายทาง",
         "order.status.notify_order_confirmed": (
             "คำสั่งซื้อ {order_code} ได้รับการยืนยัน! 🎉\n\n"
@@ -2678,6 +2745,35 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.bitcoin.send_exact": "• ส่งจำนวนเงินที่แน่นอนตามที่แสดงด้านบน",
         "order.payment.bitcoin.title": "💳 <b>คำแนะนำการชำระเงิน Bitcoin</b>",
         "order.payment.bitcoin.total_amount": "ยอดรวม: <b>{amount} {currency}</b>",
+
+        # Crypto payment (Card 18) — generic strings for all coins
+        "crypto.payment.title": "💳 <b>{coin_name} Payment</b>",
+        "crypto.payment.order_code": "Order: <b>{code}</b>",
+        "crypto.payment.total_fiat": "Total: <b>{amount} {currency}</b>",
+        "crypto.payment.rate": "Rate: 1 {coin} = {rate} {currency}",
+        "crypto.payment.amount_due": "Amount due: <b>{crypto_amount} {coin}</b>",
+        "crypto.payment.address": "<b>Send to this address:</b>\n<code>{address}</code>",
+        "crypto.payment.send_exact": "• Send EXACTLY this amount",
+        "crypto.payment.one_time": "• This address is for ONE-TIME use",
+        "crypto.payment.auto_confirm": "• Your order will be automatically confirmed once the payment is detected on-chain.",
+        "crypto.payment.waiting": "⏳ Waiting for payment...\nThis address expires in {timeout} minutes.",
+        "crypto.payment.no_address": "❌ No {coin} addresses available. Please contact support or choose another payment method.",
+        "crypto.payment_detected": (
+            "✅ <b>Payment detected!</b>\n"
+            "TX: <code>{tx_hash}</code>\n"
+            "Amount: {amount} {coin}\n"
+            "Confirmations: {confirmations}/{required}\n\n"
+            "⏳ Waiting for confirmations..."
+        ),
+        "crypto.payment_confirmed": (
+            "✅ <b>Payment confirmed!</b>\n"
+            "TX: <code>{tx_hash}</code>\n"
+            "Amount: {amount} {coin}\n"
+            "Confirmations: {confirmations}/{required}\n\n"
+            "Your order is now being processed."
+        ),
+        "crypto.payment_expired": "⏰ Payment window for your {coin} order ({order_code}) has expired. Please place a new order.",
+
         "order.payment.cash.admin_contact": "แอดมินจะติดต่อคุณในเร็วๆ นี้",
         "order.payment.cash.after_confirm": "หลังยืนยันแล้ว คุณจะได้รับแจ้งเวลาจัดส่ง",
         "order.payment.cash.created": "คำสั่งซื้อ {code} ของคุณถูกสร้างแล้วและรอการยืนยันจากแอดมิน",
@@ -3272,6 +3368,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # === Orders ===
         "order.payment_method.choose": "💳 اختر طريقة الدفع:",
         "order.payment_method.bitcoin": "💳 Bitcoin",
+        "order.payment_method.litecoin": "💳 Litecoin",
+        "order.payment_method.solana": "💳 SOL",
+        "order.payment_method.usdt_sol": "💳 USDT (Solana)",
         "order.payment_method.cash": "💵 الدفع عند الاستلام",
         "order.status.notify_order_confirmed": (
             "تم تأكيد الطلب {order_code}! 🎉\n\n"
@@ -3559,6 +3658,35 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.bitcoin.send_exact": "• أرسل المبلغ المحدد المعروض أعلاه",
         "order.payment.bitcoin.title": "💳 <b>تعليمات الدفع بـ Bitcoin</b>",
         "order.payment.bitcoin.total_amount": "المبلغ الإجمالي: <b>{amount} {currency}</b>",
+
+        # Crypto payment (Card 18) — generic strings for all coins
+        "crypto.payment.title": "💳 <b>{coin_name} Payment</b>",
+        "crypto.payment.order_code": "Order: <b>{code}</b>",
+        "crypto.payment.total_fiat": "Total: <b>{amount} {currency}</b>",
+        "crypto.payment.rate": "Rate: 1 {coin} = {rate} {currency}",
+        "crypto.payment.amount_due": "Amount due: <b>{crypto_amount} {coin}</b>",
+        "crypto.payment.address": "<b>Send to this address:</b>\n<code>{address}</code>",
+        "crypto.payment.send_exact": "• Send EXACTLY this amount",
+        "crypto.payment.one_time": "• This address is for ONE-TIME use",
+        "crypto.payment.auto_confirm": "• Your order will be automatically confirmed once the payment is detected on-chain.",
+        "crypto.payment.waiting": "⏳ Waiting for payment...\nThis address expires in {timeout} minutes.",
+        "crypto.payment.no_address": "❌ No {coin} addresses available. Please contact support or choose another payment method.",
+        "crypto.payment_detected": (
+            "✅ <b>Payment detected!</b>\n"
+            "TX: <code>{tx_hash}</code>\n"
+            "Amount: {amount} {coin}\n"
+            "Confirmations: {confirmations}/{required}\n\n"
+            "⏳ Waiting for confirmations..."
+        ),
+        "crypto.payment_confirmed": (
+            "✅ <b>Payment confirmed!</b>\n"
+            "TX: <code>{tx_hash}</code>\n"
+            "Amount: {amount} {coin}\n"
+            "Confirmations: {confirmations}/{required}\n\n"
+            "Your order is now being processed."
+        ),
+        "crypto.payment_expired": "⏰ Payment window for your {coin} order ({order_code}) has expired. Please place a new order.",
+
         "order.payment.cash.admin_contact": "سيتواصل معك المشرف قريبًا.",
         "order.payment.cash.after_confirm": "بعد التأكيد، سيتم إعلامك بوقت التسليم.",
         "order.payment.cash.created": "تم إنشاء طلبك {code} وهو في انتظار تأكيد المشرف.",
@@ -4110,6 +4238,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # === Orders ===
         "order.payment_method.choose": "💳 روش پرداخت را انتخاب کنید:",
         "order.payment_method.bitcoin": "💳 Bitcoin",
+        "order.payment_method.litecoin": "💳 Litecoin",
+        "order.payment_method.solana": "💳 SOL",
+        "order.payment_method.usdt_sol": "💳 USDT (Solana)",
         "order.payment_method.cash": "💵 پرداخت در محل",
         "order.status.notify_order_confirmed": "سفارش {order_code} تأیید شد! 🎉\n\nسفارش شما تحویل داده خواهد شد در: {delivery_time}\n\nمحصولات:\n{items}\n\nجمع کل: {total}\n\nمنتظر تحویل باشید!",
         "order.status.notify_order_delivered": "سفارش {order_code} تحویل داده شد! ✅\n\nاز خرید شما متشکریم! امیدواریم دوباره شما را ببینیم! 🙏",
@@ -4374,6 +4505,35 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.bitcoin.send_exact": "• مبلغ دقیق نشان\u200cداده\u200cشده را ارسال کنید",
         "order.payment.bitcoin.title": "💳 <b>دستورالعمل پرداخت Bitcoin</b>",
         "order.payment.bitcoin.total_amount": "مبلغ کل: <b>{amount} {currency}</b>",
+
+        # Crypto payment (Card 18) — generic strings for all coins
+        "crypto.payment.title": "💳 <b>{coin_name} Payment</b>",
+        "crypto.payment.order_code": "Order: <b>{code}</b>",
+        "crypto.payment.total_fiat": "Total: <b>{amount} {currency}</b>",
+        "crypto.payment.rate": "Rate: 1 {coin} = {rate} {currency}",
+        "crypto.payment.amount_due": "Amount due: <b>{crypto_amount} {coin}</b>",
+        "crypto.payment.address": "<b>Send to this address:</b>\n<code>{address}</code>",
+        "crypto.payment.send_exact": "• Send EXACTLY this amount",
+        "crypto.payment.one_time": "• This address is for ONE-TIME use",
+        "crypto.payment.auto_confirm": "• Your order will be automatically confirmed once the payment is detected on-chain.",
+        "crypto.payment.waiting": "⏳ Waiting for payment...\nThis address expires in {timeout} minutes.",
+        "crypto.payment.no_address": "❌ No {coin} addresses available. Please contact support or choose another payment method.",
+        "crypto.payment_detected": (
+            "✅ <b>Payment detected!</b>\n"
+            "TX: <code>{tx_hash}</code>\n"
+            "Amount: {amount} {coin}\n"
+            "Confirmations: {confirmations}/{required}\n\n"
+            "⏳ Waiting for confirmations..."
+        ),
+        "crypto.payment_confirmed": (
+            "✅ <b>Payment confirmed!</b>\n"
+            "TX: <code>{tx_hash}</code>\n"
+            "Amount: {amount} {coin}\n"
+            "Confirmations: {confirmations}/{required}\n\n"
+            "Your order is now being processed."
+        ),
+        "crypto.payment_expired": "⏰ Payment window for your {coin} order ({order_code}) has expired. Please place a new order.",
+
         "order.payment.cash.admin_contact": "مدیر به زودی با شما تماس خواهد گرفت.",
         "order.payment.cash.after_confirm": "پس از تأیید، زمان تحویل به شما اطلاع داده خواهد شد.",
         "order.payment.cash.created": "سفارش {code} شما ایجاد شد و در انتظار تأیید مدیر است.",
@@ -4936,6 +5096,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # === Orders ===
         "order.payment_method.choose": "💳 د تادیې لاره وټاکئ:",
         "order.payment_method.bitcoin": "💳 Bitcoin",
+        "order.payment_method.litecoin": "💳 Litecoin",
+        "order.payment_method.solana": "💳 SOL",
+        "order.payment_method.usdt_sol": "💳 USDT (Solana)",
         "order.payment_method.cash": "💵 د رسولو پر مهال تادیه",
         "order.status.notify_order_confirmed": "سفارش {order_code} تأیید شو! 🎉\n\nستاسو سفارش به رسول شي: {delivery_time}\n\nمحصولات:\n{items}\n\nټول: {total}\n\nد رسولو انتظار وکړئ!",
         "order.status.notify_order_delivered": "سفارش {order_code} رسول شو! ✅\n\nستاسو د اخیستنې مننه! هیله لرو بیا مو وګورو! 🙏",
@@ -5200,6 +5363,35 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.bitcoin.send_exact": "• پورته ښودل شوی دقیق مبلغ واستوئ",
         "order.payment.bitcoin.title": "💳 <b>د Bitcoin تادیې لارښوونې</b>",
         "order.payment.bitcoin.total_amount": "ټول مبلغ: <b>{amount} {currency}</b>",
+
+        # Crypto payment (Card 18) — generic strings for all coins
+        "crypto.payment.title": "💳 <b>{coin_name} Payment</b>",
+        "crypto.payment.order_code": "Order: <b>{code}</b>",
+        "crypto.payment.total_fiat": "Total: <b>{amount} {currency}</b>",
+        "crypto.payment.rate": "Rate: 1 {coin} = {rate} {currency}",
+        "crypto.payment.amount_due": "Amount due: <b>{crypto_amount} {coin}</b>",
+        "crypto.payment.address": "<b>Send to this address:</b>\n<code>{address}</code>",
+        "crypto.payment.send_exact": "• Send EXACTLY this amount",
+        "crypto.payment.one_time": "• This address is for ONE-TIME use",
+        "crypto.payment.auto_confirm": "• Your order will be automatically confirmed once the payment is detected on-chain.",
+        "crypto.payment.waiting": "⏳ Waiting for payment...\nThis address expires in {timeout} minutes.",
+        "crypto.payment.no_address": "❌ No {coin} addresses available. Please contact support or choose another payment method.",
+        "crypto.payment_detected": (
+            "✅ <b>Payment detected!</b>\n"
+            "TX: <code>{tx_hash}</code>\n"
+            "Amount: {amount} {coin}\n"
+            "Confirmations: {confirmations}/{required}\n\n"
+            "⏳ Waiting for confirmations..."
+        ),
+        "crypto.payment_confirmed": (
+            "✅ <b>Payment confirmed!</b>\n"
+            "TX: <code>{tx_hash}</code>\n"
+            "Amount: {amount} {coin}\n"
+            "Confirmations: {confirmations}/{required}\n\n"
+            "Your order is now being processed."
+        ),
+        "crypto.payment_expired": "⏰ Payment window for your {coin} order ({order_code}) has expired. Please place a new order.",
+
         "order.payment.cash.admin_contact": "مدیر به ډېر ژر تاسو سره اړیکه ونیسي.",
         "order.payment.cash.after_confirm": "د تأیید وروسته، د رسولو وخت به تاسو ته خبر درکړل شي.",
         "order.payment.cash.created": "ستاسو سفارش {code} جوړ شو او د مدیر تأیید ته انتظار کې دی.",
@@ -5762,6 +5954,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # === Orders ===
         "order.payment_method.choose": "💳 Choisissez le mode de paiement :",
         "order.payment_method.bitcoin": "💳 Bitcoin",
+        "order.payment_method.litecoin": "💳 Litecoin",
+        "order.payment_method.solana": "💳 SOL",
+        "order.payment_method.usdt_sol": "💳 USDT (Solana)",
         "order.payment_method.cash": "💵 Paiement à la livraison",
         "order.status.notify_order_confirmed": "Commande {order_code} confirmée ! 🎉\n\nVotre commande sera livrée le : {delivery_time}\n\nArticles :\n{items}\n\nTotal : {total}\n\nPatientez pour la livraison !",
         "order.status.notify_order_delivered": "Commande {order_code} livrée ! ✅\n\nMerci pour votre achat ! Nous espérons vous revoir bientôt ! 🙏",
@@ -6026,6 +6221,35 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.bitcoin.send_exact": "• Envoyez le montant EXACT indiqué ci-dessus",
         "order.payment.bitcoin.title": "💳 <b>Instructions de paiement Bitcoin</b>",
         "order.payment.bitcoin.total_amount": "Montant total : <b>{amount} {currency}</b>",
+
+        # Crypto payment (Card 18) — generic strings for all coins
+        "crypto.payment.title": "💳 <b>{coin_name} Payment</b>",
+        "crypto.payment.order_code": "Order: <b>{code}</b>",
+        "crypto.payment.total_fiat": "Total: <b>{amount} {currency}</b>",
+        "crypto.payment.rate": "Rate: 1 {coin} = {rate} {currency}",
+        "crypto.payment.amount_due": "Amount due: <b>{crypto_amount} {coin}</b>",
+        "crypto.payment.address": "<b>Send to this address:</b>\n<code>{address}</code>",
+        "crypto.payment.send_exact": "• Send EXACTLY this amount",
+        "crypto.payment.one_time": "• This address is for ONE-TIME use",
+        "crypto.payment.auto_confirm": "• Your order will be automatically confirmed once the payment is detected on-chain.",
+        "crypto.payment.waiting": "⏳ Waiting for payment...\nThis address expires in {timeout} minutes.",
+        "crypto.payment.no_address": "❌ No {coin} addresses available. Please contact support or choose another payment method.",
+        "crypto.payment_detected": (
+            "✅ <b>Payment detected!</b>\n"
+            "TX: <code>{tx_hash}</code>\n"
+            "Amount: {amount} {coin}\n"
+            "Confirmations: {confirmations}/{required}\n\n"
+            "⏳ Waiting for confirmations..."
+        ),
+        "crypto.payment_confirmed": (
+            "✅ <b>Payment confirmed!</b>\n"
+            "TX: <code>{tx_hash}</code>\n"
+            "Amount: {amount} {coin}\n"
+            "Confirmations: {confirmations}/{required}\n\n"
+            "Your order is now being processed."
+        ),
+        "crypto.payment_expired": "⏰ Payment window for your {coin} order ({order_code}) has expired. Please place a new order.",
+
         "order.payment.cash.admin_contact": "L'administrateur vous contactera sous peu.",
         "order.payment.cash.after_confirm": "Après confirmation, vous serez notifié de l'heure de livraison.",
         "order.payment.cash.created": "Votre commande {code} a été créée et est en attente de confirmation de l'administrateur.",

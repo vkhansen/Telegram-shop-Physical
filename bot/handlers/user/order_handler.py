@@ -19,7 +19,8 @@ from bot.payments.bitcoin import get_available_bitcoin_address, mark_bitcoin_add
 from bot.export import log_order_creation, sync_customer_to_csv
 from bot.utils import generate_unique_order_code, get_telegram_username
 from bot.utils.validators import validate_and_normalize_phone
-from bot.monitoring import get_metrics
+from bot.utils.message_utils import send_or_edit
+from bot.utils.tracking import track_payment
 
 router = Router()
 
@@ -55,10 +56,7 @@ async def show_location_method_choice(target, state: FSMContext, *, edit: bool =
         (localize("btn.location_method.google_link"), "loc_method_google_link"),
         (localize("btn.location_method.type_address"), "loc_method_type_address"),
     ], per_row=1)
-    if edit and hasattr(target, 'edit_text'):
-        await target.edit_text(text, reply_markup=kb)
-    else:
-        await target.answer(text, reply_markup=kb)
+    await send_or_edit(target, text, reply_markup=kb, edit=edit)
     await state.set_state(OrderStates.waiting_location_method)
 
 
@@ -310,10 +308,7 @@ async def ask_delivery_type(message: Message, state: FSMContext, *, edit: bool =
         (localize("btn.delivery.dead_drop"), "delivery_type_dead_drop"),
         (localize("btn.delivery.pickup"), "delivery_type_pickup"),
     ], per_row=1)
-    if edit and hasattr(message, 'edit_text'):
-        await message.edit_text(text, reply_markup=kb)
-    else:
-        await message.answer(text, reply_markup=kb)
+    await send_or_edit(message, text, reply_markup=kb, edit=edit)
     await state.set_state(OrderStates.waiting_delivery_type)
 
 
@@ -557,10 +552,7 @@ async def check_and_ask_about_bonus(message: Message, state: FSMContext, user_id
                 (localize("btn.apply_bonus_yes"), "apply_bonus_yes"),
                 (localize("btn.apply_bonus_no"), "apply_bonus_no")
             ], per_row=2)
-            if from_callback:
-                await message.edit_text(text, reply_markup=kb)
-            else:
-                await message.answer(text, reply_markup=kb)
+            await send_or_edit(message, text, reply_markup=kb, edit=from_callback)
             return
 
     # No bonus or zero bonus - proceed to payment
@@ -688,70 +680,270 @@ async def show_payment_method_selection(message: Message, state: FSMContext, use
 
     payment_buttons.append((localize("order.payment_method.bitcoin"), "payment_method_bitcoin"))
 
-    if from_callback:
-        await message.edit_text(
-            summary_text,
-            reply_markup=simple_buttons(payment_buttons, per_row=1)
-        )
-    else:
-        await message.answer(
-            summary_text,
-            reply_markup=simple_buttons(payment_buttons, per_row=1)
-        )
+    # Add crypto coins if enabled (Card 18)
+    if EnvKeys.CRYPTO_PAYMENTS_ENABLED:
+        enabled_coins = [c.strip() for c in EnvKeys.CRYPTO_COINS_ENABLED.split(",") if c.strip()]
+        from bot.utils.constants import PAYMENT_METHOD_TO_COIN
+        coin_to_method = {v: k for k, v in PAYMENT_METHOD_TO_COIN.items()}
+        for coin in enabled_coins:
+            method = coin_to_method.get(coin)
+            if method and method != "bitcoin":  # BTC already added above
+                label_key = f"order.payment_method.{method}"
+                payment_buttons.append((localize(label_key), f"payment_method_{method}"))
 
+    await send_or_edit(
+        message, summary_text,
+        reply_markup=simple_buttons(payment_buttons, per_row=1),
+        edit=from_callback,
+    )
     await state.set_state(OrderStates.waiting_payment_method)
+
+
+# ---------------------------------------------------------------------------
+# Payment method handlers — one factory to bind (method_name → processor).
+# ---------------------------------------------------------------------------
+
+PAYMENT_PROCESSORS = {
+    "bitcoin": lambda msg, st, uid: process_bitcoin_payment_new_message(msg, st, user_id=uid),
+    "cash": lambda msg, st, uid: process_cash_payment_new_message(msg, st, user_id=uid),
+    "promptpay": lambda msg, st, uid: process_promptpay_payment(msg, st, user_id=uid),
+    "litecoin": lambda msg, st, uid: process_crypto_payment(msg, st, user_id=uid),
+    "solana": lambda msg, st, uid: process_crypto_payment(msg, st, user_id=uid),
+    "usdt_sol": lambda msg, st, uid: process_crypto_payment(msg, st, user_id=uid),
+}
+
+
+async def _handle_payment_method(call: CallbackQuery, state: FSMContext, method: str):
+    """Common logic for every payment-method callback."""
+    await call.answer()
+    await state.update_data(payment_method=method)
+    track_payment(method, call.from_user.id)
+    processor = PAYMENT_PROCESSORS[method]
+    await processor(call.message, state, call.from_user.id)
 
 
 @router.callback_query(F.data == "payment_method_bitcoin", OrderStates.waiting_payment_method)
 async def payment_method_bitcoin_handler(call: CallbackQuery, state: FSMContext):
-    """
-    User selected Bitcoin payment
-    """
-    await call.answer()
-    await state.update_data(payment_method='bitcoin')
-
-    # Track payment method selection
-    metrics = get_metrics()
-    if metrics:
-        metrics.track_event("payment_bitcoin_initiated", call.from_user.id)
-        metrics.track_conversion("customer_journey", "payment_initiated", call.from_user.id)
-
-    # Proceed to Bitcoin payment
-    await process_bitcoin_payment_new_message(call.message, state, user_id=call.from_user.id)
+    await _handle_payment_method(call, state, "bitcoin")
 
 
 @router.callback_query(F.data == "payment_method_cash", OrderStates.waiting_payment_method)
 async def payment_method_cash_handler(call: CallbackQuery, state: FSMContext):
-    """
-    User selected Cash payment
-    """
-    await call.answer()
-    await state.update_data(payment_method='cash')
-
-    # Track payment method selection
-    metrics = get_metrics()
-    if metrics:
-        metrics.track_event("payment_cash_initiated", call.from_user.id)
-        metrics.track_conversion("customer_journey", "payment_initiated", call.from_user.id)
-
-    # Proceed to Cash payment
-    await process_cash_payment_new_message(call.message, state, user_id=call.from_user.id)
+    await _handle_payment_method(call, state, "cash")
 
 
 @router.callback_query(F.data == "payment_method_promptpay", OrderStates.waiting_payment_method)
 async def payment_method_promptpay_handler(call: CallbackQuery, state: FSMContext):
-    """
-    User selected PromptPay payment (Card 1)
-    """
-    await call.answer()
-    await state.update_data(payment_method='promptpay')
+    await _handle_payment_method(call, state, "promptpay")
 
-    metrics = get_metrics()
-    if metrics:
-        metrics.track_event("payment_promptpay_initiated", call.from_user.id)
-        metrics.track_conversion("customer_journey", "payment_initiated", call.from_user.id)
 
-    await process_promptpay_payment(call.message, state, user_id=call.from_user.id)
+@router.callback_query(F.data == "payment_method_litecoin", OrderStates.waiting_payment_method)
+async def payment_method_litecoin_handler(call: CallbackQuery, state: FSMContext):
+    await _handle_payment_method(call, state, "litecoin")
+
+
+@router.callback_query(F.data == "payment_method_solana", OrderStates.waiting_payment_method)
+async def payment_method_solana_handler(call: CallbackQuery, state: FSMContext):
+    await _handle_payment_method(call, state, "solana")
+
+
+@router.callback_query(F.data == "payment_method_usdt_sol", OrderStates.waiting_payment_method)
+async def payment_method_usdt_sol_handler(call: CallbackQuery, state: FSMContext):
+    await _handle_payment_method(call, state, "usdt_sol")
+
+
+# ---------------------------------------------------------------------------
+# Generic crypto payment processor (Card 18) — handles LTC, SOL, USDT_SOL.
+# BTC still uses legacy process_bitcoin_payment_new_message for backward compat.
+# ---------------------------------------------------------------------------
+
+async def process_crypto_payment(message: Message, state: FSMContext, *, user_id: int = None):
+    """Generic flow for on-chain-verified crypto payments (LTC, SOL, USDT)."""
+    from bot.utils.constants import PAYMENT_METHOD_TO_COIN
+    from bot.payments.crypto_addresses import get_available_address, mark_address_used
+    from bot.payments.chain_verify import get_verifier
+    from bot.database.models.main import CryptoPayment
+
+    if user_id is None:
+        user_id = message.from_user.id
+    username = get_telegram_username(message)
+
+    data = await state.get_data()
+    payment_method = data.get("payment_method")
+    coin = PAYMENT_METHOD_TO_COIN.get(payment_method)
+    if not coin:
+        await message.answer(localize("order.payment.error_general"), reply_markup=back("view_cart"))
+        return
+
+    verifier = get_verifier(coin)
+    coin_name = verifier.coin_name()
+
+    cart_items = await get_cart_items(user_id)
+    if not cart_items:
+        await message.answer(localize("cart.empty_alert"), reply_markup=back("shop"))
+        return
+
+    total_amount = await calculate_cart_total(user_id)
+    bonus_applied = Decimal(str(data.get("bonus_applied", 0)))
+    final_amount = total_amount - bonus_applied
+    dd_type = data.get("delivery_type", "door")
+    dd_instructions = data.get("drop_instructions")
+    dd_lat = data.get("drop_latitude")
+    dd_lng = data.get("drop_longitude")
+    dd_media = data.get("drop_media")
+
+    # Get price conversion
+    try:
+        from bot.payments.price_feed import get_crypto_amount
+        crypto_amount, exchange_rate = await get_crypto_amount(coin, final_amount)
+    except Exception as exc:
+        logger.error("Price feed error for %s: %s", coin, exc)
+        await message.answer(localize("order.payment.error_general"), reply_markup=back("view_cart"))
+        return
+
+    # Claim an address
+    address = get_available_address(coin, user_id=user_id)
+    if not address:
+        await message.answer(
+            localize("crypto.payment.no_address", coin=coin_name),
+            reply_markup=back("back_to_menu"),
+        )
+        return
+
+    with Database().session() as session:
+        customer_info = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
+        if not customer_info:
+            await message.answer(localize("order.payment.customer_not_found"), reply_markup=back("view_cart"))
+            return
+
+        if bonus_applied > 0:
+            if customer_info.bonus_balance < bonus_applied:
+                await message.answer(localize("order.bonus.insufficient"), reply_markup=back("view_cart"))
+                return
+            customer_info.bonus_balance -= bonus_applied
+
+        try:
+            # Create order
+            order = Order(
+                buyer_id=user_id,
+                total_price=Decimal(str(total_amount)),
+                bonus_applied=bonus_applied,
+                payment_method=payment_method,
+                delivery_address=customer_info.delivery_address,
+                phone_number=customer_info.phone_number,
+                delivery_note=customer_info.delivery_note or "",
+                crypto_address=address,
+                payment_coin=coin,
+                order_status="pending",
+                latitude=customer_info.latitude,
+                longitude=customer_info.longitude,
+                google_maps_link=(
+                    f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}"
+                    if customer_info.latitude else None
+                ),
+                delivery_type=dd_type,
+                drop_instructions=dd_instructions,
+                drop_latitude=dd_lat,
+                drop_longitude=dd_lng,
+                drop_media=dd_media,
+            )
+            session.add(order)
+            session.flush()
+            order.order_code = generate_unique_order_code(session)
+
+            # Order items
+            items_summary = []
+            items_to_reserve = []
+            for cart_item in cart_items:
+                oi = OrderItem(
+                    order_id=order.id,
+                    item_name=cart_item["item_name"],
+                    price=Decimal(str(cart_item["price"])),
+                    quantity=cart_item["quantity"],
+                    selected_modifiers=cart_item.get("selected_modifiers"),
+                )
+                session.add(oi)
+                items_summary.append(
+                    f"{cart_item['item_name']} x{cart_item['quantity']} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}"
+                )
+                items_to_reserve.append({"item_name": cart_item["item_name"], "quantity": cart_item["quantity"]})
+
+            # Reserve inventory (7 day timeout for crypto)
+            success, reserve_msg = reserve_inventory(order.id, items_to_reserve, payment_method=payment_method, session=session)
+            if not success:
+                session.rollback()
+                await message.answer(
+                    localize("order.inventory.unable_to_reserve", unavailable_items=reserve_msg),
+                    reply_markup=back("view_cart"),
+                )
+                return
+
+            # Mark address used
+            mark_address_used(coin, address, user_id, order.id, session=session)
+
+            # Create CryptoPayment record for on-chain verification
+            from datetime import timedelta
+            timeout_map = {
+                "btc": EnvKeys.CRYPTO_PAYMENT_TIMEOUT_BTC,
+                "ltc": EnvKeys.CRYPTO_PAYMENT_TIMEOUT_LTC,
+                "sol": EnvKeys.CRYPTO_PAYMENT_TIMEOUT_SOL,
+                "usdt_sol": EnvKeys.CRYPTO_PAYMENT_TIMEOUT_USDT,
+            }
+            timeout_minutes = timeout_map.get(coin, 60)
+            from datetime import datetime as dt, timezone as tz
+            crypto_payment = CryptoPayment(
+                order_id=order.id,
+                coin=coin,
+                receive_address=address,
+                expected_amount=crypto_amount,
+                required_confirmations=verifier.required_confirmations(),
+                expires_at=dt.now(tz.utc) + timedelta(minutes=timeout_minutes),
+            )
+            session.add(crypto_payment)
+
+            log_order_creation(
+                order_id=order.id, buyer_id=user_id, buyer_username=username,
+                items_summary="\n".join(items_summary),
+                total_price=float(total_amount), payment_method=payment_method,
+                delivery_address=customer_info.delivery_address,
+                phone_number=customer_info.phone_number,
+                bitcoin_address=address, order_code=order.order_code,
+            )
+
+            session.query(ShoppingCart).filter_by(user_id=user_id).delete()
+            session.commit()
+
+            from bot.utils.tracking import track_event
+            track_event("order_created", user_id, {
+                "order_code": order.order_code,
+                "payment_method": payment_method,
+                "coin": coin,
+                "total": float(total_amount),
+                "bonus_applied": float(bonus_applied),
+            })
+
+            # Send payment message
+            payment_text = (
+                localize("crypto.payment.title", coin_name=coin_name) + "\n\n" +
+                localize("crypto.payment.order_code", code=order.order_code) + "\n" +
+                localize("crypto.payment.total_fiat", amount=final_amount, currency=EnvKeys.PAY_CURRENCY) + "\n" +
+                localize("crypto.payment.rate", coin=coin.upper(), rate=exchange_rate, currency=EnvKeys.PAY_CURRENCY) + "\n" +
+                localize("crypto.payment.amount_due", crypto_amount=crypto_amount, coin=coin.upper()) + "\n\n" +
+                localize("crypto.payment.address", address=address) + "\n\n" +
+                localize("crypto.payment.send_exact") + "\n" +
+                localize("crypto.payment.one_time") + "\n" +
+                localize("crypto.payment.auto_confirm") + "\n\n" +
+                localize("crypto.payment.waiting", timeout=timeout_minutes)
+            )
+
+            await message.answer(payment_text, reply_markup=back("back_to_menu"))
+            sync_customer_to_csv(user_id, username)
+            await state.clear()
+
+        except Exception as e:
+            session.rollback()
+            logger.error("Error creating crypto order: %s", e)
+            await message.answer(localize("order.payment.error_general"), reply_markup=back("view_cart"))
 
 
 async def finalize_order_and_payment(message: Message, state: FSMContext, user_id: int = None,

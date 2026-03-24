@@ -78,5 +78,17 @@ class EnvKeys(ABC):
     MONITORING_HOST: Final = os.getenv("MONITORING_HOST", "localhost")
     MONITORING_PORT: Final = int(os.getenv("MONITORING_PORT", 9090))
 
+    # Crypto payments (Card 18)
+    CRYPTO_PAYMENTS_ENABLED: Final = os.getenv("CRYPTO_PAYMENTS_ENABLED", "false").lower() in ("1", "true", "yes")
+    CRYPTO_POLL_INTERVAL: Final = int(os.getenv("CRYPTO_POLL_INTERVAL", 30))
+    CRYPTO_PAYMENT_TIMEOUT_BTC: Final = int(os.getenv("CRYPTO_PAYMENT_TIMEOUT_BTC", 60))
+    CRYPTO_PAYMENT_TIMEOUT_LTC: Final = int(os.getenv("CRYPTO_PAYMENT_TIMEOUT_LTC", 60))
+    CRYPTO_PAYMENT_TIMEOUT_SOL: Final = int(os.getenv("CRYPTO_PAYMENT_TIMEOUT_SOL", 30))
+    CRYPTO_PAYMENT_TIMEOUT_USDT: Final = int(os.getenv("CRYPTO_PAYMENT_TIMEOUT_USDT", 30))
+    CRYPTO_COINS_ENABLED: Final = os.getenv("CRYPTO_COINS_ENABLED", "btc")  # comma-separated
+    BLOCKCYPHER_API_KEY: Final = os.getenv("BLOCKCYPHER_API_KEY", "")
+    SOLANA_RPC_URL: Final = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
+    COINGECKO_API_KEY: Final = os.getenv("COINGECKO_API_KEY", "")
+
     # Database (for manual deploy) — SEC-02 fix: require env var, no hardcoded credentials
     DATABASE_URL: Final = os.environ.get("DATABASE_URL")  # must be set in environment
