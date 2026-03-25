@@ -143,13 +143,13 @@ async def select_branch(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     brand_id = data.get('current_brand_id')
     if not brand_id:
-        await call.answer("Please select a brand first", show_alert=True)
+        await call.answer(localize("shop.error.brand_required"), show_alert=True)
         return
 
     stores = get_stores_for_brand(brand_id, active_only=True)
     store = next((s for s in stores if s['id'] == store_id), None)
     if not store:
-        await call.answer("Branch not available", show_alert=True)
+        await call.answer(localize("shop.error.branch_unavailable"), show_alert=True)
         return
 
     await state.update_data(current_store_id=store['id'], current_store_name=store['name'])

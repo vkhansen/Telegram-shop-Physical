@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from bot.database.main import Database
 from bot.database.models.main import BitcoinAddress
@@ -75,7 +75,7 @@ def get_available_bitcoin_address(user_id: int = None, order_id: int = None) -> 
                 btc_addr.used_by = user_id
             if order_id:
                 btc_addr.order_id = order_id
-            btc_addr.used_at = datetime.now()
+            btc_addr.used_at = datetime.now(timezone.utc)
             session.commit()
             return btc_addr.address
 
@@ -108,7 +108,7 @@ def mark_bitcoin_address_used(address: str, user_id: int, user_username: str,
         # Mark as used
         btc_addr.is_used = True
         btc_addr.used_by = user_id
-        btc_addr.used_at = datetime.now()
+        btc_addr.used_at = datetime.now(timezone.utc)
         btc_addr.order_id = order_id
 
         # Don't commit here - caller will commit
@@ -123,7 +123,7 @@ def mark_bitcoin_address_used(address: str, user_id: int, user_username: str,
             # Mark as used
             btc_addr.is_used = True
             btc_addr.used_by = user_id
-            btc_addr.used_at = datetime.now()
+            btc_addr.used_at = datetime.now(timezone.utc)
             btc_addr.order_id = order_id
 
             db_session.commit()

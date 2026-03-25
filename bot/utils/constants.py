@@ -31,6 +31,17 @@ DELIVERY_DOOR = "door"
 DELIVERY_DEAD_DROP = "dead_drop"
 DELIVERY_PICKUP = "pickup"
 
+# Order statuses
+STATUS_PENDING = "pending"
+STATUS_RESERVED = "reserved"
+STATUS_CONFIRMED = "confirmed"
+STATUS_PREPARING = "preparing"
+STATUS_READY = "ready"
+STATUS_OUT_FOR_DELIVERY = "out_for_delivery"
+STATUS_DELIVERED = "delivered"
+STATUS_CANCELLED = "cancelled"
+STATUS_EXPIRED = "expired"
+
 # Order status → emoji mapping (shared across admin & user views)
 STATUS_EMOJI = {
     "pending": "\u23f3",

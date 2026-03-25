@@ -118,7 +118,7 @@ async def set_locale_callback(call: CallbackQuery, state: FSMContext):
     user_id = call.from_user.id
 
     if locale_code not in AVAILABLE_LOCALES:
-        await call.answer("Invalid language")
+        await call.answer(localize("errors.invalid_language"))
         return
 
     await call.answer()

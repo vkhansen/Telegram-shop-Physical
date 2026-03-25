@@ -8,7 +8,7 @@ USDT is special: since it's pegged to USD, we first convert THB→USD.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Tuple
 
@@ -71,7 +71,7 @@ async def _get_price(coin_id: str, fiat_currency: str) -> Decimal:
     cache_key = f"{coin_id}_{fiat_currency}"
     if cache_key in _price_cache:
         price, cached_at = _price_cache[cache_key]
-        if datetime.now() - cached_at < CACHE_TTL:
+        if datetime.now(timezone.utc) - cached_at < CACHE_TTL:
             return price
 
     headers = {}
@@ -88,7 +88,7 @@ async def _get_price(coin_id: str, fiat_currency: str) -> Decimal:
         data = resp.json()
         price = Decimal(str(data[coin_id][fiat_currency]))
 
-    _price_cache[cache_key] = (price, datetime.now())
+    _price_cache[cache_key] = (price, datetime.now(timezone.utc))
     logger.debug("Price update: %s = %s %s", coin_id, price, fiat_currency)
     return price
 

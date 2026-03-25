@@ -21,6 +21,11 @@ from bot.utils import generate_unique_order_code, get_telegram_username
 from bot.utils.validators import validate_and_normalize_phone
 from bot.utils.message_utils import send_or_edit
 from bot.utils.tracking import track_payment
+from bot.utils.constants import (
+    PAYMENT_BITCOIN, PAYMENT_CASH, PAYMENT_PROMPTPAY,
+    PAYMENT_LITECOIN, PAYMENT_SOLANA, PAYMENT_USDT_SOL,
+    DELIVERY_DOOR, DELIVERY_DEAD_DROP, DELIVERY_PICKUP,
+)
 
 router = Router()
 
@@ -316,7 +321,7 @@ async def ask_delivery_type(message: Message, state: FSMContext, *, edit: bool =
 async def delivery_type_door(call: CallbackQuery, state: FSMContext):
     """User selected door delivery"""
     await call.answer()
-    await state.update_data(delivery_type="door")
+    await state.update_data(delivery_type=DELIVERY_DOOR)
     await call.message.edit_text(
         localize("order.delivery.phone_prompt"),
         reply_markup=back("view_cart")
@@ -328,7 +333,7 @@ async def delivery_type_door(call: CallbackQuery, state: FSMContext):
 async def delivery_type_dead_drop(call: CallbackQuery, state: FSMContext):
     """User selected dead drop — collect instructions"""
     await call.answer()
-    await state.update_data(delivery_type="dead_drop")
+    await state.update_data(delivery_type=DELIVERY_DEAD_DROP)
     await call.message.edit_text(
         localize("order.delivery.drop_instructions_prompt"),
     )
@@ -339,7 +344,7 @@ async def delivery_type_dead_drop(call: CallbackQuery, state: FSMContext):
 async def delivery_type_pickup(call: CallbackQuery, state: FSMContext):
     """User selected self-pickup — skip address/location details"""
     await call.answer()
-    await state.update_data(delivery_type="pickup")
+    await state.update_data(delivery_type=DELIVERY_PICKUP)
     await call.message.edit_text(
         localize("order.delivery.phone_prompt"),
         reply_markup=back("view_cart")
@@ -704,12 +709,12 @@ async def show_payment_method_selection(message: Message, state: FSMContext, use
 # ---------------------------------------------------------------------------
 
 PAYMENT_PROCESSORS = {
-    "bitcoin": lambda msg, st, uid: process_bitcoin_payment_new_message(msg, st, user_id=uid),
-    "cash": lambda msg, st, uid: process_cash_payment_new_message(msg, st, user_id=uid),
-    "promptpay": lambda msg, st, uid: process_promptpay_payment(msg, st, user_id=uid),
-    "litecoin": lambda msg, st, uid: process_crypto_payment(msg, st, user_id=uid),
-    "solana": lambda msg, st, uid: process_crypto_payment(msg, st, user_id=uid),
-    "usdt_sol": lambda msg, st, uid: process_crypto_payment(msg, st, user_id=uid),
+    PAYMENT_BITCOIN: lambda msg, st, uid: process_bitcoin_payment_new_message(msg, st, user_id=uid),
+    PAYMENT_CASH: lambda msg, st, uid: process_cash_payment_new_message(msg, st, user_id=uid),
+    PAYMENT_PROMPTPAY: lambda msg, st, uid: process_promptpay_payment(msg, st, user_id=uid),
+    PAYMENT_LITECOIN: lambda msg, st, uid: process_crypto_payment(msg, st, user_id=uid),
+    PAYMENT_SOLANA: lambda msg, st, uid: process_crypto_payment(msg, st, user_id=uid),
+    PAYMENT_USDT_SOL: lambda msg, st, uid: process_crypto_payment(msg, st, user_id=uid),
 }
 
 
@@ -728,32 +733,32 @@ async def _handle_payment_method(call: CallbackQuery, state: FSMContext, method:
 
 @router.callback_query(F.data == "payment_method_bitcoin", OrderStates.waiting_payment_method)
 async def payment_method_bitcoin_handler(call: CallbackQuery, state: FSMContext):
-    await _handle_payment_method(call, state, "bitcoin")
+    await _handle_payment_method(call, state, PAYMENT_BITCOIN)
 
 
 @router.callback_query(F.data == "payment_method_cash", OrderStates.waiting_payment_method)
 async def payment_method_cash_handler(call: CallbackQuery, state: FSMContext):
-    await _handle_payment_method(call, state, "cash")
+    await _handle_payment_method(call, state, PAYMENT_CASH)
 
 
 @router.callback_query(F.data == "payment_method_promptpay", OrderStates.waiting_payment_method)
 async def payment_method_promptpay_handler(call: CallbackQuery, state: FSMContext):
-    await _handle_payment_method(call, state, "promptpay")
+    await _handle_payment_method(call, state, PAYMENT_PROMPTPAY)
 
 
 @router.callback_query(F.data == "payment_method_litecoin", OrderStates.waiting_payment_method)
 async def payment_method_litecoin_handler(call: CallbackQuery, state: FSMContext):
-    await _handle_payment_method(call, state, "litecoin")
+    await _handle_payment_method(call, state, PAYMENT_LITECOIN)
 
 
 @router.callback_query(F.data == "payment_method_solana", OrderStates.waiting_payment_method)
 async def payment_method_solana_handler(call: CallbackQuery, state: FSMContext):
-    await _handle_payment_method(call, state, "solana")
+    await _handle_payment_method(call, state, PAYMENT_SOLANA)
 
 
 @router.callback_query(F.data == "payment_method_usdt_sol", OrderStates.waiting_payment_method)
 async def payment_method_usdt_sol_handler(call: CallbackQuery, state: FSMContext):
-    await _handle_payment_method(call, state, "usdt_sol")
+    await _handle_payment_method(call, state, PAYMENT_USDT_SOL)
 
 
 # ---------------------------------------------------------------------------
@@ -1066,7 +1071,7 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
 
     # Dead drop fields from FSM state
     fsm_data = await state.get_data()
-    dd_type = fsm_data.get('delivery_type', 'door')
+    dd_type = fsm_data.get('delivery_type', DELIVERY_DOOR)
     dd_instructions = fsm_data.get('drop_instructions')
     dd_lat = fsm_data.get('drop_latitude')
     dd_lng = fsm_data.get('drop_longitude')
@@ -1090,7 +1095,7 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
             order = Order(
                 buyer_id=user_id,
                 total_price=Decimal(str(total_amount)),
-                payment_method="bitcoin",
+                payment_method=PAYMENT_BITCOIN,
                 delivery_address=customer_info.delivery_address,
                 phone_number=customer_info.phone_number,
                 delivery_note=customer_info.delivery_note or "",
@@ -1157,7 +1162,7 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
                 buyer_username=username,
                 items_summary="\n".join(items_summary),
                 total_price=float(total_amount),
-                payment_method="bitcoin",
+                payment_method=PAYMENT_BITCOIN,
                 delivery_address=customer_info.delivery_address,
                 phone_number=customer_info.phone_number,
                 bitcoin_address=btc_address,
@@ -1246,7 +1251,7 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
     # Get state data (bonus + dead drop fields)
     data = await state.get_data()
     bonus_applied = Decimal(str(data.get('bonus_applied', 0)))
-    dd_type = data.get('delivery_type', 'door')
+    dd_type = data.get('delivery_type', DELIVERY_DOOR)
     dd_instructions = data.get('drop_instructions')
     dd_lat = data.get('drop_latitude')
     dd_lng = data.get('drop_longitude')
@@ -1297,7 +1302,7 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
                 buyer_id=user_id,
                 total_price=Decimal(str(total_amount)),
                 bonus_applied=bonus_applied,
-                payment_method="bitcoin",
+                payment_method=PAYMENT_BITCOIN,
                 delivery_address=customer_info.delivery_address,
                 phone_number=customer_info.phone_number,
                 delivery_note=customer_info.delivery_note or "",
@@ -1365,7 +1370,7 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
                 buyer_username=username,
                 items_summary="\n".join(items_summary),
                 total_price=float(total_amount),
-                payment_method="bitcoin",
+                payment_method=PAYMENT_BITCOIN,
                 delivery_address=customer_info.delivery_address,
                 phone_number=customer_info.phone_number,
                 bitcoin_address=btc_address,
@@ -1490,7 +1495,7 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
     # Get state data (bonus + dead drop fields)
     data = await state.get_data()
     bonus_applied = Decimal(str(data.get('bonus_applied', 0)))
-    dd_type = data.get('delivery_type', 'door')
+    dd_type = data.get('delivery_type', DELIVERY_DOOR)
     dd_instructions = data.get('drop_instructions')
     dd_lat = data.get('drop_latitude')
     dd_lng = data.get('drop_longitude')
@@ -1531,7 +1536,7 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
                 buyer_id=user_id,
                 total_price=Decimal(str(total_amount)),
                 bonus_applied=bonus_applied,
-                payment_method="cash",
+                payment_method=PAYMENT_CASH,
                 delivery_address=customer_info.delivery_address,
                 phone_number=customer_info.phone_number,
                 delivery_note=customer_info.delivery_note or "",
@@ -1595,7 +1600,7 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
                 buyer_username=username,
                 items_summary="\n".join(items_summary),
                 total_price=float(total_amount),
-                payment_method="cash",
+                payment_method=PAYMENT_CASH,
                 delivery_address=customer_info.delivery_address,
                 phone_number=customer_info.phone_number,
                 bitcoin_address=None,
@@ -1721,7 +1726,7 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
     total_amount = await calculate_cart_total(user_id)
     data = await state.get_data()
     bonus_applied = Decimal(str(data.get('bonus_applied', 0)))
-    dd_type = data.get('delivery_type', 'door')
+    dd_type = data.get('delivery_type', DELIVERY_DOOR)
     dd_instructions = data.get('drop_instructions')
     dd_lat = data.get('drop_latitude')
     dd_lng = data.get('drop_longitude')
@@ -1746,7 +1751,7 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
                 buyer_id=user_id,
                 total_price=Decimal(str(total_amount)),
                 bonus_applied=bonus_applied,
-                payment_method="promptpay",
+                payment_method=PAYMENT_PROMPTPAY,
                 delivery_address=customer_info.delivery_address,
                 phone_number=customer_info.phone_number,
                 delivery_note=customer_info.delivery_note or "",
@@ -1795,7 +1800,7 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
             log_order_creation(
                 order_id=order.id, buyer_id=user_id, buyer_username=username,
                 items_summary="\n".join(items_summary), total_price=float(total_amount),
-                payment_method="promptpay", delivery_address=customer_info.delivery_address,
+                payment_method=PAYMENT_PROMPTPAY, delivery_address=customer_info.delivery_address,
                 phone_number=customer_info.phone_number, bitcoin_address=None,
                 order_code=order.order_code
             )

@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from bot.config.env import EnvKeys
 from bot.database import Database
 from bot.database.models.main import CryptoPayment, Order
+from bot.utils.constants import STATUS_PENDING, STATUS_RESERVED, STATUS_CONFIRMED, STATUS_EXPIRED
 
 logger = logging.getLogger(__name__)
 
@@ -125,15 +126,15 @@ async def check_pending_payments(bot):
 def _auto_confirm_order(session, order_id: int):
     """Transition order from pending/reserved → confirmed once payment is verified."""
     order = session.query(Order).get(order_id)
-    if order and order.order_status in ("pending", "reserved"):
-        order.order_status = "confirmed"
+    if order and order.order_status in (STATUS_PENDING, STATUS_RESERVED):
+        order.order_status = STATUS_CONFIRMED
 
 
 def _expire_order(session, order_id: int):
     """Mark order as expired when crypto payment times out."""
     order = session.query(Order).get(order_id)
-    if order and order.order_status in ("pending", "reserved"):
-        order.order_status = "expired"
+    if order and order.order_status in (STATUS_PENDING, STATUS_RESERVED):
+        order.order_status = STATUS_EXPIRED
 
 
 async def _notify_payment_detected(bot, payment: CryptoPayment):
