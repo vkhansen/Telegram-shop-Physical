@@ -56,7 +56,11 @@ class BTCVerifier(ChainVerifier):
             # Fetch current tip height for confirmation calculation
             tip_resp = await client.get(f"{base_url}/blocks/tip/height")
             tip_resp.raise_for_status()
-            tip_height: int = int(tip_resp.text.strip())
+            try:
+                tip_height: int = int(tip_resp.text.strip())
+            except (ValueError, AttributeError):
+                logger.error("Invalid tip height response: %r", tip_resp.text)
+                return TxResult(found=False)
 
             # Scan transactions for payments to our address
             for tx in txs:

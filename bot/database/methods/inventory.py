@@ -70,9 +70,9 @@ def reserve_inventory(order_id: int, items: List[Dict[str, any]], payment_method
     Returns:
         Tuple of (success: bool, message: str)
     """
-    should_commit = session is None
     if session is None:
-        session = Database().session()
+        with Database().session() as new_session:
+            return reserve_inventory(order_id, items, payment_method, session=new_session)
 
     try:
         order = session.query(Order).filter_by(id=order_id).with_for_update().first()
@@ -122,18 +122,11 @@ def reserve_inventory(order_id: int, items: List[Dict[str, any]], payment_method
 
         order.order_status = 'reserved'
 
-        if should_commit:
-            session.commit()
-
         return True, "Inventory reserved successfully"
 
     except Exception as e:
-        if should_commit:
-            session.rollback()
+        session.rollback()
         return False, f"Error reserving inventory: {str(e)}"
-    finally:
-        if should_commit:
-            session.close()
 
 
 def release_reservation(order_id: int, reason: str = "Order cancelled", session: Session = None) -> Tuple[bool, str]:
@@ -149,9 +142,9 @@ def release_reservation(order_id: int, reason: str = "Order cancelled", session:
     Returns:
         Tuple of (success: bool, message: str)
     """
-    should_commit = session is None
     if session is None:
-        session = Database().session()
+        with Database().session() as new_session:
+            return release_reservation(order_id, reason, session=new_session)
 
     try:
         order = session.query(Order).filter_by(id=order_id).with_for_update().first()
@@ -173,7 +166,7 @@ def release_reservation(order_id: int, reason: str = "Order cancelled", session:
                 log_inventory_change(
                     item_name=order_item.item_name,
                     change_type='release',
-                    quantity_change=-order_item.quantity,  # Negative because we're reducing reserved
+                    quantity_change=-order_item.quantity,
                     order_id=order_id,
                     comment=f"{reason} - {order.order_code or order_id}",
                     session=session
@@ -184,9 +177,6 @@ def release_reservation(order_id: int, reason: str = "Order cancelled", session:
 
         # Clear reservation timeout
         order.reserved_until = None
-
-        if should_commit:
-            session.commit()
 
         # Track inventory release metrics
         metrics = get_metrics()
@@ -202,12 +192,8 @@ def release_reservation(order_id: int, reason: str = "Order cancelled", session:
         return True, "Reservation released successfully"
 
     except Exception as e:
-        if should_commit:
-            session.rollback()
+        session.rollback()
         return False, f"Error releasing reservation: {str(e)}"
-    finally:
-        if should_commit:
-            session.close()
 
 
 def deduct_inventory(order_id: int, admin_id: int = None, session: Session = None) -> Tuple[bool, str]:
@@ -223,9 +209,9 @@ def deduct_inventory(order_id: int, admin_id: int = None, session: Session = Non
     Returns:
         Tuple of (success: bool, message: str)
     """
-    should_commit = session is None
     if session is None:
-        session = Database().session()
+        with Database().session() as new_session:
+            return deduct_inventory(order_id, admin_id, session=new_session)
 
     try:
         order = session.query(Order).filter_by(id=order_id).with_for_update().first()
@@ -249,9 +235,8 @@ def deduct_inventory(order_id: int, admin_id: int = None, session: Session = Non
             goods.reserved_quantity -= order_item.quantity
 
             if goods.reserved_quantity < 0:
-                goods.reserved_quantity = 0  # Fix if somehow went negative
+                goods.reserved_quantity = 0
 
-            # Log the deduction
             log_inventory_change(
                 item_name=order_item.item_name,
                 change_type='deduct',
@@ -262,14 +247,9 @@ def deduct_inventory(order_id: int, admin_id: int = None, session: Session = Non
                 session=session
             )
 
-            # Invalidate cache for this item
             safe_create_task(invalidate_item_cache(order_item.item_name))
 
-        # Clear reservation timeout since it's now confirmed
         order.reserved_until = None
-
-        if should_commit:
-            session.commit()
 
         # Track inventory deduction metrics
         metrics = get_metrics()
@@ -285,12 +265,8 @@ def deduct_inventory(order_id: int, admin_id: int = None, session: Session = Non
         return True, "Inventory deducted successfully"
 
     except Exception as e:
-        if should_commit:
-            session.rollback()
+        session.rollback()
         return False, f"Error deducting inventory: {str(e)}"
-    finally:
-        if should_commit:
-            session.close()
 
 
 def add_inventory(item_name: str, quantity: int, admin_id: int = None,
@@ -308,19 +284,17 @@ def add_inventory(item_name: str, quantity: int, admin_id: int = None,
     Returns:
         Tuple of (success: bool, message: str)
     """
-    should_commit = session is None
     if session is None:
-        session = Database().session()
+        with Database().session() as new_session:
+            return add_inventory(item_name, quantity, admin_id, comment, session=new_session)
 
     try:
         goods = session.query(Goods).filter_by(name=item_name).with_for_update().first()
         if not goods:
             return False, f"Item '{item_name}' not found"
 
-        # Add to stock
         goods.stock_quantity += quantity
 
-        # Log the addition
         log_inventory_change(
             item_name=item_name,
             change_type='add',
@@ -330,21 +304,13 @@ def add_inventory(item_name: str, quantity: int, admin_id: int = None,
             session=session
         )
 
-        # Invalidate cache for this item
         safe_create_task(invalidate_item_cache(item_name))
-
-        if should_commit:
-            session.commit()
 
         return True, f"Added {quantity} units to {item_name}"
 
     except Exception as e:
-        if should_commit:
-            session.rollback()
+        session.rollback()
         return False, f"Error adding inventory: {str(e)}"
-    finally:
-        if should_commit:
-            session.close()
 
 
 def get_inventory_stats(item_name: str) -> Optional[Dict[str, int]]:

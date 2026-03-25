@@ -53,6 +53,8 @@ async def get_crypto_amount(coin: str, fiat_amount: Decimal) -> Tuple[Decimal, D
         raise ValueError(f"Unknown coin: {coin}")
 
     price_in_fiat = await _get_price(coin_id, shop_currency)
+    if price_in_fiat <= 0:
+        raise ValueError(f"Invalid price for {coin}: {price_in_fiat}")
     crypto_amount = fiat_amount / price_in_fiat
 
     # Round per coin precision

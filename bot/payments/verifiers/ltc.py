@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from decimal import Decimal
 from typing import Any
 
@@ -38,7 +37,8 @@ class LTCVerifier(ChainVerifier):
 
     async def _query(self, address: str, expected_amount: Decimal) -> TxResult:
         params: dict[str, Any] = {"limit": 10}
-        api_key = os.environ.get("BLOCKCYPHER_API_KEY")
+        from bot.config.env import EnvKeys
+        api_key = EnvKeys.BLOCKCYPHER_API_KEY
         if api_key:
             params["token"] = api_key
 

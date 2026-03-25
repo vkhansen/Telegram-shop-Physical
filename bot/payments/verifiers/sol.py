@@ -28,7 +28,8 @@ class SOLVerifier(ChainVerifier):
 
     @staticmethod
     def _rpc_url() -> str:
-        return os.environ.get("SOLANA_RPC_URL", DEFAULT_RPC_URL)
+        from bot.config.env import EnvKeys
+        return EnvKeys.SOLANA_RPC_URL
 
     async def check_payment(self, address: str, expected_amount: Decimal) -> TxResult:
         """Check if a SOL payment >= expected_amount was received at address."""

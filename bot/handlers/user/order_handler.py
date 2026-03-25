@@ -594,7 +594,7 @@ async def use_all_bonus_handler(call: CallbackQuery, state: FSMContext):
     amount_str = call.data.replace("use_all_bonus_", "")
     bonus_amount = Decimal(amount_str)
 
-    await state.update_data(bonus_applied=float(bonus_amount))
+    await state.update_data(bonus_applied=str(bonus_amount))
     await finalize_order_and_payment(call.message, state, user_id=call.from_user.id, from_callback=True)
 
 
@@ -622,7 +622,7 @@ async def process_bonus_amount(message: Message, state: FSMContext):
             return
 
         # Valid amount - save and proceed
-        await state.update_data(bonus_applied=float(bonus_amount))
+        await state.update_data(bonus_applied=str(bonus_amount))
         await finalize_order_and_payment(message, state, user_id=message.from_user.id)
 
     except (ValueError, TypeError):
@@ -715,10 +715,14 @@ PAYMENT_PROCESSORS = {
 
 async def _handle_payment_method(call: CallbackQuery, state: FSMContext, method: str):
     """Common logic for every payment-method callback."""
+    processor = PAYMENT_PROCESSORS.get(method)
+    if not processor:
+        logger.error("Unknown payment method: %s", method)
+        await call.answer(localize("order.payment.error_general"), show_alert=True)
+        return
     await call.answer()
     await state.update_data(payment_method=method)
     track_payment(method, call.from_user.id)
-    processor = PAYMENT_PROCESSORS[method]
     await processor(call.message, state, call.from_user.id)
 
 
