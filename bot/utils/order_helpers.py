@@ -28,6 +28,13 @@ def create_order_from_customer(
     total_amount: Decimal,
     bonus_applied: Decimal = Decimal("0"),
     bitcoin_address: str | None = None,
+    crypto_address: str | None = None,
+    payment_coin: str | None = None,
+    delivery_type: str = "door",
+    drop_instructions: str | None = None,
+    drop_latitude: float | None = None,
+    drop_longitude: float | None = None,
+    drop_media: list | None = None,
 ) -> Order:
     """
     Create an Order from CustomerInfo and cart data.
@@ -45,16 +52,39 @@ def create_order_from_customer(
         phone_number=customer_info.phone_number or "",
         delivery_note=customer_info.delivery_note or "",
         bitcoin_address=bitcoin_address,
+        crypto_address=crypto_address,
+        payment_coin=payment_coin,
         order_status="pending",
         latitude=customer_info.latitude,
         longitude=customer_info.longitude,
         google_maps_link=build_google_maps_link(customer_info.latitude, customer_info.longitude),
+        delivery_type=delivery_type,
+        drop_instructions=drop_instructions,
+        drop_latitude=drop_latitude,
+        drop_longitude=drop_longitude,
+        drop_media=drop_media,
     )
     session.add(order)
     session.flush()
 
     order.order_code = generate_unique_order_code(session)
     return order
+
+
+def extract_delivery_fields(data: dict) -> dict:
+    """Extract delivery-related fields from FSM state data.
+
+    Returns dict with keys: delivery_type, drop_instructions, drop_latitude,
+    drop_longitude, drop_media.
+    """
+    from bot.utils.constants import DELIVERY_DOOR
+    return {
+        "delivery_type": data.get("delivery_type", DELIVERY_DOOR),
+        "drop_instructions": data.get("drop_instructions"),
+        "drop_latitude": data.get("drop_latitude"),
+        "drop_longitude": data.get("drop_longitude"),
+        "drop_media": data.get("drop_media"),
+    }
 
 
 def create_order_items(session, order_id: int, cart_items: list) -> tuple[list[str], list[dict]]:
@@ -77,6 +107,7 @@ def create_order_items(session, order_id: int, cart_items: list) -> tuple[list[s
             item_name=item_name,
             price=Decimal(str(price)),
             quantity=quantity,
+            selected_modifiers=cart_item.get('selected_modifiers'),
         )
         session.add(order_item)
 

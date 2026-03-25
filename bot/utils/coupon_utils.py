@@ -6,6 +6,7 @@ Provides functions for:
 - Calculating discount amounts (percent or fixed)
 - Recording coupon usage after order placement
 """
+import logging
 from decimal import Decimal
 from datetime import datetime, timezone
 
@@ -121,5 +122,6 @@ def apply_coupon(coupon_id: int, user_id: int, order_id: int, discount: Decimal)
             session.commit()
 
         return True
-    except Exception:
+    except Exception as e:
+        logging.getLogger(__name__).error("Failed to apply coupon: %s", e)
         return False

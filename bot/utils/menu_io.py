@@ -72,7 +72,7 @@ def export_menu_to_json(output_dir: str = None) -> str:
         for item in items:
             item_data = {
                 "name": item.name,
-                "price": float(item.price),
+                "price": str(item.price),
                 "description": item.description,
                 "category": item.category_name,
                 "stock_quantity": item.stock_quantity,

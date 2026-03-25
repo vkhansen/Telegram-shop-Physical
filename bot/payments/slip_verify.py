@@ -165,7 +165,7 @@ async def _verify_easyslip(
         "checkDuplicate": True,
     }
     if expected_amount is not None:
-        payload["matchAmount"] = float(expected_amount)
+        payload["matchAmount"] = str(expected_amount)
 
     try:
         async with aiohttp.ClientSession() as session:

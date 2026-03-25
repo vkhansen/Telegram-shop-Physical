@@ -86,7 +86,11 @@ async def _get_price(coin_id: str, fiat_currency: str) -> Decimal:
         }, headers=headers)
         resp.raise_for_status()
         data = resp.json()
+        if coin_id not in data or fiat_currency not in data.get(coin_id, {}):
+            raise ValueError(f"Price data missing for {coin_id}/{fiat_currency}: {data}")
         price = Decimal(str(data[coin_id][fiat_currency]))
+        if price <= 0:
+            raise ValueError(f"Invalid price from CoinGecko for {coin_id}: {price}")
 
     _price_cache[cache_key] = (price, datetime.now(timezone.utc))
     logger.debug("Price update: %s = %s %s", coin_id, price, fiat_currency)

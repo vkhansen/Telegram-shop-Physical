@@ -234,8 +234,8 @@ def parse_promptpay_payload(payload: str) -> PromptPayInfo:
     if "54" in tlv:
         try:
             amount = Decimal(tlv["54"])
-        except Exception:
-            pass
+        except (ValueError, TypeError, ArithmeticError) as e:
+            logging.getLogger(__name__).warning("Failed to parse PromptPay amount tag 54: %s (value: %s)", e, tlv["54"])
 
     return PromptPayInfo(
         promptpay_id=local_id,

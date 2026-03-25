@@ -543,7 +543,7 @@ async def check_and_ask_about_bonus(message: Message, state: FSMContext, user_id
             total_amount = await calculate_cart_total(user_id)
 
             # Save bonus_balance in state for later use
-            await state.update_data(available_bonus=float(bonus_balance))
+            await state.update_data(available_bonus=str(bonus_balance))
 
             text = (
                     localize("order.bonus.available", bonus_balance=bonus_balance) +
@@ -775,7 +775,7 @@ async def process_crypto_payment(message: Message, state: FSMContext, *, user_id
 
     if user_id is None:
         user_id = message.from_user.id
-    username = get_telegram_username(message)
+    username = await get_telegram_username(user_id, message.bot)
 
     data = await state.get_data()
     payment_method = data.get("payment_method")
@@ -795,7 +795,7 @@ async def process_crypto_payment(message: Message, state: FSMContext, *, user_id
     total_amount = await calculate_cart_total(user_id)
     bonus_applied = Decimal(str(data.get("bonus_applied", 0)))
     final_amount = total_amount - bonus_applied
-    dd_type = data.get("delivery_type", "door")
+    dd_type = data.get("delivery_type", DELIVERY_DOOR)
     dd_instructions = data.get("drop_instructions")
     dd_lat = data.get("drop_latitude")
     dd_lng = data.get("drop_longitude")
@@ -848,7 +848,7 @@ async def process_crypto_payment(message: Message, state: FSMContext, *, user_id
                 longitude=customer_info.longitude,
                 google_maps_link=(
                     f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}"
-                    if customer_info.latitude else None
+                    if customer_info.latitude and customer_info.longitude else None
                 ),
                 delivery_type=dd_type,
                 drop_instructions=dd_instructions,
@@ -1103,7 +1103,7 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
                 order_status="pending",
                 latitude=customer_info.latitude,
                 longitude=customer_info.longitude,
-                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude else None,
+                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude and customer_info.longitude else None,
                 delivery_type=dd_type,
                 drop_instructions=dd_instructions,
                 drop_latitude=dd_lat,
@@ -1310,7 +1310,7 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
                 order_status="pending",
                 latitude=customer_info.latitude,
                 longitude=customer_info.longitude,
-                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude else None,
+                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude and customer_info.longitude else None,
                 delivery_type=dd_type,
                 drop_instructions=dd_instructions,
                 drop_latitude=dd_lat,
@@ -1544,7 +1544,7 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
                 order_status="pending",
                 latitude=customer_info.latitude,
                 longitude=customer_info.longitude,
-                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude else None,
+                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude and customer_info.longitude else None,
                 delivery_type=dd_type,
                 drop_instructions=dd_instructions,
                 drop_latitude=dd_lat,
@@ -1758,7 +1758,7 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
                 order_status="pending",
                 latitude=customer_info.latitude,
                 longitude=customer_info.longitude,
-                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude else None,
+                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude and customer_info.longitude else None,
                 delivery_type=dd_type,
                 drop_instructions=dd_instructions,
                 drop_latitude=dd_lat,

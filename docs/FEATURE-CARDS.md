@@ -1,8 +1,10 @@
-# Feature Cards - Prioritized Implementation
+# Feature Cards - Prioritized Implementation — ALL DONE
+
+> All cards below (RC1–RC7, FC1–FC9) are fully implemented and verified in the codebase.
 
 > See [MENU-SYSTEM.md](MENU-SYSTEM.md) for complete menu schema, modifier format, media handling, import/export, and multi-currency docs.
 
-## P0 - Restaurant Core (Menu Optimization)
+## P0 - Restaurant Core (Menu Optimization) — DONE
 
 ### CARD-RC1: Multi-Media Menu Items
 - **Status**: IMPLEMENTED
@@ -47,7 +49,7 @@
 
 ---
 
-## P0 - Critical User Experience
+## P0 - Critical User Experience — DONE
 
 ### CARD-FC1: Product Search
 - **Status**: IMPLEMENTED
@@ -65,7 +67,7 @@
 
 ---
 
-## P1 - Revenue & Trust
+## P1 - Revenue & Trust — DONE
 
 ### CARD-FC3: Coupon / Promo Codes
 - **Status**: IMPLEMENTED
@@ -90,7 +92,7 @@
 
 ---
 
-## P2 - Professional Operations
+## P2 - Professional Operations — DONE
 
 ### CARD-FC5: Invoice / Receipt Generation
 - **Status**: IMPLEMENTED
@@ -127,7 +129,7 @@
 
 ---
 
-## P3 - Growth & Scale
+## P3 - Growth & Scale — DONE
 
 ### CARD-FC8: Customer Segmentation
 - **Status**: IMPLEMENTED

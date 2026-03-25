@@ -1,6 +1,25 @@
 """
-Application-wide constants to replace magic strings.
+Application-wide constants and shared tiny helpers to replace magic strings.
 """
+import logging
+
+_logger = logging.getLogger(__name__)
+
+
+def parse_callback_id(data: str, prefix: str) -> int | None:
+    """Extract integer ID from callback_data after removing prefix.
+
+    Returns None (instead of crashing) if the value is not a valid integer.
+    """
+    try:
+        return int(data.replace(prefix, ""))
+    except (ValueError, TypeError):
+        _logger.warning("Invalid callback data: %r (prefix=%r)", data, prefix)
+        return None
+
+
+# Valid delivery types for validation
+VALID_DELIVERY_TYPES = frozenset({"door", "dead_drop", "pickup"})
 
 # Payment methods
 PAYMENT_BITCOIN = "bitcoin"

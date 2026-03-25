@@ -145,10 +145,11 @@ async def broadcast_messages(message: Message, state: FSMContext):
 @router.callback_query(F.data == "cancel_broadcast", HasPermissionFilter(permission=Permission.BROADCAST))
 async def cancel_broadcast_handler(call: CallbackQuery):
     """Cancel current mailing"""
-    global broadcast_manager
+    broadcast_manager = _broadcast_managers.get(call.from_user.id)
 
     if broadcast_manager:
         broadcast_manager.cancel()
+        del _broadcast_managers[call.from_user.id]
         await call.answer(localize("broadcast.cancel"), show_alert=True)
     else:
         await call.answer(localize("broadcast.warning"), show_alert=True)

@@ -6,6 +6,55 @@
 
 ---
 
+## Status Board
+
+### DONE
+
+| Card | Name | Phase | Detail |
+|------|------|-------|--------|
+| CARD-01 | PromptPay QR Payment | Phase 1 | [docs/done/CARD-01](docs/done/CARD-01-promptpay-qr-payment.md) |
+| CARD-02 | GPS Delivery Address | Phase 1 | [docs/done/CARD-02](docs/done/CARD-02-gps-delivery-address.md) |
+| CARD-03 | Dead Drop Delivery | Phase 1 | [docs/done/CARD-03](docs/done/CARD-03-dead-drop-delivery.md) |
+| CARD-04 | Photo Proof of Delivery | Phase 1 | [docs/done/CARD-04](docs/done/CARD-04-photo-proof-delivery.md) |
+| CARD-05 | Thai Language i18n | Phase 2 | [docs/done/CARD-05](docs/done/CARD-05-thai-language-i18n.md) |
+| CARD-06 | THB Currency | Phase 2 | [docs/done/CARD-06](docs/done/CARD-06-thb-currency.md) |
+| CARD-07 | Thai Address Format | Phase 2 | [docs/done/CARD-07](docs/done/CARD-07-thai-address-format.md) |
+| CARD-08 | Menu Modifiers | Phase 3 | [docs/done/CARD-08](docs/done/CARD-08-menu-modifiers.md) |
+| CARD-09 | Kitchen & Delivery Workflow | Phase 3 | [docs/done/CARD-09](docs/done/CARD-09-kitchen-delivery-workflow.md) |
+| CARD-10 | Delivery Zones & Timeslots | Phase 3 | [docs/done/CARD-10](docs/done/CARD-10-delivery-zones-timeslots.md) |
+| CARD-11 | COD Thai Localization | Phase 3 | [docs/done/CARD-11](docs/done/CARD-11-cod-thai-localization.md) |
+| CARD-12 | Timezone Bangkok | Phase 3 | [docs/done/CARD-12](docs/done/CARD-12-timezone-bangkok.md) |
+| CARD-13 | Driver Chat + Live Location | Phase 3 | [docs/done/CARD-13](docs/done/CARD-13-driver-chat-live-location.md) |
+| CARD-14 | Language Picker | Phase 3 | [docs/done/CARD-14](docs/done/CARD-14-language-picker.md) |
+| CARD-15 | GPS Live Tracking & Delivery Chat | Phase 3 | [docs/done/CARD-15](docs/done/CARD-15-gps-live-tracking-delivery-chat.md) |
+| CARD-RC1 | Multi-Media Menu Items | Restaurant Core | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
+| CARD-RC2 | Prep Time + Kitchen Tracking | Restaurant Core | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
+| CARD-RC3 | Allergen Management | Restaurant Core | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
+| CARD-RC4 | Availability Windows + Daily Limits | Restaurant Core | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
+| CARD-RC5 | Multi-Currency | Restaurant Core | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
+| CARD-RC6 | Menu Import/Export | Restaurant Core | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
+| CARD-RC7 | Interactive Modifier Builder | Restaurant Core | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
+| CARD-FC1 | Product Search | Feature | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
+| CARD-FC2 | Reorder Button | Feature | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
+| CARD-FC3 | Coupon / Promo Codes | Feature | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
+| CARD-FC4 | Review / Rating System | Feature | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
+| CARD-FC5 | Invoice / Receipt Generation | Feature | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
+| CARD-FC6 | Support Ticketing | Feature | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
+| CARD-FC7 | Accounting / Revenue Export | Feature | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
+| CARD-FC8 | Customer Segmentation | Feature | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
+| CARD-FC9 | Multi-Store / Multi-Location | Feature | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
+
+### BACKLOG (Not Started)
+
+| Card | Name | Phase | Progress | Detail |
+|------|------|-------|----------|--------|
+| CARD-16 | Line API Integration | Phase 5 | 0% | [docs/CARD-16](docs/CARD-16-line-api-integration.md) |
+| CARD-17 | Grok AI Admin Assistant | Phase 5 | 0% | [docs/CARD-17](docs/CARD-17-grok-admin-assistant.md) |
+| CARD-18 | Multi-Crypto Payments | Phase 2 | 0% | [docs/CARD-18](docs/CARD-18-crypto-payment-verification.md) |
+| CARD-19 | Multi-Brand Bot Coordination | Phase 3 | 15% | [docs/CARD-19](docs/CARD-19-multi-brand-bot-coordination.md) |
+
+---
+
 ## Current Test Coverage Analysis
 
 ### Existing Test Suite (171 tests, ~2,769 lines)
@@ -49,13 +98,13 @@ Each feature card below includes a **Test Plan** section following the existing 
 
 ---
 
-## Phase 1: Core Thailand Differentiators (Cards 1–4)
+## Phase 1: Core Thailand Differentiators (Cards 1–4) — DONE
 
 These cards deliver the minimum viable Thailand restaurant delivery experience.
 
 ---
 
-### Card 1: PromptPay QR Payment Generation + Verification
+### Card 1: PromptPay QR Payment Generation + Verification — DONE
 
 **Why:** PromptPay is Thailand's #1 payment (90%+ adoption). Users expect to scan a QR from SCB/KBank/TrueMoney and pay instantly. The current repo only supports Bitcoin and COD.
 
@@ -154,7 +203,7 @@ payment_verified_at = Column(DateTime, nullable=True)
 
 ---
 
-### Card 2: GPS-Enabled Delivery Address + Live Location
+### Card 2: GPS-Enabled Delivery Address + Live Location — DONE
 
 **Why:** Bangkok addresses are notoriously messy (soi numbers, moo, unnamed roads, condos with identical names). Grab/LINE MAN/Robinhood all use GPS pin + live location. This is table stakes for Thai delivery.
 
@@ -249,7 +298,7 @@ longitude = Column(Float, nullable=True)
 
 ---
 
-### Card 3: Dead Drop Option + Custom Delivery Instructions
+### Card 3: Dead Drop Option + Custom Delivery Instructions — DONE
 
 **Why:** Condos with security guards, offices with reception desks, gated communities — Bangkok customers frequently need "leave with guard", "put at door", "lobby shelf". This is standard in Thai delivery apps (Grab calls it "Leave at Door").
 
@@ -336,7 +385,7 @@ drop_instructions = Column(Text, nullable=True)
 
 ---
 
-### Card 4: Photo Proof of Delivery
+### Card 4: Photo Proof of Delivery — DONE
 
 **Why:** Standard in Grab/Foodpanda/LINE MAN — rider takes photo of food at door/dead drop as proof. Prevents disputes ("I never received it") and builds trust. Critical for dead drop orders.
 
@@ -426,13 +475,13 @@ delivery_photo_by = Column(BigInteger, nullable=True)  # Admin/rider who took ph
 
 ---
 
-## Phase 2: Thailand Localization (Cards 5–7)
+## Phase 2: Thailand Localization (Cards 5–7) — DONE
 
 These cards adapt the bot's language, currency, and address format for Thailand.
 
 ---
 
-### Card 5: Full Thai Language (i18n)
+### Card 5: Full Thai Language (i18n) — DONE
 
 **Why:** Most Bangkok customers prefer Thai. The bot currently supports Russian and English. Thai is essential for mass adoption.
 
@@ -493,7 +542,7 @@ These cards adapt the bot's language, currency, and address format for Thailand.
 
 ---
 
-### Card 6: THB Currency + Thai Number Formatting
+### Card 6: THB Currency + Thai Number Formatting — DONE
 
 **Why:** Default currency is RUB. Thailand uses Thai Baht (THB/฿). All prices, totals, receipts, and admin stats must display in THB.
 
@@ -549,7 +598,7 @@ These cards adapt the bot's language, currency, and address format for Thailand.
 
 ---
 
-### Card 7: Thai Address Format Fields
+### Card 7: Thai Address Format Fields — DONE
 
 **Why:** Thai addresses follow a specific format: House no. → Soi → Road → Sub-district (Khwaeng) → District (Khet) → Province → Postal code. While GPS (Card 2) is primary, structured address fields help riders and create proper receipts.
 
@@ -607,13 +656,13 @@ These cards adapt the bot's language, currency, and address format for Thailand.
 
 ---
 
-## Phase 3: Restaurant Flow Polish (Cards 8–12)
+## Phase 3: Restaurant Flow Polish (Cards 8–12) — DONE
 
 These cards transform the generic shop into a restaurant-specific delivery operation.
 
 ---
 
-### Card 8: Restaurant Menu Enhancers (Modifiers + Categories)
+### Card 8: Restaurant Menu Enhancers (Modifiers + Categories) — DONE
 
 **Why:** Restaurant orders need customization: spice level, toppings, protein choice, "no onion", "extra rice". The current `Goods` model has no modifier support. Categories exist but need restaurant-style grouping.
 
@@ -743,7 +792,7 @@ These cards transform the generic shop into a restaurant-specific delivery opera
 
 ---
 
-### Card 9: Kitchen & Delivery Status Workflow + Group Notifications
+### Card 9: Kitchen & Delivery Status Workflow + Group Notifications — DONE
 
 **Why:** Restaurant orders need real-time status updates: kitchen prep, ready for pickup, out for delivery. The current flow (pending→reserved→confirmed→delivered) doesn't distinguish kitchen and delivery stages. Kitchen staff and riders need separate Telegram group notifications.
 
@@ -856,7 +905,7 @@ These cards transform the generic shop into a restaurant-specific delivery opera
 
 ---
 
-### Card 10: Delivery Time Slots + Bangkok Zone Pricing
+### Card 10: Delivery Time Slots + Bangkok Zone Pricing — DONE
 
 **Why:** Bangkok traffic makes delivery timing critical. Peak hours (11:30–13:00, 17:30–19:30) need longer slots. Different zones (Sukhumvit, Silom, outskirts) have different delivery fees. This is standard for Thai delivery apps.
 
@@ -977,7 +1026,7 @@ class DeliveryZone(Base):
 
 ---
 
-### Card 11: Cash on Delivery — Thai Localization
+### Card 11: Cash on Delivery — Thai Localization — DONE
 
 **Why:** COD already exists in the repo. This card just relocalizes it for Thailand (Thai labels, rider cash collection flow).
 
@@ -1014,7 +1063,7 @@ class DeliveryZone(Base):
 
 ---
 
-### Card 12: Timezone + Background Tasks (ICT +07)
+### Card 12: Timezone + Background Tasks (ICT +07) — DONE
 
 **Why:** Thailand is UTC+7 (ICT). All timestamps, reservation expiry, time slots, and scheduled tasks must use Bangkok time. The repo has timezone support but defaults to UTC.
 
@@ -1207,9 +1256,9 @@ BOT_LOCALE=th
 
 ---
 
-## Phase 3: Platform Scale
+## Phase 3: Platform Scale — BACKLOG
 
-### Card 19: Multi-Brand / Multi-Store Telegram Bot Coordination Platform
+### Card 19: Multi-Brand / Multi-Store Telegram Bot Coordination Platform — 15% (DB models only)
 
 > See full card: [`docs/CARD-19-multi-brand-bot-coordination.md`](docs/CARD-19-multi-brand-bot-coordination.md)
 

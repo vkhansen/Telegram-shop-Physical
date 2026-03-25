@@ -272,10 +272,14 @@ async def delivery_photo_received(message: Message, state: FSMContext):
 @router.callback_query(F.data.startswith("kitchen_preparing_"))
 async def kitchen_start_preparing(call: CallbackQuery):
     """Kitchen marks order as preparing."""
-    order_id = int(call.data.replace("kitchen_preparing_", ""))
+    try:
+        order_id = int(call.data.replace("kitchen_preparing_", ""))
+    except (ValueError, TypeError):
+        await call.answer("Invalid order", show_alert=True)
+        return
 
     with Database().session() as session:
-        order = session.query(Order).filter_by(id=order_id).first()
+        order = session.query(Order).filter_by(id=order_id).with_for_update().first()
         if not order or not is_valid_transition(order.order_status, "preparing"):
             await call.answer("Cannot change status", show_alert=True)
             return
@@ -295,10 +299,14 @@ async def kitchen_start_preparing(call: CallbackQuery):
 @router.callback_query(F.data.startswith("kitchen_ready_"))
 async def kitchen_mark_ready(call: CallbackQuery):
     """Kitchen marks order as ready."""
-    order_id = int(call.data.replace("kitchen_ready_", ""))
+    try:
+        order_id = int(call.data.replace("kitchen_ready_", ""))
+    except (ValueError, TypeError):
+        await call.answer("Invalid order", show_alert=True)
+        return
 
     with Database().session() as session:
-        order = session.query(Order).filter_by(id=order_id).first()
+        order = session.query(Order).filter_by(id=order_id).with_for_update().first()
         if not order or not is_valid_transition(order.order_status, "ready"):
             await call.answer("Cannot change status", show_alert=True)
             return
@@ -320,10 +328,14 @@ async def kitchen_mark_ready(call: CallbackQuery):
 @router.callback_query(F.data.startswith("rider_picked_"))
 async def rider_picked_up(call: CallbackQuery):
     """Rider marks order as out for delivery."""
-    order_id = int(call.data.replace("rider_picked_", ""))
+    try:
+        order_id = int(call.data.replace("rider_picked_", ""))
+    except (ValueError, TypeError):
+        await call.answer("Invalid order", show_alert=True)
+        return
 
     with Database().session() as session:
-        order = session.query(Order).filter_by(id=order_id).first()
+        order = session.query(Order).filter_by(id=order_id).with_for_update().first()
         if not order or not is_valid_transition(order.order_status, "out_for_delivery"):
             await call.answer("Cannot change status", show_alert=True)
             return
@@ -352,10 +364,14 @@ async def rider_picked_up(call: CallbackQuery):
 @router.callback_query(F.data.startswith("rider_delivered_"))
 async def rider_mark_delivered(call: CallbackQuery):
     """Rider marks order as delivered."""
-    order_id = int(call.data.replace("rider_delivered_", ""))
+    try:
+        order_id = int(call.data.replace("rider_delivered_", ""))
+    except (ValueError, TypeError):
+        await call.answer("Invalid order", show_alert=True)
+        return
 
     with Database().session() as session:
-        order = session.query(Order).filter_by(id=order_id).first()
+        order = session.query(Order).filter_by(id=order_id).with_for_update().first()
         if not order or not is_valid_transition(order.order_status, "delivered"):
             await call.answer("Cannot change status", show_alert=True)
             return

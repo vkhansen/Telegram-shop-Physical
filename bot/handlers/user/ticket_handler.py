@@ -12,6 +12,7 @@ Provides:
 - Reply to existing tickets (text + photo)
 - Close own tickets
 """
+import logging
 import random
 import string
 from datetime import datetime, timezone
@@ -69,8 +70,8 @@ async def _notify_maintainers(bot, text: str, photo_id: str = None):
                 await bot.send_photo(mid, photo_id, caption=text)
             else:
                 await bot.send_message(mid, text)
-        except Exception:
-            pass
+        except Exception as e:
+            logging.getLogger(__name__).warning("Failed to notify maintainer %s: %s", mid, e)
     support_chat = EnvKeys.SUPPORT_CHAT_ID
     if support_chat:
         try:
@@ -78,8 +79,8 @@ async def _notify_maintainers(bot, text: str, photo_id: str = None):
                 await bot.send_photo(int(support_chat), photo_id, caption=text)
             else:
                 await bot.send_message(int(support_chat), text)
-        except Exception:
-            pass
+        except Exception as e:
+            logging.getLogger(__name__).warning("Failed to notify support chat: %s", e)
 
 
 # -- /support command ---------------------------------------------------------

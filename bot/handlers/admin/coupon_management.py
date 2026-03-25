@@ -310,7 +310,11 @@ async def admin_list_coupons(call: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data.startswith("admin_view_coupon_"), HasPermissionFilter(permission=Permission.SHOP_MANAGE))
 async def admin_view_coupon(call: CallbackQuery, state: FSMContext):
     """View coupon details and usage count."""
-    coupon_id = int(call.data.replace("admin_view_coupon_", ""))
+    try:
+        coupon_id = int(call.data.replace("admin_view_coupon_", ""))
+    except (ValueError, TypeError):
+        await call.answer("Invalid coupon", show_alert=True)
+        return
 
     with Database().session() as session:
         coupon = session.query(Coupon).filter(Coupon.id == coupon_id).first()
@@ -364,7 +368,11 @@ async def admin_view_coupon(call: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data.startswith("admin_toggle_coupon_"), HasPermissionFilter(permission=Permission.SHOP_MANAGE))
 async def admin_toggle_coupon(call: CallbackQuery, state: FSMContext):
     """Activate or deactivate a coupon."""
-    coupon_id = int(call.data.replace("admin_toggle_coupon_", ""))
+    try:
+        coupon_id = int(call.data.replace("admin_toggle_coupon_", ""))
+    except (ValueError, TypeError):
+        await call.answer("Invalid coupon", show_alert=True)
+        return
 
     with Database().session() as session:
         coupon = session.query(Coupon).filter(Coupon.id == coupon_id).first()
