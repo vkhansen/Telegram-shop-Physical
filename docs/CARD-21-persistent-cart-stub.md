@@ -1,6 +1,32 @@
 # CARD-21: Persistent Cart Stub on Menu Navigation
 
-## Status: Planned
+## Status: Phases 2/3/6 shipped — Phases 4/5 pending
+
+## Progress Log
+
+### 2026-04-13 — Pass 1 (commit `c3cad02`)
+Phases **2** (banner injection) + **6** (cart expiry) landed.
+
+- `bot/utils/cart_stub.py` — `build_cart_stub`, `inject_cart_stub`, `format_cart_stub`, `format_flash_stub`, `get_cart_stub_data`, `_as_aware_utc` (tz-safe helper — SQLite strips tzinfo on `DateTime(timezone=True)` round-trip, so Python-side comparisons must normalize).
+- `bot/database/methods/create.py::add_to_cart` — sets `expires_at` on new rows AND bulk-resets `expires_at` across the entire user cart on every subsequent add (one TTL governs the whole cart).
+- `bot/database/methods/read.py::get_cart_items` — lazy expiry sweep: if any row's `expires_at < now`, delete the whole user cart and return `[]`. Comparison is SQL-side for backend safety.
+- Banner injection at 7 menu sites: `shop_and_goods.py` (`show_brand_categories`, `navigate_categories`, `items_list_callback_handler`, `navigate_goods`, `item_info_callback_handler` — caption branch covers both photo and text paths) and `store_selection.py` (`brand_picker`, `_select_branch_or_proceed`).
+- **18 regression tests** in `tests/unit/test_cart_stub_card21.py`.
+- `cart_stub.py` coverage: 0% → 85%.
+
+### 2026-04-13 — Pass 2 Phase 3 (commit `5a11da0`)
+Phase **3** (flash animation on add) landed.
+
+- `bot/utils/cart_stub.py::flash_cart_added` — two-step async helper: flash line → `asyncio.sleep(CART_FLASH_SECONDS)` → settle. Wraps settle edit in try/except so a concurrent tap can't crash the handler.
+- `cart_handler.py::add_to_cart_handler` (no-modifier direct add) — runs flash only for text messages. Photo item-detail screens (`item.image_file_id` set) fall back to the existing `call.answer` toast because `edit_text` can't update a caption. Settle text re-injects `build_cart_stub(user_id)` into the current message text with the same reply markup.
+- `cart_handler.py::_finish_modifier_selection` — replaces the static `edit_text` success screen with a flash that settles to the stub-injected success text + `back_to_menu` keyboard. Uses `calculate_item_price` for the modifier-priced total.
+- **3 new async tests** in `TestFlashCartAdded`: two-step edit + sleep + settle, settle-error swallow, flash-error swallow. Monkeypatches `bot.utils.message_utils.safe_edit_text` and `bot.utils.cart_stub.asyncio.sleep`.
+- Full suite: **1275 passing**, overall coverage **44.01%**, `cart_stub.py` at **92%**.
+
+### Still pending
+- **Phase 4** — brand-switch Save/Delete/Stay (see Phase 4 Implementation Notes below).
+- **Phase 5** — store-switch availability check (see Phase 5 Implementation Notes below).
+- Handler-level tests for `shop_and_goods.py` (still 10%) and `store_selection.py` (still 21%) — need the fake-Telegram harness from Session C.
 
 ## Problem
 
@@ -188,6 +214,100 @@ class SavedCart(Base):
 15. Update `add_to_cart()` to set/reset `expires_at`
 16. Add lazy expiry check in `get_cart_items()` and `build_cart_stub()`
 17. Add config `CART_TTL_MINUTES` to env/config (default 120)
+
+## Phase 4 Implementation Notes (pending — brand-switch Save/Delete/Stay)
+
+**Everything needed already exists:**
+- `SavedCart` model — `bot/database/models/main.py:1079-1103` (id, user_id, brand_id, store_id, items_json, original_total, saved_at)
+- `EnvKeys.CART_TTL_MINUTES` + `CART_FLASH_SECONDS` — `bot/config/env.py:94-95`
+- Cart banner already injected into `brand_picker` (so the user already sees the stub when switching)
+
+**Intercept point:** `bot/handlers/user/store_selection.py::select_brand` — the handler that fires on `select_brand_{id}` callbacks. Look for the line that commits the brand via `state.update_data(...)` (around line 73–83 per the resume memo). Before that commit, call `get_cart_stub_data(user_id)` and compare `data['brand_id']` against the incoming brand id. If different and nonzero items, show the confirmation prompt instead of proceeding.
+
+**Bug-hunting rule reminder:** when you add the cart-has-items check in `select_brand`, grep every other handler that can cross brands (pagination back-links, deep-links, `/start` with a brand arg, admin impersonation) and apply the same guard — otherwise the brand switch silently orphans items through a side path.
+
+**New FSM state:** add `confirming_brand_switch` to `bot/states/shop_state.py::ShopStates`. Store `pending_brand_id` in FSM data so the save/delete/stay callbacks know where to go after confirmation.
+
+**New keyboard:** `brand_switch_confirm_keyboard(pending_brand_id)` in `bot/keyboards/inline.py` with three buttons — callback data `save_cart:{brand_id}`, `delete_cart:{brand_id}`, `stay_brand`. Use `:` separator consistent with `mod_sel:` pattern.
+
+**New callback handlers** (in `store_selection.py` or `cart_handler.py`):
+1. `save_cart:{brand_id}` — serialize current cart to `items_json` (include: item_name, quantity, selected_modifiers, unit_price at save time), compute `original_total`, insert a `SavedCart` row, clear `ShoppingCart` for this user, then call the existing brand-switch completion path with the pending brand id.
+2. `delete_cart:{brand_id}` — `clear_cart(user_id)` then proceed with brand switch.
+3. `stay_brand` — clear FSM state, re-render the previous brand's category listing (call `show_brand_categories` with the old brand id from `get_cart_stub_data`).
+
+**Serialization schema for `items_json`:** keep it forward-compatible — `{"items": [{"name": ..., "quantity": ..., "modifiers": {...}, "unit_price": "..."}]}`. Store prices as strings to avoid Decimal→JSON float lossiness. Include a `"schema_version": 1` key.
+
+**Locale strings to add** (in `locales/*.yml`):
+- `shop.brand_switch.warning` — "You have {n} items (฿{total}) in your cart from {current_brand}. Switching to {new_brand} requires a new cart."
+- `btn.save_cart` — "💾 Save & Clear"
+- `btn.delete_cart` — "🗑 Delete Cart"
+- `btn.stay` — "↩️ Stay"
+- `shop.brand_switch.saved` — "Cart saved. You can restore it from Profile later."
+- `shop.brand_switch.deleted` — "Cart cleared."
+
+**Tests to add** (extend `test_cart_stub_card21.py` or new `test_brand_switch_card21.py`):
+- Switching within the same brand skips the prompt entirely (no FSM transition).
+- Empty cart + brand switch skips the prompt.
+- Save path creates a `SavedCart` row with correct `items_json` and `original_total`, then empties the `ShoppingCart`.
+- Delete path clears the cart without creating a `SavedCart`.
+- Stay path leaves both the cart and the current brand untouched.
+- Bug-hunting: multi-item modifier carts serialize correctly (dict selection, list multi-select).
+
+**Out of scope:** restoring a `SavedCart` from the Profile menu — explicitly noted in spec section 3 as future enhancement.
+
+## Phase 5 Implementation Notes (pending — store-switch availability)
+
+**Intercept point:** `bot/handlers/user/store_selection.py::select_branch` (or `_select_branch_or_proceed`) — fires on `select_branch_{id}`. The handler already has `brand_id` in context; same-brand is guaranteed when this runs (brand switch is Phase 4's concern).
+
+**Check logic:**
+```python
+cart_items = await get_cart_items(user_id)
+if not cart_items or cart_items[0]['store_id'] == new_store_id:
+    # Silent proceed — no cart or already at this store
+    ...
+else:
+    # Query BranchInventory for each item at new_store_id
+    # BranchInventory model is at bot/database/models/main.py (search for it)
+    unavailable = []
+    for ci in cart_items:
+        inv = session.query(BranchInventory).filter_by(
+            store_id=new_store_id, goods_name=ci['item_name']
+        ).first()
+        if not inv or inv.stock_quantity < ci['quantity']:
+            # 'prepared' items (stock_quantity=0 = unlimited per CLAUDE.md)
+            # must not be flagged — check item_type first
+            good = session.query(Goods).filter_by(name=ci['item_name']).first()
+            if good and good.item_type == 'prepared':
+                continue  # unlimited stock — always available
+            unavailable.append(ci['item_name'])
+```
+
+**CRITICAL per CLAUDE.md:** `prepared` items have `stock_quantity=0` meaning **unlimited**, so they must never appear in the unavailable list. `product` items are inventory-tracked and need the real check. Miss this and every prepared-items cart will show a false unavailability warning on every store switch.
+
+**Two branches:**
+1. **All available** — bulk-update `ShoppingCart.store_id` for this user to `new_store_id`, then show a flash using `flash_cart_added`-style two-step edit: flash `"🛒 📍 Switched to {store_name} · ฿{total}"` → settle to the normal store selection result screen. Consider generalizing `flash_cart_added` into `flash_stub_line(message, flash_text, settle_text, settle_markup)` — the current helper is item-specific but the mechanics are identical.
+2. **Some unavailable** — render warning with `shop.store_switch.unavailable` locale string listing item names, with buttons `switch_and_remove:{store_id}` and `stay_store`. On `switch_and_remove`: delete unavailable rows from `ShoppingCart`, bulk-update `store_id` on the rest, then render the same flash.
+
+**Bug-hunting rule reminder:** the `prepared` vs `product` distinction matters everywhere stock is checked. Grep for `stock_quantity` comparisons across the codebase when touching this — any `stock_quantity < X` check that doesn't first exclude `item_type == 'prepared'` is the same bug.
+
+**New FSM state:** `confirming_store_switch` in `ShopStates`, storing `pending_store_id` + `unavailable_items` list.
+
+**New keyboard:** `store_switch_confirm_keyboard(pending_store_id)` in `inline.py`.
+
+**Locale strings to add:**
+- `shop.store_switch.unavailable` — "⚠️ {n} item(s) not available at {store_name}:\n{items}"
+- `shop.store_switch.flash` — "🛒 📍 Switched to {store_name} · ฿{total}"
+- `btn.switch_and_remove` — "🔄 Switch & Remove Unavailable"
+- `btn.stay_store` — "↩️ Stay at {store_name}"
+
+**Edge case:** single-store brand — skip the whole flow (no-op). Check `len(stores) == 1` before even showing the store picker.
+
+**Tests to add:**
+- Same-store reselect is a no-op (no DB writes).
+- All-available path bulk-updates `store_id` on every cart row for that user.
+- Unavailable-items path lists only `product`-type items with insufficient stock; `prepared` items never appear.
+- Switch-and-remove deletes exactly the unavailable rows, leaves the rest, and sets their `store_id` to the new store.
+- Stay-store leaves cart untouched.
 
 ## Files to Modify
 
