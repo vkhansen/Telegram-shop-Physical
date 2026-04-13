@@ -159,9 +159,9 @@ async def handle_chat_message(message: Message, state: FSMContext):
             reply_markup=_exit_keyboard(),
         )
         return
-
-    # Persist updated timestamps immediately
-    await state.update_data(grok_call_timestamps=data["grok_call_timestamps"])
+    # Timestamps updated in-place by _check_rate_limit; persisted together with
+    # history at the end of successful processing (not on API error so Grok
+    # outages don't consume the admin's hourly quota).
 
     # Extract content from message (text, CSV, photo, etc.)
     user_content = await extract_content(message)
@@ -239,7 +239,10 @@ async def handle_chat_message(message: Message, state: FSMContext):
 
     # Trim history to prevent token overflow
     history = _trim_history(history)
-    await state.update_data(grok_history=history)
+    await state.update_data(
+        grok_history=history,
+        grok_call_timestamps=data["grok_call_timestamps"],
+    )
 
     # Send response (split if too long for Telegram)
     for chunk in _split_message(reply_text):
