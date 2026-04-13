@@ -752,6 +752,7 @@ class ShoppingCart(Database.BASE):
     brand_id = Column(Integer, ForeignKey('brands.id', ondelete="CASCADE"), nullable=True, index=True)
     store_id = Column(Integer, ForeignKey('stores.id', ondelete="SET NULL"), nullable=True, index=True)
     added_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=True, index=True)  # Card 21: cart staleness timeout
 
     user = relationship("User", foreign_keys=lambda: [ShoppingCart.user_id])
     item = relationship("Goods", foreign_keys=lambda: [ShoppingCart.item_name])
@@ -766,7 +767,7 @@ class ShoppingCart(Database.BASE):
 
     def __init__(self, user_id: int, item_name: str, quantity: int = 1,
                  selected_modifiers: dict = None, brand_id: int = None,
-                 store_id: int = None, **kw: Any):
+                 store_id: int = None, expires_at=None, **kw: Any):
         super().__init__(**kw)
         self.user_id = user_id
         self.item_name = item_name
@@ -774,6 +775,7 @@ class ShoppingCart(Database.BASE):
         self.selected_modifiers = selected_modifiers
         self.brand_id = brand_id
         self.store_id = store_id
+        self.expires_at = expires_at
 
 
 class DeliveryChatMessage(Database.BASE):
@@ -1072,6 +1074,32 @@ class BranchInventory(Database.BASE):
         self.item_name = item_name
         self.stock_quantity = stock_quantity
         self.reserved_quantity = reserved_quantity
+
+
+class SavedCart(Database.BASE):
+    """Saved cart snapshot when user switches brands (Card 21)."""
+    __tablename__ = 'saved_carts'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), nullable=False, index=True)
+    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="CASCADE"), nullable=False)
+    store_id = Column(Integer, ForeignKey('stores.id', ondelete="SET NULL"), nullable=True)
+    items_json = Column(JSON, nullable=False)
+    original_total = Column(Numeric(12, 2), nullable=False)
+    saved_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    user = relationship("User", foreign_keys=lambda: [SavedCart.user_id])
+    brand = relationship("Brand", foreign_keys=lambda: [SavedCart.brand_id])
+    store = relationship("Store", foreign_keys=lambda: [SavedCart.store_id])
+
+    def __init__(self, user_id: int, brand_id: int, items_json: list,
+                 original_total, store_id: int = None, **kw: Any):
+        super().__init__(**kw)
+        self.user_id = user_id
+        self.brand_id = brand_id
+        self.store_id = store_id
+        self.items_json = items_json
+        self.original_total = original_total
 
 
 def register_models():

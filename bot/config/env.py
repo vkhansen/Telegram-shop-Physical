@@ -90,5 +90,9 @@ class EnvKeys(ABC):
     SOLANA_RPC_URL: Final = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
     COINGECKO_API_KEY: Final = os.getenv("COINGECKO_API_KEY", "")
 
+    # Cart stub (Card 21)
+    CART_TTL_MINUTES: Final = int(os.getenv("CART_TTL_MINUTES", 120))
+    CART_FLASH_SECONDS: Final = float(os.getenv("CART_FLASH_SECONDS", 1.5))
+
     # Database (for manual deploy) — SEC-02 fix: require env var, no hardcoded credentials
     DATABASE_URL: Final = os.environ.get("DATABASE_URL")  # must be set in environment
