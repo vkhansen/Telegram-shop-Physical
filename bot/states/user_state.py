@@ -79,6 +79,13 @@ class SettingsFSM(StatesGroup):
     waiting_promptpay_name = State()
 
 
+class GrokCustomerStates(StatesGroup):
+    """FSM for customer Grok AI assistant (Card 22)."""
+    chatting = State()         # Active AI conversation
+    app_live_chat = State()    # Live relay to platform maintainers
+    store_live_chat = State()  # Live relay to store support staff
+
+
 class GrokAssistantStates(StatesGroup):
     """FSM for Grok AI admin assistant (Card 17)."""
     chatting = State()               # Main conversation loop

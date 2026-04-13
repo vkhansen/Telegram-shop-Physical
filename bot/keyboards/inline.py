@@ -15,6 +15,7 @@ def main_menu(role: int, channel: str | None = None, helper: str | None = None) 
     kb.button(text=localize("btn.cart"), callback_data="view_cart")
     kb.button(text=localize("btn.rules"), callback_data="rules")
     kb.button(text=localize("btn.profile"), callback_data="profile")
+    kb.button(text=localize("btn.ai_assistant"), callback_data="ai_assistant_customer")
     kb.button(text=localize("btn.my_tickets"), callback_data="support_tickets")
     kb.button(text=localize("btn.privacy"), callback_data="privacy_view")
     if helper:

@@ -69,6 +69,7 @@ class EnvKeys(ABC):
     GROK_MODEL: Final = os.getenv("GROK_MODEL", "grok-3-mini")
     GROK_TIMEOUT: Final = int(os.getenv("GROK_TIMEOUT", 30))
     GROK_MAX_HISTORY: Final = int(os.getenv("GROK_MAX_HISTORY", 50))
+    GROK_CUSTOMER_RATE_LIMIT: Final = int(os.getenv("GROK_CUSTOMER_RATE_LIMIT", 20))  # Card 22
 
     # PDPA Privacy Policy
     PRIVACY_POLICY_URL: Final = os.getenv("PRIVACY_POLICY_URL", "")

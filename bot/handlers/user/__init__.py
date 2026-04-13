@@ -14,6 +14,7 @@ from .shop_and_goods import router as shop_and_goods_router
 from .store_selection import router as store_selection_router
 from .privacy_handler import router as privacy_router
 from .ticket_handler import router as ticket_router
+from .grok_customer import router as grok_customer_router
 
 router = Router()
 router.include_router(main_router)
@@ -28,5 +29,6 @@ router.include_router(delivery_chat_router)
 router.include_router(search_router)
 router.include_router(review_router)
 router.include_router(ticket_router)
+router.include_router(grok_customer_router)
 router.include_router(shop_and_goods_router)
 router.include_router(referral_system_router)
