@@ -189,6 +189,13 @@ async def __on_shutdown(dp: Dispatcher, bot: Bot) -> None:
     except Exception:
         pass
 
+    # Close Grok AI aiohttp session (Card 17)
+    try:
+        from bot.ai.grok_client import close_grok_session
+        await close_grok_session()
+    except Exception:
+        pass
+
     logging.info("Shutdown completed")
 
 

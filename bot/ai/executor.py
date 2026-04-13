@@ -363,6 +363,26 @@ def _lookup_user(action) -> dict:
     if action.include_referrals:
         result["referral_count"] = check_user_referrals(user["telegram_id"])
 
+    if action.include_orders:
+        with Database().session() as s:
+            orders = (
+                s.query(Order)
+                .filter(Order.buyer_id == user["telegram_id"])
+                .order_by(Order.created_at.desc())
+                .limit(20)
+                .all()
+            )
+            result["orders"] = [
+                {
+                    "order_code": o.order_code,
+                    "total_price": str(o.total_price),
+                    "status": o.order_status,
+                    "payment_method": o.payment_method,
+                    "created_at": str(o.created_at),
+                }
+                for o in orders
+            ]
+
     return {"user": result}
 
 

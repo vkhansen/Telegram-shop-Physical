@@ -5,6 +5,7 @@ Entry point: callback_data == "ai_assistant" from admin console.
 
 import json
 import logging
+import time
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -27,9 +28,6 @@ from bot.states.user_state import GrokAssistantStates
 logger = logging.getLogger(__name__)
 router = Router()
 
-# Max conversation history messages to keep (prevent token overflow)
-MAX_HISTORY = 50
-
 
 def _get_menu_context() -> tuple[list[dict], list[dict]]:
     """Load current categories and items for the system prompt."""
@@ -51,11 +49,36 @@ def _get_menu_context() -> tuple[list[dict], list[dict]]:
 
 
 def _trim_history(history: list[dict]) -> list[dict]:
-    """Keep system message + last MAX_HISTORY messages."""
-    if len(history) <= MAX_HISTORY + 1:
+    """Keep system message + last GROK_MAX_HISTORY messages."""
+    max_history = EnvKeys.GROK_MAX_HISTORY
+    if len(history) <= max_history + 1:
         return history
     # Always keep system prompt (index 0)
-    return [history[0]] + history[-(MAX_HISTORY):]
+    return [history[0]] + history[-(max_history):]
+
+
+# Per-admin rate limit: 100 Grok API calls per 3600 seconds
+_GROK_RATE_LIMIT = 100
+_GROK_RATE_WINDOW = 3600
+
+
+def _check_rate_limit(state_data: dict) -> tuple[bool, int]:
+    """Check per-admin Grok API call rate limit.
+
+    Returns (allowed, seconds_until_reset).
+    Updates call_timestamps in-place.
+    """
+    now = time.monotonic()
+    timestamps: list[float] = state_data.get("grok_call_timestamps", [])
+    # Drop calls outside the rolling window
+    timestamps = [t for t in timestamps if now - t < _GROK_RATE_WINDOW]
+    if len(timestamps) >= _GROK_RATE_LIMIT:
+        reset_in = int(_GROK_RATE_WINDOW - (now - timestamps[0]))
+        state_data["grok_call_timestamps"] = timestamps
+        return False, reset_in
+    timestamps.append(now)
+    state_data["grok_call_timestamps"] = timestamps
+    return True, 0
 
 
 def _exit_keyboard():
@@ -125,6 +148,20 @@ async def handle_chat_message(message: Message, state: FSMContext):
     """Main conversation loop — every message goes to Grok."""
     data = await state.get_data()
     history = data.get("grok_history", [])
+
+    # Per-admin rate limit check (100 Grok API calls per hour)
+    allowed, reset_in = _check_rate_limit(data)
+    if not allowed:
+        await state.update_data(grok_call_timestamps=data["grok_call_timestamps"])
+        await message.answer(
+            f"Rate limit reached (100 Grok calls/hour). "
+            f"Please wait {reset_in // 60}m {reset_in % 60}s before trying again.",
+            reply_markup=_exit_keyboard(),
+        )
+        return
+
+    # Persist updated timestamps immediately
+    await state.update_data(grok_call_timestamps=data["grok_call_timestamps"])
 
     # Extract content from message (text, CSV, photo, etc.)
     user_content = await extract_content(message)

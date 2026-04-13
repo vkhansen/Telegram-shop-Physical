@@ -51,3 +51,12 @@ async def call_grok(
             logger.error("Grok API error %s: %s", resp.status, body[:500])
             raise RuntimeError(f"Grok API returned {resp.status}")
         return await resp.json()
+
+
+async def close_grok_session() -> None:
+    """Close the shared aiohttp session. Call during bot shutdown."""
+    global _grok_session
+    if _grok_session and not _grok_session.closed:
+        await _grok_session.close()
+        _grok_session = None
+        logger.info("Grok aiohttp session closed")
