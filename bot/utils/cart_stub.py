@@ -23,6 +23,19 @@ def _cart_ttl() -> timedelta:
     return timedelta(minutes=EnvKeys.CART_TTL_MINUTES)
 
 
+def _as_aware_utc(dt: datetime | None) -> datetime | None:
+    """Return a tz-aware UTC datetime, assuming naive inputs are UTC.
+
+    SQLite strips tzinfo on ``DateTime(timezone=True)`` round-trip; Postgres
+    preserves it. This keeps comparisons safe on both backends.
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 def get_cart_stub_data(user_id: int) -> dict | None:
     """Fetch minimal cart summary data for the stub banner.
 
@@ -36,10 +49,12 @@ def get_cart_stub_data(user_id: int) -> dict | None:
         if not cart_items:
             return None
 
-        # Lazy expiry check: if any item has expires_at in the past, clear all
+        # Lazy expiry check: if any item has expires_at in the past, clear all.
+        # Normalize to tz-aware UTC for backend-agnostic comparison.
         now = datetime.now(timezone.utc)
         first = cart_items[0]
-        if first.expires_at and first.expires_at < now:
+        first_expires = _as_aware_utc(first.expires_at)
+        if first_expires and first_expires < now:
             session.query(ShoppingCart).filter_by(user_id=user_id).delete()
             session.commit()
             return None

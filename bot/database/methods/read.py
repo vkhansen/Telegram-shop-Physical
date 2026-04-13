@@ -402,9 +402,23 @@ async def get_cart_items(user_id: int) -> list:
     Returns:
         List of cart items with product info (includes selected_modifiers and modifier-adjusted price)
     """
+    from datetime import datetime, timezone
+
     from bot.utils.modifiers import calculate_item_price
 
     with Database().session() as session:
+        # Card 21: lazy expiry — if any row is past its TTL, clear the whole cart
+        now = datetime.now(timezone.utc)
+        has_expired = session.query(ShoppingCart).filter(
+            ShoppingCart.user_id == user_id,
+            ShoppingCart.expires_at.is_not(None),
+            ShoppingCart.expires_at < now,
+        ).first()
+        if has_expired is not None:
+            session.query(ShoppingCart).filter_by(user_id=user_id).delete()
+            session.commit()
+            return []
+
         cart_items = session.query(ShoppingCart, Goods).join(
             Goods, ShoppingCart.item_name == Goods.name
         ).filter(

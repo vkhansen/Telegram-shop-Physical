@@ -19,6 +19,7 @@ from bot.database.methods.read import get_all_brands, get_brand, get_stores_for_
 from bot.i18n import localize
 from bot.keyboards.inline import back, simple_buttons
 from bot.states import ShopStates
+from bot.utils.cart_stub import build_cart_stub, inject_cart_stub
 
 router = Router()
 
@@ -63,8 +64,11 @@ async def brand_picker(call: CallbackQuery, state: FSMContext):
 
     buttons.append((localize("btn.back"), "back_to_menu"))
 
+    # Card 21: prepend persistent cart stub if cart has items (serves as
+    # reminder when browsing a different brand).
+    text = inject_cart_stub(localize("shop.brands.title"), build_cart_stub(call.from_user.id))
     await call.message.edit_text(
-        localize("shop.brands.title"),
+        text,
         reply_markup=simple_buttons(buttons, per_row=1),
     )
     await state.set_state(ShopStates.selecting_brand)
@@ -127,8 +131,10 @@ async def _select_branch_or_proceed(call: CallbackQuery, state: FSMContext, bran
 
     buttons.append((localize("btn.back"), "shop"))
 
+    # Card 21: prepend persistent cart stub if cart has items
+    text = inject_cart_stub(localize("shop.branches.title"), build_cart_stub(call.from_user.id))
     await call.message.edit_text(
-        localize("shop.branches.title"),
+        text,
         reply_markup=simple_buttons(buttons, per_row=1),
     )
     await state.set_state(ShopStates.selecting_branch)

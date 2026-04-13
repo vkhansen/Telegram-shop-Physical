@@ -18,6 +18,7 @@ from bot.i18n import localize
 from bot.keyboards import back, item_info, lazy_paginated_keyboard
 from bot.states import ShopStates
 from bot.utils import LazyPaginator
+from bot.utils.cart_stub import build_cart_stub, inject_cart_stub
 
 router = Router()
 
@@ -108,6 +109,9 @@ async def show_brand_categories(call: CallbackQuery, state: FSMContext):
     if brand_name:
         title = f"{brand_name}\n\n{title}"
 
+    # Card 21: prepend persistent cart stub if cart has items
+    title = inject_cart_stub(title, build_cart_stub(call.from_user.id))
+
     await call.message.edit_text(title, reply_markup=markup)
 
     # Save paginator state
@@ -145,7 +149,9 @@ async def navigate_categories(call: CallbackQuery, state: FSMContext):
         nav_cb_prefix="categories-page_"
     )
 
-    await call.message.edit_text(localize('shop.categories.title'), reply_markup=markup)
+    # Card 21: prepend persistent cart stub if cart has items
+    text = inject_cart_stub(localize('shop.categories.title'), build_cart_stub(call.from_user.id))
+    await call.message.edit_text(text, reply_markup=markup)
 
     # Update state
     await state.update_data(categories_paginator=paginator.get_state())
@@ -183,7 +189,9 @@ async def items_list_callback_handler(call: CallbackQuery, state: FSMContext):
         nav_cb_prefix=f"goods-page_{category_name}_",
     )
 
-    await call.message.edit_text(localize("shop.goods.choose"), reply_markup=markup)
+    # Card 21: prepend persistent cart stub if cart has items
+    text = inject_cart_stub(localize("shop.goods.choose"), build_cart_stub(call.from_user.id))
+    await call.message.edit_text(text, reply_markup=markup)
 
     # Save state
     await state.update_data(
@@ -228,7 +236,9 @@ async def navigate_goods(call: CallbackQuery, state: FSMContext):
         nav_cb_prefix=f"goods-page_{category_name}_",
     )
 
-    await call.message.edit_text(localize("shop.goods.choose"), reply_markup=markup)
+    # Card 21: prepend persistent cart stub if cart has items
+    text = inject_cart_stub(localize("shop.goods.choose"), build_cart_stub(call.from_user.id))
+    await call.message.edit_text(text, reply_markup=markup)
 
     # Update state
     await state.update_data(goods_paginator=paginator.get_state())
@@ -366,6 +376,9 @@ async def item_info_callback_handler(call: CallbackQuery):
         pass  # Reviews module not available or no reviews table yet
 
     caption = "\n".join(info_lines)
+
+    # Card 21: prepend persistent cart stub if cart has items
+    caption = inject_cart_stub(caption, build_cart_stub(call.from_user.id))
 
     # Check for gallery media and inject gallery button into markup
     media_list = item_info_data.get("media")

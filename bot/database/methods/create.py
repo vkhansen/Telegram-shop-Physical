@@ -134,6 +134,11 @@ async def add_to_cart(user_id: int, item_name: str, quantity: int = 1,
 
             cart_item = session.query(ShoppingCart).filter_by(**cart_filter).first()
 
+            # Card 21: reset TTL on every add-to-cart
+            new_expires_at = datetime.now(timezone.utc) + timedelta(
+                minutes=EnvKeys.CART_TTL_MINUTES
+            )
+
             if cart_item:
                 cart_item.quantity += quantity
                 # Update modifiers if provided (replace previous selection)
@@ -147,8 +152,18 @@ async def add_to_cart(user_id: int, item_name: str, quantity: int = 1,
                     selected_modifiers=selected_modifiers,
                     brand_id=brand_id,
                     store_id=store_id,
+                    expires_at=new_expires_at,
                 )
                 session.add(cart_item)
+
+            session.flush()
+
+            # Card 21: bulk-reset expiry across the whole user's cart so one
+            # TTL governs the entire cart, not per-row.
+            session.query(ShoppingCart).filter_by(user_id=user_id).update(
+                {ShoppingCart.expires_at: new_expires_at},
+                synchronize_session=False,
+            )
 
             session.commit()
             return True, "Item added to cart"
