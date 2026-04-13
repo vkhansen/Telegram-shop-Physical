@@ -11,7 +11,8 @@ from bot.states import CartStates, OrderStates, ModifierSelectionFSM
 from bot.handlers.other import is_safe_item_name
 from bot.utils.message_utils import safe_edit_text
 from bot.utils.tracking import track_event, track_conversion
-from bot.utils.modifiers import validate_modifier_selection
+from bot.utils.modifiers import validate_modifier_selection, calculate_item_price
+from bot.utils.cart_stub import build_cart_stub, inject_cart_stub, flash_cart_added
 
 router = Router()
 
@@ -109,6 +110,17 @@ async def add_to_cart_handler(call: CallbackQuery, state: FSMContext):
         track_event("cart_add", user_id, {"item": item_name, "quantity": 1})
         track_conversion("customer_journey", "cart_add", user_id)
         await call.answer(localize("cart.add_success", item_name=item_name), show_alert=False)
+        # Flash animation only for text messages — photo item details can't be
+        # edited via edit_text, so the toast above is the user feedback there.
+        if not call.message.photo:
+            with Database().session() as session:
+                good = session.query(Goods).filter_by(name=item_name).first()
+                item_total = good.price if good else 0
+            settle_text = inject_cart_stub(call.message.text or "", build_cart_stub(user_id))
+            await flash_cart_added(
+                call.message, item_name, 1, item_total,
+                settle_text, call.message.reply_markup, user_id,
+            )
     else:
         await call.answer(localize("cart.add_error", message=message), show_alert=True)
 
@@ -237,9 +249,19 @@ async def _finish_modifier_selection(call: CallbackQuery, state: FSMContext, sel
         track_event("cart_add", user_id, {"item": item_name, "quantity": 1, "modifiers": clean_selected})
         track_conversion("customer_journey", "cart_add", user_id)
         await call.answer(localize("cart.add_success", item_name=item_name), show_alert=False)
-        await call.message.edit_text(
+        with Database().session() as session:
+            good = session.query(Goods).filter_by(name=item_name).first()
+            unit_price = (
+                calculate_item_price(good.price, good.modifiers, clean_selected or None)
+                if good else 0
+            )
+        settle_text = inject_cart_stub(
             localize("cart.add_success", item_name=item_name),
-            reply_markup=back("back_to_menu")
+            build_cart_stub(user_id),
+        )
+        await flash_cart_added(
+            call.message, item_name, 1, unit_price,
+            settle_text, back("back_to_menu"), user_id,
         )
     else:
         await call.answer(localize("cart.add_error", message=message), show_alert=True)

@@ -26,6 +26,7 @@ from bot.database.models.main import Brand, Categories, Goods, ShoppingCart, Sto
 from bot.utils.cart_stub import (
     _as_aware_utc,
     build_cart_stub,
+    flash_cart_added,
     format_cart_stub,
     format_flash_stub,
     get_cart_stub_data,
@@ -314,3 +315,91 @@ class TestStubFormatters:
         assert "x2" in result
         assert "180" in result
         assert "\u2728" in result  # sparkles
+
+
+# ---------------------------------------------------------------------------
+# Phase 3: flash_cart_added two-step animation
+# ---------------------------------------------------------------------------
+
+class TestFlashCartAdded:
+    @pytest.mark.asyncio
+    async def test_two_step_edit_flash_then_settle(self, monkeypatch):
+        edits: list[tuple[str, object]] = []
+
+        async def fake_edit(msg, text, reply_markup=None, **kw):
+            edits.append((text, reply_markup))
+
+        async def fake_sleep(seconds):
+            edits.append(("__sleep__", seconds))
+
+        monkeypatch.setattr("bot.utils.message_utils.safe_edit_text", fake_edit)
+        monkeypatch.setattr("bot.utils.cart_stub.asyncio.sleep", fake_sleep)
+
+        settle_markup = object()
+        await flash_cart_added(
+            message=object(),
+            item_name="Pad Thai",
+            quantity=1,
+            item_total=Decimal("90"),
+            settle_text="🛒 Shop · ฿90\n────\nMenu",
+            settle_markup=settle_markup,
+            user_id=42,
+        )
+
+        assert len(edits) == 3
+        flash_text, flash_markup = edits[0]
+        assert "Pad Thai" in flash_text
+        assert "x1" in flash_text
+        assert "90" in flash_text
+        assert flash_markup is settle_markup
+        assert edits[1] == ("__sleep__", EnvKeys.CART_FLASH_SECONDS)
+        assert edits[2] == ("🛒 Shop · ฿90\n────\nMenu", settle_markup)
+
+    @pytest.mark.asyncio
+    async def test_settle_skipped_when_edit_raises(self, monkeypatch):
+        calls = {"n": 0}
+
+        async def fake_edit(msg, text, reply_markup=None, **kw):
+            calls["n"] += 1
+            if calls["n"] == 2:
+                raise RuntimeError("message was changed by concurrent tap")
+
+        async def fake_sleep(seconds):
+            pass
+
+        monkeypatch.setattr("bot.utils.message_utils.safe_edit_text", fake_edit)
+        monkeypatch.setattr("bot.utils.cart_stub.asyncio.sleep", fake_sleep)
+
+        # Should not raise — helper swallows settle-time exceptions
+        await flash_cart_added(
+            message=object(),
+            item_name="X",
+            quantity=1,
+            item_total=Decimal("10"),
+            settle_text="settled",
+            settle_markup=None,
+            user_id=1,
+        )
+        assert calls["n"] == 2  # flash edit succeeded, settle edit raised
+
+    @pytest.mark.asyncio
+    async def test_flash_edit_raising_also_swallowed(self, monkeypatch):
+        async def fake_edit(msg, text, reply_markup=None, **kw):
+            raise RuntimeError("cannot edit")
+
+        async def fake_sleep(seconds):
+            pass
+
+        monkeypatch.setattr("bot.utils.message_utils.safe_edit_text", fake_edit)
+        monkeypatch.setattr("bot.utils.cart_stub.asyncio.sleep", fake_sleep)
+
+        # First edit already fails — helper must not propagate
+        await flash_cart_added(
+            message=object(),
+            item_name="X",
+            quantity=1,
+            item_total=Decimal("10"),
+            settle_text="settled",
+            settle_markup=None,
+            user_id=1,
+        )
