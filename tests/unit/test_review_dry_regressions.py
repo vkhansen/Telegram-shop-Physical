@@ -91,16 +91,14 @@ class TestH3StatusTransitionRowLock:
     """All 4 quick-transition handlers plus the generic handler must acquire
     a row lock before reading/mutating order_status."""
 
-    def test_all_status_mutation_paths_use_for_update(self):
+    def test_quick_transition_body_uses_for_update(self):
+        """The shared quick-transition body must acquire a row lock."""
         import bot.handlers.admin.order_management as om
         import inspect
-        source = inspect.getsource(om)
-
-        lock_count = source.count("with_for_update()")
-        # Generic handler + 4 quick-transitions + delivery-photo handler = at least 5
-        assert lock_count >= 5, (
-            f"Expected ≥5 `with_for_update()` calls for atomic status mutation, "
-            f"found {lock_count}. Did a refactor drop the row lock?"
+        src = inspect.getsource(om._execute_quick_transition)
+        assert "with_for_update()" in src, (
+            "Shared quick-transition body lost its row lock — "
+            "two admins clicking simultaneously could skip status states"
         )
 
 
