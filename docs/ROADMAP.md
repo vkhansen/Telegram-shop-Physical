@@ -26,16 +26,19 @@ Last reviewed: 2026-04-13
 
 ```
 CARD-21 (Cart Stub) ──┐
-                      ├──▶ CARD-19 (Multi-Brand Runtime) ──┬──▶ CARD-16 (Line API)
-  brand/store DB ─────┘                                    │
-  models (merged)                                          └──▶ CARD-17 (Grok Admin)*
-                                                                 *can also ship in parallel
-                                                                  with CARD-19
+                      ├──▶ CARD-19 (Multi-Brand Runtime) ──▶ CARD-16 (Line API)
+  brand/store DB ─────┘
+  models (merged)
+
+CARD-17 (Grok Admin) ✅ ──▶ CARD-22 (Grok Customer Assistant)
+                              reuses: grok_client, rate limiter,
+                              tool-call loop, Pydantic schema pattern
 ```
 
 - **CARD-21** is a soft prereq for CARD-19: its brand-switch save/delete/stay flow is the UX primitive CARD-19's multi-brand runtime needs.
 - **CARD-16** is a hard dependency on CARD-19: Line integration should inherit brand context, not add a second dimension of coupling.
-- **CARD-17** is independent — it only touches admin handlers and can start any time after CARD-21 lands.
+- **CARD-17** is done — its Grok client, rate-limit helper, and tool-call executor pattern are directly reusable by CARD-22.
+- **CARD-22** is independent of CARD-19/21 — it only touches user handlers and can ship in parallel.
 
 ---
 

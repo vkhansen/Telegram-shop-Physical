@@ -55,15 +55,17 @@ Prioritized, highest-impact first. See [Next Up](#next-up-prioritized-backlog) b
 |---|------|------|-------|----------|----------|--------|--------|
 | 1 | CARD-21 | Persistent Cart Stub + Brand/Store Switch Guards | UX Polish | 0% | High | Medium (3–5d) | [CARD-21](CARD-21-persistent-cart-stub.md) |
 | 2 | CARD-19 | Multi-Brand Bot Coordination | Phase 3 — Platform Scale | 15% | High | Very High (10–14d) | [CARD-19](CARD-19-multi-brand-bot-coordination.md) |
-| 3 | CARD-17 | Grok AI Admin Assistant | Phase 5 — Admin Intelligence | 0% | Medium | High (5–7d) | [CARD-17](CARD-17-grok-admin-assistant.md) |
-| 4 | CARD-16 | Line API Integration | Phase 5 — Multi-Platform | 0% | Medium-High | High (5–8d) | [CARD-16](CARD-16-line-api-integration.md) |
+| 3 | CARD-17 | Grok AI Admin Assistant | Phase 5 — Admin Intelligence | 100% | Medium | High (5–7d) | [CARD-17](CARD-17-grok-admin-assistant.md) |
+| 4 | CARD-22 | Grok AI Customer Assistant | Phase 5 — Customer Intelligence | 0% | Medium | Medium (3–5d) | [CARD-22](CARD-22-grok-customer-assistant.md) |
+| 5 | CARD-16 | Line API Integration | Phase 5 — Multi-Platform | 0% | Medium-High | High (5–8d) | [CARD-16](CARD-16-line-api-integration.md) |
 
 ### Next Up (Prioritized Backlog)
 
 1. **CARD-21 — Persistent Cart Stub.** Cheapest and highest immediate UX win. No new infra; pure handler/model work on a feature users hit every session. Unblocks cleaner multi-brand UX (prereq for CARD-19's brand switching flow).
 2. **CARD-19 — Multi-Brand Coordination.** DB models already exist (15%). This is the strategic growth lever — one backend serving N brands — and every other backlog item benefits from the brand context it establishes. Large effort; plan as a multi-week epic.
-3. **CARD-17 — Grok Admin Assistant.** Unlocks bulk menu ops and natural-language admin. Medium risk (external AI dependency), but decoupled from core order flow so it can ship in parallel with CARD-19.
-4. **CARD-16 — Line API Integration.** Highest theoretical market expansion but highest architectural cost (requires transport-layer abstraction across every handler). Defer until CARD-19's brand context is stable — otherwise the refactor compounds.
+3. **CARD-17 — Grok Admin Assistant.** ✅ Done (100%). Unlocks bulk menu ops and natural-language admin.
+4. **CARD-22 — Grok Customer Assistant.** Builds directly on Card 17's reusable Grok client, rate limiter, and tool-call loop. Customer-facing: natural language menu search, deals, nearby stores, order status, and AI-driven support ticket creation. Medium effort — most infrastructure already exists from Card 17.
+5. **CARD-16 — Line API Integration.** Highest theoretical market expansion but highest architectural cost (requires transport-layer abstraction across every handler). Defer until CARD-19's brand context is stable — otherwise the refactor compounds.
 
 ---
 
