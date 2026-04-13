@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-> **0% Complete** | `░░░░░░░░░░░░░░░░░░░` | Design only — no implementation started.
+> **100% Complete** | `███████████████████` | Shipped in commit 74ef596 — multi-coin verifiers (BTC/LTC/SOL/USDT-SPL), address pool with SKIP LOCKED claim, CoinGecko price feed, background payment checker, 43 new tests.
 
 **Phase:** 2 — Payment Infrastructure
 **Priority:** High

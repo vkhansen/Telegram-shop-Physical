@@ -1,5 +1,7 @@
 # Thailand Restaurant Delivery Conversion — Feature Cards
 
+> **Planning companion:** See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the master plan — milestones, dependency graph, and exit criteria. This file is the status board (what shipped, what's in flight).
+>
 > **Base repo:** Telegram-shop-Physical (inventory reservation, address+phone collection, order statuses `pending→reserved→confirmed→delivered`, COD, BTC, timezone config)
 >
 > **Target:** Bangkok restaurant delivery bot with PromptPay QR, GPS delivery, dead drops, photo proof, Thai language, THB currency, kitchen workflow
@@ -27,6 +29,7 @@
 | CARD-13 | Driver Chat + Live Location | Phase 3 | [docs/done/CARD-13](docs/done/CARD-13-driver-chat-live-location.md) |
 | CARD-14 | Language Picker | Phase 3 | [docs/done/CARD-14](docs/done/CARD-14-language-picker.md) |
 | CARD-15 | GPS Live Tracking & Delivery Chat | Phase 3 | [docs/done/CARD-15](docs/done/CARD-15-gps-live-tracking-delivery-chat.md) |
+| CARD-18 | Multi-Crypto Payments (SOL/USDT/LTC) | Phase 2 | [docs/done/CARD-18](docs/done/CARD-18-crypto-payment-verification.md) |
 | CARD-RC1 | Multi-Media Menu Items | Restaurant Core | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
 | CARD-RC2 | Prep Time + Kitchen Tracking | Restaurant Core | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
 | CARD-RC3 | Allergen Management | Restaurant Core | [docs/FEATURE-CARDS.md](docs/FEATURE-CARDS.md) |
@@ -46,12 +49,21 @@
 
 ### BACKLOG (Not Started)
 
-| Card | Name | Phase | Progress | Detail |
-|------|------|-------|----------|--------|
-| CARD-16 | Line API Integration | Phase 5 | 0% | [docs/CARD-16](docs/CARD-16-line-api-integration.md) |
-| CARD-17 | Grok AI Admin Assistant | Phase 5 | 0% | [docs/CARD-17](docs/CARD-17-grok-admin-assistant.md) |
-| CARD-18 | Multi-Crypto Payments | Phase 2 | 0% | [docs/CARD-18](docs/CARD-18-crypto-payment-verification.md) |
-| CARD-19 | Multi-Brand Bot Coordination | Phase 3 | 15% | [docs/CARD-19](docs/CARD-19-multi-brand-bot-coordination.md) |
+Prioritized, highest-impact first. See [Next Up](#next-up-prioritized-backlog) below for rationale.
+
+| # | Card | Name | Phase | Progress | Priority | Effort | Detail |
+|---|------|------|-------|----------|----------|--------|--------|
+| 1 | CARD-21 | Persistent Cart Stub + Brand/Store Switch Guards | UX Polish | 0% | High | Medium (3–5d) | [docs/CARD-21](docs/CARD-21-persistent-cart-stub.md) |
+| 2 | CARD-19 | Multi-Brand Bot Coordination | Phase 3 — Platform Scale | 15% | High | Very High (10–14d) | [docs/CARD-19](docs/CARD-19-multi-brand-bot-coordination.md) |
+| 3 | CARD-17 | Grok AI Admin Assistant | Phase 5 — Admin Intelligence | 0% | Medium | High (5–7d) | [docs/CARD-17](docs/CARD-17-grok-admin-assistant.md) |
+| 4 | CARD-16 | Line API Integration | Phase 5 — Multi-Platform | 0% | Medium-High | High (5–8d) | [docs/CARD-16](docs/CARD-16-line-api-integration.md) |
+
+### Next Up (Prioritized Backlog)
+
+1. **CARD-21 — Persistent Cart Stub.** Cheapest and highest immediate UX win. No new infra; pure handler/model work on a feature users hit every session. Unblocks cleaner multi-brand UX (prereq for CARD-19's brand switching flow).
+2. **CARD-19 — Multi-Brand Coordination.** DB models already exist (15%). This is the strategic growth lever — one backend serving N brands — and every other backlog item benefits from the brand context it establishes. Large effort; plan as a multi-week epic.
+3. **CARD-17 — Grok Admin Assistant.** Unlocks bulk menu ops and natural-language admin. Medium risk (external AI dependency), but decoupled from core order flow so it can ship in parallel with CARD-19.
+4. **CARD-16 — Line API Integration.** Highest theoretical market expansion but highest architectural cost (requires transport-layer abstraction across every handler). Defer until CARD-19's brand context is stable — otherwise the refactor compounds.
 
 ---
 
@@ -1256,7 +1268,15 @@ BOT_LOCALE=th
 
 ---
 
-## Phase 3: Platform Scale — BACKLOG
+## Backlog Detail
+
+### Card 21: Persistent Cart Stub + Brand/Store Switch Guards — 0%
+
+> See full card: [`docs/CARD-21-persistent-cart-stub.md`](docs/CARD-21-persistent-cart-stub.md)
+
+**Phase:** UX Polish | **Priority:** High (next up) | **Effort:** Medium (3–5 days)
+
+**Summary:** Adds a single-line cart banner (`🛒 Brand · Store · ฿Total`) on every menu refresh, flash animation on add-to-cart, brand-switch save/delete/stay prompt with new `SavedCart` model, same-brand store switch with availability check, and `ShoppingCart.expires_at` TTL (default 2h) with lazy cleanup. Prereq for smoother multi-brand UX in CARD-19.
 
 ### Card 19: Multi-Brand / Multi-Store Telegram Bot Coordination Platform — 15% (DB models only)
 
@@ -1265,3 +1285,19 @@ BOT_LOCALE=th
 **Phase:** 3 — Platform Scale | **Priority:** High | **Effort:** Very High (10–14 days)
 
 **Summary:** One backend process manages N independent Telegram bots, each representing a brand. Adds `BotConfig` model, `BotPool` multi-bot runtime, `BrandContextMiddleware` for automatic brand context injection, store selector UI, brand-scoped queries, per-brand rate limiting, encrypted token storage, and CLI-based bot management. Backward-compatible: single-bot deployments work unchanged with `MULTI_BOT_ENABLED=false`.
+
+### Card 17: Grok AI Admin Assistant — 0%
+
+> See full card: [`docs/CARD-17-grok-admin-assistant.md`](docs/CARD-17-grok-admin-assistant.md)
+
+**Phase:** 5 — Admin Intelligence | **Priority:** Medium | **Effort:** High (5–7 days)
+
+**Summary:** Natural-language admin interface powered by Grok (xAI). Pydantic schemas constrain AI output to validated, structured actions (price updates, bulk menu edits, order lookups, data import). Admins describe intent in plain language instead of navigating rigid button UIs.
+
+### Card 16: Parallel Line Messaging API Integration — 0%
+
+> See full card: [`docs/CARD-16-line-api-integration.md`](docs/CARD-16-line-api-integration.md)
+
+**Phase:** 5 — Multi-Platform | **Priority:** Medium-High | **Effort:** High (5–8 days)
+
+**Summary:** Add Line (53M Thai users) as a parallel messaging channel alongside Telegram. Requires transport-layer abstraction across handlers, keyboards, and message_utils — currently tightly coupled to aiogram. Shared business logic, database, and admin tools. Defer until CARD-19 brand context is stable.
