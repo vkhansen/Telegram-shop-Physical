@@ -32,5 +32,5 @@ if ($K -ne "") { $pytestArgs += @("-k", $K) }
 if ($NoCov)    { $pytestArgs += @("--no-cov") }
 
 Write-Host "[test-run] pytest $($pytestArgs -join ' ')" -ForegroundColor Cyan
-python -m pytest @pytestArgs
+docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm bot python -m pytest @pytestArgs
 exit $LASTEXITCODE
