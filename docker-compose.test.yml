@@ -35,7 +35,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_DB: 1
-      REDIS_PASSWORD: ""
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       TOKEN: "test_token_123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ"
       OWNER_ID: "123456789"
       LOG_TO_STDOUT: "1"
@@ -44,12 +44,11 @@ services:
     volumes:
       - ./tests:/app/tests
       - ./bot:/app/bot
-    # Override CMD to run tests instead of the bot
+    # Override CMD to run the full test suite instead of the bot
     command: >
-      python -m pytest tests/e2e/
+      python -m pytest tests/
       -v
       --tb=short
-      -x
       --timeout=120
     restart: "no"
     healthcheck:
