@@ -253,7 +253,6 @@ class TestCreateItem:
         assert result["created"] == "New Dish"
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="add_inventory has pre-existing context manager bug in inventory.py")
     async def test_create_item_with_stock(self, test_user, test_category):
         """Uses test_user so admin_id FK resolves in inventory_log."""
         action = CreateItemAction(
@@ -352,7 +351,6 @@ class TestAdjustStock:
         assert result["success"] is True
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="add_inventory has pre-existing context manager bug in inventory.py")
     async def test_add_stock(self, test_user, test_goods):
         action = AdjustStockAction(
             item_name=test_goods.name,

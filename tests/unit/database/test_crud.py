@@ -262,7 +262,6 @@ class TestUpdateOperations:
         assert new_item is not None
         assert new_item.price == test_goods.price
 
-    @pytest.mark.skip(reason="SQLite FK constraint: update_category updates goods before category")
     def test_update_category(self, db_session, test_category, test_goods):
         """Test updating a category name"""
         old_name = test_category.name

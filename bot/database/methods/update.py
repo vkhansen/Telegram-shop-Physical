@@ -92,12 +92,10 @@ def update_item(item_name: str, new_name: str, description: str, price, category
 
 
 def update_category(category_name: str, new_name: str) -> None:
-    """Rename a category with proper transaction handling."""
+    """Rename a category, relying on Goods.category_name FK ON UPDATE CASCADE
+    to propagate the new name to related rows."""
     with Database().session() as s:
         try:
-            # LOGIC-12 fix: Removed explicit s.begin() — session context manager handles transactions
-
-            # Block the category
             category = s.query(Categories).filter(
                 Categories.name == category_name
             ).with_for_update().one_or_none()
@@ -106,14 +104,7 @@ def update_category(category_name: str, new_name: str) -> None:
                 s.rollback()
                 raise ValueError("Category not found")
 
-            # Updating the merchandise
-            s.query(Goods).filter(Goods.category_name == category_name).update(
-                {Goods.category_name: new_name}
-            )
-
-            # Update the category
             category.name = new_name
-
             s.commit()
 
             safe_create_task(invalidate_category_cache(category_name))
