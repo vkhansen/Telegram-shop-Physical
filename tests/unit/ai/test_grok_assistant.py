@@ -5,11 +5,13 @@ All external I/O (Grok API, DB, Telegram) is mocked.
 """
 
 import json
+import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from bot.handlers.admin.grok_assistant import (
+    _check_rate_limit,
     _handle_generate_images,
     _process_tool_call,
     _split_message,
@@ -409,10 +411,11 @@ class TestHandleChatMessage:
             message.photo = [photo]
         return message
 
-    def _make_state(self, history=None):
+    def _make_state(self, history=None, timestamps=None):
         state = AsyncMock()
         state.get_data = AsyncMock(return_value={
             "grok_history": history or [{"role": "system", "content": "sys"}],
+            "grok_call_timestamps": timestamps if timestamps is not None else [],
         })
         return state
 
@@ -735,3 +738,230 @@ class TestHandleGenerateImages:
 
         assert "error" in result
         assert "Ghost Item" in result["error"]
+
+
+# ── _check_rate_limit ─────────────────────────────────────────────────
+
+
+class TestCheckRateLimit:
+    """Unit tests for the rolling-window rate limiter (pure function)."""
+
+    def test_empty_state_returns_allowed(self):
+        """First call with no history is always allowed."""
+        data = {}
+        allowed, reset_in = _check_rate_limit(data)
+        assert allowed is True
+        assert reset_in == 0
+
+    def test_adds_timestamp_to_state_data(self):
+        """Allowed call adds one timestamp to state_data in-place."""
+        now = 1000.0
+        data = {}
+        with patch("bot.handlers.admin.grok_assistant.time") as mock_time:
+            mock_time.monotonic.return_value = now
+            _check_rate_limit(data)
+
+        assert data["grok_call_timestamps"] == [now]
+
+    def test_under_limit_multiple_calls_allowed(self):
+        """99 timestamps still under the 100-call limit."""
+        now = 5000.0
+        data = {"grok_call_timestamps": [now - i * 10 for i in range(99)]}
+        with patch("bot.handlers.admin.grok_assistant.time") as mock_time:
+            mock_time.monotonic.return_value = now
+            allowed, reset_in = _check_rate_limit(data)
+        assert allowed is True
+        assert reset_in == 0
+        assert len(data["grok_call_timestamps"]) == 100  # 99 old + 1 new
+
+    def test_at_limit_returns_blocked(self):
+        """Exactly 100 timestamps within window → rate limited."""
+        now = 5000.0
+        data = {"grok_call_timestamps": [now - i * 10 for i in range(100)]}
+        with patch("bot.handlers.admin.grok_assistant.time") as mock_time:
+            mock_time.monotonic.return_value = now
+            allowed, reset_in = _check_rate_limit(data)
+        assert allowed is False
+        assert reset_in > 0
+
+    def test_blocked_does_not_add_new_timestamp(self):
+        """When blocked, the current call is NOT recorded in timestamps."""
+        now = 5000.0
+        timestamps = [now - i * 10 for i in range(100)]
+        data = {"grok_call_timestamps": list(timestamps)}
+        with patch("bot.handlers.admin.grok_assistant.time") as mock_time:
+            mock_time.monotonic.return_value = now
+            allowed, _ = _check_rate_limit(data)
+        assert allowed is False
+        assert len(data["grok_call_timestamps"]) == 100  # unchanged
+
+    def test_expired_timestamps_dropped(self):
+        """Timestamps older than 3600s are excluded from the count."""
+        now = 10000.0
+        old_timestamps = [now - 3700, now - 4000, now - 5000]  # All expired
+        data = {"grok_call_timestamps": old_timestamps}
+        with patch("bot.handlers.admin.grok_assistant.time") as mock_time:
+            mock_time.monotonic.return_value = now
+            allowed, reset_in = _check_rate_limit(data)
+        assert allowed is True
+        # Only the single new timestamp should remain
+        assert len(data["grok_call_timestamps"]) == 1
+
+    def test_mixed_expired_and_valid_uses_only_valid(self):
+        """Expired timestamps don't count toward the limit."""
+        now = 10000.0
+        # 95 valid + 10 expired; after dropping expired: 95 valid → 96 after adding new → under limit
+        valid = [now - i * 10 for i in range(95)]
+        expired = [now - 3700 - i * 10 for i in range(10)]
+        data = {"grok_call_timestamps": sorted(expired + valid)}
+        with patch("bot.handlers.admin.grok_assistant.time") as mock_time:
+            mock_time.monotonic.return_value = now
+            allowed, _ = _check_rate_limit(data)
+        assert allowed is True
+
+    def test_reset_in_equals_window_minus_oldest_age(self):
+        """reset_in = WINDOW - (now - oldest_timestamp)."""
+        now = 10000.0
+        oldest = now - 1800  # 1800s ago → 1800s remaining in window
+        timestamps = [oldest] + [now - i for i in range(99, 0, -1)]
+        data = {"grok_call_timestamps": timestamps}
+        with patch("bot.handlers.admin.grok_assistant.time") as mock_time:
+            mock_time.monotonic.return_value = now
+            allowed, reset_in = _check_rate_limit(data)
+        assert allowed is False
+        assert reset_in == 1800  # 3600 - 1800
+
+    def test_window_boundary_exactly_3600s_is_expired(self):
+        """A timestamp exactly 3600s old is outside the window (< not <=)."""
+        now = 10000.0
+        # Exactly at boundary: now - t == 3600 → NOT < 3600 → excluded
+        at_boundary = now - 3600
+        data = {"grok_call_timestamps": [at_boundary]}
+        with patch("bot.handlers.admin.grok_assistant.time") as mock_time:
+            mock_time.monotonic.return_value = now
+            allowed, _ = _check_rate_limit(data)
+        assert allowed is True
+        # The expired one was dropped; only new timestamp kept
+        assert len(data["grok_call_timestamps"]) == 1
+
+
+# ── handle_chat_message: rate limit integration ───────────────────────
+
+
+class TestHandleChatMessageRateLimit:
+    """Tests for rate-limit enforcement inside handle_chat_message."""
+
+    def _make_message(self):
+        message = AsyncMock()
+        message.text = "hello"
+        message.photo = None
+        message.from_user = MagicMock()
+        message.from_user.id = 99
+        message.chat = MagicMock()
+        message.chat.id = 100
+        message.bot = AsyncMock()
+        return message
+
+    def _make_state(self, timestamps=None):
+        state = AsyncMock()
+        state.get_data = AsyncMock(return_value={
+            "grok_history": [{"role": "system", "content": "sys"}],
+            "grok_call_timestamps": timestamps if timestamps is not None else [],
+        })
+        return state
+
+    def _exceed_limit(self, data):
+        """Side-effect that simulates limit exceeded; mutates data as real fn would."""
+        now = time.monotonic()
+        data["grok_call_timestamps"] = [now - i * 10 for i in range(100)]
+        return (False, 3600)
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_hit_sends_rate_limit_message(self):
+        """When rate limited, sends a warning message to the admin."""
+        message = self._make_message()
+        state = self._make_state()
+
+        with patch("bot.handlers.admin.grok_assistant._check_rate_limit", side_effect=self._exceed_limit):
+            await handle_chat_message(message, state)
+
+        message.answer.assert_called_once()
+        text = message.answer.call_args[0][0]
+        assert "Rate limit" in text or "rate limit" in text
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_hit_persists_timestamps(self):
+        """When rate limited, timestamps are saved to FSM state."""
+        message = self._make_message()
+        state = self._make_state()
+
+        with patch("bot.handlers.admin.grok_assistant._check_rate_limit", side_effect=self._exceed_limit):
+            await handle_chat_message(message, state)
+
+        state.update_data.assert_called_once()
+        call_kwargs = state.update_data.call_args[1]
+        assert "grok_call_timestamps" in call_kwargs
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_hit_does_not_call_grok(self):
+        """Grok API is never called when rate limited."""
+        message = self._make_message()
+        state = self._make_state()
+
+        with (
+            patch("bot.handlers.admin.grok_assistant._check_rate_limit", side_effect=self._exceed_limit),
+            patch("bot.handlers.admin.grok_assistant.call_grok", new_callable=AsyncMock) as mock_grok,
+        ):
+            await handle_chat_message(message, state)
+
+        mock_grok.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_message_includes_reset_time(self):
+        """Rate limit message shows how long to wait before retrying."""
+        message = self._make_message()
+        state = self._make_state()
+
+        def limit_with_120s(data):
+            now = time.monotonic()
+            data["grok_call_timestamps"] = [now - i * 10 for i in range(100)]
+            return (False, 120)
+
+        with patch("bot.handlers.admin.grok_assistant._check_rate_limit", side_effect=limit_with_120s):
+            await handle_chat_message(message, state)
+
+        text = message.answer.call_args[0][0]
+        assert "2m" in text  # 120 // 60 = 2 minutes
+
+    @pytest.mark.asyncio
+    async def test_successful_call_saves_both_history_and_timestamps(self):
+        """After a successful Grok call, both history and timestamps are saved together."""
+        message = self._make_message()
+        state = self._make_state()
+
+        with (
+            patch("bot.handlers.admin.grok_assistant.extract_content", new_callable=AsyncMock, return_value="hi"),
+            patch("bot.handlers.admin.grok_assistant.call_grok", new_callable=AsyncMock, return_value={
+                "choices": [{"message": {"role": "assistant", "content": "Hello!"}}]
+            }),
+        ):
+            await handle_chat_message(message, state)
+
+        state.update_data.assert_called_once()
+        call_kwargs = state.update_data.call_args[1]
+        assert "grok_history" in call_kwargs
+        assert "grok_call_timestamps" in call_kwargs
+
+    @pytest.mark.asyncio
+    async def test_api_error_does_not_save_timestamps(self):
+        """On Grok API error, timestamps are NOT saved (outages don't count against quota)."""
+        message = self._make_message()
+        state = self._make_state()
+
+        with (
+            patch("bot.handlers.admin.grok_assistant.extract_content", new_callable=AsyncMock, return_value="hi"),
+            patch("bot.handlers.admin.grok_assistant.call_grok", new_callable=AsyncMock, side_effect=RuntimeError("timeout")),
+        ):
+            await handle_chat_message(message, state)
+
+        state.update_data.assert_not_called()

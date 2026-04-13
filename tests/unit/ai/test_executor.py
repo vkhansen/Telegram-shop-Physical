@@ -234,6 +234,33 @@ class TestLookupUser:
         result = await execute_query(action)
         assert "referral_count" in result["user"]
 
+    @pytest.mark.asyncio
+    async def test_with_orders(self, test_user, test_order):
+        """include_orders=True populates the orders list with the user's orders."""
+        action = LookupUserAction(
+            telegram_id=test_user.telegram_id,
+            include_orders=True,
+        )
+        result = await execute_query(action)
+        assert "user" in result
+        assert "orders" in result["user"]
+        orders = result["user"]["orders"]
+        assert len(orders) >= 1
+        order = orders[0]
+        assert "order_code" in order
+        assert "status" in order
+        assert "total_price" in order
+        assert "payment_method" in order
+        assert "created_at" in order
+
+    @pytest.mark.asyncio
+    async def test_without_orders_key_absent(self, test_user):
+        """When include_orders is not set, the orders key is absent from the result."""
+        action = LookupUserAction(telegram_id=test_user.telegram_id)
+        result = await execute_query(action)
+        assert "user" in result
+        assert "orders" not in result["user"]
+
 
 # ── Mutation Executor Tests ─────────────────────────────────────────
 
