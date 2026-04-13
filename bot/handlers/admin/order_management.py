@@ -8,7 +8,9 @@ Provides:
 - Kitchen/rider group notifications on status change
 - Delivery photo enforcement for dead drop orders
 """
+from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Awaitable, Callable
 
 from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
@@ -268,128 +270,127 @@ async def delivery_photo_received(message: Message, state: FSMContext):
 
 
 # ── Kitchen / Rider group buttons (Card 9) ────────────────────────────
+#
+# Table-driven transitions (R1 refactor). Adding a new quick-transition button
+# is a single dict entry — no new handler, no duplicated try/except/lock/commit
+# glue. Each spec declares its target status, confirmation text, message banner,
+# and optional pre/post-commit hooks.
 
-@router.callback_query(F.data.startswith("kitchen_preparing_"))
-async def kitchen_start_preparing(call: CallbackQuery):
-    """Kitchen marks order as preparing."""
+
+async def _assign_driver_hook(call: CallbackQuery, order: Order, session) -> None:
+    if not order.driver_id:
+        order.driver_id = call.from_user.id
+
+
+async def _mark_completed_hook(call: CallbackQuery, order: Order, session) -> None:
+    order.completed_at = datetime.now(UTC)
+    from bot.handlers.user.delivery_chat_handler import set_post_delivery_window
+    set_post_delivery_window(session, order)
+
+
+async def _notify_customer_hook(call: CallbackQuery, order: Order, session) -> None:
+    await _notify_customer_status(call.bot, order)
+
+
+async def _notify_rider_hook(call: CallbackQuery, order: Order, session) -> None:
+    await _send_rider_notification(call.bot, order, session)
+
+
+async def _prompt_gps_hook(call: CallbackQuery, order: Order, session) -> None:
     try:
-        order_id = int(call.data.replace("kitchen_preparing_", ""))
+        from bot.handlers.user.delivery_chat_handler import prompt_customer_gps
+        await prompt_customer_gps(call.bot, order)
+    except Exception as e:
+        audit_logger.warning(f"prompt_customer_gps failed for order {order.order_code}: {e}")
+
+
+Hook = Callable[[CallbackQuery, Order, "object"], Awaitable[None]]
+
+
+@dataclass(frozen=True)
+class QuickTransition:
+    target_status: str
+    confirm_label: str
+    banner: str
+    pre_commit: tuple[Hook, ...] = ()
+    post_commit: tuple[Hook, ...] = ()
+
+
+QUICK_TRANSITIONS: dict[str, QuickTransition] = {
+    "kitchen_preparing_": QuickTransition(
+        target_status="preparing",
+        confirm_label="Status: Preparing",
+        banner="🍳 <b>PREPARING</b>",
+        post_commit=(_notify_customer_hook,),
+    ),
+    "kitchen_ready_": QuickTransition(
+        target_status="ready",
+        confirm_label="Status: Ready",
+        banner="📦 <b>READY FOR PICKUP</b>",
+        post_commit=(_notify_rider_hook, _notify_customer_hook),
+    ),
+    "rider_picked_": QuickTransition(
+        target_status="out_for_delivery",
+        confirm_label="Status: Out for Delivery",
+        banner="🚗 <b>OUT FOR DELIVERY</b>",
+        pre_commit=(_assign_driver_hook,),
+        post_commit=(_notify_customer_hook, _prompt_gps_hook),
+    ),
+    "rider_delivered_": QuickTransition(
+        target_status="delivered",
+        confirm_label="Status: Delivered",
+        banner="✅ <b>DELIVERED</b>",
+        pre_commit=(_mark_completed_hook,),
+        post_commit=(_notify_customer_hook,),
+    ),
+}
+
+
+async def _execute_quick_transition(call: CallbackQuery, prefix: str, spec: QuickTransition) -> None:
+    """Shared body for all quick-transition buttons."""
+    try:
+        order_id = int(call.data.removeprefix(prefix))
     except (ValueError, TypeError):
         await call.answer("Invalid order", show_alert=True)
         return
 
     with Database().session() as session:
         order = session.query(Order).filter_by(id=order_id).with_for_update().first()
-        if not order or not is_valid_transition(order.order_status, "preparing"):
+        if not order or not is_valid_transition(order.order_status, spec.target_status):
             await call.answer("Cannot change status", show_alert=True)
             return
 
-        order.order_status = "preparing"
+        for hook in spec.pre_commit:
+            await hook(call, order, session)
+
+        order.order_status = spec.target_status
         session.commit()
 
-        # Notify customer
-        await _notify_customer_status(call.bot, order)
+        for hook in spec.post_commit:
+            await hook(call, order, session)
 
-        await call.answer("Status: Preparing")
-        await call.message.edit_text(
-            call.message.text + "\n\n🍳 <b>PREPARING</b>",
-        )
+    await call.answer(spec.confirm_label)
+    await call.message.edit_text(call.message.text + "\n\n" + spec.banner)
+
+
+@router.callback_query(F.data.startswith("kitchen_preparing_"))
+async def kitchen_start_preparing(call: CallbackQuery):
+    await _execute_quick_transition(call, "kitchen_preparing_", QUICK_TRANSITIONS["kitchen_preparing_"])
 
 
 @router.callback_query(F.data.startswith("kitchen_ready_"))
 async def kitchen_mark_ready(call: CallbackQuery):
-    """Kitchen marks order as ready."""
-    try:
-        order_id = int(call.data.replace("kitchen_ready_", ""))
-    except (ValueError, TypeError):
-        await call.answer("Invalid order", show_alert=True)
-        return
-
-    with Database().session() as session:
-        order = session.query(Order).filter_by(id=order_id).with_for_update().first()
-        if not order or not is_valid_transition(order.order_status, "ready"):
-            await call.answer("Cannot change status", show_alert=True)
-            return
-
-        order.order_status = "ready"
-        session.commit()
-
-        # Notify rider group
-        await _send_rider_notification(call.bot, order, session)
-        # Notify customer
-        await _notify_customer_status(call.bot, order)
-
-        await call.answer("Status: Ready")
-        await call.message.edit_text(
-            call.message.text + "\n\n📦 <b>READY FOR PICKUP</b>",
-        )
+    await _execute_quick_transition(call, "kitchen_ready_", QUICK_TRANSITIONS["kitchen_ready_"])
 
 
 @router.callback_query(F.data.startswith("rider_picked_"))
 async def rider_picked_up(call: CallbackQuery):
-    """Rider marks order as out for delivery."""
-    try:
-        order_id = int(call.data.replace("rider_picked_", ""))
-    except (ValueError, TypeError):
-        await call.answer("Invalid order", show_alert=True)
-        return
-
-    with Database().session() as session:
-        order = session.query(Order).filter_by(id=order_id).with_for_update().first()
-        if not order or not is_valid_transition(order.order_status, "out_for_delivery"):
-            await call.answer("Cannot change status", show_alert=True)
-            return
-
-        # Assign driver if not yet set
-        if not order.driver_id:
-            order.driver_id = call.from_user.id
-
-        order.order_status = "out_for_delivery"
-        session.commit()
-
-        # Notify customer + prompt GPS
-        await _notify_customer_status(call.bot, order)
-        try:
-            from bot.handlers.user.delivery_chat_handler import prompt_customer_gps
-            await prompt_customer_gps(call.bot, order)
-        except Exception:
-            pass
-
-        await call.answer("Status: Out for Delivery")
-        await call.message.edit_text(
-            call.message.text + "\n\n🚗 <b>OUT FOR DELIVERY</b>",
-        )
+    await _execute_quick_transition(call, "rider_picked_", QUICK_TRANSITIONS["rider_picked_"])
 
 
 @router.callback_query(F.data.startswith("rider_delivered_"))
 async def rider_mark_delivered(call: CallbackQuery):
-    """Rider marks order as delivered."""
-    try:
-        order_id = int(call.data.replace("rider_delivered_", ""))
-    except (ValueError, TypeError):
-        await call.answer("Invalid order", show_alert=True)
-        return
-
-    with Database().session() as session:
-        order = session.query(Order).filter_by(id=order_id).with_for_update().first()
-        if not order or not is_valid_transition(order.order_status, "delivered"):
-            await call.answer("Cannot change status", show_alert=True)
-            return
-
-        order.order_status = "delivered"
-        order.completed_at = datetime.now(UTC)
-
-        from bot.handlers.user.delivery_chat_handler import set_post_delivery_window
-        set_post_delivery_window(session, order)
-
-        session.commit()
-
-        await _notify_customer_status(call.bot, order)
-
-        await call.answer("Status: Delivered")
-        await call.message.edit_text(
-            call.message.text + "\n\n✅ <b>DELIVERED</b>",
-        )
+    await _execute_quick_transition(call, "rider_delivered_", QUICK_TRANSITIONS["rider_delivered_"])
 
 
 # ── Internal notification helpers ─────────────────────────────────────
