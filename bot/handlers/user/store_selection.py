@@ -224,14 +224,6 @@ async def switch_brand(call: CallbackQuery, state: FSMContext):
         current_store_name=None,
     )
     await brand_picker(call, state)
-    """Switch to a different brand. Clears brand/store state."""
-    await state.update_data(
-        current_brand_id=None,
-        current_brand_name=None,
-        current_store_id=None,
-        current_store_name=None,
-    )
-    await brand_picker(call, state)
 
 
 async def _show_categories(call: CallbackQuery, state: FSMContext):

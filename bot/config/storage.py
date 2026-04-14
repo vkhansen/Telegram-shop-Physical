@@ -60,11 +60,16 @@ def get_redis_storage() -> Optional[RedisStorage]:
             socket_timeout=5,
         )
 
+        # FSM TTL must be at least as long as the cart TTL so that an
+        # in-progress checkout does not lose its state while the cart is
+        # still alive in the database.
+        fsm_ttl = max(3600, EnvKeys.CART_TTL_MINUTES * 60)
+
         # Use custom storage with TTL
         storage = CustomRedisStorage(
             redis=redis,
-            state_ttl=3600,  # 1 hour
-            data_ttl=3600,  # 1 hour
+            state_ttl=fsm_ttl,
+            data_ttl=fsm_ttl,
         )
 
         logging.info(f"Redis storage configured: {EnvKeys.REDIS_HOST}:{EnvKeys.REDIS_PORT}")

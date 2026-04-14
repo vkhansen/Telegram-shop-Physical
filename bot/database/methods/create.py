@@ -177,20 +177,31 @@ def save_cart_snapshot(user_id: int, brand_id: int, store_id: int | None,
                        items_json: list, original_total) -> bool:
     """Card 21: Persist current cart as a SavedCart row for brand-switch restore.
 
+    Upserts: if a saved cart for this (user_id, brand_id) already exists it is
+    overwritten so rows do not accumulate unboundedly.
+
     items_json format: [{"name": str, "quantity": int, "modifiers": dict|None,
                          "unit_price": str, "schema_version": 1}]
     """
     try:
         from bot.database.models.main import SavedCart
         with Database().session() as s:
-            snapshot = SavedCart(
-                user_id=user_id,
-                brand_id=brand_id,
-                store_id=store_id,
-                items_json={"schema_version": 1, "items": items_json},
-                original_total=original_total,
-            )
-            s.add(snapshot)
+            existing = s.query(SavedCart).filter_by(
+                user_id=user_id, brand_id=brand_id
+            ).first()
+            if existing:
+                existing.store_id = store_id
+                existing.items_json = {"schema_version": 1, "items": items_json}
+                existing.original_total = original_total
+            else:
+                snapshot = SavedCart(
+                    user_id=user_id,
+                    brand_id=brand_id,
+                    store_id=store_id,
+                    items_json={"schema_version": 1, "items": items_json},
+                    original_total=original_total,
+                )
+                s.add(snapshot)
             s.commit()
         return True
     except Exception as e:
