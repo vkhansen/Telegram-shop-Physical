@@ -10,3 +10,7 @@ class ShopStates(StatesGroup):
     viewing_goods = State()
     viewing_bought_items = State()
     viewing_categories = State()
+    # Card 21: brand-switch save/delete/stay guard
+    confirming_brand_switch = State()
+    # Card 21: store-switch availability guard
+    confirming_store_switch = State()

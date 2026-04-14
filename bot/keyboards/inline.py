@@ -158,6 +158,28 @@ def close() -> InlineKeyboardMarkup:
     return simple_buttons([(localize("btn.close"), "close")])
 
 
+def brand_switch_confirm_keyboard(pending_brand_id: int) -> InlineKeyboardMarkup:
+    """Card 21: Save / Delete / Stay prompt when switching brands with a non-empty cart."""
+    kb = InlineKeyboardBuilder()
+    kb.button(text=localize("btn.save_cart"), callback_data=f"save_cart:{pending_brand_id}")
+    kb.button(text=localize("btn.delete_cart"), callback_data=f"delete_cart:{pending_brand_id}")
+    kb.button(text=localize("btn.stay"), callback_data="stay_brand")
+    kb.adjust(2, 1)
+    return kb.as_markup()
+
+
+def store_switch_confirm_keyboard(pending_store_id: int) -> InlineKeyboardMarkup:
+    """Card 21: Switch-and-remove / Stay prompt when switching stores with unavailable items."""
+    kb = InlineKeyboardBuilder()
+    kb.button(
+        text=localize("btn.switch_and_remove"),
+        callback_data=f"switch_and_remove:{pending_store_id}",
+    )
+    kb.button(text=localize("btn.stay"), callback_data="stay_store")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
 async def lazy_paginated_keyboard(
         paginator: 'LazyPaginator',
         item_text: Callable[[object], str],

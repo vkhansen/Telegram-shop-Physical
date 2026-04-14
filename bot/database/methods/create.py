@@ -173,6 +173,31 @@ async def add_to_cart(user_id: int, item_name: str, quantity: int = 1,
         return False, "An error occurred while adding the item to cart"
 
 
+def save_cart_snapshot(user_id: int, brand_id: int, store_id: int | None,
+                       items_json: list, original_total) -> bool:
+    """Card 21: Persist current cart as a SavedCart row for brand-switch restore.
+
+    items_json format: [{"name": str, "quantity": int, "modifiers": dict|None,
+                         "unit_price": str, "schema_version": 1}]
+    """
+    try:
+        from bot.database.models.main import SavedCart
+        with Database().session() as s:
+            snapshot = SavedCart(
+                user_id=user_id,
+                brand_id=brand_id,
+                store_id=store_id,
+                items_json={"schema_version": 1, "items": items_json},
+                original_total=original_total,
+            )
+            s.add(snapshot)
+            s.commit()
+        return True
+    except Exception as e:
+        logger.error(f"save_cart_snapshot error: {e}")
+        return False
+
+
 def create_brand(name: str, slug: str, description: str = None,
                  logo_file_id: str = None, promptpay_id: str = None,
                  promptpay_name: str = None, timezone: str = None) -> int | None:

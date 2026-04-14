@@ -71,3 +71,18 @@ async def clear_cart(user_id: int) -> tuple[bool, str]:
     except Exception as e:
         logger.error(f"Error clearing cart: {e}")
         return False, "An error occurred while clearing the cart"
+
+
+def remove_items_from_cart(user_id: int, item_names: list[str]) -> None:
+    """Card 21: Delete specific items from a user's cart (unavailable after store switch)."""
+    if not item_names:
+        return
+    try:
+        with Database().session() as session:
+            session.query(ShoppingCart).filter(
+                ShoppingCart.user_id == user_id,
+                ShoppingCart.item_name.in_(item_names),
+            ).delete(synchronize_session=False)
+            session.commit()
+    except Exception as e:
+        logger.error(f"remove_items_from_cart error: {e}")
