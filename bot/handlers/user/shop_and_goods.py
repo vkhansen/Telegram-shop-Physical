@@ -177,7 +177,9 @@ async def items_list_callback_handler(call: CallbackQuery, state: FSMContext):
     # Create paginator for items in category (active items only)
     from bot.database.methods.lazy_queries import query_items_in_category
 
-    query_func = partial(query_items_in_category, category_name)
+    _state_data = await state.get_data()
+    _brand_id = _state_data.get('current_brand_id')
+    query_func = partial(query_items_in_category, category_name, brand_id=_brand_id)
     paginator = LazyPaginator(query_func, per_page=10)
 
     markup = await lazy_paginated_keyboard(
@@ -224,7 +226,7 @@ async def navigate_goods(call: CallbackQuery, state: FSMContext):
     # Create paginator
     from bot.database.methods.lazy_queries import query_items_in_category
 
-    query_func = partial(query_items_in_category, category_name)
+    query_func = partial(query_items_in_category, category_name, brand_id=data.get('current_brand_id'))
     paginator = LazyPaginator(query_func, per_page=10, state=paginator_state)
 
     markup = await lazy_paginated_keyboard(

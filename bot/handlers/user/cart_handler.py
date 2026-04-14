@@ -104,7 +104,9 @@ async def add_to_cart_handler(call: CallbackQuery, state: FSMContext):
         return
 
     # No modifiers - add directly
-    success, message = await add_to_cart(user_id, item_name, quantity=1)
+    _cart_data = await state.get_data()
+    success, message = await add_to_cart(user_id, item_name, quantity=1,
+                                          brand_id=_cart_data.get('current_brand_id'))
 
     if success:
         track_event("cart_add", user_id, {"item": item_name, "quantity": 1})
@@ -243,7 +245,8 @@ async def _finish_modifier_selection(call: CallbackQuery, state: FSMContext, sel
 
     # Add to cart with modifiers
     success, message = await add_to_cart(user_id, item_name, quantity=1,
-                                          selected_modifiers=clean_selected or None)
+                                          selected_modifiers=clean_selected or None,
+                                          brand_id=data.get('current_brand_id'))
 
     if success:
         track_event("cart_add", user_id, {"item": item_name, "quantity": 1, "modifiers": clean_selected})

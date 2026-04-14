@@ -1430,6 +1430,38 @@ def main():
 
     unban_parser.set_defaults(func=handle_unban)
 
+    # ── Multi-bot management (Card 19) ────────────────────────────────────────
+    bots_parser = subparsers.add_parser('bots', help='Manage multi-brand bots (Card 19)')
+    bots_sub = bots_parser.add_subparsers(dest='bots_command')
+
+    # bots list
+    bots_sub.add_parser('list', help='List all registered bots')
+
+    # bots add
+    bots_add = bots_sub.add_parser('add', help='Register a new bot for a brand')
+    bots_add.add_argument('--brand-slug', required=True, help='Brand slug (creates brand if absent)')
+    bots_add.add_argument('--brand-name', default=None, help='Brand display name (default: slug)')
+    bots_add.add_argument('--token', required=True, help='Telegram bot token from @BotFather')
+    bots_add.add_argument('--language', default='th', help='Default language (default: th)')
+    bots_add.add_argument('--currency', default='THB', help='Default currency (default: THB)')
+    bots_add.add_argument('--payments', default=None, help='Comma-separated payment methods')
+
+    # bots activate / deactivate
+    bots_act = bots_sub.add_parser('activate', help='Activate a bot by brand slug')
+    bots_act.add_argument('--brand-slug', required=True)
+    bots_deact = bots_sub.add_parser('deactivate', help='Deactivate a bot by brand slug')
+    bots_deact.add_argument('--brand-slug', required=True)
+
+    # bots delete
+    bots_del = bots_sub.add_parser('delete', help='Delete a BotConfig row (keeps brand/data)')
+    bots_del.add_argument('--brand-slug', required=True)
+    bots_del.add_argument('--confirm', action='store_true', help='Skip confirmation prompt')
+
+    def handle_bots(args):
+        asyncio.run(_handle_bots_cmd(args))
+
+    bots_parser.set_defaults(func=handle_bots)
+
     # Parse arguments
     args = parser.parse_args()
 
@@ -1444,5 +1476,121 @@ def main():
         parser.print_help()
 
 
+async def _handle_bots_cmd(args):
+    """Dispatch bots sub-commands."""
+    from bot.database.models.main import BotConfig, Brand
+    from bot.database.main import Database
+
+    sub = getattr(args, 'bots_command', None)
+    if not sub:
+        print("Usage: bot_cli.py bots <list|add|activate|deactivate|delete>")
+        return
+
+    if sub == 'list':
+        with Database().session() as s:
+            configs = s.query(BotConfig).order_by(BotConfig.brand_id).all()
+            if not configs:
+                print("No bots registered.")
+                return
+            print(f"{'Brand ID':<10} {'Username':<25} {'Brand Slug':<20} {'Active':<8} {'Config ID'}")
+            print("-" * 75)
+            for cfg in configs:
+                brand = s.query(Brand).filter(Brand.id == cfg.brand_id).first()
+                slug = brand.slug if brand else "?"
+                username = cfg.bot_username or "(not cached)"
+                print(f"{cfg.brand_id:<10} {username:<25} {slug:<20} {str(cfg.is_active):<8} {cfg.id}")
+
+    elif sub == 'add':
+        slug = args.brand_slug
+        name = args.brand_name or slug
+        token = args.token
+        payments = [p.strip() for p in args.payments.split(',')] if args.payments else None
+
+        with Database().session() as s:
+            brand = s.query(Brand).filter(Brand.slug == slug).first()
+            if not brand:
+                brand = Brand(name=name, slug=slug)
+                s.add(brand)
+                s.flush()
+                print(f"✅ Created brand '{name}' (slug={slug}, id={brand.id})")
+            else:
+                print(f"ℹ️  Using existing brand '{brand.name}' (id={brand.id})")
+
+            existing = s.query(BotConfig).filter(BotConfig.brand_id == brand.id).first()
+            if existing:
+                print(f"⚠️  Brand already has a BotConfig (id={existing.id}). Update it manually or delete first.")
+                return
+
+            # Verify token by calling getMe
+            bot_username = None
+            bot_display_name = None
+            try:
+                _bot = Bot(token=token, default=DefaultBotProperties(parse_mode="HTML"))
+                me = await _bot.get_me()
+                bot_username = me.username
+                bot_display_name = me.first_name
+                await _bot.session.close()
+                print(f"✅ Token valid — @{bot_username}")
+            except Exception as e:
+                print(f"⚠️  Could not validate token: {e}")
+
+            cfg = BotConfig(
+                brand_id=brand.id,
+                bot_token=token,
+                bot_username=bot_username,
+                bot_display_name=bot_display_name,
+                is_active=True,
+                default_language=args.language,
+                default_currency=args.currency,
+                payments_enabled=payments,
+            )
+            s.add(cfg)
+            s.commit()
+            print(f"✅ Bot registered for brand '{slug}' (BotConfig id={cfg.id})")
+            print(f"   Run with MULTI_BOT_ENABLED=true to start all registered bots.")
+
+    elif sub in ('activate', 'deactivate'):
+        active = sub == 'activate'
+        slug = args.brand_slug
+        with Database().session() as s:
+            brand = s.query(Brand).filter(Brand.slug == slug).first()
+            if not brand:
+                print(f"❌ Brand '{slug}' not found")
+                return
+            cfg = s.query(BotConfig).filter(BotConfig.brand_id == brand.id).first()
+            if not cfg:
+                print(f"❌ No BotConfig for brand '{slug}'")
+                return
+            cfg.is_active = active
+            s.commit()
+            verb = "activated" if active else "deactivated"
+            print(f"✅ Bot for brand '{slug}' {verb} (restart backend to apply)")
+
+    elif sub == 'delete':
+        slug = args.brand_slug
+        confirmed = getattr(args, 'confirm', False)
+        if not confirmed:
+            resp = input(f"Delete BotConfig for brand '{slug}'? This does NOT delete the brand or its data. [y/N] ")
+            if resp.lower() != 'y':
+                print("Cancelled.")
+                return
+        with Database().session() as s:
+            brand = s.query(Brand).filter(Brand.slug == slug).first()
+            if not brand:
+                print(f"❌ Brand '{slug}' not found")
+                return
+            cfg = s.query(BotConfig).filter(BotConfig.brand_id == brand.id).first()
+            if not cfg:
+                print(f"❌ No BotConfig for brand '{slug}'")
+                return
+            s.delete(cfg)
+            s.commit()
+            print(f"✅ BotConfig for brand '{slug}' deleted")
+
+    else:
+        print(f"Unknown bots sub-command: {sub}")
+
+
 if __name__ == '__main__':
     main()
+

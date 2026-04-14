@@ -102,63 +102,66 @@ class RateLimiter:
         """Bans the user for a period of time"""
         self.banned_users[user_id] = time.time()
 
-    def check_global_limit(self, user_id: int) -> bool:
-        """Checks the global request limit"""
+    def check_global_limit(self, user_id: int, brand_id: int = 0) -> bool:
+        """Checks the global request limit (keyed per brand)"""
         self._periodic_cleanup()
         current_time = time.time()
+        key = (brand_id, user_id)
 
         # Clearing old requests
-        self.user_requests[user_id] = self._clean_old_requests(
-            self.user_requests[user_id],
+        self.user_requests[key] = self._clean_old_requests(
+            self.user_requests[key],
             self.config.global_window
         )
 
         # Checking the limit
-        if len(self.user_requests[user_id]) >= self.config.global_limit:
+        if len(self.user_requests[key]) >= self.config.global_limit:
             return False
 
         # Add the current query
-        self.user_requests[user_id].append(current_time)
+        self.user_requests[key].append(current_time)
         return True
 
-    def check_action_limit(self, user_id: int, action: str) -> bool:
-        """Checks the limit for a specific action"""
+    def check_action_limit(self, user_id: int, action: str, brand_id: int = 0) -> bool:
+        """Checks the limit for a specific action (keyed per brand)"""
         if action not in self.config.action_limits:
             return True
 
         limit, window = self.config.action_limits[action]
         current_time = time.time()
+        key = (brand_id, user_id)
 
         # Clear old requests for this action
-        self.user_actions[action][user_id] = self._clean_old_requests(
-            self.user_actions[action][user_id],
+        self.user_actions[action][key] = self._clean_old_requests(
+            self.user_actions[action][key],
             window
         )
 
         # Checking the limit
-        if len(self.user_actions[action][user_id]) >= limit:
+        if len(self.user_actions[action][key]) >= limit:
             return False
 
         # Add the current query
-        self.user_actions[action][user_id].append(current_time)
+        self.user_actions[action][key].append(current_time)
         return True
 
-    def get_wait_time(self, user_id: int, action: str = None) -> int:
+    def get_wait_time(self, user_id: int, action: str = None, brand_id: int = 0) -> int:
         """Returns the wait time until the next available request"""
         if self.is_banned(user_id):
             ban_time = self.banned_users[user_id]
             return int(self.config.ban_duration - (time.time() - ban_time))
 
+        key = (brand_id, user_id)
         if action and action in self.config.action_limits:
             limit, window = self.config.action_limits[action]
-            requests = self.user_actions[action][user_id]
+            requests = self.user_actions[action][key]
             if len(requests) >= limit:
                 oldest_request = min(requests)
                 return int(window - (time.time() - oldest_request))
 
         # Global limit
-        if len(self.user_requests[user_id]) >= self.config.global_limit:
-            oldest_request = min(self.user_requests[user_id])
+        if len(self.user_requests[key]) >= self.config.global_limit:
+            oldest_request = min(self.user_requests[key])
             return int(self.config.global_window - (time.time() - oldest_request))
 
         return 0
@@ -230,6 +233,7 @@ class RateLimitMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         user_id = user.id
+        brand_id = data.get("brand_id") or 0
 
         # Checking the ban
         if self.limiter.is_banned(user_id):
@@ -255,7 +259,7 @@ class RateLimitMiddleware(BaseMiddleware):
         action = self._get_action_from_event(event)
 
         # Checking the limits
-        if not self.limiter.check_global_limit(user_id):
+        if not self.limiter.check_global_limit(user_id, brand_id):
             self.limiter.ban_user(user_id)
 
             if isinstance(event, CallbackQuery):
@@ -267,8 +271,8 @@ class RateLimitMiddleware(BaseMiddleware):
                 await event.answer(localize("middleware.above_limits"))
             return None
 
-        if not self.limiter.check_action_limit(user_id, action):
-            wait_time = self.limiter.get_wait_time(user_id, action)
+        if not self.limiter.check_action_limit(user_id, action, brand_id):
+            wait_time = self.limiter.get_wait_time(user_id, action, brand_id)
 
             if isinstance(event, CallbackQuery):
                 await event.answer(

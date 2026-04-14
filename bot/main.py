@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import sys
 import json
@@ -268,46 +269,84 @@ async def start_bot() -> None:
     cache_scheduler = CacheScheduler()
     await cache_scheduler.start()
 
-    # Creating a dispatcher
-    dp = Dispatcher(storage=storage)
+    if EnvKeys.MULTI_BOT_ENABLED:
+        # ── Multi-bot mode (Card 19) ───────────────────────────────────────────
+        logging.info("MULTI_BOT_ENABLED=true — starting BotPool")
+        from bot.multibot.pool import BotPool, set_handler_registration_fn
+        from bot.handlers import register_all_handlers as _rah
 
-    # Create and run the bot
-    async with Bot(
-            token=EnvKeys.TOKEN,
-            default=DefaultBotProperties(
-                parse_mode="HTML",
-                link_preview_is_disabled=False,
-                protect_content=False,
-            ),
-    ) as bot:
-        # Getting information about the bot
-        bot_info = await bot.get_me()
-        logging.info(f"Starting bot: @{bot_info.username} (ID: {bot_info.id})")
+        # Inject handler-registration callback (avoids circular import in pool.py)
+        set_handler_registration_fn(_rah)
 
-        # Initialization at startup
-        await __on_start_up(dp, bot)
-
+        pool = BotPool(storage=storage)
         try:
-            # Start polling with signal processing
-            await dp.start_polling(
-                bot,
-                allowed_updates=[
-                    "message",
-                    "callback_query",
-                    "pre_checkout_query",
-                    "successful_payment"
-                ],
-                handle_signals=True,
-            )
-        except Exception as e:
-            logging.error(f"Bot polling error: {e}")
-            raise
+            await pool.start_all()
+            if not pool.list_active():
+                logging.critical("No active bots started — check bot_configs table")
+                sys.exit(1)
+            logging.info("BotPool running: %s", pool.list_active())
+            # Keep running until all polling tasks finish / are cancelled
+            tasks = list(pool._tasks.values())
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
         finally:
-            # LOGIC-14 fix: Only shutdown once (removed duplicate from except block)
-            await __on_shutdown(dp, bot)
-
+            await pool.shutdown()
             if cache_scheduler:
                 await cache_scheduler.stop()
+    else:
+        # ── Legacy single-bot mode (default) ─────────────────────────────────
+        # Ensure a default Brand + BotConfig row exist so BrandContextMiddleware
+        # always has a valid brand_id (=1) even in single-bot deployments.
+        from bot.multibot.pool import BotPool as _BP
+        default_brand_id = _BP.ensure_default_brand()
+
+        # Creating a dispatcher
+        dp = Dispatcher(storage=storage)
+
+        # Inject BrandContextMiddleware with brand_id=1 for single-bot mode
+        from bot.middleware.brand_context import BrandContextMiddleware
+        _brand_mw = BrandContextMiddleware(default_brand_id)
+        dp.message.middleware(_brand_mw)
+        dp.callback_query.middleware(_brand_mw)
+        dp.pre_checkout_query.middleware(_brand_mw)
+
+        # Create and run the bot
+        async with Bot(
+                token=EnvKeys.TOKEN,
+                default=DefaultBotProperties(
+                    parse_mode="HTML",
+                    link_preview_is_disabled=False,
+                    protect_content=False,
+                ),
+        ) as bot:
+            # Getting information about the bot
+            bot_info = await bot.get_me()
+            logging.info(f"Starting bot: @{bot_info.username} (ID: {bot_info.id})")
+
+            # Initialization at startup
+            await __on_start_up(dp, bot)
+
+            try:
+                # Start polling with signal processing
+                await dp.start_polling(
+                    bot,
+                    allowed_updates=[
+                        "message",
+                        "callback_query",
+                        "pre_checkout_query",
+                        "successful_payment"
+                    ],
+                    handle_signals=True,
+                )
+            except Exception as e:
+                logging.error(f"Bot polling error: {e}")
+                raise
+            finally:
+                # LOGIC-14 fix: Only shutdown once (removed duplicate from except block)
+                await __on_shutdown(dp, bot)
+
+                if cache_scheduler:
+                    await cache_scheduler.stop()
 
             if isinstance(storage, RedisStorage):
                 await storage.close()

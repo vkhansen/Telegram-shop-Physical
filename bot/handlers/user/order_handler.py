@@ -855,6 +855,8 @@ async def process_crypto_payment(message: Message, state: FSMContext, *, user_id
                 drop_latitude=dd_lat,
                 drop_longitude=dd_lng,
                 drop_media=dd_media,
+                brand_id=data.get('current_brand_id'),
+                store_id=data.get('current_store_id'),
             )
             session.add(order)
             session.flush()
@@ -1109,6 +1111,8 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
                 drop_latitude=dd_lat,
                 drop_longitude=dd_lng,
                 drop_media=dd_media,
+                brand_id=fsm_data.get('current_brand_id'),
+                store_id=fsm_data.get('current_store_id'),
             )
             session.add(order)
             session.flush()  # Get the order ID
@@ -1316,6 +1320,8 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
                 drop_latitude=dd_lat,
                 drop_longitude=dd_lng,
                 drop_media=dd_media,
+                brand_id=data.get('current_brand_id'),
+                store_id=data.get('current_store_id'),
             )
             session.add(order)
             session.flush()  # Get the order ID
@@ -1550,6 +1556,8 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
                 drop_latitude=dd_lat,
                 drop_longitude=dd_lng,
                 drop_media=dd_media,
+                brand_id=data.get('current_brand_id'),
+                store_id=data.get('current_store_id'),
             )
             session.add(order)
             session.flush()  # Get the order ID
@@ -1764,6 +1772,8 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
                 drop_latitude=dd_lat,
                 drop_longitude=dd_lng,
                 drop_media=dd_media,
+                brand_id=data.get('current_brand_id'),
+                store_id=data.get('current_store_id'),
             )
             session.add(order)
             session.flush()

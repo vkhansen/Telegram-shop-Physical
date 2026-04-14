@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-> **15% Complete** | `███░░░░░░░░░░░░░░░░` | Database models exist — multi-bot runtime & admin UI not started.
+> **100% Complete** | `███████████████████` | BotPool runtime, BrandContextMiddleware, BotConfig model, brand-scoped queries, CLI bots commands, handler brand_id pass-through, rate-limit brand keying.
 
 **Phase:** 3 — Platform Scale
 **Priority:** High

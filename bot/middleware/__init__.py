@@ -6,3 +6,4 @@ from bot.middleware.rate_limit import (
 )
 from bot.middleware.security import SecurityMiddleware, AuthenticationMiddleware
 from bot.middleware.locale import LocaleMiddleware
+from bot.middleware.brand_context import BrandContextMiddleware

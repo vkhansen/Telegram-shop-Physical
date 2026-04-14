@@ -96,5 +96,12 @@ class EnvKeys(ABC):
     CART_TTL_MINUTES: Final = int(os.getenv("CART_TTL_MINUTES", 120))
     CART_FLASH_SECONDS: Final = float(os.getenv("CART_FLASH_SECONDS", 1.5))
 
+    # Multi-bot runtime (Card 19)
+    MULTI_BOT_ENABLED: Final = os.getenv("MULTI_BOT_ENABLED", "false").lower() in ("1", "true", "yes")
+    WEBHOOK_MODE: Final = os.getenv("WEBHOOK_MODE", "false").lower() in ("1", "true", "yes")
+    WEBHOOK_BASE_URL: Final = os.getenv("WEBHOOK_BASE_URL", "")   # Public URL for webhook callbacks
+    WEBHOOK_PORT: Final = int(os.getenv("WEBHOOK_PORT", 8443))
+    BOT_TOKEN_ENCRYPTION_KEY: Final = os.getenv("BOT_TOKEN_ENCRYPTION_KEY", "")  # Fernet key (future)
+
     # Database (for manual deploy) — SEC-02 fix: require env var, no hardcoded credentials
     DATABASE_URL: Final = os.environ.get("DATABASE_URL")  # must be set in environment

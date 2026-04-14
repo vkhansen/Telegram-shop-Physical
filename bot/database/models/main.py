@@ -560,6 +560,7 @@ class Order(Database.BASE):
                  drop_latitude: float = None, drop_longitude: float = None,
                  drop_media: list = None,
                  crypto_address: str = None, payment_coin: str = None,
+                 brand_id: int = None, store_id: int = None,
                  **kw: Any):
         super().__init__(**kw)
         self.buyer_id = buyer_id
@@ -585,6 +586,8 @@ class Order(Database.BASE):
         self.drop_latitude = drop_latitude
         self.drop_longitude = drop_longitude
         self.drop_media = drop_media
+        self.brand_id = brand_id
+        self.store_id = store_id
 
 
 class OrderItem(Database.BASE):
@@ -1074,6 +1077,55 @@ class BranchInventory(Database.BASE):
         self.item_name = item_name
         self.stock_quantity = stock_quantity
         self.reserved_quantity = reserved_quantity
+
+
+class BotConfig(Database.BASE):
+    """Maps a Telegram bot token to a Brand. One brand = one bot. (Card 19)"""
+    __tablename__ = 'bot_configs'
+
+    id = Column(Integer, primary_key=True)
+    brand_id = Column(Integer, ForeignKey('brands.id', ondelete='CASCADE'), nullable=False, unique=True)
+    bot_token = Column(String(100), nullable=False, unique=True)
+    bot_username = Column(String(64), nullable=True)       # cached from getMe()
+    bot_display_name = Column(String(128), nullable=True)  # cached from getMe()
+
+    is_active = Column(Boolean, nullable=False, default=True, index=True)
+    webhook_url = Column(String(500), nullable=True)       # NULL = use polling
+    webhook_secret = Column(String(128), nullable=True)
+
+    # Per-bot feature flags
+    payments_enabled = Column(JSON, nullable=True)         # ["promptpay", "bitcoin", "cash"]
+    default_language = Column(String(5), nullable=True)    # "th", "en"
+    default_currency = Column(String(5), nullable=True)    # "THB", "USD"
+
+    # Customisation
+    welcome_message = Column(Text, nullable=True)          # Override default welcome
+    menu_style = Column(String(20), nullable=True)         # 'grid', 'list', 'category_first'
+
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=True, onupdate=func.now())
+
+    brand = relationship('Brand', backref='bot_config', foreign_keys=lambda: [BotConfig.brand_id])
+
+    def __init__(self, brand_id: int, bot_token: str, bot_username: str = None,
+                 bot_display_name: str = None, is_active: bool = True,
+                 webhook_url: str = None, webhook_secret: str = None,
+                 payments_enabled: list = None, default_language: str = None,
+                 default_currency: str = None, welcome_message: str = None,
+                 menu_style: str = None, **kw: Any):
+        super().__init__(**kw)
+        self.brand_id = brand_id
+        self.bot_token = bot_token
+        self.bot_username = bot_username
+        self.bot_display_name = bot_display_name
+        self.is_active = is_active
+        self.webhook_url = webhook_url
+        self.webhook_secret = webhook_secret
+        self.payments_enabled = payments_enabled
+        self.default_language = default_language
+        self.default_currency = default_currency
+        self.welcome_message = welcome_message
+        self.menu_style = menu_style
 
 
 class SavedCart(Database.BASE):
