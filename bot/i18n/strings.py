@@ -281,6 +281,16 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "shop.branches.title": "📍 Выберите филиал",
         "shop.no_brands": "В данный момент нет доступных ресторанов.",
         "shop.brand_unavailable": "Этот ресторан временно недоступен.",
+        # Card 21: brand/store switch guards
+        "shop.brand_switch.warning": "У вас {n} поз. (฿{total}) в корзине из {current_brand}.\nПереход в {new_brand} требует новой корзины.",
+        "shop.brand_switch.saved": "Корзина сохранена. Вы можете восстановить её из профиля.",
+        "shop.brand_switch.deleted": "Корзина очищена.",
+        "shop.store_switch.unavailable": "⚠️ {n} позиций недоступны в {store_name}:\n{items}",
+        "shop.store_switch.flash": "🛒 📍 Переход в {store_name} · ฿{total}",
+        "btn.save_cart": "💾 Сохранить и очистить",
+        "btn.delete_cart": "🗑 Удалить корзину",
+        "btn.stay": "↩️ Остаться",
+        "btn.switch_and_remove": "🔄 Переключить и убрать недоступное",
 
         # === Shop Browsing (Categories / Goods / Item Page) ===
         "shop.categories.title": "🏪 Категории магазина",
@@ -1364,6 +1374,16 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "shop.branches.title": "📍 Choose a branch",
         "shop.no_brands": "No restaurants available at the moment.",
         "shop.brand_unavailable": "This restaurant is currently unavailable.",
+        # Card 21: brand/store switch guards
+        "shop.brand_switch.warning": "You have {n} item(s) (฿{total}) in your cart from {current_brand}.\nSwitching to {new_brand} requires a new cart.",
+        "shop.brand_switch.saved": "Cart saved. You can restore it from Profile later.",
+        "shop.brand_switch.deleted": "Cart cleared.",
+        "shop.store_switch.unavailable": "⚠️ {n} item(s) not available at {store_name}:\n{items}",
+        "shop.store_switch.flash": "🛒 📍 Switched to {store_name} · ฿{total}",
+        "btn.save_cart": "💾 Save & Clear Cart",
+        "btn.delete_cart": "🗑 Delete Cart",
+        "btn.stay": "↩️ Stay",
+        "btn.switch_and_remove": "🔄 Switch & Remove Unavailable",
 
         # === Shop Browsing (Categories / Goods / Item Page) ===
         "shop.categories.title": "🏪 Shop categories",
@@ -2423,6 +2443,16 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "shop.branches.title": "📍 เลือกสาขา",
         "shop.no_brands": "ยังไม่มีร้านอาหารในขณะนี้",
         "shop.brand_unavailable": "ร้านอาหารนี้ไม่พร้อมให้บริการในขณะนี้",
+        # Card 21: brand/store switch guards
+        "shop.brand_switch.warning": "คุณมีสินค้า {n} รายการ (฿{total}) ในตะกร้าจาก {current_brand}\nการเปลี่ยนไป {new_brand} ต้องใช้ตะกร้าใหม่",
+        "shop.brand_switch.saved": "บันทึกตะกร้าแล้ว คุณสามารถกู้คืนได้จากโปรไฟล์",
+        "shop.brand_switch.deleted": "ล้างตะกร้าแล้ว",
+        "shop.store_switch.unavailable": "⚠️ {n} รายการไม่มีที่ {store_name}:\n{items}",
+        "shop.store_switch.flash": "🛒 📍 เปลี่ยนเป็น {store_name} · ฿{total}",
+        "btn.save_cart": "💾 บันทึกและล้างตะกร้า",
+        "btn.delete_cart": "🗑 ลบตะกร้า",
+        "btn.stay": "↩️ อยู่ที่เดิม",
+        "btn.switch_and_remove": "🔄 เปลี่ยนและลบรายการที่ไม่มี",
 
         # === Shop Browsing (Categories / Goods / Item Page) ===
         "shop.categories.title": "🏪 หมวดหมู่ร้านค้า",
@@ -3340,6 +3370,16 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "shop.branches.title": "📍 اختر فرعًا",
         "shop.no_brands": "لا توجد مطاعم متاحة حاليًا.",
         "shop.brand_unavailable": "هذا المطعم غير متاح حاليًا.",
+        # Card 21: brand/store switch guards
+        "shop.brand_switch.warning": "لديك {n} عنصر (฿{total}) في سلتك من {current_brand}.\nالانتقال إلى {new_brand} يتطلب سلة جديدة.",
+        "shop.brand_switch.saved": "تم حفظ السلة. يمكنك استعادتها لاحقًا من الملف الشخصي.",
+        "shop.brand_switch.deleted": "تم مسح السلة.",
+        "shop.store_switch.unavailable": "⚠️ {n} عنصر غير متاح في {store_name}:\n{items}",
+        "shop.store_switch.flash": "🛒 📍 تم التبديل إلى {store_name} · ฿{total}",
+        "btn.save_cart": "💾 حفظ وإفراغ السلة",
+        "btn.delete_cart": "🗑 حذف السلة",
+        "btn.stay": "↩️ البقاء",
+        "btn.switch_and_remove": "🔄 تبديل وإزالة غير المتاح",
 
         # === Shop Browsing (Categories / Goods / Item Page) ===
         "shop.categories.title": "🏪 فئات المتجر",
@@ -4214,6 +4254,16 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "shop.branches.title": "📍 یک شعبه انتخاب کنید",
         "shop.no_brands": "در حال حاضر رستورانی در دسترس نیست.",
         "shop.brand_unavailable": "این رستوران در حال حاضر در دسترس نیست.",
+        # Card 21: brand/store switch guards
+        "shop.brand_switch.warning": "شما {n} آیتم (฿{total}) از {current_brand} در سبدتان دارید.\nانتقال به {new_brand} نیاز به سبد جدید دارد.",
+        "shop.brand_switch.saved": "سبد ذخیره شد. می‌توانید آن را از پروفایل بازیابی کنید.",
+        "shop.brand_switch.deleted": "سبد پاک شد.",
+        "shop.store_switch.unavailable": "⚠️ {n} آیتم در {store_name} موجود نیست:\n{items}",
+        "shop.store_switch.flash": "🛒 📍 تغییر به {store_name} · ฿{total}",
+        "btn.save_cart": "💾 ذخیره و پاک‌کردن سبد",
+        "btn.delete_cart": "🗑 حذف سبد",
+        "btn.stay": "↩️ ماندن",
+        "btn.switch_and_remove": "🔄 تغییر و حذف موارد ناموجود",
 
         # === Shop Browsing (Categories / Goods / Item Page) ===
         "shop.categories.title": "🏪 دسته\u200cبندی\u200cهای فروشگاه",
@@ -5076,6 +5126,16 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "shop.branches.title": "📍 یوه څانګه وټاکئ",
         "shop.no_brands": "اوس مهال هیڅ رستورانت شتون نلري.",
         "shop.brand_unavailable": "دا رستورانت اوس مهال شتون نلري.",
+        # Card 21: brand/store switch guards
+        "shop.brand_switch.warning": "ستاسو {n} توکي (฿{total}) د {current_brand} نه ستاسو ټوکر کې دي.\n{new_brand} ته لیږد نوي ټوکر ته اړتیا لري.",
+        "shop.brand_switch.saved": "ټوکر خوندي شو. تاسو کولی شئ یې د پروفایل نه بیرته راوباسئ.",
+        "shop.brand_switch.deleted": "ټوکر پاک شو.",
+        "shop.store_switch.unavailable": "⚠️ {n} توکي د {store_name} کې شتون نلري:\n{items}",
+        "shop.store_switch.flash": "🛒 📍 {store_name} ته لیږد · ฿{total}",
+        "btn.save_cart": "💾 خوندي کول او پاکول",
+        "btn.delete_cart": "🗑 ټوکر حذف کړئ",
+        "btn.stay": "↩️ پاتې کیدل",
+        "btn.switch_and_remove": "🔄 لیږد او ناشتون لرو توکي لرې کول",
 
         # === Shop Browsing (Categories / Goods / Item Page) ===
         "shop.categories.title": "🏪 د پلورنځي کتګورۍ",
@@ -5938,6 +5998,16 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "shop.branches.title": "📍 Choisissez une succursale",
         "shop.no_brands": "Aucun restaurant disponible pour le moment.",
         "shop.brand_unavailable": "Ce restaurant est actuellement indisponible.",
+        # Card 21: brand/store switch guards
+        "shop.brand_switch.warning": "Vous avez {n} article(s) (฿{total}) dans votre panier de {current_brand}.\nPasser à {new_brand} nécessite un nouveau panier.",
+        "shop.brand_switch.saved": "Panier sauvegardé. Vous pouvez le restaurer depuis votre profil.",
+        "shop.brand_switch.deleted": "Panier vidé.",
+        "shop.store_switch.unavailable": "⚠️ {n} article(s) non disponible(s) à {store_name} :\n{items}",
+        "shop.store_switch.flash": "🛒 📍 Basculé vers {store_name} · ฿{total}",
+        "btn.save_cart": "💾 Sauvegarder et vider",
+        "btn.delete_cart": "🗑 Supprimer le panier",
+        "btn.stay": "↩️ Rester",
+        "btn.switch_and_remove": "🔄 Basculer et supprimer les indisponibles",
 
         # === Shop Browsing (Categories / Goods / Item Page) ===
         "shop.categories.title": "🏪 Catégories de la boutique",

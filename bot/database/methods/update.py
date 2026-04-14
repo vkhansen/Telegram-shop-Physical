@@ -180,3 +180,18 @@ def unban_user(telegram_id: int) -> bool:
     safe_create_task(invalidate_user_cache(telegram_id))
 
     return True
+
+
+def bulk_update_cart_store(user_id: int, store_id: int) -> None:
+    """Card 21: Move all cart items for a user to a new store (after availability check)."""
+    from bot.database.models.main import ShoppingCart
+    try:
+        with Database().session() as s:
+            s.query(ShoppingCart).filter_by(user_id=user_id).update(
+                {ShoppingCart.store_id: store_id},
+                synchronize_session=False,
+            )
+            s.commit()
+    except Exception as e:
+        from bot.logger_mesh import logger
+        logger.error(f"bulk_update_cart_store error: {e}")
