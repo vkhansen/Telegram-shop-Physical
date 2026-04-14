@@ -9,6 +9,7 @@ Customer flow:
    - No GPS → show branch list
 4. User browses that brand's menu
 """
+import asyncio
 import math
 from decimal import Decimal
 
@@ -25,7 +26,7 @@ from bot.database.main import Database
 from bot.i18n import localize
 from bot.keyboards.inline import back, brand_switch_confirm_keyboard, simple_buttons, store_switch_confirm_keyboard
 from bot.states import ShopStates
-from bot.utils.cart_stub import build_cart_stub, format_cart_stub, get_cart_stub_data, inject_cart_stub
+from bot.utils.cart_stub import async_build_cart_stub, async_get_cart_stub_data, format_cart_stub, inject_cart_stub
 
 router = Router()
 
@@ -72,7 +73,7 @@ async def brand_picker(call: CallbackQuery, state: FSMContext):
 
     # Card 21: prepend persistent cart stub if cart has items (serves as
     # reminder when browsing a different brand).
-    text = inject_cart_stub(localize("shop.brands.title"), build_cart_stub(call.from_user.id))
+    text = inject_cart_stub(localize("shop.brands.title"), await async_build_cart_stub(call.from_user.id))
     await call.message.edit_text(
         text,
         reply_markup=simple_buttons(buttons, per_row=1),
@@ -90,7 +91,7 @@ async def select_brand(call: CallbackQuery, state: FSMContext):
         return
 
     # Card 21 Phase 4: check for cross-brand cart conflict
-    cart_data = get_cart_stub_data(call.from_user.id)
+    cart_data = await async_get_cart_stub_data(call.from_user.id)
     if cart_data and cart_data['brand_id'] and cart_data['brand_id'] != brand_id:
         current_brand_name = cart_data['brand_name'] or str(cart_data['brand_id'])
         warning_text = localize("shop.brand_switch.warning").format(
@@ -156,7 +157,7 @@ async def _select_branch_or_proceed(call: CallbackQuery, state: FSMContext, bran
     buttons.append((localize("btn.back"), "shop"))
 
     # Card 21: prepend persistent cart stub if cart has items
-    text = inject_cart_stub(localize("shop.branches.title"), build_cart_stub(call.from_user.id))
+    text = inject_cart_stub(localize("shop.branches.title"), await async_build_cart_stub(call.from_user.id))
     await call.message.edit_text(
         text,
         reply_markup=simple_buttons(buttons, per_row=1),
@@ -187,7 +188,8 @@ async def select_branch(call: CallbackQuery, state: FSMContext):
     current_store_id = data.get('current_store_id')
 
     if cart_items and current_store_id != store_id:
-        unavailable = _check_unavailable_items(cart_items, store_id)
+        loop = asyncio.get_event_loop()
+        unavailable = await loop.run_in_executor(None, _check_unavailable_items, cart_items, store_id)
         if unavailable:
             item_list = "\n".join(f"• {name}" for name in unavailable)
             warning_text = localize("shop.store_switch.unavailable").format(
@@ -216,14 +218,6 @@ async def select_branch(call: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "switch_brand")
 async def switch_brand(call: CallbackQuery, state: FSMContext):
-    """Switch to a different brand. Clears brand/store state."""
-    await state.update_data(
-        current_brand_id=None,
-        current_brand_name=None,
-        current_store_id=None,
-        current_store_name=None,
-    )
-    await brand_picker(call, state)
     """Switch to a different brand. Clears brand/store state."""
     await state.update_data(
         current_brand_id=None,
@@ -267,7 +261,7 @@ async def save_cart_callback(call: CallbackQuery, state: FSMContext):
     user_id = call.from_user.id
 
     cart_items = await get_cart_items(user_id)
-    cart_stub_data = get_cart_stub_data(user_id)
+    cart_stub_data = await async_get_cart_stub_data(user_id)
     brand_id = cart_stub_data['brand_id'] if cart_stub_data else None
     store_id = cart_stub_data['store_id'] if cart_stub_data else None
 

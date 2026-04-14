@@ -12,7 +12,7 @@ from bot.handlers.other import is_safe_item_name
 from bot.utils.message_utils import safe_edit_text
 from bot.utils.tracking import track_event, track_conversion
 from bot.utils.modifiers import validate_modifier_selection, calculate_item_price
-from bot.utils.cart_stub import build_cart_stub, inject_cart_stub, flash_cart_added
+from bot.utils.cart_stub import async_build_cart_stub, inject_cart_stub, flash_cart_added
 
 router = Router()
 
@@ -118,7 +118,7 @@ async def add_to_cart_handler(call: CallbackQuery, state: FSMContext):
             with Database().session() as session:
                 good = session.query(Goods).filter_by(name=item_name).first()
                 item_total = good.price if good else 0
-            settle_text = inject_cart_stub(call.message.text or "", build_cart_stub(user_id))
+            settle_text = inject_cart_stub(call.message.text or "", await async_build_cart_stub(user_id))
             await flash_cart_added(
                 call.message, item_name, 1, item_total,
                 settle_text, call.message.reply_markup, user_id,
@@ -260,7 +260,7 @@ async def _finish_modifier_selection(call: CallbackQuery, state: FSMContext, sel
             )
         settle_text = inject_cart_stub(
             localize("cart.add_success", item_name=item_name),
-            build_cart_stub(user_id),
+            await async_build_cart_stub(user_id),
         )
         await flash_cart_added(
             call.message, item_name, 1, unit_price,
@@ -373,39 +373,47 @@ async def checkout_cart_handler(call: CallbackQuery, state: FSMContext):
         await call.answer(localize("cart.empty_alert"), show_alert=True)
         return
 
+    await call.answer()
     track_event("checkout_start", user_id)
     track_conversion("customer_journey", "checkout_start", user_id)
 
-    # Check if user has customer info saved
+    # Check if user has customer info saved — extract values before closing session
+    saved_address = None
+    saved_phone = None
+    saved_note = None
     with Database().session() as session:
         customer_info = session.query(CustomerInfo).filter_by(
             telegram_id=user_id
         ).first()
+        if customer_info:
+            saved_address = customer_info.delivery_address
+            saved_phone = customer_info.phone_number
+            saved_note = customer_info.delivery_note
 
-        if customer_info and customer_info.delivery_address and customer_info.phone_number:
-            # User has saved info, show summary and ask to confirm or edit
-            text = (
-                localize("cart.summary_title") +
-                localize("cart.saved_delivery_info") +
-                localize("cart.delivery_address", address=customer_info.delivery_address) +
-                localize("cart.delivery_phone", phone=customer_info.phone_number)
-            )
-            if customer_info.delivery_note:
-                text += localize("cart.delivery_note", note=customer_info.delivery_note)
+    if saved_address and saved_phone:
+        # User has saved info, show summary and ask to confirm or edit
+        text = (
+            localize("cart.summary_title") +
+            localize("cart.saved_delivery_info") +
+            localize("cart.delivery_address", address=saved_address) +
+            localize("cart.delivery_phone", phone=saved_phone)
+        )
+        if saved_note:
+            text += localize("cart.delivery_note", note=saved_note)
 
-            text += localize("cart.use_info_question")
+        text += localize("cart.use_info_question")
 
-            buttons = [
-                (localize("btn.use_saved_info"), "confirm_delivery_info"),
-                (localize("btn.update_info"), "update_delivery_info"),
-                (localize("btn.back_to_cart"), "view_cart")
-            ]
+        buttons = [
+            (localize("btn.use_saved_info"), "confirm_delivery_info"),
+            (localize("btn.update_info"), "update_delivery_info"),
+            (localize("btn.back_to_cart"), "view_cart")
+        ]
 
-            await call.message.edit_text(text, reply_markup=simple_buttons(buttons, per_row=1))
-        else:
-            # No saved info, start collecting — show location method choice
-            from bot.handlers.user.order_handler import show_location_method_choice
-            await show_location_method_choice(call.message, state, edit=True)
+        await call.message.edit_text(text, reply_markup=simple_buttons(buttons, per_row=1))
+    else:
+        # No saved info, start collecting — show location method choice
+        from bot.handlers.user.order_handler import show_location_method_choice
+        await show_location_method_choice(call.message, state, edit=True)
 
 
 @router.callback_query(F.data == "update_delivery_info")
@@ -418,24 +426,31 @@ async def update_delivery_info_handler(call: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == "confirm_delivery_info")
 async def confirm_delivery_info_handler(call: CallbackQuery, state: FSMContext):
     """User confirmed using saved delivery info, check for bonuses then proceed to payment"""
+    await call.answer()
     user_id = call.from_user.id
 
-    # Load saved delivery info from CustomerInfo and save to state
+    # Load saved delivery info from CustomerInfo — extract values before closing session
+    saved_address = None
+    saved_phone = None
+    saved_note = ""
     with Database().session() as session:
         customer_info = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
+        if customer_info:
+            saved_address = customer_info.delivery_address
+            saved_phone = customer_info.phone_number
+            saved_note = customer_info.delivery_note or ""
 
-        if not customer_info or not customer_info.delivery_address or not customer_info.phone_number:
-            await call.answer(localize("cart.no_saved_info"), show_alert=True)
-            return
+    if not saved_address or not saved_phone:
+        await call.answer(localize("cart.no_saved_info"), show_alert=True)
+        return
 
-        # Save delivery info to state so it can be used when creating the order
-        await state.update_data(
-            delivery_address=customer_info.delivery_address,
-            phone_number=customer_info.phone_number,
-            delivery_note=customer_info.delivery_note or ""
-        )
+    # Save delivery info to state so it can be used when creating the order
+    await state.update_data(
+        delivery_address=saved_address,
+        phone_number=saved_phone,
+        delivery_note=saved_note,
+    )
 
     # Import here to avoid circular imports
     from bot.handlers.user.order_handler import check_and_ask_about_bonus
-    await call.message.delete()
     await check_and_ask_about_bonus(call.message, state, user_id=user_id, from_callback=True)

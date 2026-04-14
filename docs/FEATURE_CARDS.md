@@ -54,10 +54,11 @@ Prioritized, highest-impact first. See [Next Up](#next-up-prioritized-backlog) b
 | # | Card | Name | Phase | Progress | Priority | Effort | Detail |
 |---|------|------|-------|----------|----------|--------|--------|
 | 1 | CARD-21 | Persistent Cart Stub + Brand/Store Switch Guards | UX Polish | 0% | High | Medium (3–5d) | [CARD-21](CARD-21-persistent-cart-stub.md) |
-| 2 | CARD-19 | Multi-Brand Bot Coordination | Phase 3 — Platform Scale | 15% | High | Very High (10–14d) | [CARD-19](CARD-19-multi-brand-bot-coordination.md) |
-| 3 | CARD-17 | Grok AI Admin Assistant | Phase 5 — Admin Intelligence | 100% | Medium | High (5–7d) | [CARD-17](CARD-17-grok-admin-assistant.md) |
-| 4 | CARD-22 | Grok AI Customer Assistant | Phase 5 — Customer Intelligence | 0% | Medium | Medium (3–5d) | [CARD-22](CARD-22-grok-customer-assistant.md) |
-| 5 | CARD-16 | Line API Integration | Phase 5 — Multi-Platform | 0% | Medium-High | High (5–8d) | [CARD-16](CARD-16-line-api-integration.md) |
+| 2 | CARD-23 | Payment Handler DB-Session Refactor | Reliability | 0% | High | Medium (2–3d) | [CARD-23](backlog/CARD-23-payment-session-refactor.md) |
+| 3 | CARD-19 | Multi-Brand Bot Coordination | Phase 3 — Platform Scale | 15% | High | Very High (10–14d) | [CARD-19](CARD-19-multi-brand-bot-coordination.md) |
+| 4 | CARD-17 | Grok AI Admin Assistant | Phase 5 — Admin Intelligence | 100% | Medium | High (5–7d) | [CARD-17](CARD-17-grok-admin-assistant.md) |
+| 5 | CARD-22 | Grok AI Customer Assistant | Phase 5 — Customer Intelligence | 0% | Medium | Medium (3–5d) | [CARD-22](CARD-22-grok-customer-assistant.md) |
+| 6 | CARD-16 | Line API Integration | Phase 5 — Multi-Platform | 0% | Medium-High | High (5–8d) | [CARD-16](CARD-16-line-api-integration.md) |
 
 ### Next Up (Prioritized Backlog)
 

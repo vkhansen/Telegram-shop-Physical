@@ -120,6 +120,20 @@ def format_flash_stub(item_name: str, quantity: int, item_total) -> str:
     return f"\U0001f6d2 \u2728 Added: {item_name} x{quantity} \u2014 {EnvKeys.PAY_CURRENCY}{item_total}"
 
 
+async def async_get_cart_stub_data(user_id: int) -> dict | None:
+    """Async wrapper around get_cart_stub_data — runs DB I/O in the thread-pool
+    so it does not block the asyncio event loop."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, get_cart_stub_data, user_id)
+
+
+async def async_build_cart_stub(user_id: int) -> str:
+    """Async wrapper around build_cart_stub — runs DB I/O in the thread-pool
+    so it does not block the asyncio event loop."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, build_cart_stub, user_id)
+
+
 def inject_cart_stub(text: str, stub: str) -> str:
     """Prepend cart stub banner to menu text with a separator."""
     if not stub:
