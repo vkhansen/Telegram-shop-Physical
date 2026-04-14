@@ -8,7 +8,7 @@ from bot.export.custom_logging import log_bitcoin_address_assigned
 import threading
 
 # File path for Bitcoin addresses
-BTC_ADDRESSES_FILE = Path("btc_addresses.txt")
+BTC_ADDRESSES_FILE = Path("crypto_addresses/btc_addresses.txt")
 
 # Lock for thread-safe file operations
 _file_lock = threading.Lock()

@@ -94,7 +94,7 @@ class BitcoinAddressFileWatcher:
     Monitors the file for changes and automatically reloads addresses
     """
 
-    def __init__(self, file_path: str = "btc_addresses.txt", debounce_seconds: float = 2.0):
+    def __init__(self, file_path: str = "crypto_addresses/btc_addresses.txt", debounce_seconds: float = 2.0):
         """
         Initialize the file watcher
 
