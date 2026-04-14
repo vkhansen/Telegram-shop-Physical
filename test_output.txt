@@ -1,0 +1,1854 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.3, pytest-9.0.3, pluggy-1.6.0 -- D:\GitHub\Telegram-shop-Physical\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: D:\GitHub\Telegram-shop-Physical
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: anyio-4.13.0, asyncio-1.3.0, cov-7.1.0, mock-3.15.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 1367 items
+
+tests/e2e/test_coverage_gaps.py::TestOrderHelpers::test_build_google_maps_link SKIPPED [  0%]
+tests/e2e/test_coverage_gaps.py::TestOrderHelpers::test_build_google_maps_link_none SKIPPED [  0%]
+tests/e2e/test_coverage_gaps.py::TestOrderHelpers::test_create_order_from_customer SKIPPED [  0%]
+tests/e2e/test_coverage_gaps.py::TestOrderHelpers::test_create_order_from_customer_with_bonus SKIPPED [  0%]
+tests/e2e/test_coverage_gaps.py::TestOrderHelpers::test_create_order_items SKIPPED [  0%]
+tests/e2e/test_coverage_gaps.py::TestOrderHelpers::test_format_items_summary SKIPPED [  0%]
+tests/e2e/test_coverage_gaps.py::TestDeliveryZones::test_calculate_distance_same_point SKIPPED [  0%]
+tests/e2e/test_coverage_gaps.py::TestDeliveryZones::test_calculate_distance_known SKIPPED [  0%]
+tests/e2e/test_coverage_gaps.py::TestDeliveryZones::test_get_delivery_zone_central SKIPPED [  0%]
+tests/e2e/test_coverage_gaps.py::TestDeliveryZones::test_get_delivery_zone_inner SKIPPED [  0%]
+tests/e2e/test_coverage_gaps.py::TestDeliveryZones::test_get_delivery_zone_far SKIPPED [  0%]
+tests/e2e/test_coverage_gaps.py::TestDeliveryZones::test_get_delivery_zone_none_coords SKIPPED [  0%]
+tests/e2e/test_coverage_gaps.py::TestDeliveryZones::test_get_available_time_slots SKIPPED [  0%]
+tests/e2e/test_coverage_gaps.py::TestDeliveryZones::test_delivery_zone_fee_in_order SKIPPED [  1%]
+tests/e2e/test_coverage_gaps.py::TestConstants::test_payment_methods SKIPPED [  1%]
+tests/e2e/test_coverage_gaps.py::TestConstants::test_delivery_types SKIPPED [  1%]
+tests/e2e/test_coverage_gaps.py::TestConstants::test_constants_match_model_defaults SKIPPED [  1%]
+tests/e2e/test_coverage_gaps.py::TestInventoryEdgeCases::test_add_inventory_creates_log SKIPPED [  1%]
+tests/e2e/test_coverage_gaps.py::TestInventoryEdgeCases::test_get_inventory_stats SKIPPED [  1%]
+tests/e2e/test_coverage_gaps.py::TestInventoryEdgeCases::test_get_inventory_stats_nonexistent SKIPPED [  1%]
+tests/e2e/test_coverage_gaps.py::TestInventoryEdgeCases::test_reserve_insufficient_stock SKIPPED [  1%]
+tests/e2e/test_coverage_gaps.py::TestInventoryEdgeCases::test_double_reserve_rejected SKIPPED [  1%]
+tests/e2e/test_coverage_gaps.py::TestUpdateOperations::test_update_item SKIPPED [  1%]
+tests/e2e/test_coverage_gaps.py::TestUpdateOperations::test_set_role SKIPPED [  1%]
+tests/e2e/test_coverage_gaps.py::TestBotSettingsIntegration::test_setting_crud SKIPPED [  1%]
+tests/e2e/test_coverage_gaps.py::TestBotSettingsIntegration::test_setting_default SKIPPED [  1%]
+tests/e2e/test_coverage_gaps.py::TestBotSettingsIntegration::test_setting_int SKIPPED [  1%]
+tests/e2e/test_coverage_gaps.py::TestBotSettingsIntegration::test_timezone_setting SKIPPED [  2%]
+tests/e2e/test_coverage_gaps.py::TestOrderStatusExhaustive::test_all_valid_transitions SKIPPED [  2%]
+tests/e2e/test_coverage_gaps.py::TestOrderStatusExhaustive::test_all_invalid_transitions SKIPPED [  2%]
+tests/e2e/test_coverage_gaps.py::TestOrderStatusExhaustive::test_unknown_status SKIPPED [  2%]
+tests/e2e/test_coverage_gaps.py::TestOrderStatusExhaustive::test_status_applied_to_real_order SKIPPED [  2%]
+tests/e2e/test_coverage_gaps.py::TestModifierValidationEdgeCases::test_missing_required_modifier SKIPPED [  2%]
+tests/e2e/test_coverage_gaps.py::TestModifierValidationEdgeCases::test_invalid_option_id SKIPPED [  2%]
+tests/e2e/test_coverage_gaps.py::TestModifierValidationEdgeCases::test_multi_choice_with_invalid_option SKIPPED [  2%]
+tests/e2e/test_coverage_gaps.py::TestModifierValidationEdgeCases::test_no_schema_always_valid SKIPPED [  2%]
+tests/e2e/test_coverage_gaps.py::TestModifierValidationEdgeCases::test_no_selection_no_schema SKIPPED [  2%]
+tests/e2e/test_coverage_gaps.py::TestModifierValidationEdgeCases::test_price_with_multi_extras SKIPPED [  2%]
+tests/e2e/test_coverage_gaps.py::TestModifierValidationEdgeCases::test_price_no_modifiers_selected SKIPPED [  2%]
+tests/e2e/test_coverage_gaps.py::TestModifierValidationEdgeCases::test_price_no_schema SKIPPED [  2%]
+tests/e2e/test_full_order_flow.py::TestMenuLoading::test_load_menu_from_file SKIPPED [  2%]
+tests/e2e/test_full_order_flow.py::TestMenuLoading::test_categories_created_with_sort_order SKIPPED [  3%]
+tests/e2e/test_full_order_flow.py::TestMenuLoading::test_items_with_modifiers SKIPPED [  3%]
+tests/e2e/test_full_order_flow.py::TestMenuLoading::test_clear_and_reload SKIPPED [  3%]
+tests/e2e/test_full_order_flow.py::TestMenuLoading::test_validation_catches_missing_keys SKIPPED [  3%]
+tests/e2e/test_full_order_flow.py::TestMenuLoading::test_validation_catches_bad_modifier SKIPPED [  3%]
+tests/e2e/test_full_order_flow.py::TestMenuLoading::test_load_raises_on_invalid_schema SKIPPED [  3%]
+tests/e2e/test_full_order_flow.py::TestMenuLoading::test_stock_quantities_loaded SKIPPED [  3%]
+tests/e2e/test_full_order_flow.py::TestUserRegistration::test_create_customer_user SKIPPED [  3%]
+tests/e2e/test_full_order_flow.py::TestUserRegistration::test_create_admin_user SKIPPED [  3%]
+tests/e2e/test_full_order_flow.py::TestUserRegistration::test_create_driver_user SKIPPED [  3%]
+tests/e2e/test_full_order_flow.py::TestUserRegistration::test_locale_setting SKIPPED [  3%]
+tests/e2e/test_full_order_flow.py::TestUserRegistration::test_referral_relationship SKIPPED [  3%]
+tests/e2e/test_full_order_flow.py::TestUserRegistration::test_roles_have_correct_permissions SKIPPED [  3%]
+tests/e2e/test_full_order_flow.py::TestShoppingCart::test_add_item_to_cart SKIPPED [  4%]
+tests/e2e/test_full_order_flow.py::TestShoppingCart::test_add_item_with_modifiers SKIPPED [  4%]
+tests/e2e/test_full_order_flow.py::TestShoppingCart::test_price_calculation_with_modifiers SKIPPED [  4%]
+tests/e2e/test_full_order_flow.py::TestShoppingCart::test_price_with_no_modifiers SKIPPED [  4%]
+tests/e2e/test_full_order_flow.py::TestShoppingCart::test_remove_item_from_cart SKIPPED [  4%]
+tests/e2e/test_full_order_flow.py::TestShoppingCart::test_update_quantity SKIPPED [  4%]
+tests/e2e/test_full_order_flow.py::TestShoppingCart::test_cart_total_calculation SKIPPED [  4%]
+tests/e2e/test_full_order_flow.py::TestOrderCreation::test_create_order_from_cart SKIPPED [  4%]
+tests/e2e/test_full_order_flow.py::TestOrderCreation::test_order_code_uniqueness SKIPPED [  4%]
+tests/e2e/test_full_order_flow.py::TestOrderCreation::test_inventory_reservation_on_order SKIPPED [  4%]
+tests/e2e/test_full_order_flow.py::TestOrderCreation::test_gps_coordinates_stored SKIPPED [  4%]
+tests/e2e/test_full_order_flow.py::TestOrderCreation::test_delivery_types SKIPPED [  4%]
+tests/e2e/test_full_order_flow.py::TestOrderCreation::test_payment_method_selection SKIPPED [  4%]
+tests/e2e/test_full_order_flow.py::TestOrderStatusWorkflow::test_full_happy_path SKIPPED [  4%]
+tests/e2e/test_full_order_flow.py::TestOrderStatusWorkflow::test_invalid_transition_rejected SKIPPED [  5%]
+tests/e2e/test_full_order_flow.py::TestOrderStatusWorkflow::test_cancellation_at_each_stage SKIPPED [  5%]
+tests/e2e/test_full_order_flow.py::TestOrderStatusWorkflow::test_terminal_states SKIPPED [  5%]
+tests/e2e/test_full_order_flow.py::TestOrderStatusWorkflow::test_inventory_release_on_cancel SKIPPED [  5%]
+tests/e2e/test_full_order_flow.py::TestDeliveryFlow::test_delivery_zone_assignment SKIPPED [  5%]
+tests/e2e/test_full_order_flow.py::TestDeliveryFlow::test_driver_assignment SKIPPED [  5%]
+tests/e2e/test_full_order_flow.py::TestDeliveryFlow::test_dead_drop_photo_proof SKIPPED [  5%]
+tests/e2e/test_full_order_flow.py::TestDeliveryFlow::test_delivery_photo_proof SKIPPED [  5%]
+tests/e2e/test_full_order_flow.py::TestDeliveryFlow::test_chat_session_lifecycle SKIPPED [  5%]
+tests/e2e/test_full_order_flow.py::TestPaymentMethods::test_cash_on_delivery SKIPPED [  5%]
+tests/e2e/test_full_order_flow.py::TestPaymentMethods::test_promptpay_with_receipt SKIPPED [  5%]
+tests/e2e/test_full_order_flow.py::TestPaymentMethods::test_bitcoin_address_assignment SKIPPED [  5%]
+tests/e2e/test_full_order_flow.py::TestAdminOperations::test_product_crud SKIPPED [  5%]
+tests/e2e/test_full_order_flow.py::TestAdminOperations::test_category_management SKIPPED [  5%]
+tests/e2e/test_full_order_flow.py::TestAdminOperations::test_stock_management SKIPPED [  6%]
+tests/e2e/test_full_order_flow.py::TestAdminOperations::test_order_status_change_by_admin SKIPPED [  6%]
+tests/e2e/test_full_order_flow.py::TestAdminOperations::test_user_ban_unban SKIPPED [  6%]
+tests/e2e/test_full_order_flow.py::TestReferralSystem::test_reference_code_creation SKIPPED [  6%]
+tests/e2e/test_full_order_flow.py::TestReferralSystem::test_code_usage SKIPPED [  6%]
+tests/e2e/test_full_order_flow.py::TestReferralSystem::test_bonus_calculation SKIPPED [  6%]
+tests/e2e/test_full_order_flow.py::TestReferralSystem::test_earnings_tracking_multiple SKIPPED [  6%]
+tests/e2e/test_full_order_flow.py::TestReferralSystem::test_bonus_applied_to_order SKIPPED [  6%]
+tests/e2e/test_full_order_flow.py::TestDeliveryChatAudit::test_text_message_recording SKIPPED [  6%]
+tests/e2e/test_full_order_flow.py::TestDeliveryChatAudit::test_photo_message_recording SKIPPED [  6%]
+tests/e2e/test_full_order_flow.py::TestDeliveryChatAudit::test_location_message_recording SKIPPED [  6%]
+tests/e2e/test_full_order_flow.py::TestDeliveryChatAudit::test_live_location_tracking SKIPPED [  6%]
+tests/e2e/test_full_order_flow.py::TestDeliveryChatAudit::test_chat_history_retrieval SKIPPED [  6%]
+tests/e2e/test_full_order_flow.py::TestDeliveryChatAudit::test_post_delivery_window SKIPPED [  7%]
+tests/e2e/test_scenarios.py::TestScenarioFullOrderJourney::test_full_journey SKIPPED [  7%]
+tests/e2e/test_scenarios.py::TestScenarioDeadDropPhotoProof::test_dead_drop_requires_photo SKIPPED [  7%]
+tests/e2e/test_scenarios.py::TestScenarioDeadDropPhotoProof::test_door_delivery_no_photo_needed SKIPPED [  7%]
+tests/e2e/test_scenarios.py::TestScenarioDeadDropPhotoProof::test_pickup_no_photo_needed SKIPPED [  7%]
+tests/e2e/test_scenarios.py::TestScenarioPromptPayVerification::test_promptpay_order_lifecycle SKIPPED [  7%]
+tests/e2e/test_scenarios.py::TestScenarioCancellationRestore::test_cancel_restores_all_inventory SKIPPED [  7%]
+tests/e2e/test_scenarios.py::TestScenarioMultiItemModifiers::test_multi_item_with_modifiers_and_fee SKIPPED [  7%]
+tests/e2e/test_scenarios.py::TestScenarioReferralBonus::test_referral_earn_and_spend SKIPPED [  7%]
+tests/e2e/test_scenarios.py::TestScenarioDeliveryChatAudit::test_full_chat_exchange SKIPPED [  7%]
+tests/e2e/test_scenarios.py::TestScenarioDeliveryChatAudit::test_location_trail SKIPPED [  7%]
+tests/e2e/test_scenarios.py::TestScenarioPostDeliveryWindow::test_window_lifecycle SKIPPED [  7%]
+tests/e2e/test_scenarios.py::TestScenarioAdminMenuManagement::test_admin_creates_then_customer_orders SKIPPED [  7%]
+tests/e2e/test_scenarios.py::TestScenarioBitcoinPayment::test_bitcoin_address_lifecycle SKIPPED [  7%]
+tests/e2e/test_scenarios.py::TestScenarioReferenceCodeFlow::test_reference_code_lifecycle SKIPPED [  8%]
+tests/e2e/test_scenarios.py::TestScenarioReferenceCodeFlow::test_expired_code SKIPPED [  8%]
+tests/e2e/test_scenarios.py::TestScenarioInventoryIntegrity::test_no_oversell SKIPPED [  8%]
+tests/e2e/test_smart_navigation_flow.py::TestMultiLocationSetup::test_brand_with_multiple_stores SKIPPED [  8%]
+tests/e2e/test_smart_navigation_flow.py::TestMultiLocationSetup::test_store_gps_coordinates SKIPPED [  8%]
+tests/e2e/test_smart_navigation_flow.py::TestMultiLocationSetup::test_products_linked_to_brand SKIPPED [  8%]
+tests/e2e/test_smart_navigation_flow.py::TestLocationSelection::test_single_store_auto_selects SKIPPED [  8%]
+tests/e2e/test_smart_navigation_flow.py::TestLocationSelection::test_multiple_stores_listed SKIPPED [  8%]
+tests/e2e/test_smart_navigation_flow.py::TestLocationSelection::test_nearest_store_by_gps SKIPPED [  8%]
+tests/e2e/test_smart_navigation_flow.py::TestFullOrderFlowWithLocation::test_create_order_with_store_id SKIPPED [  8%]
+tests/e2e/test_smart_navigation_flow.py::TestFullOrderFlowWithLocation::test_order_items_match_cart SKIPPED [  8%]
+tests/e2e/test_smart_navigation_flow.py::TestFullOrderFlowWithLocation::test_order_status_starts_pending SKIPPED [  8%]
+tests/e2e/test_smart_navigation_flow.py::TestFullOrderFlowWithLocation::test_order_has_correct_brand_and_store SKIPPED [  8%]
+tests/e2e/test_smart_navigation_flow.py::TestSmartNavigation::test_cart_has_brand_and_store_context SKIPPED [  8%]
+tests/e2e/test_smart_navigation_flow.py::TestSmartNavigation::test_order_delivery_types SKIPPED [  9%]
+tests/e2e/test_smart_navigation_flow.py::TestSmartNavigation::test_order_with_bonus_applied SKIPPED [  9%]
+tests/e2e/test_smart_navigation_flow.py::TestDataCleanup::test_cascade_delete_brand_removes_stores SKIPPED [  9%]
+tests/e2e/test_smart_navigation_flow.py::TestDataCleanup::test_order_survives_store_deletion SKIPPED [  9%]
+tests/e2e/test_smoke.py::test_bot_package_imports SKIPPED (e2e tests
+skipped; pass --run-e2e to enable)                                       [  9%]
+tests/e2e/test_smoke.py::test_database_models_load SKIPPED (e2e tests
+skipped; pass --run-e2e to enable)                                       [  9%]
+tests/e2e/test_smoke.py::test_inmemory_schema_creates SKIPPED (e2e tests
+skipped; pass --run-e2e to enable)                                       [  9%]
+tests/e2e/test_smoke.py::test_sample_menu_fixture_exists SKIPPED (e2e
+tests skipped; pass --run-e2e to enable)                                 [  9%]
+tests/integration/test_order_lifecycle.py::TestCompleteOrderLifecycle::test_full_order_flow_cash_payment 
+------------------------------- live log setup --------------------------------
+2026-04-15 00:34:00 [    INFO] Database pool initialized: size=20, max_overflow=40
+PASSED                                                                   [  9%]
+tests/integration/test_order_lifecycle.py::TestCompleteOrderLifecycle::test_order_cancellation_flow PASSED [  9%]
+tests/integration/test_order_lifecycle.py::TestCompleteOrderLifecycle::test_order_with_multiple_items PASSED [  9%]
+tests/integration/test_order_lifecycle.py::TestCompleteOrderLifecycle::test_order_with_customer_info_update PASSED [  9%]
+tests/integration/test_order_lifecycle.py::TestCompleteOrderLifecycle::test_order_insufficient_stock PASSED [  9%]
+tests/unit/ai/test_data_parser.py::TestParseCsvToText::test_basic_csv PASSED [ 10%]
+tests/unit/ai/test_data_parser.py::TestParseCsvToText::test_utf8_bom PASSED [ 10%]
+tests/unit/ai/test_data_parser.py::TestParseCsvToText::test_empty_csv PASSED [ 10%]
+tests/unit/ai/test_data_parser.py::TestParseCsvToText::test_many_rows_shows_preview PASSED [ 10%]
+tests/unit/ai/test_data_parser.py::TestParseJsonToText::test_basic_json PASSED [ 10%]
+tests/unit/ai/test_data_parser.py::TestParseJsonToText::test_invalid_json PASSED [ 10%]
+tests/unit/ai/test_data_parser.py::TestExtractContent::test_plain_text PASSED [ 10%]
+tests/unit/ai/test_data_parser.py::TestExtractContent::test_photo PASSED [ 10%]
+tests/unit/ai/test_data_parser.py::TestExtractContent::test_empty PASSED [ 10%]
+tests/unit/ai/test_executor.py::TestSearchOrders::test_search_all_orders PASSED [ 10%]
+tests/unit/ai/test_executor.py::TestSearchOrders::test_search_by_order_code PASSED [ 10%]
+tests/unit/ai/test_executor.py::TestSearchOrders::test_search_by_status PASSED [ 10%]
+tests/unit/ai/test_executor.py::TestSearchOrders::test_search_nonexistent_returns_empty PASSED [ 10%]
+tests/unit/ai/test_executor.py::TestSearchOrders::test_search_by_payment_method PASSED [ 10%]
+tests/unit/ai/test_executor.py::TestSearchOrders::test_search_with_limit PASSED [ 11%]
+tests/unit/ai/test_executor.py::TestSearchOrders::test_order_includes_items PASSED [ 11%]
+tests/unit/ai/test_executor.py::TestSearchChat::test_empty_chat_returns_empty PASSED [ 11%]
+tests/unit/ai/test_executor.py::TestSearchChat::test_search_by_order_code PASSED [ 11%]
+tests/unit/ai/test_executor.py::TestSearchChat::test_search_by_keyword PASSED [ 11%]
+tests/unit/ai/test_executor.py::TestSearchDeliveries::test_filters_to_delivery_statuses PASSED [ 11%]
+tests/unit/ai/test_executor.py::TestViewInventory::test_view_all PASSED  [ 11%]
+tests/unit/ai/test_executor.py::TestViewInventory::test_filter_by_category PASSED [ 11%]
+tests/unit/ai/test_executor.py::TestViewInventory::test_filter_nonexistent_category PASSED [ 11%]
+tests/unit/ai/test_executor.py::TestViewInventory::test_low_stock_filter PASSED [ 11%]
+tests/unit/ai/test_executor.py::TestGetStats::test_basic_stats PASSED    [ 11%]
+tests/unit/ai/test_executor.py::TestGetStats::test_stats_with_growth PASSED [ 11%]
+tests/unit/ai/test_executor.py::TestGetStats::test_stats_with_top_items PASSED [ 11%]
+tests/unit/ai/test_executor.py::TestLookupUser::test_by_telegram_id PASSED [ 11%]
+tests/unit/ai/test_executor.py::TestLookupUser::test_user_not_found PASSED [ 12%]
+tests/unit/ai/test_executor.py::TestLookupUser::test_by_phone PASSED     [ 12%]
+tests/unit/ai/test_executor.py::TestLookupUser::test_with_referrals PASSED [ 12%]
+tests/unit/ai/test_executor.py::TestLookupUser::test_with_orders PASSED  [ 12%]
+tests/unit/ai/test_executor.py::TestLookupUser::test_without_orders_key_absent PASSED [ 12%]
+tests/unit/ai/test_executor.py::TestCreateItem::test_create_item 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:07 [    INFO] AI admin 1 created item 'New Dish'
+PASSED                                                                   [ 12%]
+tests/unit/ai/test_executor.py::TestCreateItem::test_create_item_with_stock 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:07 [    INFO] AI admin 123456789 created item 'Stocked Item'
+PASSED                                                                   [ 12%]
+tests/unit/ai/test_executor.py::TestCreateItem::test_create_duplicate_item PASSED [ 12%]
+tests/unit/ai/test_executor.py::TestUpdateItem::test_update_price 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:07 [    INFO] AI admin 1 updated item 'Test Product'
+PASSED                                                                   [ 12%]
+tests/unit/ai/test_executor.py::TestUpdateItem::test_update_nonexistent PASSED [ 12%]
+tests/unit/ai/test_executor.py::TestDeleteItem::test_delete_item 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:08 [    INFO] AI admin 1 deleted item 'Test Product'
+PASSED                                                                   [ 12%]
+tests/unit/ai/test_executor.py::TestDeleteItem::test_delete_without_confirm PASSED [ 12%]
+tests/unit/ai/test_executor.py::TestDeleteItem::test_delete_nonexistent PASSED [ 12%]
+tests/unit/ai/test_executor.py::TestBulkPriceUpdate::test_bulk_update 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:08 [    INFO] AI admin 1 bulk price update: 2 items
+PASSED                                                                   [ 13%]
+tests/unit/ai/test_executor.py::TestBulkPriceUpdate::test_bulk_update_nonexistent_item 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:08 [    INFO] AI admin 1 bulk price update: 0 items
+PASSED                                                                   [ 13%]
+tests/unit/ai/test_executor.py::TestAdjustStock::test_set_stock 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:08 [    INFO] AI admin 123456789 adjusted stock 'Test Product': set 200
+PASSED                                                                   [ 13%]
+tests/unit/ai/test_executor.py::TestAdjustStock::test_add_stock 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:08 [    INFO] AI admin 123456789 adjusted stock 'Test Product': add 50
+PASSED                                                                   [ 13%]
+tests/unit/ai/test_executor.py::TestAdjustStock::test_remove_stock 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:09 [    INFO] AI admin 123456789 adjusted stock 'Test Product': remove 10
+PASSED                                                                   [ 13%]
+tests/unit/ai/test_executor.py::TestAdjustStock::test_remove_too_much_stock PASSED [ 13%]
+tests/unit/ai/test_executor.py::TestAdjustStock::test_adjust_nonexistent PASSED [ 13%]
+tests/unit/ai/test_executor.py::TestCreateCategory::test_create 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:09 [    INFO] AI admin 1 created category 'New Cat'
+PASSED                                                                   [ 13%]
+tests/unit/ai/test_executor.py::TestCreateCategory::test_create_duplicate PASSED [ 13%]
+tests/unit/ai/test_executor.py::TestDeleteCategory::test_delete 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:09 [    INFO] AI admin 1 deleted category 'Temp Cat'
+PASSED                                                                   [ 13%]
+tests/unit/ai/test_executor.py::TestDeleteCategory::test_delete_without_confirm PASSED [ 13%]
+tests/unit/ai/test_executor.py::TestDeleteCategory::test_delete_nonexistent PASSED [ 13%]
+tests/unit/ai/test_executor.py::TestImportMenu::test_import_new_items 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:10 [    INFO] AI admin 123456789 import: 2 created, 0 skipped
+PASSED                                                                   [ 13%]
+tests/unit/ai/test_executor.py::TestImportMenu::test_import_skip_existing 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:10 [    INFO] AI admin 1 import: 0 created, 1 skipped
+PASSED                                                                   [ 13%]
+tests/unit/ai/test_executor.py::TestImportMenu::test_import_creates_missing_categories 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:10 [    INFO] AI admin 123456789 import: 1 created, 0 skipped
+PASSED                                                                   [ 14%]
+tests/unit/ai/test_executor.py::TestUnknownAction::test_unknown_query PASSED [ 14%]
+tests/unit/ai/test_executor.py::TestUnknownAction::test_unknown_mutation PASSED [ 14%]
+tests/unit/ai/test_grok_assistant.py::TestTrimHistory::test_short_history_unchanged PASSED [ 14%]
+tests/unit/ai/test_grok_assistant.py::TestTrimHistory::test_exactly_max_plus_one_not_trimmed PASSED [ 14%]
+tests/unit/ai/test_grok_assistant.py::TestTrimHistory::test_exactly_max_plus_two_is_trimmed PASSED [ 14%]
+tests/unit/ai/test_grok_assistant.py::TestTrimHistory::test_very_long_history_keeps_system_and_last_50 PASSED [ 14%]
+tests/unit/ai/test_grok_assistant.py::TestTrimHistory::test_empty_history_returned_unchanged PASSED [ 14%]
+tests/unit/ai/test_grok_assistant.py::TestTrimHistory::test_system_only_unchanged PASSED [ 14%]
+tests/unit/ai/test_grok_assistant.py::TestSplitMessage::test_short_text_single_chunk PASSED [ 14%]
+tests/unit/ai/test_grok_assistant.py::TestSplitMessage::test_exactly_max_len_single_chunk PASSED [ 14%]
+tests/unit/ai/test_grok_assistant.py::TestSplitMessage::test_long_text_splits_at_newline PASSED [ 14%]
+tests/unit/ai/test_grok_assistant.py::TestSplitMessage::test_no_newlines_splits_at_max_len PASSED [ 14%]
+tests/unit/ai/test_grok_assistant.py::TestSplitMessage::test_custom_max_len PASSED [ 14%]
+tests/unit/ai/test_grok_assistant.py::TestSplitMessage::test_leading_newlines_stripped_between_chunks PASSED [ 15%]
+tests/unit/ai/test_grok_assistant.py::TestSplitMessage::test_multiline_large_message PASSED [ 15%]
+tests/unit/ai/test_grok_assistant.py::TestProcessToolCall::test_invalid_json_returns_error PASSED [ 15%]
+tests/unit/ai/test_grok_assistant.py::TestProcessToolCall::test_unknown_tool_returns_error PASSED [ 15%]
+tests/unit/ai/test_grok_assistant.py::TestProcessToolCall::test_validation_failure_returns_error_with_hint PASSED [ 15%]
+tests/unit/ai/test_grok_assistant.py::TestProcessToolCall::test_valid_query_calls_execute_query PASSED [ 15%]
+tests/unit/ai/test_grok_assistant.py::TestProcessToolCall::test_valid_mutation_calls_execute_mutation PASSED [ 15%]
+tests/unit/ai/test_grok_assistant.py::TestProcessToolCall::test_update_item_image_injects_photo_file_id PASSED [ 15%]
+tests/unit/ai/test_grok_assistant.py::TestProcessToolCall::test_update_item_image_no_photo_uses_none PASSED [ 15%]
+tests/unit/ai/test_grok_assistant.py::TestProcessToolCall::test_generate_item_images_delegates_to_handler PASSED [ 15%]
+tests/unit/ai/test_grok_assistant.py::TestProcessToolCall::test_view_inventory_is_query_not_mutation PASSED [ 15%]
+tests/unit/ai/test_grok_assistant.py::TestStartAssistant::test_no_api_key_sends_not_configured PASSED [ 15%]
+tests/unit/ai/test_grok_assistant.py::TestStartAssistant::test_empty_api_key_sends_not_configured PASSED [ 15%]
+tests/unit/ai/test_grok_assistant.py::TestStartAssistant::test_valid_api_key_sets_chatting_state PASSED [ 16%]
+tests/unit/ai/test_grok_assistant.py::TestStartAssistant::test_system_prompt_stored_in_history PASSED [ 16%]
+tests/unit/ai/test_grok_assistant.py::TestStartAssistant::test_pending_action_initialised_to_none PASSED [ 16%]
+tests/unit/ai/test_grok_assistant.py::TestStartAssistant::test_welcome_message_sent PASSED [ 16%]
+tests/unit/ai/test_grok_assistant.py::TestExitAssistant::test_clears_state PASSED [ 16%]
+tests/unit/ai/test_grok_assistant.py::TestExitAssistant::test_sends_closed_message PASSED [ 16%]
+tests/unit/ai/test_grok_assistant.py::TestExitAssistantCb::test_clears_state PASSED [ 16%]
+tests/unit/ai/test_grok_assistant.py::TestExitAssistantCb::test_edits_message_to_closed PASSED [ 16%]
+tests/unit/ai/test_grok_assistant.py::TestExitAssistantCb::test_calls_callback_answer PASSED [ 16%]
+tests/unit/ai/test_grok_assistant.py::TestHandleChatMessage::test_plain_text_response_sent_to_user PASSED [ 16%]
+tests/unit/ai/test_grok_assistant.py::TestHandleChatMessage::test_api_error_sends_error_message 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:14 [   ERROR] Grok API call failed: timeout
+PASSED                                                                   [ 16%]
+tests/unit/ai/test_grok_assistant.py::TestHandleChatMessage::test_api_error_returns_early_no_state_update 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:14 [   ERROR] Grok API call failed: boom
+PASSED                                                                   [ 16%]
+tests/unit/ai/test_grok_assistant.py::TestHandleChatMessage::test_empty_content_uses_fallback_text PASSED [ 16%]
+tests/unit/ai/test_grok_assistant.py::TestHandleChatMessage::test_tool_call_processed_and_followup_sent PASSED [ 16%]
+tests/unit/ai/test_grok_assistant.py::TestHandleChatMessage::test_history_saved_after_response PASSED [ 17%]
+tests/unit/ai/test_grok_assistant.py::TestHandleChatMessage::test_photo_message_captures_file_id PASSED [ 17%]
+tests/unit/ai/test_grok_assistant.py::TestHandleChatMessage::test_followup_api_error_sends_partial_message 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:14 [   ERROR] Grok follow-up failed: followup fail
+PASSED                                                                   [ 17%]
+tests/unit/ai/test_grok_assistant.py::TestHandleChatMessage::test_nested_tool_calls_depth_loop PASSED [ 17%]
+tests/unit/ai/test_grok_assistant.py::TestHandleChatMessage::test_typing_action_sent PASSED [ 17%]
+tests/unit/ai/test_grok_assistant.py::TestHandleGenerateImages::test_confirm_false_returns_error PASSED [ 17%]
+tests/unit/ai/test_grok_assistant.py::TestHandleGenerateImages::test_bot_none_returns_error PASSED [ 17%]
+tests/unit/ai/test_grok_assistant.py::TestHandleGenerateImages::test_chat_id_none_returns_error PASSED [ 17%]
+tests/unit/ai/test_grok_assistant.py::TestHandleGenerateImages::test_all_missing_empty_list_returns_no_items_needed PASSED [ 17%]
+tests/unit/ai/test_grok_assistant.py::TestHandleGenerateImages::test_all_missing_generates_all 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:15 [    INFO] AI admin 1 generated 2 images (0 failed)
+PASSED                                                                   [ 17%]
+tests/unit/ai/test_grok_assistant.py::TestHandleGenerateImages::test_failed_item_counted_in_failed 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:15 [    INFO] AI admin 1 generated 0 images (1 failed)
+PASSED                                                                   [ 17%]
+tests/unit/ai/test_grok_assistant.py::TestHandleGenerateImages::test_exception_during_generation_counted_as_failed 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:15 [    INFO] AI admin 1 generated 0 images (1 failed)
+PASSED                                                                   [ 17%]
+tests/unit/ai/test_grok_assistant.py::TestHandleGenerateImages::test_specific_item_names_found_in_db 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:15 [    INFO] AI admin 1 generated 1 images (0 failed)
+PASSED                                                                   [ 17%]
+tests/unit/ai/test_grok_assistant.py::TestHandleGenerateImages::test_specific_item_name_not_found_returns_error PASSED [ 17%]
+tests/unit/ai/test_grok_assistant.py::TestCheckRateLimit::test_empty_state_returns_allowed PASSED [ 18%]
+tests/unit/ai/test_grok_assistant.py::TestCheckRateLimit::test_adds_timestamp_to_state_data PASSED [ 18%]
+tests/unit/ai/test_grok_assistant.py::TestCheckRateLimit::test_under_limit_multiple_calls_allowed PASSED [ 18%]
+tests/unit/ai/test_grok_assistant.py::TestCheckRateLimit::test_at_limit_returns_blocked PASSED [ 18%]
+tests/unit/ai/test_grok_assistant.py::TestCheckRateLimit::test_blocked_does_not_add_new_timestamp PASSED [ 18%]
+tests/unit/ai/test_grok_assistant.py::TestCheckRateLimit::test_expired_timestamps_dropped PASSED [ 18%]
+tests/unit/ai/test_grok_assistant.py::TestCheckRateLimit::test_mixed_expired_and_valid_uses_only_valid PASSED [ 18%]
+tests/unit/ai/test_grok_assistant.py::TestCheckRateLimit::test_reset_in_equals_window_minus_oldest_age PASSED [ 18%]
+tests/unit/ai/test_grok_assistant.py::TestCheckRateLimit::test_window_boundary_exactly_3600s_is_expired PASSED [ 18%]
+tests/unit/ai/test_grok_assistant.py::TestHandleChatMessageRateLimit::test_rate_limit_hit_sends_rate_limit_message PASSED [ 18%]
+tests/unit/ai/test_grok_assistant.py::TestHandleChatMessageRateLimit::test_rate_limit_hit_persists_timestamps PASSED [ 18%]
+tests/unit/ai/test_grok_assistant.py::TestHandleChatMessageRateLimit::test_rate_limit_hit_does_not_call_grok PASSED [ 18%]
+tests/unit/ai/test_grok_assistant.py::TestHandleChatMessageRateLimit::test_rate_limit_message_includes_reset_time PASSED [ 18%]
+tests/unit/ai/test_grok_assistant.py::TestHandleChatMessageRateLimit::test_successful_call_saves_both_history_and_timestamps PASSED [ 19%]
+tests/unit/ai/test_grok_assistant.py::TestHandleChatMessageRateLimit::test_api_error_does_not_save_timestamps 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:17 [   ERROR] Grok API call failed: timeout
+PASSED                                                                   [ 19%]
+tests/unit/ai/test_grok_client.py::TestCloseGrokSession::test_closes_open_session 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:17 [    INFO] Grok aiohttp session closed
+PASSED                                                                   [ 19%]
+tests/unit/ai/test_grok_client.py::TestCloseGrokSession::test_session_is_none_after_close 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:17 [    INFO] Grok aiohttp session closed
+PASSED                                                                   [ 19%]
+tests/unit/ai/test_grok_client.py::TestCloseGrokSession::test_safe_when_no_session PASSED [ 19%]
+tests/unit/ai/test_grok_client.py::TestCloseGrokSession::test_safe_when_session_already_closed PASSED [ 19%]
+tests/unit/ai/test_schemas.py::TestCreateItemAction::test_valid_item PASSED [ 19%]
+tests/unit/ai/test_schemas.py::TestCreateItemAction::test_defaults PASSED [ 19%]
+tests/unit/ai/test_schemas.py::TestCreateItemAction::test_product_type PASSED [ 19%]
+tests/unit/ai/test_schemas.py::TestCreateItemAction::test_rejects_empty_name PASSED [ 19%]
+tests/unit/ai/test_schemas.py::TestCreateItemAction::test_rejects_long_name PASSED [ 19%]
+tests/unit/ai/test_schemas.py::TestCreateItemAction::test_rejects_zero_price PASSED [ 19%]
+tests/unit/ai/test_schemas.py::TestCreateItemAction::test_rejects_negative_price PASSED [ 19%]
+tests/unit/ai/test_schemas.py::TestCreateItemAction::test_rejects_price_over_99999 PASSED [ 19%]
+tests/unit/ai/test_schemas.py::TestCreateItemAction::test_price_over_10000_warns PASSED [ 20%]
+tests/unit/ai/test_schemas.py::TestCreateItemAction::test_rejects_negative_stock PASSED [ 20%]
+tests/unit/ai/test_schemas.py::TestCreateItemAction::test_rejects_invalid_item_type PASSED [ 20%]
+tests/unit/ai/test_schemas.py::TestCreateItemAction::test_rejects_missing_required_fields PASSED [ 20%]
+tests/unit/ai/test_schemas.py::TestUpdateItemAction::test_update_name_only PASSED [ 20%]
+tests/unit/ai/test_schemas.py::TestUpdateItemAction::test_update_price_only PASSED [ 20%]
+tests/unit/ai/test_schemas.py::TestUpdateItemAction::test_update_all_fields PASSED [ 20%]
+tests/unit/ai/test_schemas.py::TestUpdateItemAction::test_rejects_price_over_10000 PASSED [ 20%]
+tests/unit/ai/test_schemas.py::TestUpdateItemAction::test_accepts_price_at_10000 PASSED [ 20%]
+tests/unit/ai/test_schemas.py::TestUpdateItemAction::test_rejects_empty_new_name PASSED [ 20%]
+tests/unit/ai/test_schemas.py::TestDeleteItemAction::test_valid_delete PASSED [ 20%]
+tests/unit/ai/test_schemas.py::TestDeleteItemAction::test_confirm_false PASSED [ 20%]
+tests/unit/ai/test_schemas.py::TestDeleteItemAction::test_rejects_missing_confirm PASSED [ 20%]
+tests/unit/ai/test_schemas.py::TestDeleteItemAction::test_rejects_missing_item_name PASSED [ 20%]
+tests/unit/ai/test_schemas.py::TestBulkPriceUpdateAction::test_valid_bulk_update PASSED [ 21%]
+tests/unit/ai/test_schemas.py::TestBulkPriceUpdateAction::test_rejects_empty_updates PASSED [ 21%]
+tests/unit/ai/test_schemas.py::TestBulkPriceUpdateAction::test_rejects_too_many_updates PASSED [ 21%]
+tests/unit/ai/test_schemas.py::TestBulkPriceUpdateAction::test_rejects_missing_item_name_in_entry PASSED [ 21%]
+tests/unit/ai/test_schemas.py::TestBulkPriceUpdateAction::test_rejects_missing_price_in_entry PASSED [ 21%]
+tests/unit/ai/test_schemas.py::TestBulkPriceUpdateAction::test_rejects_negative_price_in_entry PASSED [ 21%]
+tests/unit/ai/test_schemas.py::TestBulkPriceUpdateAction::test_rejects_price_over_10000_in_entry PASSED [ 21%]
+tests/unit/ai/test_schemas.py::TestCreateCategoryAction::test_valid PASSED [ 21%]
+tests/unit/ai/test_schemas.py::TestCreateCategoryAction::test_with_sort_order PASSED [ 21%]
+tests/unit/ai/test_schemas.py::TestCreateCategoryAction::test_rejects_empty_name PASSED [ 21%]
+tests/unit/ai/test_schemas.py::TestCreateCategoryAction::test_rejects_negative_sort_order PASSED [ 21%]
+tests/unit/ai/test_schemas.py::TestDeleteCategoryAction::test_valid PASSED [ 21%]
+tests/unit/ai/test_schemas.py::TestDeleteCategoryAction::test_rejects_missing_confirm PASSED [ 21%]
+tests/unit/ai/test_schemas.py::TestAdjustStockAction::test_set_operation PASSED [ 22%]
+tests/unit/ai/test_schemas.py::TestAdjustStockAction::test_add_operation PASSED [ 22%]
+tests/unit/ai/test_schemas.py::TestAdjustStockAction::test_remove_operation PASSED [ 22%]
+tests/unit/ai/test_schemas.py::TestAdjustStockAction::test_rejects_invalid_operation PASSED [ 22%]
+tests/unit/ai/test_schemas.py::TestAdjustStockAction::test_rejects_negative_quantity PASSED [ 22%]
+tests/unit/ai/test_schemas.py::TestAdjustStockAction::test_rejects_over_max_quantity PASSED [ 22%]
+tests/unit/ai/test_schemas.py::TestAdjustStockAction::test_comment_max_length PASSED [ 22%]
+tests/unit/ai/test_schemas.py::TestSearchOrdersAction::test_defaults PASSED [ 22%]
+tests/unit/ai/test_schemas.py::TestSearchOrdersAction::test_all_filters PASSED [ 22%]
+tests/unit/ai/test_schemas.py::TestSearchOrdersAction::test_rejects_invalid_status PASSED [ 22%]
+tests/unit/ai/test_schemas.py::TestSearchOrdersAction::test_rejects_invalid_payment_method PASSED [ 22%]
+tests/unit/ai/test_schemas.py::TestSearchOrdersAction::test_rejects_invalid_delivery_type PASSED [ 22%]
+tests/unit/ai/test_schemas.py::TestSearchOrdersAction::test_rejects_bad_date_format PASSED [ 22%]
+tests/unit/ai/test_schemas.py::TestSearchOrdersAction::test_rejects_limit_over_100 PASSED [ 22%]
+tests/unit/ai/test_schemas.py::TestSearchOrdersAction::test_rejects_limit_zero PASSED [ 23%]
+tests/unit/ai/test_schemas.py::TestSearchChatMessagesAction::test_defaults PASSED [ 23%]
+tests/unit/ai/test_schemas.py::TestSearchChatMessagesAction::test_by_order_code PASSED [ 23%]
+tests/unit/ai/test_schemas.py::TestSearchChatMessagesAction::test_filter_by_role PASSED [ 23%]
+tests/unit/ai/test_schemas.py::TestSearchChatMessagesAction::test_rejects_invalid_role PASSED [ 23%]
+tests/unit/ai/test_schemas.py::TestSearchChatMessagesAction::test_has_photo_filter PASSED [ 23%]
+tests/unit/ai/test_schemas.py::TestSearchChatMessagesAction::test_has_location_filter PASSED [ 23%]
+tests/unit/ai/test_schemas.py::TestSearchChatMessagesAction::test_keyword_max_length PASSED [ 23%]
+tests/unit/ai/test_schemas.py::TestSearchDeliveriesAction::test_defaults PASSED [ 23%]
+tests/unit/ai/test_schemas.py::TestSearchDeliveriesAction::test_all_filters PASSED [ 23%]
+tests/unit/ai/test_schemas.py::TestSearchDeliveriesAction::test_rejects_invalid_delivery_type PASSED [ 23%]
+tests/unit/ai/test_schemas.py::TestLookupUserAction::test_by_telegram_id PASSED [ 23%]
+tests/unit/ai/test_schemas.py::TestLookupUserAction::test_by_phone PASSED [ 23%]
+tests/unit/ai/test_schemas.py::TestLookupUserAction::test_with_includes PASSED [ 23%]
+tests/unit/ai/test_schemas.py::TestLookupUserAction::test_rejects_no_identifier PASSED [ 24%]
+tests/unit/ai/test_schemas.py::TestLookupUserAction::test_rejects_phone_too_long PASSED [ 24%]
+tests/unit/ai/test_schemas.py::TestGetStatsAction::test_defaults PASSED  [ 24%]
+tests/unit/ai/test_schemas.py::TestGetStatsAction::test_with_date_range PASSED [ 24%]
+tests/unit/ai/test_schemas.py::TestGetStatsAction::test_rejects_bad_date PASSED [ 24%]
+tests/unit/ai/test_schemas.py::TestViewInventoryAction::test_defaults PASSED [ 24%]
+tests/unit/ai/test_schemas.py::TestViewInventoryAction::test_low_stock_filter PASSED [ 24%]
+tests/unit/ai/test_schemas.py::TestViewInventoryAction::test_category_filter PASSED [ 24%]
+tests/unit/ai/test_schemas.py::TestMenuImportRow::test_valid_row PASSED  [ 24%]
+tests/unit/ai/test_schemas.py::TestMenuImportRow::test_full_row PASSED   [ 24%]
+tests/unit/ai/test_schemas.py::TestMenuImportRow::test_rejects_zero_price PASSED [ 24%]
+tests/unit/ai/test_schemas.py::TestMenuImportAction::test_valid_import PASSED [ 24%]
+tests/unit/ai/test_schemas.py::TestMenuImportAction::test_rejects_empty_items PASSED [ 24%]
+tests/unit/ai/test_schemas.py::TestMenuImportAction::test_rejects_too_many_items PASSED [ 25%]
+tests/unit/ai/test_schemas.py::TestMenuImportAction::test_validates_each_row PASSED [ 25%]
+tests/unit/ai/test_schemas.py::TestDataMappingProposal::test_valid_proposal PASSED [ 25%]
+tests/unit/ai/test_schemas.py::TestDataMappingProposal::test_with_unmapped_and_warnings PASSED [ 25%]
+tests/unit/ai/test_schemas.py::TestDataMappingProposal::test_rejects_invalid_target_field PASSED [ 25%]
+tests/unit/ai/test_schemas.py::TestDataMappingProposal::test_rejects_confidence_out_of_range PASSED [ 25%]
+tests/unit/ai/test_schemas.py::TestSchemaRegistry::test_all_mutation_tools_in_map PASSED [ 25%]
+tests/unit/ai/test_schemas.py::TestSchemaRegistry::test_all_read_tools_in_map PASSED [ 25%]
+tests/unit/ai/test_schemas.py::TestSchemaRegistry::test_no_overlap_between_read_and_mutation PASSED [ 25%]
+tests/unit/ai/test_schemas.py::TestSchemaRegistry::test_map_covers_all_tools PASSED [ 25%]
+tests/unit/ai/test_schemas.py::TestSchemaRegistry::test_every_schema_has_action_literal PASSED [ 25%]
+tests/unit/ai/test_tool_defs.py::TestSchemaToTool::test_tool_count_matches_schema_map PASSED [ 25%]
+tests/unit/ai/test_tool_defs.py::TestSchemaToTool::test_all_tools_have_function_type PASSED [ 25%]
+tests/unit/ai/test_tool_defs.py::TestSchemaToTool::test_all_tools_have_name_and_description PASSED [ 25%]
+tests/unit/ai/test_tool_defs.py::TestSchemaToTool::test_tool_names_match_schema_map_keys PASSED [ 26%]
+tests/unit/ai/test_tool_defs.py::TestSchemaToTool::test_no_action_field_in_parameters PASSED [ 26%]
+tests/unit/ai/test_tool_defs.py::TestSchemaToTool::test_no_ref_pointers_in_any_tool PASSED [ 26%]
+tests/unit/ai/test_tool_defs.py::TestSchemaToTool::test_required_fields_exclude_action PASSED [ 26%]
+tests/unit/ai/test_tool_defs.py::TestBulkPriceUpdateTool::test_updates_is_array PASSED [ 26%]
+tests/unit/ai/test_tool_defs.py::TestBulkPriceUpdateTool::test_updates_items_have_item_name PASSED [ 26%]
+tests/unit/ai/test_tool_defs.py::TestBulkPriceUpdateTool::test_updates_items_have_new_price PASSED [ 26%]
+tests/unit/ai/test_tool_defs.py::TestBulkPriceUpdateTool::test_updates_min_max_items PASSED [ 26%]
+tests/unit/ai/test_tool_defs.py::TestMenuImportTool::test_items_is_array PASSED [ 26%]
+tests/unit/ai/test_tool_defs.py::TestMenuImportTool::test_items_schema_has_item_name PASSED [ 26%]
+tests/unit/ai/test_tool_defs.py::TestMenuImportTool::test_items_schema_has_price PASSED [ 26%]
+tests/unit/ai/test_tool_defs.py::TestResolveRefs::test_resolves_simple_ref PASSED [ 26%]
+tests/unit/ai/test_tool_defs.py::TestResolveRefs::test_resolves_nested_ref PASSED [ 26%]
+tests/unit/ai/test_tool_defs.py::TestResolveRefs::test_passes_through_non_ref PASSED [ 26%]
+tests/unit/ai/test_tool_defs.py::TestResolveRefs::test_handles_lists PASSED [ 27%]
+tests/unit/ai/test_tool_defs.py::TestResolveRefs::test_handles_scalars PASSED [ 27%]
+tests/unit/config/test_timezone.py::TestTimezoneConfig::test_default_timezone_bangkok PASSED [ 27%]
+tests/unit/config/test_timezone.py::TestTimezoneConfig::test_default_timezone_on_db_error PASSED [ 27%]
+tests/unit/config/test_timezone.py::TestTimezoneConfig::test_timezone_aware_now PASSED [ 27%]
+tests/unit/config/test_timezone.py::TestTimezoneConfig::test_timezone_object_is_bangkok PASSED [ 27%]
+tests/unit/config/test_timezone.py::TestTimezoneConfig::test_validate_timezone_bangkok PASSED [ 27%]
+tests/unit/config/test_timezone.py::TestTimezoneConfig::test_validate_timezone_invalid PASSED [ 27%]
+tests/unit/config/test_timezone.py::TestTimezoneConfig::test_reload_timezone 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:34:28 [    INFO] Timezone reloaded: Asia/Bangkok
+PASSED                                                                   [ 27%]
+tests/unit/config/test_timezone.py::TestTimezoneConfig::test_reservation_expiry_uses_utc_comparison PASSED [ 27%]
+tests/unit/database/test_cart.py::TestShoppingCart::test_get_cart_items PASSED [ 27%]
+tests/unit/database/test_cart.py::TestShoppingCart::test_get_cart_items_empty PASSED [ 27%]
+tests/unit/database/test_cart.py::TestShoppingCart::test_calculate_cart_total PASSED [ 27%]
+tests/unit/database/test_cart.py::TestShoppingCart::test_add_to_cart_new_item PASSED [ 28%]
+tests/unit/database/test_cart.py::TestShoppingCart::test_add_to_cart_update_quantity PASSED [ 28%]
+tests/unit/database/test_cart.py::TestShoppingCart::test_add_to_cart_exceeds_stock PASSED [ 28%]
+tests/unit/database/test_cart.py::TestShoppingCart::test_add_to_cart_nonexistent_item PASSED [ 28%]
+tests/unit/database/test_crud.py::TestCreateOperations::test_create_user PASSED [ 28%]
+tests/unit/database/test_crud.py::TestCreateOperations::test_create_user_duplicate PASSED [ 28%]
+tests/unit/database/test_crud.py::TestCreateOperations::test_create_category PASSED [ 28%]
+tests/unit/database/test_crud.py::TestCreateOperations::test_create_category_duplicate PASSED [ 28%]
+tests/unit/database/test_crud.py::TestCreateOperations::test_create_item PASSED [ 28%]
+tests/unit/database/test_crud.py::TestCreateOperations::test_add_to_cart PASSED [ 28%]
+tests/unit/database/test_crud.py::TestCreateOperations::test_add_to_cart_insufficient_stock PASSED [ 28%]
+tests/unit/database/test_crud.py::TestReadOperations::test_check_user PASSED [ 28%]
+tests/unit/database/test_crud.py::TestReadOperations::test_check_user_not_found PASSED [ 28%]
+tests/unit/database/test_crud.py::TestReadOperations::test_check_role PASSED [ 28%]
+tests/unit/database/test_crud.py::TestReadOperations::test_get_item_info PASSED [ 29%]
+tests/unit/database/test_crud.py::TestReadOperations::test_check_category PASSED [ 29%]
+tests/unit/database/test_crud.py::TestReadOperations::test_select_item_values_amount PASSED [ 29%]
+tests/unit/database/test_crud.py::TestReadOperations::test_select_item_values_amount_with_reserved PASSED [ 29%]
+tests/unit/database/test_crud.py::TestReadOperations::test_get_user_count PASSED [ 29%]
+tests/unit/database/test_crud.py::TestReadOperations::test_check_user_referrals PASSED [ 29%]
+tests/unit/database/test_crud.py::TestReadOperations::test_get_bot_setting PASSED [ 29%]
+tests/unit/database/test_crud.py::TestReadOperations::test_get_bot_setting_with_default PASSED [ 29%]
+tests/unit/database/test_crud.py::TestUpdateOperations::test_set_role PASSED [ 29%]
+tests/unit/database/test_crud.py::TestUpdateOperations::test_update_item PASSED [ 29%]
+tests/unit/database/test_crud.py::TestUpdateOperations::test_update_item_rename PASSED [ 29%]
+tests/unit/database/test_crud.py::TestUpdateOperations::test_update_category PASSED [ 29%]
+tests/unit/database/test_crud.py::TestBanOperations::test_ban_user PASSED [ 29%]
+tests/unit/database/test_crud.py::TestBanOperations::test_ban_nonexistent_user PASSED [ 29%]
+tests/unit/database/test_crud.py::TestBanOperations::test_ban_already_banned_user PASSED [ 30%]
+tests/unit/database/test_crud.py::TestBanOperations::test_unban_user PASSED [ 30%]
+tests/unit/database/test_crud.py::TestBanOperations::test_unban_nonexistent_user PASSED [ 30%]
+tests/unit/database/test_crud.py::TestBanOperations::test_unban_not_banned_user PASSED [ 30%]
+tests/unit/database/test_crud.py::TestBanOperations::test_ban_unban_cycle PASSED [ 30%]
+tests/unit/database/test_delete_methods.py::TestDeleteItem::test_delete_item_removes_product PASSED [ 30%]
+tests/unit/database/test_delete_methods.py::TestDeleteItem::test_delete_item_nonexistent_no_error PASSED [ 30%]
+tests/unit/database/test_delete_methods.py::TestDeleteItem::test_delete_item_does_not_affect_other_items PASSED [ 30%]
+tests/unit/database/test_delete_methods.py::TestDeleteCategory::test_delete_category_removes_category PASSED [ 30%]
+tests/unit/database/test_delete_methods.py::TestDeleteCategory::test_delete_category_nonexistent_no_error PASSED [ 30%]
+tests/unit/database/test_delete_methods.py::TestDeleteCategory::test_delete_category_does_not_affect_others PASSED [ 30%]
+tests/unit/database/test_delete_methods.py::TestRemoveFromCart::test_remove_from_cart_success PASSED [ 30%]
+tests/unit/database/test_delete_methods.py::TestRemoveFromCart::test_remove_from_cart_not_found PASSED [ 30%]
+tests/unit/database/test_delete_methods.py::TestRemoveFromCart::test_remove_from_cart_wrong_user PASSED [ 31%]
+tests/unit/database/test_delete_methods.py::TestRemoveFromCart::test_remove_from_cart_does_not_affect_other_items PASSED [ 31%]
+tests/unit/database/test_delete_methods.py::TestClearCart::test_clear_cart_success PASSED [ 31%]
+tests/unit/database/test_delete_methods.py::TestClearCart::test_clear_cart_empty_cart PASSED [ 31%]
+tests/unit/database/test_delete_methods.py::TestClearCart::test_clear_cart_multiple_items PASSED [ 31%]
+tests/unit/database/test_delete_methods.py::TestClearCart::test_clear_cart_does_not_affect_other_users PASSED [ 31%]
+tests/unit/database/test_delivery_chat.py::TestDeliveryChatMessageModel::test_create_driver_text_message PASSED [ 31%]
+tests/unit/database/test_delivery_chat.py::TestDeliveryChatMessageModel::test_create_customer_text_message PASSED [ 31%]
+tests/unit/database/test_delivery_chat.py::TestDeliveryChatMessageModel::test_record_photo_message PASSED [ 31%]
+tests/unit/database/test_delivery_chat.py::TestDeliveryChatMessageModel::test_record_location_message PASSED [ 31%]
+tests/unit/database/test_delivery_chat.py::TestDeliveryChatMessageModel::test_chat_history_ordered PASSED [ 31%]
+tests/unit/database/test_delivery_chat.py::TestDriverLiveLocationFields::test_driver_fields_nullable PASSED [ 31%]
+tests/unit/database/test_delivery_chat.py::TestDriverLiveLocationFields::test_assign_driver_and_live_location PASSED [ 31%]
+tests/unit/database/test_delivery_chat.py::TestDeliveryChatEdgeCases::test_message_with_both_text_and_photo PASSED [ 31%]
+tests/unit/database/test_delivery_chat.py::TestDeliveryChatEdgeCases::test_message_with_both_text_and_location PASSED [ 32%]
+tests/unit/database/test_delivery_chat.py::TestDeliveryChatEdgeCases::test_message_with_empty_string_text PASSED [ 32%]
+tests/unit/database/test_delivery_chat.py::TestDeliveryChatEdgeCases::test_message_with_very_long_text PASSED [ 32%]
+tests/unit/database/test_delivery_chat.py::TestDeliveryChatEdgeCases::test_messages_across_multiple_orders_filtering PASSED [ 32%]
+tests/unit/database/test_delivery_chat.py::TestDeliveryChatEdgeCases::test_order_with_no_messages_empty_result PASSED [ 32%]
+tests/unit/database/test_delivery_chat_card15.py::TestOrderCard15Fields::test_customer_live_location_fields_nullable PASSED [ 32%]
+tests/unit/database/test_delivery_chat_card15.py::TestOrderCard15Fields::test_set_customer_live_location_message_id PASSED [ 32%]
+tests/unit/database/test_delivery_chat_card15.py::TestOrderCard15Fields::test_chat_session_timestamps PASSED [ 32%]
+tests/unit/database/test_delivery_chat_card15.py::TestDeliveryChatMessageCard15Fields::test_is_live_location_default_false PASSED [ 32%]
+tests/unit/database/test_delivery_chat_card15.py::TestDeliveryChatMessageCard15Fields::test_customer_static_location_logged PASSED [ 32%]
+tests/unit/database/test_delivery_chat_card15.py::TestDeliveryChatMessageCard15Fields::test_customer_live_location_logged PASSED [ 32%]
+tests/unit/database/test_delivery_chat_card15.py::TestDeliveryChatMessageCard15Fields::test_live_location_updates_counted PASSED [ 32%]
+tests/unit/database/test_delivery_chat_card15.py::TestDeliveryChatMessageCard15Fields::test_driver_live_location_logged PASSED [ 32%]
+tests/unit/database/test_delivery_chat_card15.py::TestDeliveryChatMessageCard15Fields::test_chat_history_includes_gps_metadata PASSED [ 32%]
+tests/unit/database/test_delivery_chat_card15.py::TestDeliveryChatMessageCard15Fields::test_location_trail_query PASSED [ 33%]
+tests/unit/database/test_delivery_chat_card15.py::TestChatSessionLifecycle::test_chat_active_during_confirmed PASSED [ 33%]
+tests/unit/database/test_delivery_chat_card15.py::TestChatSessionLifecycle::test_chat_active_during_preparing PASSED [ 33%]
+tests/unit/database/test_delivery_chat_card15.py::TestChatSessionLifecycle::test_chat_active_during_out_for_delivery PASSED [ 33%]
+tests/unit/database/test_delivery_chat_card15.py::TestChatSessionLifecycle::test_chat_active_post_delivery_within_window PASSED [ 33%]
+tests/unit/database/test_delivery_chat_card15.py::TestChatSessionLifecycle::test_chat_inactive_post_delivery_after_window PASSED [ 33%]
+tests/unit/database/test_delivery_chat_card15.py::TestChatSessionLifecycle::test_chat_inactive_delivered_no_window PASSED [ 33%]
+tests/unit/database/test_delivery_chat_card15.py::TestChatSessionLifecycle::test_chat_inactive_cancelled PASSED [ 33%]
+tests/unit/database/test_delivery_chat_card15.py::TestChatSessionLifecycle::test_chat_inactive_pending PASSED [ 33%]
+tests/unit/database/test_delivery_chat_card15.py::TestChatSessionLifecycle::test_chat_active_ready PASSED [ 33%]
+tests/unit/database/test_delivery_types.py::TestDeliveryTypeFields::test_order_delivery_type_default PASSED [ 33%]
+tests/unit/database/test_delivery_types.py::TestDeliveryTypeFields::test_order_delivery_type_dead_drop PASSED [ 33%]
+tests/unit/database/test_delivery_types.py::TestDeliveryTypeFields::test_order_delivery_type_pickup PASSED [ 33%]
+tests/unit/database/test_delivery_types.py::TestDeliveryTypeFields::test_order_drop_fields_nullable PASSED [ 34%]
+tests/unit/database/test_delivery_types.py::TestDeliveryPhotoFields::test_order_delivery_photo_fields_nullable PASSED [ 34%]
+tests/unit/database/test_delivery_types.py::TestDeliveryPhotoFields::test_save_delivery_photo PASSED [ 34%]
+tests/unit/database/test_delivery_types.py::TestDeliveryPhotoFields::test_dead_drop_requires_photo_logic PASSED [ 34%]
+tests/unit/database/test_delivery_types.py::TestDeliveryPhotoFields::test_door_delivery_photo_optional PASSED [ 34%]
+tests/unit/database/test_delivery_types.py::TestDeliveryTypeEdgeCases::test_empty_string_delivery_type_rejected PASSED [ 34%]
+tests/unit/database/test_delivery_types.py::TestDeliveryTypeEdgeCases::test_change_delivery_type_after_creation PASSED [ 34%]
+tests/unit/database/test_delivery_types.py::TestDeliveryTypeEdgeCases::test_drop_instructions_empty_string_vs_none PASSED [ 34%]
+tests/unit/database/test_delivery_types.py::TestDeliveryTypeEdgeCases::test_drop_instructions_very_long_text PASSED [ 34%]
+tests/unit/database/test_delivery_types.py::TestDeliveryTypeEdgeCases::test_dead_drop_with_instructions_no_photo PASSED [ 34%]
+tests/unit/database/test_delivery_types.py::TestDeliveryTypeEdgeCases::test_pickup_with_drop_instructions_set PASSED [ 34%]
+tests/unit/database/test_delivery_types.py::TestDeliveryTypeEdgeCases::test_delivery_photo_overwrite PASSED [ 34%]
+tests/unit/database/test_delivery_types.py::TestDeliveryTypeEdgeCases::test_delivery_photo_at_without_delivery_photo PASSED [ 34%]
+tests/unit/database/test_delivery_types.py::TestPhotoProofEnforcement::test_dead_drop_without_photo_needs_photo PASSED [ 34%]
+tests/unit/database/test_delivery_types.py::TestPhotoProofEnforcement::test_door_delivery_does_not_need_photo PASSED [ 35%]
+tests/unit/database/test_delivery_types.py::TestPhotoProofEnforcement::test_pickup_does_not_need_photo PASSED [ 35%]
+tests/unit/database/test_delivery_types.py::TestPhotoProofEnforcement::test_dead_drop_with_photo_requirement_met PASSED [ 35%]
+tests/unit/database/test_gps_location.py::TestGPSLocationFields::test_order_gps_fields_nullable PASSED [ 35%]
+tests/unit/database/test_gps_location.py::TestGPSLocationFields::test_order_gps_fields_stored PASSED [ 35%]
+tests/unit/database/test_gps_location.py::TestGPSLocationFields::test_customer_info_gps_fields PASSED [ 35%]
+tests/unit/database/test_gps_location.py::TestGPSLocationFields::test_customer_info_gps_nullable PASSED [ 35%]
+tests/unit/database/test_gps_location.py::TestGPSLocationFields::test_order_without_location_still_valid PASSED [ 35%]
+tests/unit/database/test_gps_location.py::TestGPSLocationFields::test_google_maps_link_format PASSED [ 35%]
+tests/unit/database/test_gps_location.py::TestGPSEdgeCases::test_zero_coordinates_gulf_of_guinea PASSED [ 35%]
+tests/unit/database/test_gps_location.py::TestGPSEdgeCases::test_negative_coordinates_sydney PASSED [ 35%]
+tests/unit/database/test_gps_location.py::TestGPSEdgeCases::test_extreme_latitude_north_pole PASSED [ 35%]
+tests/unit/database/test_gps_location.py::TestGPSEdgeCases::test_extreme_latitude_south_pole PASSED [ 35%]
+tests/unit/database/test_gps_location.py::TestGPSEdgeCases::test_extreme_longitude_positive_180 PASSED [ 35%]
+tests/unit/database/test_gps_location.py::TestGPSEdgeCases::test_extreme_longitude_negative_180 PASSED [ 36%]
+tests/unit/database/test_gps_location.py::TestGPSEdgeCases::test_partial_coordinates_latitude_only PASSED [ 36%]
+tests/unit/database/test_gps_location.py::TestGPSEdgeCases::test_update_gps_from_none_to_coordinates PASSED [ 36%]
+tests/unit/database/test_gps_location.py::TestGPSEdgeCases::test_order_with_gps_but_no_text_address PASSED [ 36%]
+tests/unit/database/test_inventory.py::TestInventoryReservation::test_reserve_inventory PASSED [ 36%]
+tests/unit/database/test_inventory.py::TestInventoryReservation::test_reserve_inventory_insufficient_stock PASSED [ 36%]
+tests/unit/database/test_inventory.py::TestInventoryReservation::test_reserve_inventory_nonexistent_item PASSED [ 36%]
+tests/unit/database/test_inventory.py::TestInventoryReservation::test_reserve_inventory_multiple_items PASSED [ 36%]
+tests/unit/database/test_inventory.py::TestInventoryRelease::test_release_reservation PASSED [ 36%]
+tests/unit/database/test_inventory.py::TestInventoryRelease::test_release_reservation_nonexistent_order PASSED [ 36%]
+tests/unit/database/test_inventory.py::TestInventoryDeduction::test_deduct_inventory PASSED [ 36%]
+tests/unit/database/test_inventory.py::TestInventoryDeduction::test_deduct_inventory_would_go_negative PASSED [ 36%]
+tests/unit/database/test_inventory.py::TestInventoryAddition::test_add_inventory PASSED [ 36%]
+tests/unit/database/test_inventory.py::TestInventoryAddition::test_add_inventory_nonexistent_item PASSED [ 37%]
+tests/unit/database/test_inventory.py::TestInventoryStats::test_get_inventory_stats PASSED [ 37%]
+tests/unit/database/test_inventory.py::TestInventoryStats::test_get_inventory_stats_nonexistent PASSED [ 37%]
+tests/unit/database/test_inventory.py::TestInventoryLogging::test_log_inventory_change PASSED [ 37%]
+tests/unit/database/test_lazy_queries.py::TestQueryCategories::test_query_categories_empty PASSED [ 37%]
+tests/unit/database/test_lazy_queries.py::TestQueryCategories::test_query_categories_returns_names PASSED [ 37%]
+tests/unit/database/test_lazy_queries.py::TestQueryCategories::test_query_categories_sorted_alphabetically PASSED [ 37%]
+tests/unit/database/test_lazy_queries.py::TestQueryCategories::test_query_categories_count_only PASSED [ 37%]
+tests/unit/database/test_lazy_queries.py::TestQueryCategories::test_query_categories_count_only_empty PASSED [ 37%]
+tests/unit/database/test_lazy_queries.py::TestQueryCategories::test_query_categories_pagination PASSED [ 37%]
+tests/unit/database/test_lazy_queries.py::TestQueryCategories::test_query_categories_offset_beyond_data PASSED [ 37%]
+tests/unit/database/test_lazy_queries.py::TestQueryItemsInCategory::test_query_items_empty_category PASSED [ 37%]
+tests/unit/database/test_lazy_queries.py::TestQueryItemsInCategory::test_query_items_with_products PASSED [ 37%]
+tests/unit/database/test_lazy_queries.py::TestQueryItemsInCategory::test_query_items_sorted_alphabetically PASSED [ 37%]
+tests/unit/database/test_lazy_queries.py::TestQueryItemsInCategory::test_query_items_count_only PASSED [ 38%]
+tests/unit/database/test_lazy_queries.py::TestQueryItemsInCategory::test_query_items_count_only_empty PASSED [ 38%]
+tests/unit/database/test_lazy_queries.py::TestQueryItemsInCategory::test_query_items_pagination PASSED [ 38%]
+tests/unit/database/test_lazy_queries.py::TestQueryItemsInCategory::test_query_items_nonexistent_category PASSED [ 38%]
+tests/unit/database/test_lazy_queries.py::TestQueryAllUsers::test_query_all_users_empty PASSED [ 38%]
+tests/unit/database/test_lazy_queries.py::TestQueryAllUsers::test_query_all_users_returns_ids PASSED [ 38%]
+tests/unit/database/test_lazy_queries.py::TestQueryAllUsers::test_query_all_users_count_only PASSED [ 38%]
+tests/unit/database/test_lazy_queries.py::TestQueryAllUsers::test_query_all_users_pagination PASSED [ 38%]
+tests/unit/database/test_lazy_queries.py::TestQueryAllUsers::test_query_all_users_sorted_by_id PASSED [ 38%]
+tests/unit/database/test_lazy_queries.py::TestQueryAdmins::test_query_admins_empty PASSED [ 38%]
+tests/unit/database/test_lazy_queries.py::TestQueryAdmins::test_query_admins_with_admin PASSED [ 38%]
+tests/unit/database/test_lazy_queries.py::TestQueryAdmins::test_query_admins_count_only PASSED [ 38%]
+tests/unit/database/test_lazy_queries.py::TestQueryAdmins::test_query_admins_excludes_regular_users PASSED [ 38%]
+tests/unit/database/test_lazy_queries.py::TestQueryUserReferrals::test_query_user_referrals_none PASSED [ 38%]
+tests/unit/database/test_lazy_queries.py::TestQueryUserReferrals::test_query_user_referrals_count_only_none PASSED [ 39%]
+tests/unit/database/test_lazy_queries.py::TestQueryUserReferrals::test_query_user_referrals_with_referrals PASSED [ 39%]
+tests/unit/database/test_lazy_queries.py::TestQueryUserReferrals::test_query_user_referrals_count_only PASSED [ 39%]
+tests/unit/database/test_lazy_queries.py::TestQueryUserReferrals::test_query_user_referrals_sorted_by_earnings PASSED [ 39%]
+tests/unit/database/test_lazy_queries.py::TestQueryReferralEarnings::test_query_referral_earnings_from_user_empty PASSED [ 39%]
+tests/unit/database/test_lazy_queries.py::TestQueryReferralEarnings::test_query_referral_earnings_from_user_count_empty PASSED [ 39%]
+tests/unit/database/test_lazy_queries.py::TestQueryReferralEarnings::test_query_referral_earnings_from_user_with_data PASSED [ 39%]
+tests/unit/database/test_lazy_queries.py::TestQueryReferralEarnings::test_query_referral_earnings_from_user_count PASSED [ 39%]
+tests/unit/database/test_lazy_queries.py::TestQueryReferralEarnings::test_query_all_referral_earnings_empty PASSED [ 39%]
+tests/unit/database/test_lazy_queries.py::TestQueryReferralEarnings::test_query_all_referral_earnings_count_empty PASSED [ 39%]
+tests/unit/database/test_lazy_queries.py::TestQueryReferralEarnings::test_query_all_referral_earnings_with_data PASSED [ 39%]
+tests/unit/database/test_lazy_queries.py::TestQueryReferralEarnings::test_query_all_referral_earnings_pagination PASSED [ 39%]
+tests/unit/database/test_lazy_queries.py::TestQueryUserBoughtItems::test_query_user_bought_items_empty PASSED [ 39%]
+tests/unit/database/test_lazy_queries.py::TestQueryUserBoughtItems::test_query_user_bought_items_count_empty PASSED [ 40%]
+tests/unit/database/test_lazy_queries.py::TestQueryUserBoughtItems::test_query_user_bought_items_with_data PASSED [ 40%]
+tests/unit/database/test_lazy_queries.py::TestQueryUserBoughtItems::test_query_user_bought_items_count PASSED [ 40%]
+tests/unit/database/test_lazy_queries.py::TestQueryUserBoughtItems::test_query_user_bought_items_pagination PASSED [ 40%]
+tests/unit/database/test_live_location.py::TestChatSessionLifecycle::test_chat_active_confirmed PASSED [ 40%]
+tests/unit/database/test_live_location.py::TestChatSessionLifecycle::test_chat_active_preparing PASSED [ 40%]
+tests/unit/database/test_live_location.py::TestChatSessionLifecycle::test_chat_active_ready PASSED [ 40%]
+tests/unit/database/test_live_location.py::TestChatSessionLifecycle::test_chat_active_out_for_delivery PASSED [ 40%]
+tests/unit/database/test_live_location.py::TestChatSessionLifecycle::test_chat_active_delivered_within_window PASSED [ 40%]
+tests/unit/database/test_live_location.py::TestChatSessionLifecycle::test_chat_inactive_delivered_window_expired PASSED [ 40%]
+tests/unit/database/test_live_location.py::TestChatSessionLifecycle::test_chat_inactive_pending PASSED [ 40%]
+tests/unit/database/test_live_location.py::TestChatSessionLifecycle::test_chat_inactive_cancelled PASSED [ 40%]
+tests/unit/database/test_live_location.py::TestChatSessionLifecycle::test_chat_inactive_delivered_no_window PASSED [ 40%]
+tests/unit/database/test_live_location.py::TestChatSessionManagement::test_open_chat_session PASSED [ 40%]
+tests/unit/database/test_live_location.py::TestChatSessionManagement::test_open_chat_session_idempotent PASSED [ 41%]
+tests/unit/database/test_live_location.py::TestChatSessionManagement::test_close_chat_session PASSED [ 41%]
+tests/unit/database/test_live_location.py::TestChatSessionManagement::test_set_post_delivery_window PASSED [ 41%]
+tests/unit/database/test_live_location.py::TestLiveLocationLogging::test_log_live_location_message PASSED [ 41%]
+tests/unit/database/test_live_location.py::TestLiveLocationLogging::test_log_multiple_live_updates PASSED [ 41%]
+tests/unit/database/test_live_location.py::TestLiveLocationLogging::test_log_static_location PASSED [ 41%]
+tests/unit/database/test_live_location.py::TestLiveLocationLogging::test_customer_live_location_message_id PASSED [ 41%]
+tests/unit/database/test_live_location.py::TestLocationTrail::test_get_location_trail_all PASSED [ 41%]
+tests/unit/database/test_live_location.py::TestLocationTrail::test_get_location_trail_by_role PASSED [ 41%]
+tests/unit/database/test_live_location.py::TestLocationTrail::test_get_location_trail_empty PASSED [ 41%]
+tests/unit/database/test_live_location.py::TestChatHistory::test_get_chat_history PASSED [ 41%]
+tests/unit/database/test_live_location.py::TestChatHistory::test_get_chat_history_empty PASSED [ 41%]
+tests/unit/database/test_live_location.py::TestOrderCardFields::test_card_15_fields_default_null PASSED [ 41%]
+tests/unit/database/test_live_location.py::TestOrderCardFields::test_driver_live_location_fields PASSED [ 41%]
+tests/unit/database/test_models.py::TestRoleModel::test_create_role PASSED [ 42%]
+tests/unit/database/test_models.py::TestRoleModel::test_role_permissions PASSED [ 42%]
+tests/unit/database/test_models.py::TestUserModel::test_create_user PASSED [ 42%]
+tests/unit/database/test_models.py::TestUserModel::test_user_with_referral PASSED [ 42%]
+tests/unit/database/test_models.py::TestUserModel::test_user_ban_fields PASSED [ 42%]
+tests/unit/database/test_models.py::TestUserModel::test_user_default_not_banned PASSED [ 42%]
+tests/unit/database/test_models.py::TestGoodsModel::test_create_goods PASSED [ 42%]
+tests/unit/database/test_models.py::TestGoodsModel::test_available_quantity_property PASSED [ 42%]
+tests/unit/database/test_models.py::TestGoodsModel::test_available_quantity_never_negative PASSED [ 42%]
+tests/unit/database/test_models.py::TestOrderModel::test_create_order PASSED [ 42%]
+tests/unit/database/test_models.py::TestOrderModel::test_order_with_items PASSED [ 42%]
+tests/unit/database/test_models.py::TestCustomerInfoModel::test_create_customer_info PASSED [ 42%]
+tests/unit/database/test_models.py::TestCustomerInfoModel::test_customer_info_defaults PASSED [ 42%]
+tests/unit/database/test_models.py::TestBitcoinAddressModel::test_create_bitcoin_address PASSED [ 43%]
+tests/unit/database/test_models.py::TestBitcoinAddressModel::test_mark_bitcoin_address_used PASSED [ 43%]
+tests/unit/database/test_models.py::TestReferenceCodeModel::test_create_reference_code PASSED [ 43%]
+tests/unit/database/test_models.py::TestShoppingCartModel::test_create_cart_item PASSED [ 43%]
+tests/unit/database/test_models.py::TestInventoryLogModel::test_create_inventory_log PASSED [ 43%]
+tests/unit/database/test_read_methods.py::TestDayWindow::test_day_window_returns_start_and_end PASSED [ 43%]
+tests/unit/database/test_read_methods.py::TestDayWindow::test_day_window_span_is_one_day PASSED [ 43%]
+tests/unit/database/test_read_methods.py::TestCheckUser::test_check_user_exists PASSED [ 43%]
+tests/unit/database/test_read_methods.py::TestCheckUser::test_check_user_not_found PASSED [ 43%]
+tests/unit/database/test_read_methods.py::TestCheckUser::test_check_user_with_string_id PASSED [ 43%]
+tests/unit/database/test_read_methods.py::TestCheckRole::test_check_role_user PASSED [ 43%]
+tests/unit/database/test_read_methods.py::TestCheckRole::test_check_role_admin PASSED [ 43%]
+tests/unit/database/test_read_methods.py::TestCheckRole::test_check_role_nonexistent_user PASSED [ 43%]
+tests/unit/database/test_read_methods.py::TestRoleLookups::test_get_role_id_by_name_user PASSED [ 43%]
+tests/unit/database/test_read_methods.py::TestRoleLookups::test_get_role_id_by_name_admin PASSED [ 44%]
+tests/unit/database/test_read_methods.py::TestRoleLookups::test_get_role_id_by_name_owner PASSED [ 44%]
+tests/unit/database/test_read_methods.py::TestRoleLookups::test_get_role_id_by_name_nonexistent PASSED [ 44%]
+tests/unit/database/test_read_methods.py::TestRoleLookups::test_check_role_name_by_id PASSED [ 44%]
+tests/unit/database/test_read_methods.py::TestRoleLookups::test_check_role_name_by_id_admin PASSED [ 44%]
+tests/unit/database/test_read_methods.py::TestRoleLookups::test_select_max_role_id PASSED [ 44%]
+tests/unit/database/test_read_methods.py::TestRoleLookups::test_select_max_role_id_empty PASSED [ 44%]
+tests/unit/database/test_read_methods.py::TestUserCounts::test_get_user_count_empty PASSED [ 44%]
+tests/unit/database/test_read_methods.py::TestUserCounts::test_get_user_count_with_users PASSED [ 44%]
+tests/unit/database/test_read_methods.py::TestUserCounts::test_select_admins_none PASSED [ 44%]
+tests/unit/database/test_read_methods.py::TestUserCounts::test_select_admins_with_admin PASSED [ 44%]
+tests/unit/database/test_read_methods.py::TestUserCounts::test_select_today_users PASSED [ 44%]
+tests/unit/database/test_read_methods.py::TestUserCounts::test_select_today_users_no_registrations PASSED [ 44%]
+tests/unit/database/test_read_methods.py::TestUserCounts::test_get_all_users PASSED [ 44%]
+tests/unit/database/test_read_methods.py::TestUserCounts::test_get_all_users_empty PASSED [ 45%]
+tests/unit/database/test_read_methods.py::TestItemInfo::test_get_item_info_exists PASSED [ 45%]
+tests/unit/database/test_read_methods.py::TestItemInfo::test_get_item_info_not_found PASSED [ 45%]
+tests/unit/database/test_read_methods.py::TestItemInfo::test_get_goods_info_is_alias PASSED [ 45%]
+tests/unit/database/test_read_methods.py::TestItemInfo::test_check_item_is_alias PASSED [ 45%]
+tests/unit/database/test_read_methods.py::TestItemInfo::test_check_category_exists PASSED [ 45%]
+tests/unit/database/test_read_methods.py::TestItemInfo::test_check_category_not_found PASSED [ 45%]
+tests/unit/database/test_read_methods.py::TestItemStock::test_select_item_values_amount PASSED [ 45%]
+tests/unit/database/test_read_methods.py::TestItemStock::test_select_item_values_amount_with_reserved PASSED [ 45%]
+tests/unit/database/test_read_methods.py::TestItemStock::test_select_item_values_amount_not_found PASSED [ 45%]
+tests/unit/database/test_read_methods.py::TestItemStock::test_check_value_always_false PASSED [ 45%]
+tests/unit/database/test_read_methods.py::TestItemStock::test_select_count_items PASSED [ 45%]
+tests/unit/database/test_read_methods.py::TestItemStock::test_select_count_items_empty PASSED [ 45%]
+tests/unit/database/test_read_methods.py::TestItemStock::test_select_count_goods PASSED [ 46%]
+tests/unit/database/test_read_methods.py::TestItemStock::test_select_count_goods_multiple PASSED [ 46%]
+tests/unit/database/test_read_methods.py::TestItemStock::test_select_count_categories PASSED [ 46%]
+tests/unit/database/test_read_methods.py::TestItemStock::test_select_count_categories_multiple PASSED [ 46%]
+tests/unit/database/test_read_methods.py::TestBoughtItems::test_get_bought_item_info_not_found PASSED [ 46%]
+tests/unit/database/test_read_methods.py::TestBoughtItems::test_get_bought_item_info_exists PASSED [ 46%]
+tests/unit/database/test_read_methods.py::TestBoughtItems::test_select_bought_item_by_unique_id PASSED [ 46%]
+tests/unit/database/test_read_methods.py::TestBoughtItems::test_select_bought_item_not_found PASSED [ 46%]
+tests/unit/database/test_read_methods.py::TestBoughtItems::test_select_user_items_count PASSED [ 46%]
+tests/unit/database/test_read_methods.py::TestBoughtItems::test_select_user_items_none PASSED [ 46%]
+tests/unit/database/test_read_methods.py::TestBoughtItems::test_select_count_bought_items PASSED [ 46%]
+tests/unit/database/test_read_methods.py::TestBoughtItems::test_select_count_bought_items_empty PASSED [ 46%]
+tests/unit/database/test_read_methods.py::TestOrderRevenue::test_select_today_orders_no_orders PASSED [ 46%]
+tests/unit/database/test_read_methods.py::TestOrderRevenue::test_select_today_orders_with_data PASSED [ 46%]
+tests/unit/database/test_read_methods.py::TestOrderRevenue::test_select_all_orders_empty PASSED [ 47%]
+tests/unit/database/test_read_methods.py::TestOrderRevenue::test_select_all_orders_with_data PASSED [ 47%]
+tests/unit/database/test_read_methods.py::TestOperations::test_select_today_operations_empty PASSED [ 47%]
+tests/unit/database/test_read_methods.py::TestOperations::test_select_today_operations_with_data PASSED [ 47%]
+tests/unit/database/test_read_methods.py::TestOperations::test_select_all_operations_empty PASSED [ 47%]
+tests/unit/database/test_read_methods.py::TestOperations::test_select_all_operations_with_data PASSED [ 47%]
+tests/unit/database/test_read_methods.py::TestOperations::test_select_user_operations PASSED [ 47%]
+tests/unit/database/test_read_methods.py::TestOperations::test_select_user_operations_empty PASSED [ 47%]
+tests/unit/database/test_read_methods.py::TestReferrals::test_check_user_referrals_none PASSED [ 47%]
+tests/unit/database/test_read_methods.py::TestReferrals::test_check_user_referrals_with_referrals PASSED [ 47%]
+tests/unit/database/test_read_methods.py::TestReferrals::test_get_user_referral_none PASSED [ 47%]
+tests/unit/database/test_read_methods.py::TestReferrals::test_get_user_referral_exists PASSED [ 47%]
+tests/unit/database/test_read_methods.py::TestReferrals::test_get_user_referral_nonexistent_user PASSED [ 47%]
+tests/unit/database/test_read_methods.py::TestReferralEarnings::test_get_referral_earnings_stats_empty PASSED [ 47%]
+tests/unit/database/test_read_methods.py::TestReferralEarnings::test_get_referral_earnings_stats_with_data PASSED [ 48%]
+tests/unit/database/test_read_methods.py::TestReferralEarnings::test_get_one_referral_earning_not_found PASSED [ 48%]
+tests/unit/database/test_read_methods.py::TestReferralEarnings::test_get_one_referral_earning_exists PASSED [ 48%]
+tests/unit/database/test_read_methods.py::TestBotSettings::test_get_reference_bonus_percent_default PASSED [ 48%]
+tests/unit/database/test_read_methods.py::TestBotSettings::test_get_reference_bonus_percent_configured PASSED [ 48%]
+tests/unit/database/test_read_methods.py::TestBotSettings::test_get_bot_setting_string PASSED [ 48%]
+tests/unit/database/test_read_methods.py::TestBotSettings::test_get_bot_setting_int PASSED [ 48%]
+tests/unit/database/test_read_methods.py::TestBotSettings::test_get_bot_setting_decimal PASSED [ 48%]
+tests/unit/database/test_read_methods.py::TestBotSettings::test_get_bot_setting_float PASSED [ 48%]
+tests/unit/database/test_read_methods.py::TestBotSettings::test_get_bot_setting_not_found_with_default PASSED [ 48%]
+tests/unit/database/test_read_methods.py::TestBotSettings::test_get_bot_setting_not_found_no_default PASSED [ 48%]
+tests/unit/database/test_read_methods.py::TestBotSettings::test_get_bot_setting_int_default_conversion PASSED [ 48%]
+tests/unit/database/test_read_methods.py::TestBotSettings::test_get_bot_setting_invalid_value_returns_default PASSED [ 48%]
+tests/unit/database/test_read_methods.py::TestCartItems::test_get_cart_items_with_items PASSED [ 49%]
+tests/unit/database/test_read_methods.py::TestCartItems::test_get_cart_items_empty_cart PASSED [ 49%]
+tests/unit/database/test_read_methods.py::TestCartItems::test_calculate_cart_total PASSED [ 49%]
+tests/unit/database/test_read_methods.py::TestCartItems::test_calculate_cart_total_empty PASSED [ 49%]
+tests/unit/database/test_read_methods.py::TestUserOrders::test_query_user_orders_with_orders PASSED [ 49%]
+tests/unit/database/test_read_methods.py::TestUserOrders::test_query_user_orders_no_orders PASSED [ 49%]
+tests/unit/database/test_read_methods.py::TestUserOrders::test_query_user_orders_status_filter PASSED [ 49%]
+tests/unit/database/test_read_methods.py::TestUserOrders::test_query_user_orders_pagination PASSED [ 49%]
+tests/unit/database/test_read_methods.py::TestUserOrders::test_count_user_orders_all PASSED [ 49%]
+tests/unit/database/test_read_methods.py::TestUserOrders::test_count_user_orders_by_status PASSED [ 49%]
+tests/unit/database/test_read_methods.py::TestUserOrders::test_count_user_orders_no_orders PASSED [ 49%]
+tests/unit/database/test_read_methods.py::TestCachedFunctions::test_check_user_cached PASSED [ 49%]
+tests/unit/database/test_read_methods.py::TestCachedFunctions::test_check_role_cached PASSED [ 49%]
+tests/unit/database/test_read_methods.py::TestCachedFunctions::test_select_item_values_amount_cached PASSED [ 49%]
+tests/unit/database/test_thai_address.py::TestThaiAddressFields::test_order_address_structured_json PASSED [ 50%]
+tests/unit/database/test_thai_address.py::TestThaiAddressFields::test_customer_info_address_structured PASSED [ 50%]
+tests/unit/database/test_thai_address.py::TestThaiAddressFields::test_address_structured_nullable PASSED [ 50%]
+tests/unit/i18n/test_language_picker.py::TestAvailableLocales::test_has_all_required_languages PASSED [ 50%]
+tests/unit/i18n/test_language_picker.py::TestAvailableLocales::test_every_locale_has_translations PASSED [ 50%]
+tests/unit/i18n/test_language_picker.py::TestAvailableLocales::test_every_locale_has_flag_emoji PASSED [ 50%]
+tests/unit/i18n/test_language_picker.py::TestAvailableLocales::test_every_locale_has_changed_message PASSED [ 50%]
+tests/unit/i18n/test_language_picker.py::TestAvailableLocales::test_locale_codes_are_short_strings PASSED [ 50%]
+tests/unit/i18n/test_language_picker.py::TestPerUserLocale::test_user_locale_field_nullable PASSED [ 50%]
+tests/unit/i18n/test_language_picker.py::TestPerUserLocale::test_user_locale_stores_value PASSED [ 50%]
+tests/unit/i18n/test_language_picker.py::TestPerUserLocale::test_user_locale_update PASSED [ 50%]
+tests/unit/i18n/test_language_picker.py::TestPerUserLocale::test_user_locale_all_codes PASSED [ 50%]
+tests/unit/i18n/test_language_picker.py::TestLocalizeWithUserLocale::test_localize_with_explicit_locale PASSED [ 50%]
+tests/unit/i18n/test_language_picker.py::TestLocalizeWithUserLocale::test_localize_with_th_locale PASSED [ 50%]
+tests/unit/i18n/test_language_picker.py::TestLocalizeWithUserLocale::test_localize_falls_back_to_default PASSED [ 51%]
+tests/unit/i18n/test_language_picker.py::TestLocalizeWithUserLocale::test_localize_missing_key_returns_key PASSED [ 51%]
+tests/unit/i18n/test_language_picker.py::TestLocalizeWithUserLocale::test_request_locale_override PASSED [ 51%]
+tests/unit/i18n/test_language_picker.py::TestLanguagePickerKeyboard::test_picker_has_all_locales PASSED [ 51%]
+tests/unit/i18n/test_language_picker.py::TestLanguagePickerKeyboard::test_picker_callback_data_format PASSED [ 51%]
+tests/unit/i18n/test_language_picker.py::TestLanguagePickerKeyboard::test_picker_labels_match_available_locales PASSED [ 51%]
+tests/unit/i18n/test_strings.py::TestThaiTranslations::test_th_locale_exists PASSED [ 51%]
+tests/unit/i18n/test_strings.py::TestThaiTranslations::test_all_en_keys_have_th_translation PASSED [ 51%]
+tests/unit/i18n/test_strings.py::TestThaiTranslations::test_th_strings_not_empty PASSED [ 51%]
+tests/unit/i18n/test_strings.py::TestThaiTranslations::test_th_format_placeholders_match PASSED [ 51%]
+tests/unit/i18n/test_strings.py::TestThaiTranslations::test_cod_thai_label PASSED [ 51%]
+tests/unit/i18n/test_strings.py::TestThaiTranslations::test_locale_switch_to_th PASSED [ 51%]
+tests/unit/i18n/test_strings.py::TestTranslationCompleteness::test_validate_translations_no_warnings PASSED [ 51%]
+tests/unit/payments/test_bitcoin.py::TestBitcoinAddressLoading::test_load_bitcoin_addresses_from_file PASSED [ 52%]
+tests/unit/payments/test_bitcoin.py::TestBitcoinAddressLoading::test_load_bitcoin_addresses_duplicate PASSED [ 52%]
+tests/unit/payments/test_bitcoin.py::TestBitcoinAddressRetrieval::test_get_available_bitcoin_address PASSED [ 52%]
+tests/unit/payments/test_bitcoin.py::TestBitcoinAddressRetrieval::test_get_available_bitcoin_address_none_available PASSED [ 52%]
+tests/unit/payments/test_bitcoin.py::TestBitcoinAddressUsage::test_mark_bitcoin_address_used PASSED [ 52%]
+tests/unit/payments/test_bitcoin.py::TestBitcoinAddressUsage::test_mark_nonexistent_address_used PASSED [ 52%]
+tests/unit/payments/test_bitcoin.py::TestBitcoinAddressAddition::test_add_bitcoin_address PASSED [ 52%]
+tests/unit/payments/test_bitcoin.py::TestBitcoinAddressAddition::test_add_duplicate_bitcoin_address PASSED [ 52%]
+tests/unit/payments/test_bitcoin.py::TestBitcoinAddressAddition::test_add_bitcoin_addresses_bulk PASSED [ 52%]
+tests/unit/payments/test_bitcoin.py::TestBitcoinAddressStats::test_get_bitcoin_address_stats PASSED [ 52%]
+tests/unit/payments/test_bitcoin.py::TestBitcoinAddressStats::test_get_bitcoin_address_stats_empty PASSED [ 52%]
+tests/unit/payments/test_chain_verify.py::TestTxResult::test_defaults_found_false PASSED [ 52%]
+tests/unit/payments/test_chain_verify.py::TestTxResult::test_defaults_found_true_with_values PASSED [ 52%]
+tests/unit/payments/test_chain_verify.py::TestGetVerifier::test_valid_coins PASSED [ 52%]
+tests/unit/payments/test_chain_verify.py::TestGetVerifier::test_btc_returns_btc_verifier PASSED [ 53%]
+tests/unit/payments/test_chain_verify.py::TestGetVerifier::test_ltc_returns_ltc_verifier PASSED [ 53%]
+tests/unit/payments/test_chain_verify.py::TestGetVerifier::test_sol_returns_sol_verifier PASSED [ 53%]
+tests/unit/payments/test_chain_verify.py::TestGetVerifier::test_usdt_sol_returns_usdt_verifier PASSED [ 53%]
+tests/unit/payments/test_chain_verify.py::TestGetVerifier::test_unknown_coin_raises PASSED [ 53%]
+tests/unit/payments/test_chain_verify.py::TestGetVerifier::test_verifiers_dict_has_four_entries PASSED [ 53%]
+tests/unit/payments/test_chain_verify.py::TestBTCVerifier::test_successful_payment PASSED [ 53%]
+tests/unit/payments/test_chain_verify.py::TestBTCVerifier::test_no_matching_tx PASSED [ 53%]
+tests/unit/payments/test_chain_verify.py::TestBTCVerifier::test_underpayment PASSED [ 53%]
+tests/unit/payments/test_chain_verify.py::TestBTCVerifier::test_fallback_to_mempool 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:11 [ WARNING] BTC verifier: https://blockstream.info/api failed for address bc1qexampleaddress, trying fallback
+Traceback (most recent call last):
+  File "D:\GitHub\Telegram-shop-Physical\bot\payments\verifiers\btc.py", line 33, in check_payment
+    return await self._check_with_api(base_url, address, expected_amount)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\GitHub\Telegram-shop-Physical\bot\payments\verifiers\btc.py", line 49, in _check_with_api
+    txs_resp = await client.get(f"{base_url}/address/{address}/txs")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py", line 2332, in _execute_mock_call
+    result = await effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\GitHub\Telegram-shop-Physical\tests\unit\payments\test_chain_verify.py", line 234, in mock_get
+    raise Exception("Blockstream down")
+Exception: Blockstream down
+PASSED                                                                   [ 53%]
+tests/unit/payments/test_chain_verify.py::TestBTCVerifier::test_unconfirmed_tx PASSED [ 53%]
+tests/unit/payments/test_chain_verify.py::TestBTCVerifier::test_required_confirmations PASSED [ 53%]
+tests/unit/payments/test_chain_verify.py::TestBTCVerifier::test_coin_name PASSED [ 53%]
+tests/unit/payments/test_chain_verify.py::TestLTCVerifier::test_successful_detection PASSED [ 53%]
+tests/unit/payments/test_chain_verify.py::TestLTCVerifier::test_no_txrefs PASSED [ 54%]
+tests/unit/payments/test_chain_verify.py::TestLTCVerifier::test_skip_input_txref PASSED [ 54%]
+tests/unit/payments/test_chain_verify.py::TestLTCVerifier::test_unconfirmed_txrefs PASSED [ 54%]
+tests/unit/payments/test_chain_verify.py::TestLTCVerifier::test_required_confirmations PASSED [ 54%]
+tests/unit/payments/test_chain_verify.py::TestLTCVerifier::test_coin_name PASSED [ 54%]
+tests/unit/payments/test_chain_verify.py::TestSOLVerifier::test_successful_finalized_payment PASSED [ 54%]
+tests/unit/payments/test_chain_verify.py::TestSOLVerifier::test_skip_failed_transactions PASSED [ 54%]
+tests/unit/payments/test_chain_verify.py::TestSOLVerifier::test_no_signatures PASSED [ 54%]
+tests/unit/payments/test_chain_verify.py::TestSOLVerifier::test_underpayment_sol PASSED [ 54%]
+tests/unit/payments/test_chain_verify.py::TestSOLVerifier::test_required_confirmations PASSED [ 54%]
+tests/unit/payments/test_chain_verify.py::TestSOLVerifier::test_coin_name PASSED [ 54%]
+tests/unit/payments/test_chain_verify.py::TestUSDTSolVerifier::test_successful_usdt_detection PASSED [ 54%]
+tests/unit/payments/test_chain_verify.py::TestUSDTSolVerifier::test_no_token_accounts PASSED [ 54%]
+tests/unit/payments/test_chain_verify.py::TestUSDTSolVerifier::test_underpayment_usdt PASSED [ 55%]
+tests/unit/payments/test_chain_verify.py::TestUSDTSolVerifier::test_required_confirmations PASSED [ 55%]
+tests/unit/payments/test_chain_verify.py::TestUSDTSolVerifier::test_coin_name PASSED [ 55%]
+tests/unit/payments/test_chain_verify.py::TestNetworkErrors::test_btc_network_error 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:14 [ WARNING] BTC verifier: https://blockstream.info/api failed for address bc1qaddr, trying fallback
+Traceback (most recent call last):
+  File "D:\GitHub\Telegram-shop-Physical\bot\payments\verifiers\btc.py", line 33, in check_payment
+    return await self._check_with_api(base_url, address, expected_amount)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\GitHub\Telegram-shop-Physical\bot\payments\verifiers\btc.py", line 49, in _check_with_api
+    txs_resp = await client.get(f"{base_url}/address/{address}/txs")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py", line 2321, in _execute_mock_call
+    raise effect
+Exception: Connection refused
+2026-04-15 00:35:14 [ WARNING] BTC verifier: https://mempool.space/api failed for address bc1qaddr, trying fallback
+Traceback (most recent call last):
+  File "D:\GitHub\Telegram-shop-Physical\bot\payments\verifiers\btc.py", line 33, in check_payment
+    return await self._check_with_api(base_url, address, expected_amount)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\GitHub\Telegram-shop-Physical\bot\payments\verifiers\btc.py", line 49, in _check_with_api
+    txs_resp = await client.get(f"{base_url}/address/{address}/txs")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py", line 2321, in _execute_mock_call
+    raise effect
+Exception: Connection refused
+2026-04-15 00:35:14 [   ERROR] BTC verifier: all APIs failed for address bc1qaddr
+PASSED                                                                   [ 55%]
+tests/unit/payments/test_chain_verify.py::TestNetworkErrors::test_ltc_network_error 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:14 [   ERROR] LTC verifier: failed to check address ltc1qaddr
+Traceback (most recent call last):
+  File "D:\GitHub\Telegram-shop-Physical\bot\payments\verifiers\ltc.py", line 31, in check_payment
+    return await self._query(address, expected_amount)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\GitHub\Telegram-shop-Physical\bot\payments\verifiers\ltc.py", line 46, in _query
+    resp = await client.get(f"{API_URL}/addrs/{address}", params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py", line 2321, in _execute_mock_call
+    raise effect
+Exception: Timeout
+PASSED                                                                   [ 55%]
+tests/unit/payments/test_chain_verify.py::TestNetworkErrors::test_sol_network_error 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:14 [   ERROR] SOL verifier: failed to check address SoLAddr
+Traceback (most recent call last):
+  File "D:\GitHub\Telegram-shop-Physical\bot\payments\verifiers\sol.py", line 36, in check_payment
+    return await self._query(address, expected_amount)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\GitHub\Telegram-shop-Physical\bot\payments\verifiers\sol.py", line 57, in _query
+    sigs_resp = await client.post(rpc_url, json=sigs_payload)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py", line 2321, in _execute_mock_call
+    raise effect
+Exception: DNS resolution failed
+PASSED                                                                   [ 55%]
+tests/unit/payments/test_chain_verify.py::TestNetworkErrors::test_usdt_network_error 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:14 [   ERROR] USDT-SOL verifier: failed to check address UsdtOwner
+Traceback (most recent call last):
+  File "D:\GitHub\Telegram-shop-Physical\bot\payments\verifiers\usdt_sol.py", line 40, in check_payment
+    return await self._query(address, expected_amount)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\GitHub\Telegram-shop-Physical\bot\payments\verifiers\usdt_sol.py", line 54, in _query
+    token_accounts = await self._get_token_accounts(client, rpc_url, address)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\GitHub\Telegram-shop-Physical\bot\payments\verifiers\usdt_sol.py", line 82, in _get_token_accounts
+    resp = await client.post(rpc_url, json=payload)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py", line 2321, in _execute_mock_call
+    raise effect
+Exception: SSL error
+PASSED                                                                   [ 55%]
+tests/unit/payments/test_crypto_addresses.py::TestLoadAddressesForCoin::test_loads_file_creates_db_entries_skips_dupes 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:14 [    INFO] Loaded 2 new btc addresses into database
+PASSED                                                                   [ 55%]
+tests/unit/payments/test_crypto_addresses.py::TestLoadAddressesForCoin::test_missing_file_creates_it_returns_zero 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:14 [ WARNING] Address file not found for ltc: C:\Users\User\AppData\Local\Temp\pytest-of-User\pytest-84\test_missing_file_creates_it_r0\sub\ltc_addresses.txt
+PASSED                                                                   [ 55%]
+tests/unit/payments/test_crypto_addresses.py::TestGetAvailableAddress::test_claims_address_atomically 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:14 [    INFO] Claimed sol address sol_addr_1 for user=123 order=456
+PASSED                                                                   [ 55%]
+tests/unit/payments/test_crypto_addresses.py::TestGetAvailableAddress::test_returns_none_when_pool_empty 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:14 [ WARNING] No available btc addresses in pool
+PASSED                                                                   [ 55%]
+tests/unit/payments/test_crypto_addresses.py::TestMarkAddressUsed::test_marks_in_db_and_removes_from_file 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:14 [    INFO] Marked btc address btc_addr_1 as used (user=100, order=200)
+PASSED                                                                   [ 55%]
+tests/unit/payments/test_crypto_addresses.py::TestMarkAddressUsed::test_external_session_no_commit 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:14 [    INFO] Marked ltc address ltc_addr_1 as used (user=10, order=20)
+PASSED                                                                   [ 55%]
+tests/unit/payments/test_crypto_addresses.py::TestRemoveAddressFromFile::test_removes_address_preserves_comments PASSED [ 55%]
+tests/unit/payments/test_crypto_addresses.py::TestGetAddressStats::test_correct_counts PASSED [ 56%]
+tests/unit/payments/test_crypto_addresses.py::TestLoadAllAddresses::test_calls_load_for_each_coin PASSED [ 56%]
+tests/unit/payments/test_crypto_addresses.py::TestUnknownCoinCryptoAddresses::test_load_unknown_coin_raises PASSED [ 56%]
+tests/unit/payments/test_crypto_addresses.py::TestUnknownCoinCryptoAddresses::test_get_available_unknown_coin_raises PASSED [ 56%]
+tests/unit/payments/test_payment_checker.py::TestAutoConfirmOrder::test_confirms_pending_order PASSED [ 56%]
+tests/unit/payments/test_payment_checker.py::TestAutoConfirmOrder::test_confirms_reserved_order PASSED [ 56%]
+tests/unit/payments/test_payment_checker.py::TestAutoConfirmOrder::test_does_not_change_confirmed_order PASSED [ 56%]
+tests/unit/payments/test_payment_checker.py::TestAutoConfirmOrder::test_handles_missing_order PASSED [ 56%]
+tests/unit/payments/test_payment_checker.py::TestExpireOrder::test_expires_pending_order PASSED [ 56%]
+tests/unit/payments/test_payment_checker.py::TestExpireOrder::test_does_not_expire_confirmed PASSED [ 56%]
+tests/unit/payments/test_payment_checker.py::TestCheckPendingPayments::test_detects_payment 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:18 [    INFO] HTTP Request: GET https://blockstream.info/api/address/bc1qtest/txs "HTTP/1.1 400 Bad Request"
+2026-04-15 00:35:18 [ WARNING] BTC verifier: https://blockstream.info/api failed for address bc1qtest, trying fallback
+Traceback (most recent call last):
+  File "D:\GitHub\Telegram-shop-Physical\bot\payments\verifiers\btc.py", line 33, in check_payment
+    return await self._check_with_api(base_url, address, expected_amount)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\GitHub\Telegram-shop-Physical\bot\payments\verifiers\btc.py", line 50, in _check_with_api
+    txs_resp.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\GitHub\Telegram-shop-Physical\.venv\Lib\site-packages\httpx\_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error '400 Bad Request' for url 'https://blockstream.info/api/address/bc1qtest/txs'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
+2026-04-15 00:35:20 [    INFO] HTTP Request: GET https://mempool.space/api/address/bc1qtest/txs "HTTP/1.1 400 Bad Request"
+2026-04-15 00:35:20 [ WARNING] BTC verifier: https://mempool.space/api failed for address bc1qtest, trying fallback
+Traceback (most recent call last):
+  File "D:\GitHub\Telegram-shop-Physical\bot\payments\verifiers\btc.py", line 33, in check_payment
+    return await self._check_with_api(base_url, address, expected_amount)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\GitHub\Telegram-shop-Physical\bot\payments\verifiers\btc.py", line 50, in _check_with_api
+    txs_resp.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\GitHub\Telegram-shop-Physical\.venv\Lib\site-packages\httpx\_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error '400 Bad Request' for url 'https://mempool.space/api/address/bc1qtest/txs'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
+2026-04-15 00:35:20 [   ERROR] BTC verifier: all APIs failed for address bc1qtest
+2026-04-15 00:35:20 [    INFO] Payment expired: order=1 coin=btc
+PASSED                                                                   [ 56%]
+tests/unit/payments/test_price_feed.py::TestGetCryptoAmountBTC::test_btc_conversion PASSED [ 56%]
+tests/unit/payments/test_price_feed.py::TestGetCryptoAmountLTC::test_ltc_8_decimal_rounding PASSED [ 56%]
+tests/unit/payments/test_price_feed.py::TestGetCryptoAmountSOL::test_sol_9_decimal_rounding PASSED [ 56%]
+tests/unit/payments/test_price_feed.py::TestGetCryptoAmountUSDT::test_usdt_thb_conversion PASSED [ 57%]
+tests/unit/payments/test_price_feed.py::TestGetCryptoAmountUSDT::test_usdt_usd_shop_currency_returns_one_to_one PASSED [ 57%]
+tests/unit/payments/test_price_feed.py::TestGetPriceCaching::test_second_call_uses_cache PASSED [ 57%]
+tests/unit/payments/test_price_feed.py::TestClearPriceCache::test_clear_cache_forces_new_api_call PASSED [ 57%]
+tests/unit/payments/test_price_feed.py::TestUnknownCoin::test_unknown_coin_raises PASSED [ 57%]
+tests/unit/payments/test_price_feed.py::TestAPIError::test_api_error_propagates PASSED [ 57%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayload::test_generate_payload_phone_number PASSED [ 57%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayload::test_generate_payload_national_id PASSED [ 57%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayload::test_payload_contains_thb_currency PASSED [ 57%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayload::test_payload_contains_country_code PASSED [ 57%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayload::test_payload_ends_with_crc PASSED [ 57%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayload::test_zero_amount_raises PASSED [ 57%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayload::test_negative_amount_raises PASSED [ 57%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayload::test_empty_id_raises PASSED [ 58%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayload::test_invalid_id_length_raises PASSED [ 58%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayload::test_phone_with_dashes PASSED [ 58%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayload::test_different_amounts_different_payloads PASSED [ 58%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayload::test_crc16_known_value PASSED [ 58%]
+tests/unit/payments/test_promptpay.py::TestPromptPayQRGeneration::test_generate_qr_image PASSED [ 58%]
+tests/unit/payments/test_promptpay.py::TestPromptPayQRGeneration::test_generate_qr_invalid_amount PASSED [ 58%]
+tests/unit/payments/test_promptpay.py::TestPromptPayOrderFields::test_order_payment_receipt_fields_nullable PASSED [ 58%]
+tests/unit/payments/test_promptpay.py::TestPromptPayOrderFields::test_order_promptpay_payment_method PASSED [ 58%]
+tests/unit/payments/test_promptpay.py::TestPromptPayOrderFields::test_save_receipt_photo PASSED [ 58%]
+tests/unit/payments/test_promptpay.py::TestPromptPayOrderFields::test_verify_payment PASSED [ 58%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayloadEdgeCases::test_very_small_amount PASSED [ 58%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayloadEdgeCases::test_very_large_amount PASSED [ 58%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayloadEdgeCases::test_amount_with_extra_decimals PASSED [ 58%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayloadEdgeCases::test_phone_with_spaces PASSED [ 59%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayloadEdgeCases::test_phone_already_international_format_wrong_length PASSED [ 59%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayloadEdgeCases::test_id_with_12_digits_raises PASSED [ 59%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayloadEdgeCases::test_none_promptpay_id_raises PASSED [ 59%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayloadEdgeCases::test_crc16_empty_string PASSED [ 59%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayloadEdgeCases::test_crc16_long_string PASSED [ 59%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayloadEdgeCases::test_two_identical_payloads_deterministic PASSED [ 59%]
+tests/unit/payments/test_promptpay.py::TestEMVCoTLVParser::test_parse_simple_tlv PASSED [ 59%]
+tests/unit/payments/test_promptpay.py::TestEMVCoTLVParser::test_parse_multiple_tags PASSED [ 59%]
+tests/unit/payments/test_promptpay.py::TestEMVCoTLVParser::test_parse_empty_string PASSED [ 59%]
+tests/unit/payments/test_promptpay.py::TestEMVCoTLVParser::test_parse_truncated_data PASSED [ 59%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayloadParsing::test_roundtrip_phone_number PASSED [ 59%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayloadParsing::test_roundtrip_national_id PASSED [ 59%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayloadParsing::test_roundtrip_various_amounts PASSED [ 59%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayloadParsing::test_parse_invalid_short_payload PASSED [ 60%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayloadParsing::test_parse_no_merchant_info PASSED [ 60%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayloadParsing::test_parse_empty_payload PASSED [ 60%]
+tests/unit/payments/test_promptpay.py::TestPromptPayPayloadParsing::test_parse_none_payload PASSED [ 60%]
+tests/unit/payments/test_slip_verify.py::TestParseDatetime::test_iso_with_tz PASSED [ 60%]
+tests/unit/payments/test_slip_verify.py::TestParseDatetime::test_iso_format PASSED [ 60%]
+tests/unit/payments/test_slip_verify.py::TestParseDatetime::test_date_only PASSED [ 60%]
+tests/unit/payments/test_slip_verify.py::TestParseDatetime::test_compact_format PASSED [ 60%]
+tests/unit/payments/test_slip_verify.py::TestParseDatetime::test_none_input PASSED [ 60%]
+tests/unit/payments/test_slip_verify.py::TestParseDatetime::test_bad_format 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:25 [ WARNING] Could not parse datetime: not-a-date
+PASSED                                                                   [ 60%]
+tests/unit/payments/test_slip_verify.py::TestVerifySlipOK::test_slipok_verified PASSED [ 60%]
+tests/unit/payments/test_slip_verify.py::TestVerifySlipOK::test_slipok_quota_exceeded PASSED [ 60%]
+tests/unit/payments/test_slip_verify.py::TestVerifySlipOK::test_slipok_not_found PASSED [ 60%]
+tests/unit/payments/test_slip_verify.py::TestVerifyEasySlip::test_easyslip_verified PASSED [ 61%]
+tests/unit/payments/test_slip_verify.py::TestVerifyEasySlip::test_easyslip_duplicate PASSED [ 61%]
+tests/unit/payments/test_slip_verify.py::TestVerifyEasySlip::test_easyslip_amount_mismatch PASSED [ 61%]
+tests/unit/payments/test_slip_verify.py::TestVerifyEasySlip::test_easyslip_not_found PASSED [ 61%]
+tests/unit/payments/test_slip_verify.py::TestVerifyRDCW::test_rdcw_verified PASSED [ 61%]
+tests/unit/payments/test_slip_verify.py::TestVerifyRDCW::test_rdcw_quota_exceeded PASSED [ 61%]
+tests/unit/payments/test_slip_verify.py::TestVerifySlip::test_no_api_configured 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:27 [    INFO] No slip verification APIs configured ù skipping auto-verify
+PASSED                                                                   [ 61%]
+tests/unit/payments/test_slip_verify.py::TestVerifySlip::test_amount_mismatch_cross_check 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:27 [    INFO] Attempting slip verification via slipok
+2026-04-15 00:35:27 [ WARNING] Slip amount mismatch: expected 450.00, got 500.00 (provider: slipok, txn: TXN001)
+PASSED                                                                   [ 61%]
+tests/unit/payments/test_slip_verify.py::TestVerifySlip::test_receiver_mismatch_cross_check 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:27 [    INFO] Attempting slip verification via easyslip
+2026-04-15 00:35:27 [ WARNING] Slip receiver mismatch: expected 'Restaurant', got 'Wrong Person'
+PASSED                                                                   [ 61%]
+tests/unit/payments/test_slip_verify.py::TestVerifySlip::test_fallback_on_not_found 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:27 [    INFO] Attempting slip verification via slipok
+2026-04-15 00:35:27 [    INFO] Attempting slip verification via rdcw
+2026-04-15 00:35:27 [    INFO] Slip verified via rdcw ù txn: RDCW001, amount: 100.00, sender: None
+PASSED                                                                   [ 61%]
+tests/unit/payments/test_slip_verify.py::TestVerifySlip::test_fallback_on_quota_exceeded 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:27 [    INFO] Attempting slip verification via slipok
+2026-04-15 00:35:27 [ WARNING] Provider slipok quota exceeded, trying next
+2026-04-15 00:35:27 [    INFO] Attempting slip verification via easyslip
+2026-04-15 00:35:27 [    INFO] Slip verified via easyslip ù txn: None, amount: 200.00, sender: None
+PASSED                                                                   [ 61%]
+tests/unit/payments/test_slip_verify.py::TestVerifySlip::test_duplicate_stops_immediately 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:27 [    INFO] Attempting slip verification via easyslip
+PASSED                                                                   [ 61%]
+tests/unit/payments/test_slip_verify.py::TestVerifySlip::test_exact_amount_verified 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:27 [    INFO] Attempting slip verification via slipok
+2026-04-15 00:35:27 [    INFO] Slip verified via slipok ù txn: OK001, amount: 250.00, sender: None
+PASSED                                                                   [ 61%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeGeneration::test_generate_reference_code PASSED [ 61%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeGeneration::test_generate_unique_reference_code PASSED [ 62%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeGeneration::test_generate_unique_reference_code_collision PASSED [ 62%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeCreation::test_create_admin_reference_code PASSED [ 62%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeCreation::test_create_user_reference_code PASSED [ 62%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeCreation::test_create_unlimited_reference_code PASSED [ 62%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeValidation::test_validate_valid_code PASSED [ 62%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeValidation::test_validate_nonexistent_code PASSED [ 62%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeValidation::test_validate_inactive_code PASSED [ 62%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeValidation::test_validate_expired_code PASSED [ 62%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeValidation::test_validate_own_code PASSED [ 62%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeValidation::test_validate_already_used_code PASSED [ 62%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeValidation::test_validate_max_uses_reached PASSED [ 62%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeUsage::test_use_reference_code PASSED [ 62%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeUsage::test_use_invalid_code PASSED [ 62%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeDeactivation::test_deactivate_code PASSED [ 63%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeDeactivation::test_deactivate_nonexistent_code PASSED [ 63%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeQueries::test_get_user_reference_codes PASSED [ 63%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeQueries::test_get_reference_code_stats PASSED [ 63%]
+tests/unit/referrals/test_reference_codes.py::TestReferenceCodeQueries::test_get_reference_code_stats_nonexistent PASSED [ 63%]
+tests/unit/test_brand_switch_card21.py::TestSaveCartSnapshot::test_creates_saved_cart_row PASSED [ 63%]
+tests/unit/test_brand_switch_card21.py::TestSaveCartSnapshot::test_items_json_uses_string_prices PASSED [ 63%]
+tests/unit/test_brand_switch_card21.py::TestSaveCartSnapshot::test_null_store_id_allowed PASSED [ 63%]
+tests/unit/test_brand_switch_card21.py::TestRemoveItemsFromCart::test_removes_only_named_items PASSED [ 63%]
+tests/unit/test_brand_switch_card21.py::TestRemoveItemsFromCart::test_empty_list_is_no_op PASSED [ 63%]
+tests/unit/test_brand_switch_card21.py::TestRemoveItemsFromCart::test_delete_cart_clears_all PASSED [ 63%]
+tests/unit/test_brand_switch_card21.py::TestBulkUpdateCartStore::test_updates_all_cart_rows PASSED [ 63%]
+tests/unit/test_brand_switch_card21.py::TestSerializeCartItems::test_produces_correct_json_shape PASSED [ 63%]
+tests/unit/test_brand_switch_card21.py::TestSerializeCartItems::test_modifier_cart_serializes_modifiers PASSED [ 64%]
+tests/unit/test_brand_switch_card21.py::TestCheckUnavailableItems::test_prepared_items_never_flagged PASSED [ 64%]
+tests/unit/test_brand_switch_card21.py::TestCheckUnavailableItems::test_product_missing_from_inventory_flagged PASSED [ 64%]
+tests/unit/test_brand_switch_card21.py::TestCheckUnavailableItems::test_product_with_sufficient_stock_not_flagged PASSED [ 64%]
+tests/unit/test_brand_switch_card21.py::TestCheckUnavailableItems::test_product_with_insufficient_stock_flagged PASSED [ 64%]
+tests/unit/test_brand_switch_card21.py::TestCheckUnavailableItems::test_mixed_prepared_and_product PASSED [ 64%]
+tests/unit/test_brand_switch_card21.py::TestCheckUnavailableItems::test_empty_cart_returns_empty PASSED [ 64%]
+tests/unit/test_cart_stub_card21.py::TestAddToCartSetsExpiresAt::test_new_cart_row_has_expires_at PASSED [ 64%]
+tests/unit/test_cart_stub_card21.py::TestAddToCartSetsExpiresAt::test_second_add_resets_expiry_across_whole_cart PASSED [ 64%]
+tests/unit/test_cart_stub_card21.py::TestAddToCartSetsExpiresAt::test_quantity_update_also_refreshes_expiry PASSED [ 64%]
+tests/unit/test_cart_stub_card21.py::TestGetCartItemsLazyExpiry::test_returns_items_when_fresh PASSED [ 64%]
+tests/unit/test_cart_stub_card21.py::TestGetCartItemsLazyExpiry::test_expired_cart_cleared_and_returns_empty PASSED [ 64%]
+tests/unit/test_cart_stub_card21.py::TestGetCartItemsLazyExpiry::test_null_expires_at_never_expires PASSED [ 64%]
+tests/unit/test_cart_stub_card21.py::TestBuildCartStub::test_empty_cart_returns_empty_string PASSED [ 64%]
+tests/unit/test_cart_stub_card21.py::TestBuildCartStub::test_empty_cart_get_stub_data_returns_none PASSED [ 65%]
+tests/unit/test_cart_stub_card21.py::TestBuildCartStub::test_populated_cart_returns_banner_with_total PASSED [ 65%]
+tests/unit/test_cart_stub_card21.py::TestBuildCartStub::test_get_stub_data_returns_totals_and_counts PASSED [ 65%]
+tests/unit/test_cart_stub_card21.py::TestBuildCartStub::test_expired_cart_returns_empty_banner PASSED [ 65%]
+tests/unit/test_cart_stub_card21.py::TestBuildCartStub::test_build_stub_with_brand_and_store PASSED [ 65%]
+tests/unit/test_cart_stub_card21.py::TestStubFormatters::test_inject_empty_stub_is_noop PASSED [ 65%]
+tests/unit/test_cart_stub_card21.py::TestStubFormatters::test_inject_nonempty_stub_prepends_with_separator PASSED [ 65%]
+tests/unit/test_cart_stub_card21.py::TestStubFormatters::test_format_cart_stub_all_fields PASSED [ 65%]
+tests/unit/test_cart_stub_card21.py::TestStubFormatters::test_format_cart_stub_brand_only PASSED [ 65%]
+tests/unit/test_cart_stub_card21.py::TestStubFormatters::test_format_cart_stub_total_only PASSED [ 65%]
+tests/unit/test_cart_stub_card21.py::TestStubFormatters::test_format_flash_stub PASSED [ 65%]
+tests/unit/test_cart_stub_card21.py::TestFlashCartAdded::test_two_step_edit_flash_then_settle PASSED [ 65%]
+tests/unit/test_cart_stub_card21.py::TestFlashCartAdded::test_settle_skipped_when_edit_raises PASSED [ 65%]
+tests/unit/test_cart_stub_card21.py::TestFlashCartAdded::test_flash_edit_raising_also_swallowed PASSED [ 65%]
+tests/unit/test_menu_io.py::TestSafeFilename::test_lowercases_and_replaces_spaces PASSED [ 66%]
+tests/unit/test_menu_io.py::TestSafeFilename::test_strips_punctuation PASSED [ 66%]
+tests/unit/test_menu_io.py::TestSafeFilename::test_collapses_whitespace_and_dashes PASSED [ 66%]
+tests/unit/test_menu_io.py::TestSafeFilename::test_trims_leading_trailing_underscores PASSED [ 66%]
+tests/unit/test_menu_io.py::TestSafeFilename::test_length_capped_at_50 PASSED [ 66%]
+tests/unit/test_menu_io.py::TestSafeFilename::test_unicode_letters_preserved PASSED [ 66%]
+tests/unit/test_menu_io.py::TestSafeFilename::test_empty_string PASSED   [ 66%]
+tests/unit/test_menu_io.py::TestSafeFilename::test_only_punctuation PASSED [ 66%]
+tests/unit/test_menu_io.py::TestStripFileIds::test_removes_category_image_file_id PASSED [ 66%]
+tests/unit/test_menu_io.py::TestStripFileIds::test_removes_item_image_and_gallery_file_ids PASSED [ 66%]
+tests/unit/test_menu_io.py::TestStripFileIds::test_missing_keys_no_error PASSED [ 66%]
+tests/unit/test_menu_io.py::TestStripFileIds::test_empty_top_level_keys PASSED [ 66%]
+tests/unit/test_menu_io.py::TestDecimalEncoder::test_encodes_decimal_as_float PASSED [ 66%]
+tests/unit/test_menu_io.py::TestDecimalEncoder::test_passes_through_other_types PASSED [ 67%]
+tests/unit/test_menu_io.py::TestDecimalEncoder::test_decimal_precision_lost_m7_pinned PASSED [ 67%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_valid_minimal_menu PASSED [ 67%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_file_not_found PASSED [ 67%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_invalid_json PASSED [ 67%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_root_must_be_object PASSED [ 67%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_missing_categories_array PASSED [ 67%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_missing_items_array PASSED [ 67%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_category_missing_name PASSED [ 67%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_category_not_object PASSED [ 67%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_item_missing_name PASSED [ 67%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_item_missing_category PASSED [ 67%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_item_references_unknown_category PASSED [ 67%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_item_invalid_price PASSED [ 67%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_item_price_numeric_string_ok PASSED [ 68%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_modifier_group_not_object PASSED [ 68%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_modifier_group_missing_options PASSED [ 68%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_modifier_group_valid PASSED [ 68%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_missing_image_files_reported PASSED [ 68%]
+tests/unit/test_menu_io.py::TestValidateMenuJson::test_present_image_files_ok PASSED [ 68%]
+tests/unit/test_menu_io.py::TestExportMenuToJson::test_export_empty_db 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:38 [    INFO] Menu exported to C:\Users\User\AppData\Local\Temp\pytest-of-User\pytest-84\test_export_empty_db0\export1: 0 categories, 0 items
+PASSED                                                                   [ 68%]
+tests/unit/test_menu_io.py::TestExportMenuToJson::test_export_with_categories_and_items 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:38 [    INFO] Menu exported to C:\Users\User\AppData\Local\Temp\pytest-of-User\pytest-84\test_export_with_categories_an0\export2: 1 categories, 1 items
+PASSED                                                                   [ 68%]
+tests/unit/test_menu_io.py::TestExportMenuToJson::test_export_includes_image_file_id_reference 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:38 [    INFO] Menu exported to C:\Users\User\AppData\Local\Temp\pytest-of-User\pytest-84\test_export_includes_image_fil0\export3: 1 categories, 1 items
+PASSED                                                                   [ 68%]
+tests/unit/test_menu_io.py::TestExportMenuToJson::test_export_default_output_dir 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:38 [    INFO] Menu exported to menu_export_20260415_003538: 0 categories, 0 items
+PASSED                                                                   [ 68%]
+tests/unit/test_menu_io.py::TestImportMenuFromJson::test_import_creates_new_categories_and_items 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:38 [    INFO] Menu import: {'categories_created': 1, 'categories_updated': 0, 'items_created': 1, 'items_updated': 0, 'items_skipped': 0, 'errors': []}
+PASSED                                                                   [ 68%]
+tests/unit/test_menu_io.py::TestImportMenuFromJson::test_import_updates_existing 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:38 [    INFO] Menu import: {'categories_created': 0, 'categories_updated': 1, 'items_created': 0, 'items_updated': 1, 'items_skipped': 0, 'errors': []}
+PASSED                                                                   [ 68%]
+tests/unit/test_menu_io.py::TestImportMenuFromJson::test_import_skips_item_with_unknown_category 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:38 [    INFO] Menu import: {'categories_created': 1, 'categories_updated': 0, 'items_created': 0, 'items_updated': 0, 'items_skipped': 1, 'errors': ["Item Ghost: category 'Nonexistent' not found"]}
+PASSED                                                                   [ 68%]
+tests/unit/test_menu_io.py::TestImportMenuFromJson::test_import_replace_mode_deletes_existing 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:39 [    INFO] Menu import: {'categories_created': 1, 'categories_updated': 0, 'items_created': 1, 'items_updated': 0, 'items_skipped': 0, 'errors': []}
+PASSED                                                                   [ 68%]
+tests/unit/test_menu_io.py::TestImportMenuFromJson::test_import_applies_default_stock_to_new_items 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:39 [    INFO] Menu import: {'categories_created': 1, 'categories_updated': 0, 'items_created': 1, 'items_updated': 0, 'items_skipped': 0, 'errors': []}
+PASSED                                                                   [ 69%]
+tests/unit/test_menu_io.py::TestImportMenuFromJson::test_import_with_modifiers 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:39 [    INFO] Menu import: {'categories_created': 1, 'categories_updated': 0, 'items_created': 1, 'items_updated': 0, 'items_skipped': 0, 'errors': []}
+PASSED                                                                   [ 69%]
+tests/unit/test_menu_io.py::TestImportMenuFromJson::test_import_round_trip 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:39 [    INFO] Menu exported to C:\Users\User\AppData\Local\Temp\pytest-of-User\pytest-84\test_import_round_trip0\rt: 1 categories, 1 items
+2026-04-15 00:35:39 [    INFO] Menu import: {'categories_created': 0, 'categories_updated': 1, 'items_created': 0, 'items_updated': 1, 'items_skipped': 0, 'errors': []}
+PASSED                                                                   [ 69%]
+tests/unit/test_menu_io.py::TestDownloadMenuImages::test_download_strips_file_ids_from_json 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:39 [    INFO] Downloaded 3 images for menu export
+PASSED                                                                   [ 69%]
+tests/unit/test_menu_io.py::TestDownloadMenuImages::test_download_skips_entries_without_file_id 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:39 [    INFO] Downloaded 0 images for menu export
+PASSED                                                                   [ 69%]
+tests/unit/test_menu_io.py::TestDownloadMenuImages::test_download_catches_per_file_errors 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:39 [ WARNING] Failed to download category image C: telegram down
+2026-04-15 00:35:39 [    INFO] Downloaded 0 images for menu export
+PASSED                                                                   [ 69%]
+tests/unit/test_menu_io.py::TestUploadMenuImages::test_upload_updates_db_file_ids 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:39 [    INFO] Uploaded 3 images for menu import
+PASSED                                                                   [ 69%]
+tests/unit/test_menu_io.py::TestUploadMenuImages::test_upload_video_uses_send_video 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:40 [    INFO] Uploaded 1 images for menu import
+PASSED                                                                   [ 69%]
+tests/unit/test_menu_io.py::TestUploadMenuImages::test_upload_skips_missing_files 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:40 [    INFO] Uploaded 0 images for menu import
+PASSED                                                                   [ 69%]
+tests/unit/test_menu_io.py::TestUploadMenuImages::test_upload_survives_delete_message_failure 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:35:40 [    INFO] Uploaded 1 images for menu import
+PASSED                                                                   [ 69%]
+tests/unit/test_preflight.py::TestPreflightReport::test_empty_report_ok PASSED [ 69%]
+tests/unit/test_preflight.py::TestPreflightReport::test_pass_only PASSED [ 69%]
+tests/unit/test_preflight.py::TestPreflightReport::test_warn_does_not_fail PASSED [ 69%]
+tests/unit/test_preflight.py::TestPreflightReport::test_required_fail PASSED [ 70%]
+tests/unit/test_preflight.py::TestPreflightReport::test_optional_fail_still_ok PASSED [ 70%]
+tests/unit/test_preflight.py::TestEnvVarChecks::test_valid_env PASSED    [ 70%]
+tests/unit/test_preflight.py::TestEnvVarChecks::test_owner_id_set PASSED [ 70%]
+tests/unit/test_preflight.py::TestEnvVarChecks::test_locale_check PASSED [ 70%]
+tests/unit/test_preflight.py::TestEnvVarChecks::test_kitchen_rider_groups PASSED [ 70%]
+tests/unit/test_preflight.py::TestEnvVarChecks::test_slip_verification PASSED [ 70%]
+tests/unit/test_preflight.py::TestDatabaseCheck::test_database_connectable PASSED [ 70%]
+tests/unit/test_preflight.py::TestDatabaseCheck::test_database_has_core_tables PASSED [ 70%]
+tests/unit/test_preflight.py::TestRedisCheck::test_redis_check_runs PASSED [ 70%]
+tests/unit/test_preflight.py::TestMonitoringPortCheck::test_port_check_runs PASSED [ 70%]
+tests/unit/test_preflight.py::TestPreflightIntegration::test_run_preflight 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:36:36 [    INFO] ============================================================
+2026-04-15 00:36:36 [    INFO]   PREFLIGHT CHECK REPORT
+2026-04-15 00:36:36 [    INFO] ============================================================
+2026-04-15 00:36:36 [    INFO]   \u2705 TOKEN: Set (47 chars)\n2026-04-15 00:36:36 [    INFO]   \u2705 OWNER_ID: Set (123456789)\n2026-04-15 00:36:36 [    INFO]   \u2705 DATABASE_URL: Using local development DSN\n2026-04-15 00:36:36 [    INFO]   \u26a0\ufe0f PROMPTPAY_ID (optional): Not set \u2014 PromptPay payments disabled\n2026-04-15 00:36:36 [    INFO]   \u2705 BOT_LOCALE: th (\U0001f1f9\U0001f1ed \u0e44\u0e17\u0e22)\n2026-04-15 00:36:36 [    INFO]   \u2705 TIMEZONE: Asia/Bangkok\n2026-04-15 00:36:36 [    INFO]   \u26a0\ufe0f KITCHEN_GROUP_ID (optional): Not set \u2014 kitchen notifications disabled\n2026-04-15 00:36:36 [    INFO]   \u26a0\ufe0f RIDER_GROUP_ID (optional): Not set \u2014 rider notifications disabled\n2026-04-15 00:36:36 [    INFO]   \u26a0\ufe0f MAINTAINER_IDS (optional): Not set \u2014 will fallback to OWNER_ID for support\n2026-04-15 00:36:36 [    INFO]   \u26a0\ufe0f SUPPORT_CHAT_ID (optional): Not set \u2014 support messages only sent to maintainer DMs\n2026-04-15 00:36:36 [    INFO]   \u26a0\ufe0f SLIP_VERIFICATION (optional): No slip verification API keys \u2014 manual review only\n2026-04-15 00:36:36 [    INFO]   \u2705 Database: Connected \u2014 30 tables found\n2026-04-15 00:36:36 [    INFO]   \u26a0\ufe0f Redis (optional): Cannot connect: Error 10061 connecting to localhost:6379. No connection could be made because th \u2014 falling back to MemoryStorage\n2026-04-15 00:36:36 [    INFO]   \u2705 Monitoring Port (optional): localhost:9090 available\n2026-04-15 00:36:36 [    INFO] ------------------------------------------------------------
+2026-04-15 00:36:36 [    INFO]   Result: 7 passed, 7 warnings, 0 failures
+2026-04-15 00:36:36 [    INFO]   \u2705 ALL REQUIRED CHECKS PASSED\n2026-04-15 00:36:36 [    INFO] ============================================================
+PASSED                                                                   [ 70%]
+tests/unit/test_quick_transitions.py::TestQuickTransitionTable::test_all_prefixes_end_with_underscore PASSED [ 70%]
+tests/unit/test_quick_transitions.py::TestQuickTransitionTable::test_target_statuses_are_valid_destinations PASSED [ 70%]
+tests/unit/test_quick_transitions.py::TestQuickTransitionTable::test_expected_transitions_present PASSED [ 71%]
+tests/unit/test_quick_transitions.py::TestQuickTransitionTable::test_hooks_are_all_async_callables PASSED [ 71%]
+tests/unit/test_quick_transitions.py::TestQuickTransitionTable::test_spec_is_frozen_dataclass PASSED [ 71%]
+tests/unit/test_quick_transitions.py::TestExecuteQuickTransition::test_invalid_order_id_alerts PASSED [ 71%]
+tests/unit/test_quick_transitions.py::TestExecuteQuickTransition::test_missing_order_alerts_and_returns PASSED [ 71%]
+tests/unit/test_quick_transitions.py::TestExecuteQuickTransition::test_invalid_transition_rejected_no_mutation PASSED [ 71%]
+tests/unit/test_quick_transitions.py::TestExecuteQuickTransition::test_happy_path_preparing_commits_and_notifies PASSED [ 71%]
+tests/unit/test_quick_transitions.py::TestExecuteQuickTransition::test_rider_picked_assigns_driver_and_prompts_gps PASSED [ 71%]
+tests/unit/test_quick_transitions.py::TestExecuteQuickTransition::test_rider_delivered_sets_completed_at PASSED [ 71%]
+tests/unit/test_quick_transitions.py::TestExecuteQuickTransition::test_kitchen_ready_notifies_rider_then_customer PASSED [ 71%]
+tests/unit/test_regression_fixes.py::TestSEC01NoPikle::test_cache_module_has_no_pickle_import PASSED [ 71%]
+tests/unit/test_regression_fixes.py::TestSEC01NoPikle::test_cache_set_get_json PASSED [ 71%]
+tests/unit/test_regression_fixes.py::TestSEC01NoPikle::test_cache_get_rejects_non_json 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:36:38 [   ERROR] Failed to deserialize cache value for key bad_key
+PASSED                                                                   [ 71%]
+tests/unit/test_regression_fixes.py::TestSEC02NoHardcodedCreds::test_database_url_not_hardcoded PASSED [ 71%]
+tests/unit/test_regression_fixes.py::TestSQLWildcardEscape::test_escape_like_function_exists PASSED [ 72%]
+tests/unit/test_regression_fixes.py::TestLOGIC01CartLocking::test_add_to_cart_uses_for_update PASSED [ 72%]
+tests/unit/test_regression_fixes.py::TestLOGIC02BrandRace::test_create_brand_returns_none_on_duplicate PASSED [ 72%]
+tests/unit/test_regression_fixes.py::TestLOGIC04LogInventoryChange::test_log_inventory_change_standalone PASSED [ 72%]
+tests/unit/test_regression_fixes.py::TestLOGIC05UpdateItemCopiesAllFields::test_rename_preserves_all_fields PASSED [ 72%]
+tests/unit/test_regression_fixes.py::TestLOGIC06PermissionImport::test_permission_is_importable_from_read PASSED [ 72%]
+tests/unit/test_regression_fixes.py::TestLOGIC07PathObjects::test_shop_management_uses_path PASSED [ 72%]
+tests/unit/test_regression_fixes.py::TestLOGIC08MonthBoundary::test_daily_cleanup_uses_timedelta PASSED [ 72%]
+tests/unit/test_regression_fixes.py::TestLOGIC09OrderStatus::test_sales_report_uses_order_status PASSED [ 72%]
+tests/unit/test_regression_fixes.py::TestLOGIC10ContextVarLocale::test_locale_uses_contextvars PASSED [ 72%]
+tests/unit/test_regression_fixes.py::TestLOGIC10ContextVarLocale::test_locale_is_async_safe PASSED [ 72%]
+tests/unit/test_regression_fixes.py::TestLOGIC11DeductCheck::test_deduct_checks_before_mutation PASSED [ 72%]
+tests/unit/test_regression_fixes.py::TestLOGIC12NoExplicitBegin::test_update_category_no_begin PASSED [ 72%]
+tests/unit/test_regression_fixes.py::TestLOGIC13AuditTrailPreserved::test_inventory_log_nullable_item_name PASSED [ 73%]
+tests/unit/test_regression_fixes.py::TestLOGIC14NoDoubleShutdown::test_main_no_double_shutdown PASSED [ 73%]
+tests/unit/test_regression_fixes.py::TestLOGIC17CorrectStatuses::test_bot_cli_uses_correct_statuses PASSED [ 73%]
+tests/unit/test_regression_fixes.py::TestLOGIC19CleanDict::test_check_user_no_sa_state PASSED [ 73%]
+tests/unit/test_regression_fixes.py::TestLOGIC22DecimalPrices::test_decimal_price_accepted PASSED [ 73%]
+tests/unit/test_regression_fixes.py::TestLOGIC23NoneResultsCached::test_async_cached_caches_none PASSED [ 73%]
+tests/unit/test_regression_fixes.py::TestLOGIC26CategoryName::test_sales_report_uses_category_name PASSED [ 73%]
+tests/unit/test_regression_fixes.py::TestLOGIC29SingleJoinCheckRole::test_check_role_returns_permissions PASSED [ 73%]
+tests/unit/test_regression_fixes.py::TestLOGIC29SingleJoinCheckRole::test_check_role_nonexistent_user PASSED [ 73%]
+tests/unit/test_regression_fixes.py::TestLOGIC31SafeItemName::test_allows_single_quotes PASSED [ 73%]
+tests/unit/test_regression_fixes.py::TestLOGIC31SafeItemName::test_allows_double_quotes PASSED [ 73%]
+tests/unit/test_regression_fixes.py::TestLOGIC31SafeItemName::test_blocks_angle_brackets PASSED [ 73%]
+tests/unit/test_regression_fixes.py::TestLOGIC31SafeItemName::test_blocks_sql_keywords PASSED [ 73%]
+tests/unit/test_regression_fixes.py::TestLOGIC35NoDuplicatePreview::test_csv_preview_no_duplicates PASSED [ 73%]
+tests/unit/test_regression_fixes.py::TestLOGIC38MediaHandlerMerged::test_single_handler_for_media_done_skip PASSED [ 74%]
+tests/unit/test_regression_fixes.py::TestLOGIC39FTextFilter::test_coupon_handlers_have_text_filter PASSED [ 74%]
+tests/unit/test_regression_fixes.py::TestPERF12RatingConstraint::test_review_rating_has_check_constraint PASSED [ 74%]
+tests/unit/test_regression_fixes.py::TestMISC01ThreadSafeSingleton::test_singleton_has_lock PASSED [ 74%]
+tests/unit/test_regression_fixes.py::TestMISC02ZeroCoordinates::test_zero_lat_not_treated_as_falsy PASSED [ 74%]
+tests/unit/test_regression_fixes.py::TestMISC03TimezoneCacheTTL::test_timezone_cache_has_ttl PASSED [ 74%]
+tests/unit/test_regression_fixes.py::TestSEC03DashboardAuth::test_dashboard_has_auth_middleware PASSED [ 74%]
+tests/unit/test_regression_fixes.py::TestSEC03DashboardAuth::test_auth_middleware_rejects_without_key PASSED [ 74%]
+tests/unit/test_regression_fixes.py::TestSEC04BitcoinAtomicClaim::test_get_available_address_uses_for_update PASSED [ 74%]
+tests/unit/test_regression_fixes.py::TestSEC04BitcoinAtomicClaim::test_get_available_address_marks_used_atomically PASSED [ 74%]
+tests/unit/test_regression_fixes.py::TestLOGIC33NoBroadcastUserIds::test_broadcast_response_has_no_user_ids PASSED [ 74%]
+tests/unit/test_review_dry_regressions.py::TestH1PaymentProcessorsFallback::test_all_declared_methods_have_processor PASSED [ 74%]
+tests/unit/test_review_dry_regressions.py::TestH1PaymentProcessorsFallback::test_unknown_method_returns_none_from_get PASSED [ 74%]
+tests/unit/test_review_dry_regressions.py::TestH1PaymentProcessorsFallback::test_handle_payment_method_unknown_alerts_and_returns 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:36:42 [   ERROR] Unknown payment method: completely_bogus
+PASSED                                                                   [ 74%]
+tests/unit/test_review_dry_regressions.py::TestH2BonusPrecision::test_str_decimal_roundtrip_preserves_value[33.33] PASSED [ 75%]
+tests/unit/test_review_dry_regressions.py::TestH2BonusPrecision::test_str_decimal_roundtrip_preserves_value[0.01] PASSED [ 75%]
+tests/unit/test_review_dry_regressions.py::TestH2BonusPrecision::test_str_decimal_roundtrip_preserves_value[999999.99] PASSED [ 75%]
+tests/unit/test_review_dry_regressions.py::TestH2BonusPrecision::test_str_decimal_roundtrip_preserves_value[0.1] PASSED [ 75%]
+tests/unit/test_review_dry_regressions.py::TestH2BonusPrecision::test_str_decimal_roundtrip_preserves_value[0.2] PASSED [ 75%]
+tests/unit/test_review_dry_regressions.py::TestH2BonusPrecision::test_float_roundtrip_is_lossy_for_known_case PASSED [ 75%]
+tests/unit/test_review_dry_regressions.py::TestH3StatusTransitionRowLock::test_quick_transition_body_uses_for_update PASSED [ 75%]
+tests/unit/test_review_dry_regressions.py::TestH4PriceFeedMissingKey::test_missing_coin_key_raises_valueerror PASSED [ 75%]
+tests/unit/test_review_dry_regressions.py::TestH4PriceFeedMissingKey::test_missing_currency_key_raises_valueerror PASSED [ 75%]
+tests/unit/test_review_dry_regressions.py::TestH5PriceFeedZeroGuard::test_zero_price_from_api_raises_valueerror PASSED [ 75%]
+tests/unit/test_review_dry_regressions.py::TestH5PriceFeedZeroGuard::test_get_crypto_amount_rejects_zero_price PASSED [ 75%]
+tests/unit/test_review_dry_regressions.py::TestM1DeliveryTypeValidation::test_valid_delivery_types_frozenset_is_exact PASSED [ 75%]
+tests/unit/test_review_dry_regressions.py::TestM1DeliveryTypeValidation::test_extract_delivery_fields_defaults_to_door PASSED [ 75%]
+tests/unit/test_review_dry_regressions.py::TestM1DeliveryTypeValidation::test_extract_delivery_fields_preserves_dead_drop PASSED [ 76%]
+tests/unit/test_review_dry_regressions.py::TestM3MapsLinkCoValidation::test_build_maps_link_requires_both[None-None-True] PASSED [ 76%]
+tests/unit/test_review_dry_regressions.py::TestM3MapsLinkCoValidation::test_build_maps_link_requires_both[13.75-None-True] PASSED [ 76%]
+tests/unit/test_review_dry_regressions.py::TestM3MapsLinkCoValidation::test_build_maps_link_requires_both[None-100.5-True] PASSED [ 76%]
+tests/unit/test_review_dry_regressions.py::TestM3MapsLinkCoValidation::test_build_maps_link_requires_both[13.75-100.5-False] PASSED [ 76%]
+tests/unit/test_review_dry_regressions.py::TestM3MapsLinkCoValidation::test_build_maps_link_requires_both[0-0-False] PASSED [ 76%]
+tests/unit/test_review_dry_regressions.py::TestM3MapsLinkCoValidation::test_build_maps_link_requires_both[-33.86-151.2-False] PASSED [ 76%]
+tests/unit/test_review_dry_regressions.py::TestM10MapsUrlExtraction::test_returns_none_for_non_maps_text PASSED [ 76%]
+tests/unit/test_review_dry_regressions.py::TestM10MapsUrlExtraction::test_returns_none_for_empty_string PASSED [ 76%]
+tests/unit/test_review_dry_regressions.py::TestM10MapsUrlExtraction::test_returns_none_for_out_of_range_coords PASSED [ 76%]
+tests/unit/test_review_dry_regressions.py::TestM10MapsUrlExtraction::test_extracts_valid_coords PASSED [ 76%]
+tests/unit/test_review_dry_regressions.py::TestStatusMachineInvariants::test_terminal_states_have_no_outgoing PASSED [ 76%]
+tests/unit/test_review_dry_regressions.py::TestStatusMachineInvariants::test_cannot_skip_from_pending_to_delivered PASSED [ 76%]
+tests/unit/test_review_dry_regressions.py::TestStatusMachineInvariants::test_cannot_transition_from_terminal PASSED [ 76%]
+tests/unit/test_review_dry_regressions.py::TestStatusMachineInvariants::test_happy_path_is_fully_connected PASSED [ 77%]
+tests/unit/test_review_dry_regressions.py::TestStatusMachineInvariants::test_every_non_terminal_can_cancel PASSED [ 77%]
+tests/unit/test_review_dry_regressions.py::TestR2SendStatusNotificationsDeadBranch::test_preparing_notifies_customer_only PASSED [ 77%]
+tests/unit/test_review_dry_regressions.py::TestR2SendStatusNotificationsDeadBranch::test_confirmed_notifies_kitchen_only PASSED [ 77%]
+tests/unit/test_review_dry_regressions.py::TestR2SendStatusNotificationsDeadBranch::test_ready_notifies_rider_only PASSED [ 77%]
+tests/unit/test_review_dry_regressions.py::TestR2SendStatusNotificationsDeadBranch::test_delivered_notifies_customer PASSED [ 77%]
+tests/unit/utils/test_constants.py::TestPaymentConstants::test_payment_bitcoin_value PASSED [ 77%]
+tests/unit/utils/test_constants.py::TestPaymentConstants::test_payment_cash_value PASSED [ 77%]
+tests/unit/utils/test_constants.py::TestPaymentConstants::test_payment_promptpay_value PASSED [ 77%]
+tests/unit/utils/test_constants.py::TestPaymentConstants::test_payment_constants_are_strings PASSED [ 77%]
+tests/unit/utils/test_constants.py::TestPaymentConstants::test_payment_constants_are_not_none PASSED [ 77%]
+tests/unit/utils/test_constants.py::TestPaymentConstants::test_payment_constants_are_unique PASSED [ 77%]
+tests/unit/utils/test_constants.py::TestDeliveryConstants::test_delivery_door_value PASSED [ 77%]
+tests/unit/utils/test_constants.py::TestDeliveryConstants::test_delivery_dead_drop_value PASSED [ 77%]
+tests/unit/utils/test_constants.py::TestDeliveryConstants::test_delivery_pickup_value PASSED [ 78%]
+tests/unit/utils/test_constants.py::TestDeliveryConstants::test_delivery_constants_are_strings PASSED [ 78%]
+tests/unit/utils/test_constants.py::TestDeliveryConstants::test_delivery_constants_are_not_none PASSED [ 78%]
+tests/unit/utils/test_constants.py::TestDeliveryConstants::test_delivery_constants_are_unique PASSED [ 78%]
+tests/unit/utils/test_constants_crypto.py::TestCryptoConstants::test_payment_method_strings PASSED [ 78%]
+tests/unit/utils/test_constants_crypto.py::TestCryptoConstants::test_coin_code_strings PASSED [ 78%]
+tests/unit/utils/test_constants_crypto.py::TestCryptoConstants::test_payment_method_to_coin_mapping PASSED [ 78%]
+tests/unit/utils/test_constants_crypto.py::TestCryptoConstants::test_crypto_payment_methods_set PASSED [ 78%]
+tests/unit/utils/test_constants_crypto.py::TestCryptoConstants::test_all_crypto_methods_have_coin_mapping PASSED [ 78%]
+tests/unit/utils/test_coupon_utils.py::TestValidateCoupon::test_valid_coupon_returns_true PASSED [ 78%]
+tests/unit/utils/test_coupon_utils.py::TestValidateCoupon::test_coupon_not_found PASSED [ 78%]
+tests/unit/utils/test_coupon_utils.py::TestValidateCoupon::test_inactive_coupon PASSED [ 78%]
+tests/unit/utils/test_coupon_utils.py::TestValidateCoupon::test_coupon_not_yet_valid PASSED [ 78%]
+tests/unit/utils/test_coupon_utils.py::TestValidateCoupon::test_coupon_expired PASSED [ 79%]
+tests/unit/utils/test_coupon_utils.py::TestValidateCoupon::test_coupon_within_validity_window PASSED [ 79%]
+tests/unit/utils/test_coupon_utils.py::TestValidateCoupon::test_max_uses_reached PASSED [ 79%]
+tests/unit/utils/test_coupon_utils.py::TestValidateCoupon::test_max_uses_not_yet_reached PASSED [ 79%]
+tests/unit/utils/test_coupon_utils.py::TestValidateCoupon::test_unlimited_global_uses PASSED [ 79%]
+tests/unit/utils/test_coupon_utils.py::TestValidateCoupon::test_per_user_limit_reached PASSED [ 79%]
+tests/unit/utils/test_coupon_utils.py::TestValidateCoupon::test_per_user_limit_not_reached PASSED [ 79%]
+tests/unit/utils/test_coupon_utils.py::TestValidateCoupon::test_order_below_minimum PASSED [ 79%]
+tests/unit/utils/test_coupon_utils.py::TestValidateCoupon::test_order_at_minimum PASSED [ 79%]
+tests/unit/utils/test_coupon_utils.py::TestValidateCoupon::test_min_order_none_treated_as_zero PASSED [ 79%]
+tests/unit/utils/test_coupon_utils.py::TestValidateCoupon::test_code_uppercased_for_lookup PASSED [ 79%]
+tests/unit/utils/test_coupon_utils.py::TestCalculateDiscount::test_percentage_discount PASSED [ 79%]
+tests/unit/utils/test_coupon_utils.py::TestCalculateDiscount::test_percentage_discount_with_max_cap PASSED [ 79%]
+tests/unit/utils/test_coupon_utils.py::TestCalculateDiscount::test_percentage_discount_below_max_cap PASSED [ 79%]
+tests/unit/utils/test_coupon_utils.py::TestCalculateDiscount::test_fixed_discount_below_order_total PASSED [ 80%]
+tests/unit/utils/test_coupon_utils.py::TestCalculateDiscount::test_fixed_discount_exceeds_order_total PASSED [ 80%]
+tests/unit/utils/test_coupon_utils.py::TestCalculateDiscount::test_percentage_100_percent PASSED [ 80%]
+tests/unit/utils/test_coupon_utils.py::TestCalculateDiscount::test_zero_order_total PASSED [ 80%]
+tests/unit/utils/test_coupon_utils.py::TestCalculateDiscount::test_fixed_zero_discount_value PASSED [ 80%]
+tests/unit/utils/test_coupon_utils.py::TestCalculateDiscount::test_result_quantized_to_two_decimals PASSED [ 80%]
+tests/unit/utils/test_coupon_utils.py::TestCalculateDiscount::test_percentage_with_rounding PASSED [ 80%]
+tests/unit/utils/test_coupon_utils.py::TestApplyCoupon::test_successful_application PASSED [ 80%]
+tests/unit/utils/test_coupon_utils.py::TestApplyCoupon::test_coupon_not_found_returns_false PASSED [ 80%]
+tests/unit/utils/test_coupon_utils.py::TestApplyCoupon::test_exception_returns_false 
+-------------------------------- live log call --------------------------------
+2026-04-15 00:36:49 [   ERROR] Failed to apply coupon: DB connection failed
+PASSED                                                                   [ 80%]
+tests/unit/utils/test_coupon_utils.py::TestApplyCoupon::test_current_uses_none_increments_to_one PASSED [ 80%]
+tests/unit/utils/test_currency.py::TestCurrencyFormatting::test_format_thb_basic PASSED [ 80%]
+tests/unit/utils/test_currency.py::TestCurrencyFormatting::test_format_thb_zero PASSED [ 80%]
+tests/unit/utils/test_currency.py::TestCurrencyFormatting::test_format_thb_large PASSED [ 80%]
+tests/unit/utils/test_currency.py::TestCurrencyFormatting::test_format_thb_decimal_rounding PASSED [ 81%]
+tests/unit/utils/test_currency.py::TestCurrencyFormatting::test_format_thb_small_amount PASSED [ 81%]
+tests/unit/utils/test_currency.py::TestCurrencyFormatting::test_format_non_thb_currency PASSED [ 81%]
+tests/unit/utils/test_currency.py::TestCurrencyFormatting::test_format_accepts_string_input PASSED [ 81%]
+tests/unit/utils/test_currency.py::TestCurrencyFormatting::test_format_accepts_int_input PASSED [ 81%]
+tests/unit/utils/test_currency.py::TestCurrencyEdgeCases::test_negative_amount PASSED [ 81%]
+tests/unit/utils/test_currency.py::TestCurrencyEdgeCases::test_negative_amount_non_thb PASSED [ 81%]
+tests/unit/utils/test_currency.py::TestCurrencyEdgeCases::test_very_large_amount PASSED [ 81%]
+tests/unit/utils/test_currency.py::TestCurrencyEdgeCases::test_three_decimal_places_rounded PASSED [ 81%]
+tests/unit/utils/test_currency.py::TestCurrencyEdgeCases::test_tiny_amount_rounds_to_zero PASSED [ 81%]
+tests/unit/utils/test_currency.py::TestCurrencyEdgeCases::test_integer_zero PASSED [ 81%]
+tests/unit/utils/test_currency.py::TestCurrencyEdgeCases::test_rounding_half_up_behavior PASSED [ 81%]
+tests/unit/utils/test_currency.py::TestCurrencyEdgeCases::test_very_small_negative PASSED [ 81%]
+tests/unit/utils/test_delivery_types.py::TestNeedsDeliveryPhoto::test_dead_drop_without_photo_needs_photo PASSED [ 82%]
+tests/unit/utils/test_delivery_types.py::TestNeedsDeliveryPhoto::test_dead_drop_with_photo_does_not_need_photo PASSED [ 82%]
+tests/unit/utils/test_delivery_types.py::TestNeedsDeliveryPhoto::test_door_delivery_does_not_need_photo PASSED [ 82%]
+tests/unit/utils/test_delivery_types.py::TestNeedsDeliveryPhoto::test_door_delivery_with_photo_does_not_need_photo PASSED [ 82%]
+tests/unit/utils/test_delivery_types.py::TestNeedsDeliveryPhoto::test_pickup_does_not_need_photo PASSED [ 82%]
+tests/unit/utils/test_delivery_types.py::TestNeedsDeliveryPhoto::test_pickup_with_photo_does_not_need_photo PASSED [ 82%]
+tests/unit/utils/test_delivery_types.py::TestNeedsDeliveryPhoto::test_dead_drop_empty_string_photo_needs_photo PASSED [ 82%]
+tests/unit/utils/test_delivery_types.py::TestNeedsDeliveryPhoto::test_unknown_delivery_type_does_not_need_photo PASSED [ 82%]
+tests/unit/utils/test_delivery_zones.py::TestHaversineDistance::test_same_point_zero_distance PASSED [ 82%]
+tests/unit/utils/test_delivery_zones.py::TestHaversineDistance::test_known_distance_bangkok PASSED [ 82%]
+tests/unit/utils/test_delivery_zones.py::TestHaversineDistance::test_long_distance PASSED [ 82%]
+tests/unit/utils/test_delivery_zones.py::TestGetDeliveryZone::test_zone_central PASSED [ 82%]
+tests/unit/utils/test_delivery_zones.py::TestGetDeliveryZone::test_zone_inner PASSED [ 82%]
+tests/unit/utils/test_delivery_zones.py::TestGetDeliveryZone::test_zone_far PASSED [ 82%]
+tests/unit/utils/test_delivery_zones.py::TestGetDeliveryZone::test_zone_no_gps PASSED [ 83%]
+tests/unit/utils/test_delivery_zones.py::TestTimeSlots::test_default_slots_count PASSED [ 83%]
+tests/unit/utils/test_delivery_zones.py::TestTimeSlots::test_all_slots_available PASSED [ 83%]
+tests/unit/utils/test_delivery_zones.py::TestTimeSlots::test_asap_slot_exists PASSED [ 83%]
+tests/unit/utils/test_delivery_zones.py::TestDeliveryZoneOrderFields::test_order_zone_and_fee_fields PASSED [ 83%]
+tests/unit/utils/test_delivery_zones.py::TestDeliveryZoneOrderFields::test_order_zone_fields_nullable PASSED [ 83%]
+tests/unit/utils/test_delivery_zones.py::TestHaversineEdgeCases::test_negative_coordinates_southern_hemisphere PASSED [ 83%]
+tests/unit/utils/test_delivery_zones.py::TestHaversineEdgeCases::test_negative_coordinates_western_hemisphere PASSED [ 83%]
+tests/unit/utils/test_delivery_zones.py::TestHaversineEdgeCases::test_large_distance_equator_to_pole PASSED [ 83%]
+tests/unit/utils/test_delivery_zones.py::TestHaversineEdgeCases::test_very_close_points PASSED [ 83%]
+tests/unit/utils/test_delivery_zones.py::TestHaversineEdgeCases::test_same_latitude_different_longitude PASSED [ 83%]
+tests/unit/utils/test_delivery_zones.py::TestHaversineEdgeCases::test_same_longitude_different_latitude PASSED [ 83%]
+tests/unit/utils/test_delivery_zones.py::TestZoneBoundaryConditions::test_distance_exactly_at_zone1_boundary PASSED [ 83%]
+tests/unit/utils/test_delivery_zones.py::TestZoneBoundaryConditions::test_distance_just_over_zone1_boundary PASSED [ 83%]
+tests/unit/utils/test_delivery_zones.py::TestZoneBoundaryConditions::test_distance_exactly_at_zone2_boundary_7km PASSED [ 84%]
+tests/unit/utils/test_delivery_zones.py::TestZoneBoundaryConditions::test_distance_exactly_at_zone3_boundary_12km PASSED [ 84%]
+tests/unit/utils/test_delivery_zones.py::TestZoneBoundaryConditions::test_distance_exactly_at_zone4_boundary_20km PASSED [ 84%]
+tests/unit/utils/test_delivery_zones.py::TestZoneBoundaryConditions::test_distance_zero_at_restaurant PASSED [ 84%]
+tests/unit/utils/test_delivery_zones.py::TestZoneBoundaryConditions::test_very_large_distance_still_zone5 PASSED [ 84%]
+tests/unit/utils/test_delivery_zones.py::TestZoneBoundaryConditions::test_custom_restaurant_coordinates_override PASSED [ 84%]
+tests/unit/utils/test_delivery_zones.py::TestZoneBoundaryConditions::test_partial_coordinates_lat_only_returns_none PASSED [ 84%]
+tests/unit/utils/test_delivery_zones.py::TestZoneBoundaryConditions::test_partial_coordinates_lon_only_returns_none PASSED [ 84%]
+tests/unit/utils/test_delivery_zones.py::TestTimeSlotEdgeCases::test_slot_availability_filtering PASSED [ 84%]
+tests/unit/utils/test_delivery_zones.py::TestTimeSlotEdgeCases::test_slot_ids_are_unique PASSED [ 84%]
+tests/unit/utils/test_delivery_zones.py::TestTimeSlotEdgeCases::test_all_slots_have_label_and_id PASSED [ 84%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_order_not_found_returns_none PASSED [ 84%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_basic_invoice_contains_order_code PASSED [ 84%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_basic_invoice_contains_date PASSED [ 85%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_payment_method_uppercased PASSED [ 85%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_items_listed_with_quantity_and_price PASSED [ 85%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_multiple_items PASSED [ 85%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_delivery_fee_shown_when_present PASSED [ 85%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_delivery_fee_hidden_when_zero PASSED [ 85%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_delivery_fee_hidden_when_none PASSED [ 85%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_coupon_discount_shown PASSED [ 85%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_coupon_discount_hidden_when_zero PASSED [ 85%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_bonus_applied_shown PASSED [ 85%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_bonus_hidden_when_zero PASSED [ 85%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_total_price_shown PASSED [ 85%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_delivery_address_and_phone PASSED [ 85%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_delivery_type_door_not_shown PASSED [ 85%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_delivery_type_pickup_shown PASSED [ 86%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_delivery_type_dead_drop_shown PASSED [ 86%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_store_shown_when_present PASSED [ 86%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_store_not_shown_when_no_store_id PASSED [ 86%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_receipt_header_and_footer PASSED [ 86%]
+tests/unit/utils/test_invoice.py::TestGenerateInvoiceText::test_empty_items_list PASSED [ 86%]
+tests/unit/utils/test_message_utils.py::TestSendOrEdit::test_edit_true_calls_edit_text PASSED [ 86%]
+tests/unit/utils/test_message_utils.py::TestSendOrEdit::test_edit_false_calls_answer PASSED [ 86%]
+tests/unit/utils/test_message_utils.py::TestSendOrEdit::test_edit_default_is_false PASSED [ 86%]
+tests/unit/utils/test_message_utils.py::TestSendOrEdit::test_edit_true_no_edit_text_attr_falls_back_to_answer PASSED [ 86%]
+tests/unit/utils/test_message_utils.py::TestSendOrEdit::test_kwargs_passed_through PASSED [ 86%]
+tests/unit/utils/test_message_utils.py::TestSafeEditText::test_successful_edit_returns_true PASSED [ 86%]
+tests/unit/utils/test_message_utils.py::TestSafeEditText::test_not_modified_returns_false PASSED [ 86%]
+tests/unit/utils/test_message_utils.py::TestSafeEditText::test_other_bad_request_reraises PASSED [ 86%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPrice::test_no_modifiers PASSED [ 87%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPrice::test_no_selected_modifiers PASSED [ 87%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPrice::test_single_choice_free PASSED [ 87%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPrice::test_single_choice_with_price PASSED [ 87%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPrice::test_multi_extras_sum PASSED [ 87%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPrice::test_free_removals PASSED [ 87%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPrice::test_combined_modifiers PASSED [ 87%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPrice::test_empty_schema PASSED [ 87%]
+tests/unit/utils/test_modifiers.py::TestValidateModifierSelection::test_valid_selection PASSED [ 87%]
+tests/unit/utils/test_modifiers.py::TestValidateModifierSelection::test_missing_required PASSED [ 87%]
+tests/unit/utils/test_modifiers.py::TestValidateModifierSelection::test_invalid_option_id PASSED [ 87%]
+tests/unit/utils/test_modifiers.py::TestValidateModifierSelection::test_no_schema PASSED [ 87%]
+tests/unit/utils/test_modifiers.py::TestValidateModifierSelection::test_no_selection_with_optional PASSED [ 87%]
+tests/unit/utils/test_modifiers.py::TestModifierModelFields::test_goods_modifiers_json PASSED [ 88%]
+tests/unit/utils/test_modifiers.py::TestModifierModelFields::test_order_item_selected_modifiers PASSED [ 88%]
+tests/unit/utils/test_modifiers.py::TestModifierModelFields::test_cart_item_selected_modifiers PASSED [ 88%]
+tests/unit/utils/test_modifiers.py::TestModifierModelFields::test_categories_sort_order PASSED [ 88%]
+tests/unit/utils/test_modifiers.py::TestModifierModelFields::test_categories_sort_order_default PASSED [ 88%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPriceEdgeCases::test_empty_selected_modifiers_dict PASSED [ 88%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPriceEdgeCases::test_unknown_group_key_ignored PASSED [ 88%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPriceEdgeCases::test_option_missing_price_key PASSED [ 88%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPriceEdgeCases::test_option_missing_price_key_multi PASSED [ 88%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPriceEdgeCases::test_very_large_modifier_price PASSED [ 88%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPriceEdgeCases::test_multiple_multi_choice_selections PASSED [ 88%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPriceEdgeCases::test_base_price_zero_with_modifiers PASSED [ 88%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPriceEdgeCases::test_string_base_price PASSED [ 88%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPriceEdgeCases::test_float_base_price PASSED [ 88%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPriceEdgeCases::test_integer_base_price PASSED [ 89%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPriceEdgeCases::test_mixed_known_and_unknown_groups PASSED [ 89%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPriceEdgeCases::test_single_choice_option_not_found PASSED [ 89%]
+tests/unit/utils/test_modifiers.py::TestCalculateItemPriceEdgeCases::test_multi_choice_some_options_not_found PASSED [ 89%]
+tests/unit/utils/test_modifiers.py::TestValidateModifierSelectionEdgeCases::test_empty_schema_is_valid PASSED [ 89%]
+tests/unit/utils/test_modifiers.py::TestValidateModifierSelectionEdgeCases::test_empty_selection_no_required_groups PASSED [ 89%]
+tests/unit/utils/test_modifiers.py::TestValidateModifierSelectionEdgeCases::test_empty_list_multi_choice_optional PASSED [ 89%]
+tests/unit/utils/test_modifiers.py::TestValidateModifierSelectionEdgeCases::test_empty_list_multi_choice_required PASSED [ 89%]
+tests/unit/utils/test_modifiers.py::TestValidateModifierSelectionEdgeCases::test_multiple_selections_in_single_choice PASSED [ 89%]
+tests/unit/utils/test_modifiers.py::TestValidateModifierSelectionEdgeCases::test_multiple_selections_single_choice_invalid_option PASSED [ 89%]
+tests/unit/utils/test_modifiers.py::TestValidateModifierSelectionEdgeCases::test_selection_with_none_value PASSED [ 89%]
+tests/unit/utils/test_modifiers.py::TestValidateModifierSelectionEdgeCases::test_selection_with_none_value_optional PASSED [ 89%]
+tests/unit/utils/test_modifiers.py::TestValidateModifierSelectionEdgeCases::test_very_long_option_id_string PASSED [ 89%]
+tests/unit/utils/test_modifiers.py::TestValidateModifierSelectionEdgeCases::test_very_long_option_id_invalid PASSED [ 89%]
+tests/unit/utils/test_modifiers.py::TestValidateModifierSelectionEdgeCases::test_unknown_group_in_selection_ignored PASSED [ 90%]
+tests/unit/utils/test_order_codes.py::TestOrderCodeGeneration::test_generate_order_code PASSED [ 90%]
+tests/unit/utils/test_order_codes.py::TestOrderCodeGeneration::test_generate_order_code_uniqueness PASSED [ 90%]
+tests/unit/utils/test_order_codes.py::TestOrderCodeGeneration::test_generate_unique_order_code PASSED [ 90%]
+tests/unit/utils/test_order_codes.py::TestOrderCodeGeneration::test_generate_unique_order_code_avoids_collision PASSED [ 90%]
+tests/unit/utils/test_order_codes.py::TestOrderCodeGeneration::test_generate_unique_order_code_max_attempts PASSED [ 90%]
+tests/unit/utils/test_order_helpers.py::TestBuildGoogleMapsLink::test_both_coords_provided PASSED [ 90%]
+tests/unit/utils/test_order_helpers.py::TestBuildGoogleMapsLink::test_latitude_none PASSED [ 90%]
+tests/unit/utils/test_order_helpers.py::TestBuildGoogleMapsLink::test_longitude_none PASSED [ 90%]
+tests/unit/utils/test_order_helpers.py::TestBuildGoogleMapsLink::test_both_none PASSED [ 90%]
+tests/unit/utils/test_order_helpers.py::TestBuildGoogleMapsLink::test_zero_coordinates PASSED [ 90%]
+tests/unit/utils/test_order_helpers.py::TestBuildGoogleMapsLink::test_negative_coordinates PASSED [ 90%]
+tests/unit/utils/test_order_helpers.py::TestBuildGoogleMapsLink::test_very_precise_coordinates PASSED [ 90%]
+tests/unit/utils/test_order_helpers.py::TestBuildGoogleMapsLink::test_integer_coordinates PASSED [ 91%]
+tests/unit/utils/test_order_helpers.py::TestFormatItemsSummary::test_normal_cart_items PASSED [ 91%]
+tests/unit/utils/test_order_helpers.py::TestFormatItemsSummary::test_empty_list PASSED [ 91%]
+tests/unit/utils/test_order_helpers.py::TestFormatItemsSummary::test_single_item PASSED [ 91%]
+tests/unit/utils/test_order_helpers.py::TestFormatItemsSummary::test_item_with_quantity_greater_than_one PASSED [ 91%]
+tests/unit/utils/test_order_helpers.py::TestFormatItemsSummary::test_uses_pay_currency_from_env PASSED [ 91%]
+tests/unit/utils/test_order_helpers.py::TestFormatItemsSummary::test_decimal_total PASSED [ 91%]
+tests/unit/utils/test_order_status.py::TestOrderStatusTransitions::test_pending_to_reserved PASSED [ 91%]
+tests/unit/utils/test_order_status.py::TestOrderStatusTransitions::test_reserved_to_confirmed PASSED [ 91%]
+tests/unit/utils/test_order_status.py::TestOrderStatusTransitions::test_confirmed_to_preparing PASSED [ 91%]
+tests/unit/utils/test_order_status.py::TestOrderStatusTransitions::test_preparing_to_ready PASSED [ 91%]
+tests/unit/utils/test_order_status.py::TestOrderStatusTransitions::test_ready_to_out_for_delivery PASSED [ 91%]
+tests/unit/utils/test_order_status.py::TestOrderStatusTransitions::test_out_for_delivery_to_delivered PASSED [ 91%]
+tests/unit/utils/test_order_status.py::TestOrderStatusTransitions::test_cannot_skip_statuses PASSED [ 91%]
+tests/unit/utils/test_order_status.py::TestOrderStatusTransitions::test_cannot_skip_preparing PASSED [ 92%]
+tests/unit/utils/test_order_status.py::TestOrderStatusTransitions::test_any_active_to_cancelled PASSED [ 92%]
+tests/unit/utils/test_order_status.py::TestOrderStatusTransitions::test_delivered_is_terminal PASSED [ 92%]
+tests/unit/utils/test_order_status.py::TestOrderStatusTransitions::test_cancelled_is_terminal PASSED [ 92%]
+tests/unit/utils/test_order_status.py::TestOrderStatusTransitions::test_expired_is_terminal PASSED [ 92%]
+tests/unit/utils/test_order_status.py::TestOrderStatusTransitions::test_reservation_cleaner_only_expires_reserved PASSED [ 92%]
+tests/unit/utils/test_order_status.py::TestExtendedStatusFields::test_order_extended_statuses PASSED [ 92%]
+tests/unit/utils/test_order_status.py::TestExtendedStatusFields::test_order_group_message_ids PASSED [ 92%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_nonexistent_status_returns_false PASSED [ 92%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_empty_string_status_returns_false PASSED [ 92%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_self_transition_returns_false PASSED [ 92%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_get_allowed_transitions_pending PASSED [ 92%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_get_allowed_transitions_reserved PASSED [ 92%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_get_allowed_transitions_confirmed PASSED [ 92%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_get_allowed_transitions_preparing PASSED [ 93%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_get_allowed_transitions_ready PASSED [ 93%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_get_allowed_transitions_out_for_delivery PASSED [ 93%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_get_allowed_transitions_delivered PASSED [ 93%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_get_allowed_transitions_cancelled PASSED [ 93%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_get_allowed_transitions_expired PASSED [ 93%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_get_allowed_transitions_unknown_status PASSED [ 93%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_all_statuses_contains_exactly_nine PASSED [ 93%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_pending_to_cancelled_is_valid PASSED [ 93%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_pending_to_expired_is_not_valid PASSED [ 93%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_cancelled_to_anything_is_not_valid PASSED [ 93%]
+tests/unit/utils/test_order_status.py::TestStatusTransitionEdgeCases::test_expired_to_anything_is_not_valid PASSED [ 93%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorInit::test_default_init PASSED [ 93%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorInit::test_custom_per_page PASSED [ 94%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorInit::test_custom_cache_pages PASSED [ 94%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorInit::test_restore_from_state PASSED [ 94%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorInit::test_restore_from_none_state PASSED [ 94%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorInit::test_restore_from_non_dict_state PASSED [ 94%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorGetTotalCount::test_get_total_count_calls_query PASSED [ 94%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorGetTotalCount::test_get_total_count_caches_result PASSED [ 94%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorGetTotalCount::test_get_total_count_uses_state PASSED [ 94%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorGetPage::test_get_page_calls_query_with_offset PASSED [ 94%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorGetPage::test_get_page_offset_calculation PASSED [ 94%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorGetPage::test_get_page_updates_current_page PASSED [ 94%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorGetPage::test_get_page_caches_result PASSED [ 94%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorGetPage::test_get_page_cache_eviction PASSED [ 94%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorGetTotalPages::test_get_total_pages_exact_division PASSED [ 94%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorGetTotalPages::test_get_total_pages_with_remainder PASSED [ 95%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorGetTotalPages::test_get_total_pages_zero_items PASSED [ 95%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorGetTotalPages::test_get_total_pages_one_item PASSED [ 95%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorSerialize::test_serialize_dict_item PASSED [ 95%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorSerialize::test_serialize_dict_with_datetime PASSED [ 95%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorSerialize::test_serialize_simple_type PASSED [ 95%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorSerialize::test_serialize_integer PASSED [ 95%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorSerialize::test_get_state PASSED [ 95%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorSerialize::test_get_state_initial PASSED [ 95%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorClearCache::test_clear_cache PASSED [ 95%]
+tests/unit/utils/test_pagination.py::TestLazyPaginatorClearCache::test_clear_cache_forces_refetch PASSED [ 95%]
+tests/unit/utils/test_tracking.py::TestTrackingWrappers::test_track_event_with_metrics PASSED [ 95%]
+tests/unit/utils/test_tracking.py::TestTrackingWrappers::test_track_event_without_metrics PASSED [ 95%]
+tests/unit/utils/test_tracking.py::TestTrackingWrappers::test_track_event_default_data PASSED [ 95%]
+tests/unit/utils/test_tracking.py::TestTrackingWrappers::test_track_conversion_with_metrics PASSED [ 96%]
+tests/unit/utils/test_tracking.py::TestTrackingWrappers::test_track_conversion_without_metrics PASSED [ 96%]
+tests/unit/utils/test_tracking.py::TestTrackingWrappers::test_track_payment PASSED [ 96%]
+tests/unit/utils/test_user_utils.py::TestGetTelegramUsername::test_returns_username_when_available PASSED [ 96%]
+tests/unit/utils/test_user_utils.py::TestGetTelegramUsername::test_returns_fallback_when_no_username PASSED [ 96%]
+tests/unit/utils/test_user_utils.py::TestGetTelegramUsername::test_returns_fallback_on_exception PASSED [ 96%]
+tests/unit/utils/test_user_utils.py::TestGetTelegramUsername::test_returns_fallback_on_telegram_error PASSED [ 96%]
+tests/unit/utils/test_user_utils.py::TestGetTelegramUsername::test_fallback_format_uses_telegram_id PASSED [ 96%]
+tests/unit/utils/test_user_utils.py::TestGetTelegramUsername::test_returns_username_without_at_prefix PASSED [ 96%]
+tests/unit/utils/test_user_utils.py::TestGetTelegramUsername::test_empty_string_username_returns_fallback PASSED [ 96%]
+tests/unit/utils/test_validators.py::TestUserDataUpdate::test_valid_user_data_update PASSED [ 96%]
+tests/unit/utils/test_validators.py::TestUserDataUpdate::test_invalid_telegram_id PASSED [ 96%]
+tests/unit/utils/test_validators.py::TestUserDataUpdate::test_negative_balance PASSED [ 96%]
+tests/unit/utils/test_validators.py::TestUserDataUpdate::test_balance_too_large PASSED [ 97%]
+tests/unit/utils/test_validators.py::TestCategoryRequest::test_valid_category PASSED [ 97%]
+tests/unit/utils/test_validators.py::TestCategoryRequest::test_category_too_short PASSED [ 97%]
+tests/unit/utils/test_validators.py::TestCategoryRequest::test_category_too_long PASSED [ 97%]
+tests/unit/utils/test_validators.py::TestCategoryRequest::test_sanitize_category_name PASSED [ 97%]
+tests/unit/utils/test_validators.py::TestCategoryRequest::test_sanitize_removes_html PASSED [ 97%]
+tests/unit/utils/test_validators.py::TestBroadcastMessage::test_valid_broadcast_message PASSED [ 97%]
+tests/unit/utils/test_validators.py::TestBroadcastMessage::test_message_too_short PASSED [ 97%]
+tests/unit/utils/test_validators.py::TestBroadcastMessage::test_message_too_long PASSED [ 97%]
+tests/unit/utils/test_validators.py::TestBroadcastMessage::test_invalid_parse_mode PASSED [ 97%]
+tests/unit/utils/test_validators.py::TestBroadcastMessage::test_unbalanced_html_tags PASSED [ 97%]
+tests/unit/utils/test_validators.py::TestSearchQuery::test_valid_search_query PASSED [ 97%]
+tests/unit/utils/test_validators.py::TestSearchQuery::test_query_too_short PASSED [ 97%]
+tests/unit/utils/test_validators.py::TestSearchQuery::test_limit_too_small PASSED [ 97%]
+tests/unit/utils/test_validators.py::TestSearchQuery::test_limit_too_large PASSED [ 98%]
+tests/unit/utils/test_validators.py::TestSearchQuery::test_sanitize_query PASSED [ 98%]
+tests/unit/utils/test_validators.py::TestHelperFunctions::test_validate_telegram_id_valid PASSED [ 98%]
+tests/unit/utils/test_validators.py::TestHelperFunctions::test_validate_telegram_id_string PASSED [ 98%]
+tests/unit/utils/test_validators.py::TestHelperFunctions::test_validate_telegram_id_invalid PASSED [ 98%]
+tests/unit/utils/test_validators.py::TestHelperFunctions::test_validate_telegram_id_negative PASSED [ 98%]
+tests/unit/utils/test_validators.py::TestHelperFunctions::test_validate_telegram_id_too_large PASSED [ 98%]
+tests/unit/utils/test_validators.py::TestHelperFunctions::test_validate_money_amount_valid PASSED [ 98%]
+tests/unit/utils/test_validators.py::TestHelperFunctions::test_validate_money_amount_rounds PASSED [ 98%]
+tests/unit/utils/test_validators.py::TestHelperFunctions::test_validate_money_amount_too_small PASSED [ 98%]
+tests/unit/utils/test_validators.py::TestHelperFunctions::test_validate_money_amount_too_large PASSED [ 98%]
+tests/unit/utils/test_validators.py::TestHelperFunctions::test_sanitize_html_escapes_dangerous PASSED [ 98%]
+tests/unit/utils/test_validators.py::TestHelperFunctions::test_sanitize_html_allows_safe_tags PASSED [ 98%]
+tests/unit/utils/test_validators.py::TestHelperFunctions::test_sanitize_html_mixed PASSED [ 98%]
+tests/unit/utils/test_validators.py::TestPhoneValidation::test_thai_mobile_leading_zero PASSED [ 99%]
+tests/unit/utils/test_validators.py::TestPhoneValidation::test_thai_mobile_with_dashes PASSED [ 99%]
+tests/unit/utils/test_validators.py::TestPhoneValidation::test_thai_mobile_with_spaces PASSED [ 99%]
+tests/unit/utils/test_validators.py::TestPhoneValidation::test_thai_mobile_with_parens PASSED [ 99%]
+tests/unit/utils/test_validators.py::TestPhoneValidation::test_thai_e164 PASSED [ 99%]
+tests/unit/utils/test_validators.py::TestPhoneValidation::test_thai_international_no_plus PASSED [ 99%]
+tests/unit/utils/test_validators.py::TestPhoneValidation::test_thai_bare_local PASSED [ 99%]
+tests/unit/utils/test_validators.py::TestPhoneValidation::test_us_number_with_plus PASSED [ 99%]
+tests/unit/utils/test_validators.py::TestPhoneValidation::test_custom_country_code PASSED [ 99%]
+tests/unit/utils/test_validators.py::TestPhoneValidation::test_empty_string PASSED [ 99%]
+tests/unit/utils/test_validators.py::TestPhoneValidation::test_whitespace_only PASSED [ 99%]
+tests/unit/utils/test_validators.py::TestPhoneValidation::test_too_few_digits PASSED [ 99%]
+tests/unit/utils/test_validators.py::TestPhoneValidation::test_contains_letters PASSED [ 99%]
+tests/unit/utils/test_validators.py::TestPhoneValidation::test_too_many_digits PASSED [100%]
+
+============================== warnings summary ===============================
+tests\e2e\test_smoke.py:18
+  D:\GitHub\Telegram-shop-Physical\tests\e2e\test_smoke.py:18: PytestUnknownMarkWarning: Unknown pytest.mark.smoke - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytestmark = [pytest.mark.e2e, pytest.mark.smoke]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.13.3-final-0 _______________
+
+Name                                                 Stmts   Miss Branch BrPart  Cover   Missing
+------------------------------------------------------------------------------------------------
+bot\__init__.py                                          1      0      0      0   100%
+bot\ai\__init__.py                                       0      0      0      0   100%
+bot\ai\customer_executor.py                            188    163     60      0    10%   44, 48-59, 63-73, 78-80, 84-89, 95-114, 133-151, 168-181, 198-216, 220-261, 267-276, 293-302, 317-359, 365-397, 408-455
+bot\ai\customer_schemas.py                              46      0      0      0   100%
+bot\ai\customer_tool_defs.py                             3      0      0      0   100%
+bot\ai\data_parser.py                                   86     43     32      1    49%   29-49, 63-64, 93-124
+bot\ai\executor.py                                     548    247    274     49    54%   52-53, 57-58, 83, 85-86, 88, 90, 92, 94, 107, 110, 112, 126, 128, 130, 132, 134, 136, 138, 140, 142, 144, 157, 163, 165, 167, 196, 202, 204, 209-212, 214-217, 219, 221, 243, 245-248, 250-253, 255, 257, 259, 261, 314->318, 349-351, 424, 431-446, 450-458, 495, 509->541, 525->541, 528->541, 571->578, 586-591, 599, 605-608, 625-647, 656-666, 672-685, 689-697, 703-728, 732-750, 754-763, 769-793, 797-813, 817-825, 831-850, 860-895, 901-918, 922-931, 937-991
+bot\ai\grok_client.py                                   27     14      6      0    45%   20-23, 32-53
+bot\ai\image_gen.py                                    106     83     30      0    17%   34-37, 42, 55-76, 98-124, 129-145, 160-185, 193-223, 228-244
+bot\ai\prompts.py                                        5      3      0      0    40%   37-46
+bot\ai\schemas.py                                      239      7     14      1    95%   210, 290-292, 296-298
+bot\ai\tool_defs.py                                     23      0      6      0   100%
+bot\caching\__init__.py                                  3      0      0      0   100%
+bot\caching\cache.py                                   120     73     26      4    35%   25-26, 31, 37, 42-49, 63-64, 69-73, 78-80, 84-89, 93-103, 107-110, 119-120, 124-133, 153-193, 212-213
+bot\caching\scheduler.py                                47     36     10      0    19%   9-17, 22-27, 32-54, 61, 66-80, 84-87
+bot\caching\stats_cache.py                              21     10      0      0    52%   11-12, 17-22, 31-36, 46-54
+bot\communication\__init__.py                            1      0      0      0   100%
+bot\communication\broadcast_system.py                   87     62     28      0    22%   25-27, 31-33, 53-57, 72-105, 131-184, 188
+bot\config\__init__.py                                   3      0      0      0   100%
+bot\config\delivery_zones.py                            25      0      6      0   100%
+bot\config\env.py                                       68      0      0      0   100%
+bot\config\storage.py                                   32     21      4      0    31%   20-22, 26-29, 33-36, 40-41, 49-80
+bot\config\timezone.py                                  53      5      6      2    88%   29, 42-44, 55
+bot\database\__init__.py                                 1      0      0      0   100%
+bot\database\brand_scope.py                              8      8      2      0     0%   11-27
+bot\database\dsn.py                                     12      5      2      1    57%   11-16
+bot\database\main.py                                    25      3      0      0    88%   47-49
+bot\database\methods\__init__.py                         7      0      0      0   100%
+bot\database\methods\cache_utils.py                     10      2      0      0    80%   14, 20
+bot\database\methods\create.py                         101     25     36      8    73%   42, 100, 102, 104-105, 108-113, 146, 171-173, 193-195, 207-209, 222, 237-239
+bot\database\methods\delete.py                          42      8      4      0    83%   50-52, 71-73, 87-88
+bot\database\methods\inventory.py                      175     72     62     12    58%   74-75, 80, 84, 127-129, 146-147, 157->155, 163, 184-185, 194-196, 213-214, 219, 225-226, 238, 257-258, 267-269, 311-313, 349-446
+bot\database\methods\lazy_queries.py                    62      2     20      2    95%   15, 33
+bot\database\methods\read.py                           323     81     76     10    71%   40-43, 51-52, 322, 326->331, 334-335, 358, 363->368, 386, 388-389, 541, 547, 553, 565, 571, 578, 588-593, 598-602, 607-611, 616-622, 637-651, 656-671, 676-683, 689-694, 701-705, 712-713
+bot\database\methods\update.py                          88     12     18      4    85%   34, 44, 90-91, 104-105, 111->exit, 114-116, 195-197
+bot\database\models\__init__.py                          2      0      0      0   100%
+bot\database\models\main.py                            829    139     40      3    80%   48->50, 55-76, 79->exit, 83->exit, 192-196, 265-267, 272, 282-289, 887-898, 948-953, 982-988, 1004-1008, 1071, 1116-1128, 1159-1214, 1219-1264, 1269-1292
+bot\export\__init__.py                                   2      0      0      0   100%
+bot\export\custom_logging.py                            92     63     16      0    27%   12-13, 35-38, 53-87, 99-101, 107-109, 115-117, 125-127, 145-150, 169, 187, 213-218, 243-250, 276-283, 303, 319-331, 347-349, 368
+bot\export\customer_csv.py                             158    133     50      0    12%   34-40, 53-59, 80-97, 117-163, 168, 190-227, 239-253, 265-278, 291-297, 305-348, 361-371
+bot\export\sales_report.py                              77     65     16      0    13%   12-16, 31-59, 74-109, 123-150, 169-231
+bot\filters\__init__.py                                  1      0      0      0   100%
+bot\filters\main.py                                     25     12      4      0    45%   18-21, 33-47
+bot\handlers\__init__.py                                 1      0      0      0   100%
+bot\handlers\admin\__init__.py                          36      0      0      0   100%
+bot\handlers\admin\accounting_handler.py                52     33      8      0    32%   42-53, 63-73, 82-113, 135-150
+bot\handlers\admin\adding_position_states.py           351    267     52      0    21%   32-38, 43-47, 52-56, 61-66, 71-75, 80-86, 91, 101-109, 115-121, 132-146, 156-165, 175-184, 194-199, 210-215, 226-243, 253-267, 277-298, 308-317, 323-324, 329-334, 344-353, 359-368, 378-392, 398-403, 413-422, 428-429, 434-435, 448-452, 458-463, 469-486, 492-502, 508-521, 527-547, 556-561, 567-597, 610-615, 621-675, 684-783
+bot\handlers\admin\broadcast.py                         63     39      6      0    35%   29-33, 39-142, 148-155
+bot\handlers\admin\categories_management_states.py      77     50      8      0    32%   21-27, 38-42, 48-78, 86-90, 99-117, 125-129, 137-152, 160-183
+bot\handlers\admin\coupon_management.py                202    156     40      0    19%   44-45, 50-56, 64-71, 82-88, 95-121, 127-139, 145-163, 169-187, 193-211, 217-267, 279-302, 313-360, 371-394
+bot\handlers\admin\goods_management_states.py          217    171     34      0    18%   25-36, 44-45, 53-70, 78-107, 119-125, 131-157, 163-172, 178-194, 202-206, 214-259, 268-275, 283-290, 298-305, 314-423, 433-445, 451-463
+bot\handlers\admin\grok_assistant.py                   186      6     52      1    97%   34-48, 360->370
+bot\handlers\admin\main.py                              17      6      2      0    58%   19-26
+bot\handlers\admin\order_management.py                 280    187     80      3    29%   42-55, 64-93, 104-147, 160-215, 223-265, 281->exit, 303-304, 378, 383, 388, 393, 406-410, 412->exit, 414-415, 420-505, 510-556, 561-569
+bot\handlers\admin\reference_code_management.py        113     90     24      0    17%   26-38, 51-66, 79-105, 118-143, 156-209, 222-269
+bot\handlers\admin\segmented_broadcast.py               76     51     12      0    28%   38-48, 56-110, 119-136, 142-199
+bot\handlers\admin\settings_management.py              206    152     20      0    24%   24-30, 39-49, 68-81, 90-130, 138-151, 160-202, 210-213, 231-257, 265-280, 288-326, 335, 340, 346-352, 366-372, 380-392, 398-477, 485-495, 501-536, 542-572, 597-603, 614-620
+bot\handlers\admin\shop_management_states.py           107     71     16      0    29%   37-40, 48-56, 64-85, 94-130, 139-153, 161-185, 194-208, 216-240, 248-271
+bot\handlers\admin\store_management.py                 134     97     20      0    24%   28-43, 56-60, 66-94, 100-109, 115-124, 130-131, 137-141, 146-169, 182-212, 225-242, 251-269
+bot\handlers\admin\ticket_management.py                104     80     22      0    19%   37-68, 82-125, 139-142, 151-195, 209-232
+bot\handlers\admin\update_position_states.py            61     38      4      0    35%   22-26, 32-36, 42-56, 62-67, 73-78, 88-120
+bot\handlers\admin\user_management_states.py           365    309     62      0    13%   37-101, 109-114, 120-138, 146-158, 166-205, 213-249, 257-297, 305-346, 354-392, 401-427, 446-468, 476-522, 533-579, 590-602, 608-676, 690, 698-748, 756-801
+bot\handlers\main.py                                     8      3      0      0    62%   9-11
+bot\handlers\other.py                                   32     11      6      1    68%   17-20, 26, 31, 36-38, 43, 50
+bot\handlers\user\__init__.py                           32      0      0      0   100%
+bot\handlers\user\cart_handler.py                      260    220     72      0    12%   22-39, 44, 51-66, 76-127, 134-178, 184-210, 216-218, 226-270, 278-322, 330-341, 349-361, 369-416, 422-423, 429-456
+bot\handlers\user\delivery_chat_handler.py             272    197     74      2    25%   66->exit, 73->exit, 87-88, 100-131, 139-176, 184-206, 230-298, 307-310, 326-347, 368-372, 458-492, 505-532, 542-543, 552-575, 585-593, 601-607, 615-624, 630-653, 672-689, 699-723
+bot\handlers\user\grok_customer.py                     223    182     72      0    14%   75-84, 88-91, 95, 99-111, 118-129, 143-144, 149-151, 158-160, 165-166, 175-222, 230-336, 350-396, 401-403
+bot\handlers\user\help_handler.py                       39     22      2      0    41%   25-29, 41-84, 96-97
+bot\handlers\user\main.py                              156    124     30      0    17%   35-61, 72-105, 117-189, 197-202, 213-235, 243-248, 256-276, 284-303
+bot\handlers\user\order_handler.py                     839    710    184      1    13%   57-65, 75-93, 99-104, 110-115, 121-126, 136-152, 158-166, 186-205, 211, 224-252, 262-290, 296-298, 304-305, 310-317, 323-329, 335-340, 346-352, 358-373, 379-396, 401-406, 418, 424, 430-435, 441-446, 454-462, 468-473, 481-499, 507-513, 521-524, 532-565, 573-590, 599-603, 611-634, 642-643, 650-704, 728-731, 736, 741, 746, 751, 756, 761, 771-957, 965-1042, 1049-1232, 1239-1478, 1485-1715, 1722-1871, 1877-1982, 1988, 1998-2048, 2058-2108
+bot\handlers\user\orders_view_handler.py               188    164     72      0     9%   22-70, 78-161, 169-320, 328-340, 349-399, 405-423
+bot\handlers\user\privacy_handler.py                    55     35     10      0    31%   31-39, 44-46, 54-55, 63-67, 76-97, 105-107
+bot\handlers\user\reference_code_handler.py             86     66     14      0    20%   28-33, 45-101, 113-114, 128-156, 169-227
+bot\handlers\user\referral_system.py                   109     84     10      0    21%   25-52, 60-93, 101-135, 143-183, 191-227, 235-272, 281-309
+bot\handlers\user\review_handler.py                    112     88     20      0    18%   29-37, 46-83, 92-145, 154-177, 189-214, 223-261
+bot\handlers\user\search_handler.py                     33     18      4      0    41%   23-27, 35-77
+bot\handlers\user\shop_and_goods.py                    264    230     76      0    10%   32-47, 55-82, 90-119, 127-157, 168-203, 212-246, 257-414, 420-450, 458-476, 485-525, 533-546
+bot\handlers\user\store_selection.py                   204    147     48      0    26%   36-42, 48-81, 87-112, 117-165, 171-216, 222-228, 233-234, 260-287, 293-311, 317-321, 354-374, 380-386
+bot\handlers\user\ticket_handler.py                    284    219     54      0    19%   46, 51-62, 67-83, 91-92, 98-99, 103-115, 123-126, 135-138, 149-181, 192-212, 218-234, 245-278, 289-291, 300-303, 312-319, 328-350, 356-357, 366-368, 374-375, 380-434, 442-481, 492-495, 504-532, 543-556
+bot\i18n\__init__.py                                     1      0      0      0   100%
+bot\i18n\main.py                                        49     12     14      1    76%   37-46, 65-66, 80
+bot\i18n\strings.py                                      4      0      0      0   100%
+bot\keyboards\__init__.py                                1      0      0      0   100%
+bot\keyboards\inline.py                                207    168     38      0    18%   12-28, 35-43, 50-67, 74-82, 89-99, 119-133, 158, 163-168, 173-180, 195-218, 225-229, 236-241, 248-252, 259-273, 280-284, 291-295, 302-309, 320-356, 361-366
+bot\logger_mesh.py                                      36     28     14      0    16%   14-64
+bot\middleware\__init__.py                               4      0      0      0   100%
+bot\middleware\brand_context.py                         11      4      0      0    64%   21-22, 30-31
+bot\middleware\locale.py                                16     10      6      0    27%   18-31
+bot\middleware\rate_limit.py                           149    121     64      0    13%   39-44, 48-82, 86-87, 91-99, 103, 107-123, 127-146, 150-167, 174-176, 190-203, 226-291, 297-300
+bot\middleware\security.py                             141    117     68      0    11%   17-41, 53-54, 64-73, 77-103, 107-110, 124-180, 189-191, 201-260, 265-277, 281-282, 286-287
+bot\monitoring\__init__.py                               3      0      0      0   100%
+bot\monitoring\metrics.py                              137    112     44      0    14%   14-19, 24-59, 63-67, 71-74, 81-92, 96-156, 167-170, 177-205, 212-223, 230-259, 266-274, 278-302, 309, 312-357, 366, 372-374
+bot\monitoring\recovery.py                             150    130     30      0    11%   16-18, 22-31, 37-41, 45-50, 55-66, 70-122, 126-171, 175-199, 203-217, 224, 229-252
+bot\multibot\__init__.py                                 3      3      0      0     0%   3-6
+bot\multibot\instance.py                                 9      9      0      0     0%   2-21
+bot\multibot\pool.py                                   102    102     20      0     0%   9-204
+bot\payments\__init__.py                                 2      0      0      0   100%
+bot\payments\bitcoin.py                                110     27     38      7    70%   26-27, 38, 75, 77, 117-129, 147-166, 212->210, 220->226
+bot\payments\chain_verify.py                            31      0      2      0   100%
+bot\payments\crypto_addresses.py                       110     11     34      8    87%   36, 65-66, 112->114, 114->116, 151-152, 167-168, 192, 222->225, 248-250
+bot\payments\notifications.py                           85     62     12      0    24%   28-33, 39-41, 59-65, 76-88, 105-112, 121-130, 135-139, 152-167, 172-177, 196-212, 226-240, 255-267
+bot\payments\price_feed.py                              56      1     22      3    95%   63->66, 74->77, 80
+bot\payments\promptpay.py                              131     30     40      4    78%   168-169, 214, 217, 229-230, 234->240, 237-238, 266-307, 326-328
+bot\payments\slip_verify.py                            194     30     58      8    81%   86, 135-137, 176-178, 194, 252-254, 298, 320-321, 334-336, 356-369, 426->438, 454-456, 461
+bot\payments\verifiers\__init__.py                       0      0      0      0   100%
+bot\payments\verifiers\btc.py                           59      3     16      1    95%   61-63, 89->93
+bot\payments\verifiers\ltc.py                           43      2     10      3    91%   43, 60, 67->56
+bot\payments\verifiers\sol.py                           90      9     32     10    84%   69, 105, 109, 121, 126-127, 133, 140, 147->155, 149, 150->147, 151->147
+bot\payments\verifiers\usdt_sol.py                     118      5     48     10    91%   90->88, 123, 125, 160, 164, 196, 203->226, 212->223, 220->212, 223->203
+bot\preflight.py                                       177     77     28      5    51%   94, 96, 101, 106-107, 111-121, 127-133, 143, 151-152, 180-186, 194-213, 231-239, 245-246, 258-261, 278-282, 288-307, 317-332
+bot\referrals\__init__.py                                1      0      0      0   100%
+bot\referrals\codes.py                                 110      6     44     10    90%   49-52, 88, 90, 157->159, 160, 162->166, 180->183, 209, 285->288
+bot\states\__init__.py                                   5      0      0      0   100%
+bot\states\broadcast_state.py                            3      0      0      0   100%
+bot\states\category_state.py                             6      0      0      0   100%
+bot\states\goods_state.py                               31      0      0      0   100%
+bot\states\payment_state.py                              6      0      0      0   100%
+bot\states\shop_state.py                                 9      0      0      0   100%
+bot\states\user_state.py                                57      0      0      0   100%
+bot\tasks\__init__.py                                    2      0      0      0   100%
+bot\tasks\file_watcher.py                              106     81     22      0    20%   29-36, 46-70, 77-88, 105-116, 125-159, 171-193, 202, 206-207, 211-212, 229-232, 242-243, 258-263
+bot\tasks\payment_checker.py                            87     41     20      2    52%   34-40, 74-99, 142-156, 161-175, 182->exit, 190-191
+bot\tasks\reservation_cleaner.py                        25     18      2      0    26%   14-32, 37-46, 54-55
+bot\utils\__init__.py                                    6      0      0      0   100%
+bot\utils\cart_stub.py                                  83      7     28      5    89%   23, 33, 36, 66->64, 79->81, 83->86, 126-127, 133-134
+bot\utils\constants.py                                  34      5      0      0    85%   14-18
+bot\utils\coupon_utils.py                               51      0     20      0   100%
+bot\utils\currency.py                                    8      0      2      0   100%
+bot\utils\delivery_types.py                              7      1      4      1    82%   9
+bot\utils\invoice.py                                    56      0     16      1    99%   33->35
+bot\utils\menu_io.py                                   296     23    122     12    92%   19, 163-164, 170->167, 176-177, 241-242, 289-290, 325, 334->336, 342-343, 349, 355->368, 362-365, 373, 376, 390-393, 395->346, 447-448, 479->478, 481->478
+bot\utils\message_utils.py                              18      0      4      0   100%
+bot\utils\modifiers.py                                  46      0     36      0   100%
+bot\utils\order_codes.py                                27      9     10      1    62%   54-67
+bot\utils\order_helpers.py                              31     17      4      0    46%   44-71, 97-117
+bot\utils\order_status.py                                8      0      0      0   100%
+bot\utils\pagination.py                                 62     10     30      1    79%   95-106
+bot\utils\singleton.py                                   9      0      2      0   100%
+bot\utils\tracking.py                                   16      2      4      0    90%   20-21
+bot\utils\user_utils.py                                  8      0      2      0   100%
+bot\utils\validators.py                                 95      4     36      4    92%   18, 43->57, 123->128, 133-136
+------------------------------------------------------------------------------------------------
+TOTAL                                                13154   7017   3104    202    44%
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+Required test coverage of 25.0% reached. Total coverage: 43.87%
+========== 1236 passed, 131 skipped, 1 warning in 215.96s (0:03:35) ===========
