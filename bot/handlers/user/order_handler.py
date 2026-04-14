@@ -532,33 +532,33 @@ async def check_and_ask_about_bonus(message: Message, state: FSMContext, user_id
     if user_id is None:
         user_id = message.from_user.id
 
-    # Get user's bonus balance from CustomerInfo
+    # Extract the scalar bonus balance before closing the session — never hold a DB
+    # connection open across Telegram/Redis awaits.
+    bonus_balance = None
     with Database().session() as session:
         customer_info = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
-
         if customer_info and customer_info.bonus_balance and customer_info.bonus_balance > 0:
             bonus_balance = customer_info.bonus_balance
+    # Session closed here; all awaits happen outside.
 
-            # Calculate cart total to show in message
-            total_amount = await calculate_cart_total(user_id)
+    if bonus_balance is not None:
+        total_amount = await calculate_cart_total(user_id)
+        await state.update_data(available_bonus=str(bonus_balance))
 
-            # Save bonus_balance in state for later use
-            await state.update_data(available_bonus=str(bonus_balance))
+        text = (
+                localize("order.bonus.available", bonus_balance=bonus_balance) +
+                localize("order.bonus.order_total_label", amount=total_amount,
+                         currency=EnvKeys.PAY_CURRENCY) + "\n\n" +
+                localize("order.bonus.apply_question") + f"\n" +
+                localize("order.bonus.choose_amount_hint", max_amount=min(bonus_balance, total_amount))
+        )
 
-            text = (
-                    localize("order.bonus.available", bonus_balance=bonus_balance) +
-                    localize("order.bonus.order_total_label", amount=total_amount,
-                             currency=EnvKeys.PAY_CURRENCY) + "\n\n" +
-                    localize("order.bonus.apply_question") + f"\n" +
-                    localize("order.bonus.choose_amount_hint", max_amount=min(bonus_balance, total_amount))
-            )
-
-            kb = simple_buttons([
-                (localize("btn.apply_bonus_yes"), "apply_bonus_yes"),
-                (localize("btn.apply_bonus_no"), "apply_bonus_no")
-            ], per_row=2)
-            await send_or_edit(message, text, reply_markup=kb, edit=from_callback)
-            return
+        kb = simple_buttons([
+            (localize("btn.apply_bonus_yes"), "apply_bonus_yes"),
+            (localize("btn.apply_bonus_no"), "apply_bonus_no")
+        ], per_row=2)
+        await send_or_edit(message, text, reply_markup=kb, edit=from_callback)
+        return
 
     # No bonus or zero bonus - proceed to payment
     await state.update_data(bonus_applied=0)
