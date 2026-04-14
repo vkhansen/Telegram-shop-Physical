@@ -152,7 +152,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
-      - ./crypto_addresses/btc_addresses.txt:/app/btc_addresses.txt:ro
+      - ./crypto_addresses:/app/crypto_addresses:ro
     depends_on:
       db:
         condition: service_healthy

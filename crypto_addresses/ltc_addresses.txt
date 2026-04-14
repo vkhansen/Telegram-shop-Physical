@@ -1,1 +1,4 @@
 # One LTC address per line
+LVg2kJoFNg45Nbpy53h7Fe1wKyeXVRhMH9
+ltc1qg42tkwuuxefutzxezdkdp39qqg02t2rqm5hkn4
+LcHKiSgMfTMebMh2r5c2sXNBCRqFMT3bVL
