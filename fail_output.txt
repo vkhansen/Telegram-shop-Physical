@@ -1,0 +1,263 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.3, pytest-9.0.3, pluggy-1.6.0 -- D:\GitHub\Telegram-shop-Physical\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: D:\GitHub\Telegram-shop-Physical
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: anyio-4.13.0, asyncio-1.3.0, cov-7.1.0, mock-3.15.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 3 items
+
+tests/unit/test_middleware.py::TestLocaleMiddleware::test_no_saved_locale_skips_set 
+------------------------------- live log setup --------------------------------
+2026-04-15 01:20:16 [    INFO] Database pool initialized: size=20, max_overflow=40
+FAILED                                                                   [ 33%]
+tests/unit/test_monitoring.py::TestMetricsCollectorTrackConversion::test_prunes_when_max_exceeded FAILED [ 66%]
+tests/unit/test_tasks.py::TestResetDailyCounters::test_resets_all_goods FAILED [100%]
+ERROR: Coverage failure: total of 20 is less than fail-under=25
+
+
+================================== FAILURES ===================================
+_____________ TestLocaleMiddleware.test_no_saved_locale_skips_set _____________
+
+self = <tests.unit.test_middleware.TestLocaleMiddleware object at 0x000001E5B7C4F750>
+
+    @pytest.mark.asyncio
+    async def test_no_saved_locale_skips_set(self):
+        middleware = LocaleMiddleware()
+        event = MagicMock(spec=Message)
+>       event.from_user.id = 99
+        ^^^^^^^^^^^^^^^
+
+tests\unit\test_middleware.py:550: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <MagicMock spec='Message' id='2086144118464'>, name = 'from_user'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+>               raise AttributeError("Mock object has no attribute %r" % name)
+E               AttributeError: Mock object has no attribute 'from_user'
+
+C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:690: AttributeError
+----------------------------- Captured log setup ------------------------------
+INFO     root:main.py:35 Database pool initialized: size=20, max_overflow=40
+______ TestMetricsCollectorTrackConversion.test_prunes_when_max_exceeded ______
+
+self = <tests.unit.test_monitoring.TestMetricsCollectorTrackConversion object at 0x000001E5B7CFC830>
+
+    def test_prunes_when_max_exceeded(self):
+        mc = MetricsCollector()
+        # Add more than MAX_CONVERSION_SET_SIZE users
+        for i in range(MetricsCollector.MAX_CONVERSION_SET_SIZE + 10):
+>           mc.track_conversion("funnel", "step", i)
+
+tests\unit\test_monitoring.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <bot.monitoring.metrics.MetricsCollector object at 0x000001E5B7CCFE00>
+funnel = 'funnel', step = 'step', user_id = 50000
+
+    def track_conversion(self, funnel: str, step: str, user_id: int):
+        """Tracking conversions in the funnel"""
+        if funnel not in self.conversions:
+            self.conversions[funnel] = defaultdict(set)
+    
+        step_set = self.conversions[funnel][step]
+        if len(step_set) >= self.MAX_CONVERSION_SET_SIZE:
+            # Prune oldest half to prevent unbounded growth.
+            # Sets are unordered, so we just discard roughly half.
+            to_remove = len(step_set) // 2
+            it = iter(step_set)
+            for _ in range(to_remove):
+>               step_set.discard(next(it))
+                                 ^^^^^^^^
+E               RuntimeError: Set changed size during iteration
+
+bot\monitoring\metrics.py:91: RuntimeError
+________________ TestResetDailyCounters.test_resets_all_goods _________________
+
+self = <tests.unit.test_tasks.TestResetDailyCounters object at 0x000001E5B7C4FD90>
+db_session = <sqlalchemy.orm.session.Session object at 0x000001E5B7E127B0>
+
+    @pytest.mark.asyncio
+    async def test_resets_all_goods(self, db_session):
+        from bot.tasks.reservation_cleaner import reset_daily_counters
+        from bot.database.models.main import Goods, Categories
+    
+        # Create a category and item
+        cat = Categories(name="Cat", sort_order=1)
+        db_session.add(cat)
+        db_session.flush()
+    
+        item = Goods(
+            name="Widget",
+>           category_id=cat.id,
+                        ^^^^^^
+            price=100,
+            item_type="prepared",
+            daily_sold_count=5,
+            sold_out_today=True,
+        )
+E       AttributeError: 'Categories' object has no attribute 'id'
+
+tests\unit\test_tasks.py:66: AttributeError
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.13.3-final-0 _______________
+
+Name                                                 Stmts   Miss Branch BrPart  Cover   Missing
+------------------------------------------------------------------------------------------------
+bot\__init__.py                                          1      0      0      0   100%
+bot\ai\__init__.py                                       0      0      0      0   100%
+bot\ai\customer_executor.py                            188    163     60      0    10%   44, 48-59, 63-73, 78-80, 84-89, 95-114, 133-151, 168-181, 198-216, 220-261, 267-276, 293-302, 317-359, 365-397, 408-455
+bot\ai\customer_schemas.py                              46      0      0      0   100%
+bot\ai\customer_tool_defs.py                             3      0      0      0   100%
+bot\ai\data_parser.py                                   86     76     32      0     8%   23-56, 61-88, 93-124, 129-134
+bot\ai\executor.py                                     548    496    274      0     6%   14, 52-53, 57-58, 63-64, 69-96, 101-146, 152-189, 193-234, 238-276, 280-302, 306-334, 338-386, 392-409, 413-427, 431-446, 450-458, 462-471, 475-498, 502-542, 546-552, 556-565, 569-614, 625-647, 656-666, 672-685, 689-697, 703-728, 732-750, 754-763, 769-793, 797-813, 817-825, 831-850, 860-895, 901-918, 922-931, 937-991
+bot\ai\grok_client.py                                   27     18      6      0    27%   20-23, 32-53, 59-62
+bot\ai\image_gen.py                                    106     83     30      0    17%   34-37, 42, 55-76, 98-124, 129-145, 160-185, 193-223, 228-244
+bot\ai\prompts.py                                        5      3      0      0    40%   37-46
+bot\ai\schemas.py                                      239     21     14      0    86%   28-30, 45-47, 65-67, 158-160, 209-211, 290-292, 296-298
+bot\ai\tool_defs.py                                     23      0      6      0   100%
+bot\caching\__init__.py                                  3      0      0      0   100%
+bot\caching\cache.py                                   120     96     26      0    16%   13-16, 20-49, 59-80, 84-89, 93-103, 107-110, 119-120, 124-133, 153-193, 206, 212-213
+bot\caching\scheduler.py                                47     36     10      0    19%   9-17, 22-27, 32-54, 61, 66-80, 84-87
+bot\caching\stats_cache.py                              21     10      0      0    52%   11-12, 17-22, 31-36, 46-54
+bot\communication\__init__.py                            1      0      0      0   100%
+bot\communication\broadcast_system.py                   87     62     28      0    22%   25-27, 31-33, 53-57, 72-105, 131-184, 188
+bot\config\__init__.py                                   3      0      0      0   100%
+bot\config\delivery_zones.py                            25     25      6      0     0%   6-77
+bot\config\env.py                                       68      0      0      0   100%
+bot\config\storage.py                                   32     21      4      0    31%   20-22, 26-29, 33-36, 40-41, 49-80
+bot\config\timezone.py                                  53     37      6      0    27%   28-59, 71-76, 86-87, 99-104, 117-121
+bot\database\__init__.py                                 1      0      0      0   100%
+bot\database\brand_scope.py                              8      8      2      0     0%   11-27
+bot\database\dsn.py                                     12      5      2      1    57%   11-16
+bot\database\main.py                                    25      9      0      0    64%   43-51, 55
+bot\database\methods\__init__.py                         7      0      0      0   100%
+bot\database\methods\cache_utils.py                     10      7      0      0    30%   10-20
+bot\database\methods\create.py                         101     88     36      0     9%   15-18, 40-43, 65-68, 89-173, 186-209, 217-239
+bot\database\methods\delete.py                          42     33      4      0    20%   9-13, 19-23, 37-52, 65-73, 78-88
+bot\database\methods\inventory.py                      175    153     62      0     9%   36-57, 73-129, 145-196, 212-269, 287-313, 326-331, 349-446
+bot\database\methods\lazy_queries.py                    62     50     20      0    15%   12-20, 30-38, 47-59, 64-68, 77-83, 93-122, 135-150, 156-170
+bot\database\methods\read.py                           323    244     76      0    20%   35-54, 62-65, 71-75, 81-88, 93-94, 99-100, 105-106, 111-113, 121-122, 127-128, 134-135, 140-142, 147-149, 159-161, 166-170, 175-180, 185-186, 191-193, 198-200, 205-206, 211-212, 217-218, 223-233, 238-239, 244-254, 259-260, 265-266, 271-272, 277-279, 286-296, 308-310, 319-336, 354-392, 405-443, 459-497, 511-517, 522-523, 529, 535, 541, 547, 553, 559, 565, 571, 578, 588-593, 598-602, 607-611, 616-622, 637-651, 656-671, 676-683, 689-694, 699-705, 710-713
+bot\database\methods\update.py                          88     75     18      0    12%   13-19, 26-91, 97-116, 131-150, 163-182, 187-197
+bot\database\models\__init__.py                          2      0      0      0   100%
+bot\database\models\main.py                            829    314     40      0    59%   47-51, 55-76, 79-80, 83-84, 87, 90, 124-134, 161-168, 192-196, 260, 265-267, 272, 277, 282-289, 298-313, 328-334, 346-349, 380-384, 409-415, 435-437, 565-590, 611-616, 642-653, 669-670, 741-744, 774-781, 812-822, 849-855, 887-898, 918-922, 948-953, 982-988, 1004-1008, 1039-1048, 1071, 1075-1079, 1116-1128, 1149-1154, 1159-1214, 1219-1264, 1269-1292
+bot\export\__init__.py                                   2      0      0      0   100%
+bot\export\custom_logging.py                            92     63     16      0    27%   12-13, 35-38, 53-87, 99-101, 107-109, 115-117, 125-127, 145-150, 169, 187, 213-218, 243-250, 276-283, 303, 319-331, 347-349, 368
+bot\export\customer_csv.py                             158    133     50      0    12%   34-40, 53-59, 80-97, 117-163, 168, 190-227, 239-253, 265-278, 291-297, 305-348, 361-371
+bot\export\sales_report.py                              77     65     16      0    13%   12-16, 31-59, 74-109, 123-150, 169-231
+bot\filters\__init__.py                                  1      0      0      0   100%
+bot\filters\main.py                                     25     12      4      0    45%   18-21, 33-47
+bot\handlers\__init__.py                                 1      0      0      0   100%
+bot\handlers\admin\__init__.py                          36      0      0      0   100%
+bot\handlers\admin\accounting_handler.py                52     33      8      0    32%   42-53, 63-73, 82-113, 135-150
+bot\handlers\admin\adding_position_states.py           351    267     52      0    21%   32-38, 43-47, 52-56, 61-66, 71-75, 80-86, 91, 101-109, 115-121, 132-146, 156-165, 175-184, 194-199, 210-215, 226-243, 253-267, 277-298, 308-317, 323-324, 329-334, 344-353, 359-368, 378-392, 398-403, 413-422, 428-429, 434-435, 448-452, 458-463, 469-486, 492-502, 508-521, 527-547, 556-561, 567-597, 610-615, 621-675, 684-783
+bot\handlers\admin\broadcast.py                         63     39      6      0    35%   29-33, 39-142, 148-155
+bot\handlers\admin\categories_management_states.py      77     50      8      0    32%   21-27, 38-42, 48-78, 86-90, 99-117, 125-129, 137-152, 160-183
+bot\handlers\admin\coupon_management.py                202    156     40      0    19%   44-45, 50-56, 64-71, 82-88, 95-121, 127-139, 145-163, 169-187, 193-211, 217-267, 279-302, 313-360, 371-394
+bot\handlers\admin\goods_management_states.py          217    171     34      0    18%   25-36, 44-45, 53-70, 78-107, 119-125, 131-157, 163-172, 178-194, 202-206, 214-259, 268-275, 283-290, 298-305, 314-423, 433-445, 451-463
+bot\handlers\admin\grok_assistant.py                   186    146     52      0    17%   34-48, 53-57, 71-81, 85, 96-123, 133-134, 139-141, 149-249, 260-293, 298-345, 356-370
+bot\handlers\admin\main.py                              17      6      2      0    58%   19-26
+bot\handlers\admin\order_management.py                 280    223     80      0    16%   42-55, 64-93, 104-147, 160-215, 223-265, 281-282, 286-288, 292, 296, 300-304, 351-373, 378, 383, 388, 393, 400-415, 420-505, 510-556, 561-569
+bot\handlers\admin\reference_code_management.py        113     90     24      0    17%   26-38, 51-66, 79-105, 118-143, 156-209, 222-269
+bot\handlers\admin\segmented_broadcast.py               76     51     12      0    28%   38-48, 56-110, 119-136, 142-199
+bot\handlers\admin\settings_management.py              206    152     20      0    24%   24-30, 39-49, 68-81, 90-130, 138-151, 160-202, 210-213, 231-257, 265-280, 288-326, 335, 340, 346-352, 366-372, 380-392, 398-477, 485-495, 501-536, 542-572, 597-603, 614-620
+bot\handlers\admin\shop_management_states.py           107     71     16      0    29%   37-40, 48-56, 64-85, 94-130, 139-153, 161-185, 194-208, 216-240, 248-271
+bot\handlers\admin\store_management.py                 134     97     20      0    24%   28-43, 56-60, 66-94, 100-109, 115-124, 130-131, 137-141, 146-169, 182-212, 225-242, 251-269
+bot\handlers\admin\ticket_management.py                104     80     22      0    19%   37-68, 82-125, 139-142, 151-195, 209-232
+bot\handlers\admin\update_position_states.py            61     38      4      0    35%   22-26, 32-36, 42-56, 62-67, 73-78, 88-120
+bot\handlers\admin\user_management_states.py           365    309     62      0    13%   37-101, 109-114, 120-138, 146-158, 166-205, 213-249, 257-297, 305-346, 354-392, 401-427, 446-468, 476-522, 533-579, 590-602, 608-676, 690, 698-748, 756-801
+bot\handlers\main.py                                     8      3      0      0    62%   9-11
+bot\handlers\other.py                                   32     17      6      0    39%   17-20, 26, 31, 36-38, 43, 49-64
+bot\handlers\user\__init__.py                           32      0      0      0   100%
+bot\handlers\user\cart_handler.py                      260    220     72      0    12%   22-39, 44, 51-66, 76-127, 134-178, 184-210, 216-218, 226-270, 278-322, 330-341, 349-361, 369-416, 422-423, 429-456
+bot\handlers\user\delivery_chat_handler.py             272    225     74      0    14%   44-53, 58-60, 65-67, 72-75, 87-88, 100-131, 139-176, 184-206, 230-298, 307-310, 326-347, 368-372, 392-397, 421-430, 458-492, 505-532, 542-543, 552-575, 585-593, 601-607, 615-624, 630-653, 672-689, 699-723
+bot\handlers\user\grok_customer.py                     223    182     72      0    14%   75-84, 88-91, 95, 99-111, 118-129, 143-144, 149-151, 158-160, 165-166, 175-222, 230-336, 350-396, 401-403
+bot\handlers\user\help_handler.py                       39     22      2      0    41%   25-29, 41-84, 96-97
+bot\handlers\user\main.py                              156    124     30      0    17%   35-61, 72-105, 117-189, 197-202, 213-235, 243-248, 256-276, 284-303
+bot\handlers\user\order_handler.py                     839    722    184      0    11%   46-52, 57-65, 75-93, 99-104, 110-115, 121-126, 136-152, 158-166, 186-205, 211, 224-252, 262-290, 296-298, 304-305, 310-317, 323-329, 335-340, 346-352, 358-373, 379-396, 401-406, 418, 424, 430-435, 441-446, 454-462, 468-473, 481-499, 507-513, 521-524, 532-565, 573-590, 599-603, 611-634, 642-643, 650-704, 723-731, 736, 741, 746, 751, 756, 761, 771-957, 965-1042, 1049-1232, 1239-1478, 1485-1715, 1722-1871, 1877-1982, 1988, 1998-2048, 2058-2108
+bot\handlers\user\orders_view_handler.py               188    164     72      0     9%   22-70, 78-161, 169-320, 328-340, 349-399, 405-423
+bot\handlers\user\privacy_handler.py                    55     35     10      0    31%   31-39, 44-46, 54-55, 63-67, 76-97, 105-107
+bot\handlers\user\reference_code_handler.py             86     66     14      0    20%   28-33, 45-101, 113-114, 128-156, 169-227
+bot\handlers\user\referral_system.py                   109     84     10      0    21%   25-52, 60-93, 101-135, 143-183, 191-227, 235-272, 281-309
+bot\handlers\user\review_handler.py                    112     88     20      0    18%   29-37, 46-83, 92-145, 154-177, 189-214, 223-261
+bot\handlers\user\search_handler.py                     33     18      4      0    41%   23-27, 35-77
+bot\handlers\user\shop_and_goods.py                    264    230     76      0    10%   32-47, 55-82, 90-119, 127-157, 168-203, 212-246, 257-414, 420-450, 458-476, 485-525, 533-546
+bot\handlers\user\store_selection.py                   204    164     48      0    16%   36-42, 48-81, 87-112, 117-165, 171-216, 222-228, 233-234, 243-254, 260-287, 293-311, 317-321, 334-348, 354-374, 380-386
+bot\handlers\user\ticket_handler.py                    284    219     54      0    19%   46, 51-62, 67-83, 91-92, 98-99, 103-115, 123-126, 135-138, 149-181, 192-212, 218-234, 245-278, 289-291, 300-303, 312-319, 328-350, 356-357, 366-368, 374-375, 380-434, 442-481, 492-495, 504-532, 543-556
+bot\i18n\__init__.py                                     1      0      0      0   100%
+bot\i18n\main.py                                        49     34     14      0    24%   18-19, 24, 29, 37-46, 54-68, 73-81
+bot\i18n\strings.py                                      4      0      0      0   100%
+bot\keyboards\__init__.py                                1      0      0      0   100%
+bot\keyboards\inline.py                                207    180     38      0    11%   12-28, 35-43, 50-67, 74-82, 89-99, 106-111, 119-133, 140-144, 151, 158, 163-168, 173-180, 195-218, 225-229, 236-241, 248-252, 259-273, 280-284, 291-295, 302-309, 320-356, 361-366
+bot\logger_mesh.py                                      36     28     14      0    16%   14-64
+bot\middleware\__init__.py                               4      0      0      0   100%
+bot\middleware\brand_context.py                         11      4      0      0    64%   21-22, 30-31
+bot\middleware\locale.py                                16     10      6      0    27%   18-31
+bot\middleware\rate_limit.py                           149    121     64      0    13%   39-44, 48-82, 86-87, 91-99, 103, 107-123, 127-146, 150-167, 174-176, 190-203, 226-291, 297-300
+bot\middleware\security.py                             141    117     68      0    11%   17-41, 53-54, 64-73, 77-103, 107-110, 124-180, 189-191, 201-260, 265-277, 281-282, 286-287
+bot\monitoring\__init__.py                               3      0      0      0   100%
+bot\monitoring\metrics.py                              137     97     44      1    25%   24-59, 63-67, 71-74, 90->92, 96-156, 167-170, 177-205, 212-223, 230-259, 266-274, 278-302, 309, 312-357, 366, 372-374
+bot\monitoring\recovery.py                             150    130     30      0    11%   16-18, 22-31, 37-41, 45-50, 55-66, 70-122, 126-171, 175-199, 203-217, 224, 229-252
+bot\multibot\__init__.py                                 3      3      0      0     0%   3-6
+bot\multibot\instance.py                                 9      9      0      0     0%   2-21
+bot\multibot\pool.py                                   102    102     20      0     0%   9-204
+bot\payments\__init__.py                                 2      0      0      0   100%
+bot\payments\bitcoin.py                                110     94     38      0    11%   24-52, 63-82, 102-137, 147-166, 180-194, 207-226, 236-241
+bot\payments\chain_verify.py                            31     31      2      0     0%   3-56
+bot\payments\crypto_addresses.py                       110    110     34      0     0%   8-251
+bot\payments\notifications.py                           85     62     12      0    24%   28-33, 39-41, 59-65, 76-88, 105-112, 121-130, 135-139, 152-167, 172-177, 196-212, 226-240, 255-267
+bot\payments\price_feed.py                              56     56     22      0     0%   8-102
+bot\payments\promptpay.py                              131    131     40      0     0%   8-328
+bot\payments\slip_verify.py                            194    194     58      0     0%   13-488
+bot\payments\verifiers\__init__.py                       0      0      0      0   100%
+bot\payments\verifiers\btc.py                           59     59     16      0     0%   3-103
+bot\payments\verifiers\ltc.py                           43     43     10      0     0%   3-79
+bot\payments\verifiers\sol.py                           90     90     32      0     0%   3-168
+bot\payments\verifiers\usdt_sol.py                     118    118     48      0     0%   3-239
+bot\preflight.py                                       177    177     28      0     0%   20-332
+bot\referrals\__init__.py                                1      0      0      0   100%
+bot\referrals\codes.py                                 110     93     44      0    11%   25-27, 37-52, 81-124, 141-183, 199-234, 251-268, 282-303, 316-325
+bot\states\__init__.py                                   5      0      0      0   100%
+bot\states\broadcast_state.py                            3      0      0      0   100%
+bot\states\category_state.py                             6      0      0      0   100%
+bot\states\goods_state.py                               31      0      0      0   100%
+bot\states\payment_state.py                              6      0      0      0   100%
+bot\states\shop_state.py                                 9      0      0      0   100%
+bot\states\user_state.py                                57      0      0      0   100%
+bot\tasks\__init__.py                                    2      0      0      0   100%
+bot\tasks\file_watcher.py                              106     81     22      0    20%   29-36, 46-70, 77-88, 105-116, 125-159, 171-193, 202, 206-207, 211-212, 229-232, 242-243, 258-263
+bot\tasks\payment_checker.py                            87     87     20      0     0%   12-191
+bot\tasks\reservation_cleaner.py                        25     18      2      0    26%   14-32, 37-46, 54-55
+bot\utils\__init__.py                                    6      0      0      0   100%
+bot\utils\cart_stub.py                                  83     63     28      0    18%   23, 32-36, 47-86, 101-104, 109-115, 120, 126-127, 133-134, 139-141, 158-167
+bot\utils\constants.py                                  34      5      0      0    85%   14-18
+bot\utils\coupon_utils.py                               51     51     20      0     0%   9-127
+bot\utils\currency.py                                    8      5      2      0    30%   13-19
+bot\utils\delivery_types.py                              7      5      4      0    18%   8-12
+bot\utils\invoice.py                                    56     49     16      0    10%   13-71
+bot\utils\menu_io.py                                   296    296    122      0     0%   1-505
+bot\utils\message_utils.py                              18     10      4      0    36%   42-44, 58-64
+bot\utils\modifiers.py                                  46     42     36      0     5%   23-49, 60-86, 91-94
+bot\utils\order_codes.py                                27     23     10      0    11%   13-15, 33-67
+bot\utils\order_helpers.py                              31     31      4      0     0%   10-122
+bot\utils\order_status.py                                8      3      0      0    62%   31-32, 37
+bot\utils\pagination.py                                 62     52     30      0    11%   24-37, 41-43, 55-84, 88-89, 93-118, 122, 130-131
+bot\utils\singleton.py                                   9      0      2      0   100%
+bot\utils\tracking.py                                   16     10      4      0    30%   20-21, 30-32, 41-43, 51-52
+bot\utils\user_utils.py                                  8      6      2      0    20%   15-23
+bot\utils\validators.py                                 95     68     36      0    21%   17-19, 29-32, 43-57, 70-71, 93-136, 142-150, 156-167, 173-190
+------------------------------------------------------------------------------------------------
+TOTAL                                                13154   9966   3104      2    20%
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+FAIL Required test coverage of 25.0% not reached. Total coverage: 19.69%
+=========================== short test summary info ===========================
+FAILED tests/unit/test_middleware.py::TestLocaleMiddleware::test_no_saved_locale_skips_set - AttributeError: Mock object has no attribute 'from_user'
+FAILED tests/unit/test_monitoring.py::TestMetricsCollectorTrackConversion::test_prunes_when_max_exceeded - RuntimeError: Set changed size during iteration
+FAILED tests/unit/test_tasks.py::TestResetDailyCounters::test_resets_all_goods - AttributeError: 'Categories' object has no attribute 'id'
+============================= 3 failed in 20.02s ==============================

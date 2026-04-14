@@ -86,9 +86,8 @@ class MetricsCollector:
             # Prune oldest half to prevent unbounded growth.
             # Sets are unordered, so we just discard roughly half.
             to_remove = len(step_set) // 2
-            it = iter(step_set)
-            for _ in range(to_remove):
-                step_set.discard(next(it))
+            items_to_remove = list(step_set)[:to_remove]
+            step_set.difference_update(items_to_remove)
         step_set.add(user_id)
 
     def get_metrics_summary(self) -> Dict[str, Any]:

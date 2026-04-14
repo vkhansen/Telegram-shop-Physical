@@ -71,3 +71,55 @@ class TestOrderCodeGeneration:
 
             with pytest.raises(RuntimeError, match="Failed to generate unique order code"):
                 generate_unique_order_code(session=db_session)
+
+
+@pytest.mark.unit
+class TestGenerateUniqueOrderCodeNoSession:
+    """Tests for generate_unique_order_code() using the Database() path (no session)."""
+
+    def test_generates_valid_code(self, db_session):
+        """Without an explicit session, relies on Database singleton (monkeypatched)."""
+        code = generate_unique_order_code(session=None)
+        assert len(code) == 6
+        assert code.isupper()
+        assert code.isalpha()
+
+    def test_avoids_collision_no_session(self, db_session, test_user):
+        """Ensures duplicate detection works via the no-session code path."""
+        from unittest.mock import patch
+        from bot.database.models.main import Order
+        existing = Order(
+            buyer_id=test_user.telegram_id,
+            total_price=100,
+            payment_method="cash",
+            delivery_address="Test",
+            phone_number="123",
+            order_code="XXYYZZ",
+        )
+        db_session.add(existing)
+        db_session.commit()
+
+        with patch("bot.utils.order_codes.generate_order_code") as mock_gen:
+            mock_gen.side_effect = ["XXYYZZ", "NEWONE"]
+            code = generate_unique_order_code(session=None)
+
+        assert code == "NEWONE"
+
+    def test_raises_after_max_attempts_no_session(self, db_session, test_user):
+        """Exceeding 100 attempts raises RuntimeError via the no-session path."""
+        from unittest.mock import patch
+        from bot.database.models.main import Order
+        existing = Order(
+            buyer_id=test_user.telegram_id,
+            total_price=100,
+            payment_method="cash",
+            delivery_address="Test",
+            phone_number="123",
+            order_code="ALWAYS1",
+        )
+        db_session.add(existing)
+        db_session.commit()
+
+        with patch("bot.utils.order_codes.generate_order_code", return_value="ALWAYS1"):
+            with pytest.raises(RuntimeError, match="Failed to generate unique order code"):
+                generate_unique_order_code(session=None)
