@@ -239,6 +239,29 @@ def _check_database(report: PreflightReport):
             report.add("Database", "fail", f"Database error: {err}")
 
 
+def _check_data_integrity(report: PreflightReport):
+    """Report brand/store/menu integrity violations (non-blocking)."""
+    try:
+        from bot.database.main import Database
+        from bot.database.integrity import check_integrity, summarize
+
+        with Database().session() as session:
+            violations = check_integrity(session)
+        s = summarize(violations)
+        if s["errors"]:
+            sample = "; ".join(str(v.detail) for v in violations[:3])
+            report.add("Data Integrity", "warn",
+                       f"{s['errors']} error(s), {s['warnings']} warning(s) — run scripts/validate_data.py "
+                       f"(e.g. {sample})", required=False)
+        elif s["warnings"]:
+            report.add("Data Integrity", "warn",
+                       f"{s['warnings']} warning(s) — run scripts/validate_data.py", required=False)
+        else:
+            report.add("Data Integrity", "pass", "No orphans or broken configs", required=False)
+    except Exception as e:
+        report.add("Data Integrity", "warn", f"Could not check: {str(e)[:80]}", required=False)
+
+
 def _check_redis(report: PreflightReport):
     """Verify Redis is connectable (if configured)."""
     if not EnvKeys.REDIS_HOST:
@@ -321,6 +344,7 @@ async def run_preflight() -> PreflightReport:
     # Sync checks
     _check_env_vars(report)
     _check_database(report)
+    _check_data_integrity(report)
     _check_redis(report)
     _check_monitoring_port(report)
 
