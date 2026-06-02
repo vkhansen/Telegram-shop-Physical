@@ -17,6 +17,16 @@ from bot.monitoring import get_metrics
 logger = logging.getLogger(__name__)
 
 
+def _rollback_savepoint(savepoint) -> None:
+    """Roll back a nested-transaction SAVEPOINT if it is still active.
+
+    Used so inventory helpers undo only their own work on failure without
+    touching the caller's surrounding transaction.
+    """
+    if savepoint is not None and savepoint.is_active:
+        savepoint.rollback()
+
+
 def log_inventory_change(item_name: str, change_type: str, quantity_change: int,
                           order_id: int = None, admin_id: int = None,
                           comment: str = None, *, session: Session = None):
@@ -74,9 +84,18 @@ def reserve_inventory(order_id: int, items: List[Dict[str, any]], *, payment_met
         with Database().session() as new_session:
             return reserve_inventory(order_id, items, payment_method=payment_method, session=new_session)
 
+    # Scope all mutations to a SAVEPOINT so a failure undoes only THIS function's
+    # work, never the caller's surrounding transaction (the session may be shared).
+    # Read settings BEFORE opening the savepoint — get_bot_setting opens its own
+    # session/transaction, which must not run inside our nested SAVEPOINT.
+    timeout_hours = get_bot_setting('cash_order_timeout_hours', default=24, value_type=int)
+
+    savepoint = None
     try:
+        savepoint = session.begin_nested()
         order = session.query(Order).filter_by(id=order_id).with_for_update().first()
         if not order:
+            savepoint.rollback()
             return False, "Order not found"
 
         # Determine payment method
@@ -91,13 +110,13 @@ def reserve_inventory(order_id: int, items: List[Dict[str, any]], *, payment_met
             # Lock the goods row
             goods = session.query(Goods).filter_by(name=item_name).with_for_update().first()
             if not goods:
-                session.rollback()
+                savepoint.rollback()
                 return False, f"Item '{item_name}' not found"
 
             # Check available stock
             available = goods.stock_quantity - goods.reserved_quantity
             if available < quantity:
-                session.rollback()
+                savepoint.rollback()
                 return False, f"Insufficient stock for '{item_name}'. Available: {available}, Requested: {quantity}"
 
             # Reserve the stock
@@ -116,16 +135,16 @@ def reserve_inventory(order_id: int, items: List[Dict[str, any]], *, payment_met
             # Invalidate cache for this item
             safe_create_task(invalidate_item_cache(item_name))
 
-        # Set reservation timeout
-        timeout_hours = get_bot_setting('cash_order_timeout_hours', default=24, value_type=int)
+        # Set reservation timeout (timeout_hours read above, before the savepoint)
         order.reserved_until = datetime.now(timezone.utc) + timedelta(hours=timeout_hours)
 
         order.order_status = 'reserved'
 
+        savepoint.commit()  # release savepoint; changes stay pending in the caller's txn
         return True, "Inventory reserved successfully"
 
     except Exception as e:
-        session.rollback()
+        _rollback_savepoint(savepoint)
         return False, f"Error reserving inventory: {str(e)}"
 
 
@@ -146,9 +165,12 @@ def release_reservation(order_id: int, reason: str = "Order cancelled", *, sessi
         with Database().session() as new_session:
             return release_reservation(order_id, reason, session=new_session)
 
+    savepoint = None
     try:
+        savepoint = session.begin_nested()
         order = session.query(Order).filter_by(id=order_id).with_for_update().first()
         if not order:
+            savepoint.rollback()
             return False, "Order not found"
 
         # Release each item in the order
@@ -189,10 +211,11 @@ def release_reservation(order_id: int, reason: str = "Order cancelled", *, sessi
                     "reason": reason
                 })
 
+        savepoint.commit()
         return True, "Reservation released successfully"
 
     except Exception as e:
-        session.rollback()
+        _rollback_savepoint(savepoint)
         return False, f"Error releasing reservation: {str(e)}"
 
 
@@ -213,21 +236,24 @@ def deduct_inventory(order_id: int, admin_id: int = None, *, session: Session = 
         with Database().session() as new_session:
             return deduct_inventory(order_id, admin_id, session=new_session)
 
+    savepoint = None
     try:
+        savepoint = session.begin_nested()
         order = session.query(Order).filter_by(id=order_id).with_for_update().first()
         if not order:
+            savepoint.rollback()
             return False, "Order not found"
 
         # Deduct each item from stock
         for order_item in order.items:
             goods = session.query(Goods).filter_by(name=order_item.item_name).with_for_update().first()
             if not goods:
-                session.rollback()
+                savepoint.rollback()
                 return False, f"Item '{order_item.item_name}' not found"
 
             # LOGIC-11 fix: Check BEFORE mutation
             if goods.stock_quantity < order_item.quantity:
-                session.rollback()
+                savepoint.rollback()
                 return False, f"Stock would go negative for '{order_item.item_name}'"
 
             # Deduct from both stock_quantity and reserved_quantity
@@ -262,10 +288,11 @@ def deduct_inventory(order_id: int, admin_id: int = None, *, session: Session = 
                     "admin_id": admin_id
                 })
 
+        savepoint.commit()
         return True, "Inventory deducted successfully"
 
     except Exception as e:
-        session.rollback()
+        _rollback_savepoint(savepoint)
         return False, f"Error deducting inventory: {str(e)}"
 
 
@@ -288,9 +315,12 @@ def add_inventory(item_name: str, quantity: int, admin_id: int = None,
         with Database().session() as new_session:
             return add_inventory(item_name, quantity, admin_id, comment, session=new_session)
 
+    savepoint = None
     try:
+        savepoint = session.begin_nested()
         goods = session.query(Goods).filter_by(name=item_name).with_for_update().first()
         if not goods:
+            savepoint.rollback()
             return False, f"Item '{item_name}' not found"
 
         goods.stock_quantity += quantity
@@ -306,10 +336,11 @@ def add_inventory(item_name: str, quantity: int, admin_id: int = None,
 
         safe_create_task(invalidate_item_cache(item_name))
 
+        savepoint.commit()
         return True, f"Added {quantity} units to {item_name}"
 
     except Exception as e:
-        session.rollback()
+        _rollback_savepoint(savepoint)
         return False, f"Error adding inventory: {str(e)}"
 
 

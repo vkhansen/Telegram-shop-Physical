@@ -234,17 +234,15 @@ def test_oversell_fails_gracefully_without_exception(db_session):
     assert isinstance(msg, str) and msg
 
 
-def test_reserve_helpers_roll_back_caller_session_on_failure(db_session):
-    """EDGE CASE (documented): reserve_inventory calls session.rollback() on the
-    session it is *given*. On a shared transaction, a failed reservation therefore
-    discards the caller's other uncommitted work. Callers must own the transaction
-    boundary (as order_handler does). This test pins the current behavior."""
+def test_failed_reservation_preserves_caller_uncommitted_work(db_session):
+    """A failed reservation must undo ONLY its own partial work (via SAVEPOINT) and
+    leave the caller's other uncommitted changes intact — no shared-session footgun."""
     brand, cat = _edge_brand(db_session)
     item = Goods(name="edge:Soda", brand_id=brand.id, category_name=cat.name, price=30,
                  description="x", item_type="product", stock_quantity=1)
     db_session.add(item); db_session.flush()
     marker = Categories(name="edge:UncommittedMarker", brand_id=brand.id)
-    db_session.add(marker)  # pending, not flushed/committed
+    db_session.add(marker)  # caller's other pending work
     o = Order(total_price=Decimal("30"), payment_method="cash",
               delivery_address="a", phone_number="0", buyer_id=None)
     db_session.add(o); db_session.flush()
@@ -253,5 +251,8 @@ def test_reserve_helpers_roll_back_caller_session_on_failure(db_session):
 
     ok, _ = reserve_inventory(o.id, [{"item_name": item.name, "quantity": 50}], session=db_session)
     assert ok is False
-    # The rollback wiped the pending marker — proving the shared-session footgun.
-    assert db_session.query(Categories).filter_by(name="edge:UncommittedMarker").first() is None
+    # The caller's pending marker SURVIVES — the failed reservation rolled back only itself.
+    assert db_session.query(Categories).filter_by(name="edge:UncommittedMarker").first() is not None
+    # And the reservation's own (partial) effect was undone.
+    db_session.flush()
+    assert db_session.query(Goods).filter_by(name=item.name).first().reserved_quantity == 0
