@@ -1145,8 +1145,11 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
 
                 items_summary.append(f"{item_name} x{quantity} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}")
 
-            # Reserve inventory for 15 minutes
-            success, msg = reserve_inventory(order.id, items_to_reserve, session)
+            # Reserve inventory for 15 minutes.
+            # NOTE: pass `session` by keyword — passing it positionally would bind
+            # it to `payment_method` and run the reservation in a separate
+            # transaction, breaking atomicity with the rest of order creation.
+            success, msg = reserve_inventory(order.id, items_to_reserve, session=session)
             if not success:
                 session.rollback()
                 await call.message.edit_text(
