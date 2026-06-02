@@ -1,6 +1,6 @@
 # Thailand Restaurant Delivery Conversion — Feature Cards
 
-> **Planning companion:** See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the master plan — milestones, dependency graph, and exit criteria. This file is the status board (what shipped, what's in flight).
+> **Planning companion:** See [`docs/MASTER-PLAN.md`](MASTER-PLAN.md) for the master plan — the go-live gate, milestones, dependency graph, and launch checklist. [`docs/ROADMAP.md`](ROADMAP.md) holds the growth-track narrative. This file is the status board (what shipped, what's in flight).
 >
 > **Base repo:** Telegram-shop-Physical (inventory reservation, address+phone collection, order statuses `pending→reserved→confirmed→delivered`, COD, BTC, timezone config)
 >
@@ -30,6 +30,9 @@
 | CARD-14 | Language Picker | Phase 3 | [docs/done/CARD-14](done/CARD-14-language-picker.md) |
 | CARD-15 | GPS Live Tracking & Delivery Chat | Phase 3 | [docs/done/CARD-15](done/CARD-15-gps-live-tracking-delivery-chat.md) |
 | CARD-18 | Multi-Crypto Payments (SOL/USDT/LTC) | Phase 2 | [docs/done/CARD-18](done/CARD-18-crypto-payment-verification.md) |
+| CARD-17 | Grok AI Admin Assistant | Phase 5 | [docs/done/CARD-17](done/CARD-17-grok-admin-assistant.md) |
+| CARD-19 | Multi-Brand Bot Coordination | Phase 4 | [docs/done/CARD-19](done/CARD-19-multi-brand-bot-coordination.md) |
+| CARD-22 | Grok AI Customer Assistant | Phase 5 | [docs/done/CARD-22](done/CARD-22-grok-customer-assistant.md) |
 | CARD-RC1 | Multi-Media Menu Items | Restaurant Core | [see below](#restaurant-core-cards) |
 | CARD-RC2 | Prep Time + Kitchen Tracking | Restaurant Core | [see below](#restaurant-core-cards) |
 | CARD-RC3 | Allergen Management | Restaurant Core | [see below](#restaurant-core-cards) |
@@ -47,26 +50,36 @@
 | CARD-FC8 | Customer Segmentation | Feature | [see below](#restaurant-core-cards) |
 | CARD-FC9 | Multi-Store / Multi-Location | Feature | [see below](#restaurant-core-cards) |
 
-### BACKLOG (Not Started)
+### BACKLOG (Open)
 
-Prioritized, highest-impact first. See [Next Up](#next-up-prioritized-backlog) below for rationale.
+Sequenced by the **go-live gate** first. Full rationale and dependency graph in [`MASTER-PLAN.md`](MASTER-PLAN.md).
 
-| # | Card | Name | Phase | Progress | Priority | Effort | Detail |
-|---|------|------|-------|----------|----------|--------|--------|
-| 1 | CARD-21 | Persistent Cart Stub + Brand/Store Switch Guards | UX Polish | 0% | High | Medium (3–5d) | [CARD-21](CARD-21-persistent-cart-stub.md) |
-| 2 | CARD-23 | Payment Handler DB-Session Refactor | Reliability | 0% | High | Medium (2–3d) | [CARD-23](backlog/CARD-23-payment-session-refactor.md) |
-| 3 | CARD-19 | Multi-Brand Bot Coordination | Phase 3 — Platform Scale | 15% | High | Very High (10–14d) | [CARD-19](CARD-19-multi-brand-bot-coordination.md) |
-| 4 | CARD-17 | Grok AI Admin Assistant | Phase 5 — Admin Intelligence | 100% | Medium | High (5–7d) | [CARD-17](CARD-17-grok-admin-assistant.md) |
-| 5 | CARD-22 | Grok AI Customer Assistant | Phase 5 — Customer Intelligence | 0% | Medium | Medium (3–5d) | [CARD-22](CARD-22-grok-customer-assistant.md) |
-| 6 | CARD-16 | Line API Integration | Phase 5 — Multi-Platform | 0% | Medium-High | High (5–8d) | [CARD-16](CARD-16-line-api-integration.md) |
+| # | Card | Name | Milestone | Progress | Priority | Effort | Detail |
+|---|------|------|-----------|----------|----------|--------|--------|
+| 1 | CARD-25 | Test Suite Recovery & Payment Coverage | M0 — Launch Gate | 0% | **P0** | Medium (3–5d) | [CARD-25](backlog/CARD-25-test-suite-recovery.md) |
+| 2 | CARD-23 | Payment Handler DB-Session Refactor | M0 — Launch Gate | 0% | **P0** | Medium (2–3d) | [CARD-23](backlog/CARD-23-payment-session-refactor.md) |
+| 3 | CARD-24 | Payment Integrity (dup slips / refunds / crypto) | M0 — Launch Gate | 0% | **P0** | Medium (2–3d) | [CARD-24](backlog/CARD-24-payment-integrity.md) |
+| 4 | CARD-27 | Input Validation & Error-Handling Hardening | M1 — Hardening | 0% | P1 | Low (1–2d) | [CARD-27](backlog/CARD-27-input-hardening.md) |
+| 5 | CARD-21 | Persistent Cart Stub + Brand/Store Switch Guards | M1 — Hardening | ~60% | P1 | Medium (2–3d) | [CARD-21](backlog/CARD-21-persistent-cart-stub.md) |
+| 6 | CARD-26 | Live GPS Driver Matching & Dispatch | M2 — Dispatch | 0% | P2 | Very High (2–3wk) | [CARD-26](backlog/CARD-26-live-gps-driver-matching.md) |
+| 7 | CARD-16 | Line API Integration | M3 — Growth | 0% | P2 | High (5–8d) | [CARD-16](later/CARD-16-line-api-integration.md) |
 
-### Next Up (Prioritized Backlog)
+### Next Up (Rationale)
 
-1. **CARD-21 — Persistent Cart Stub.** Cheapest and highest immediate UX win. No new infra; pure handler/model work on a feature users hit every session. Unblocks cleaner multi-brand UX (prereq for CARD-19's brand switching flow).
-2. **CARD-19 — Multi-Brand Coordination.** DB models already exist (15%). This is the strategic growth lever — one backend serving N brands — and every other backlog item benefits from the brand context it establishes. Large effort; plan as a multi-week epic.
-3. **CARD-17 — Grok Admin Assistant.** ✅ Done (100%). Unlocks bulk menu ops and natural-language admin.
-4. **CARD-22 — Grok Customer Assistant.** Builds directly on Card 17's reusable Grok client, rate limiter, and tool-call loop. Customer-facing: natural language menu search, deals, nearby stores, order status, and AI-driven support ticket creation. Medium effort — most infrastructure already exists from Card 17.
-5. **CARD-16 — Line API Integration.** Highest theoretical market expansion but highest architectural cost (requires transport-layer abstraction across every handler). Defer until CARD-19's brand context is stable — otherwise the refactor compounds.
+**M0 — Launch Gate (P0, ~1.5–2 weeks). Do not ship without these.**
+1. **CARD-25 — Test Suite Recovery.** Do this *first*: the suite is red (3 failures, 19.69% < 25% gate) and the payment-verification layer has 0% coverage, so it can't certify the next two cards. One failure (`metrics.py:75` set-mutation crash) is a real prod bug.
+2. **CARD-23 — Payment Session Refactor.** Payment handlers hold a DB session across 5–6 awaits → connection-pool exhaustion exactly when traffic spikes. Reliability blocker.
+3. **CARD-24 — Payment Integrity.** No duplicate-slip guard (one slip can pay many orders), no refund/reversal, no crypto reconciliation. Money-loss risk on day one.
+
+**M1 — Production Hardening (P1, ~1 week).**
+4. **CARD-27 — Input Hardening.** Real phone validation (Thai + E.164) so riders can actually call; kill ~23 silent `except: pass` blocks.
+5. **CARD-21 — Persistent Cart.** ~60% shipped (banner, flash, expiry). Finish brand-switch prompt (Phase 4) and store-switch availability (Phase 5).
+
+**M2 — Live Delivery Dispatch (P2, ~2–3 weeks).**
+6. **CARD-26 — GPS Driver Matching.** The differentiator: today there is **no automated driver matching** — manual rider-group pickup only. Builds the matching layer on the existing GPS/live-location/chat foundation. Launch can proceed with manual dispatch; this is the first post-launch epic.
+
+**M3 — Growth (P2, deferred).**
+7. **CARD-16 — Line API.** 53M Thai users, but forces a transport abstraction across all handlers. Inherits the shipped multi-brand context (CARD-19); do it after dispatch is stable.
 
 ---
 
