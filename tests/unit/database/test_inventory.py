@@ -28,7 +28,7 @@ class TestInventoryReservation:
         initial_reserved = test_goods.reserved_quantity
 
         items = [{'item_name': test_goods.name, 'quantity': 5}]
-        success, message = reserve_inventory(test_order.id, items, 'cash', db_session)
+        success, message = reserve_inventory(test_order.id, items, payment_method='cash', session=db_session)
         db_session.commit()  # Inventory functions don't commit when session is passed
 
         assert success == True
@@ -44,7 +44,7 @@ class TestInventoryReservation:
     def test_reserve_inventory_insufficient_stock(self, db_session, test_order, test_goods_low_stock):
         """Test reserving more inventory than available"""
         items = [{'item_name': test_goods_low_stock.name, 'quantity': 10}]
-        success, message = reserve_inventory(test_order.id, items, 'cash', db_session)
+        success, message = reserve_inventory(test_order.id, items, payment_method='cash', session=db_session)
 
         assert success == False
         assert "insufficient" in message.lower()
@@ -52,7 +52,7 @@ class TestInventoryReservation:
     def test_reserve_inventory_nonexistent_item(self, db_session, test_order):
         """Test reserving non-existent item"""
         items = [{'item_name': 'Non-Existent Product', 'quantity': 1}]
-        success, message = reserve_inventory(test_order.id, items, 'cash', db_session)
+        success, message = reserve_inventory(test_order.id, items, payment_method='cash', session=db_session)
 
         assert success == False
         assert "not found" in message.lower()
@@ -64,7 +64,7 @@ class TestInventoryReservation:
             {'item_name': multiple_products[1].name, 'quantity': 3},
         ]
 
-        success, message = reserve_inventory(test_order.id, items, 'cash', db_session)
+        success, message = reserve_inventory(test_order.id, items, payment_method='cash', session=db_session)
 
         assert success == True
 
@@ -112,7 +112,7 @@ class TestInventoryRelease:
 
         # Release reservation
         with patch('bot.database.methods.inventory.get_metrics', return_value=None):
-            success, message = release_reservation(order.id, "Order cancelled", db_session)
+            success, message = release_reservation(order.id, "Order cancelled", session=db_session)
         db_session.commit()  # Inventory functions don't commit when session is passed
 
         assert success == True
@@ -122,7 +122,7 @@ class TestInventoryRelease:
 
     def test_release_reservation_nonexistent_order(self, db_session):
         """Test releasing reservation for non-existent order"""
-        success, message = release_reservation(999999, "Test", db_session)
+        success, message = release_reservation(999999, "Test", session=db_session)
 
         assert success == False
         assert "not found" in message.lower()
@@ -164,7 +164,7 @@ class TestInventoryDeduction:
 
         # Deduct inventory
         with patch('bot.database.methods.inventory.get_metrics', return_value=None):
-            success, message = deduct_inventory(order.id, test_admin.telegram_id, db_session)
+            success, message = deduct_inventory(order.id, test_admin.telegram_id, session=db_session)
         db_session.commit()  # Inventory functions don't commit when session is passed
 
         assert success == True
@@ -199,7 +199,7 @@ class TestInventoryDeduction:
         db_session.commit()
 
         with patch('bot.database.methods.inventory.get_metrics', return_value=None):
-            success, message = deduct_inventory(order.id, None, db_session)
+            success, message = deduct_inventory(order.id, None, session=db_session)
 
         assert success == False
         assert "negative" in message.lower()

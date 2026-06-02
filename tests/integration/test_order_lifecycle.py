@@ -52,7 +52,7 @@ class TestCompleteOrderLifecycle:
 
         # 3. Reserve inventory
         items = [{'item_name': test_goods.name, 'quantity': 2}]
-        success, message = reserve_inventory(order.id, items, 'cash', db_session)
+        success, message = reserve_inventory(order.id, items, payment_method='cash', session=db_session)
         db_session.commit()  # Inventory functions don't commit when session is passed
 
         assert success == True
@@ -70,7 +70,7 @@ class TestCompleteOrderLifecycle:
         db_session.commit()
 
         with patch('bot.database.methods.inventory.get_metrics', return_value=None):
-            success, message = deduct_inventory(order.id, test_admin.telegram_id, db_session)
+            success, message = deduct_inventory(order.id, test_admin.telegram_id, session=db_session)
         db_session.commit()  # Inventory functions don't commit when session is passed
 
         assert success == True
@@ -113,7 +113,7 @@ class TestCompleteOrderLifecycle:
 
         # 2. Reserve inventory
         items = [{'item_name': test_goods.name, 'quantity': 5}]
-        success, message = reserve_inventory(order.id, items, 'bitcoin', db_session)
+        success, message = reserve_inventory(order.id, items, payment_method='bitcoin', session=db_session)
         db_session.commit()  # Inventory functions don't commit when session is passed
 
         assert success == True
@@ -124,7 +124,7 @@ class TestCompleteOrderLifecycle:
 
         # 3. Cancel order
         with patch('bot.database.methods.inventory.get_metrics', return_value=None):
-            success, message = release_reservation(order.id, "User cancelled", db_session)
+            success, message = release_reservation(order.id, "User cancelled", session=db_session)
         db_session.commit()  # Inventory functions don't commit when session is passed
 
         assert success == True
@@ -169,7 +169,7 @@ class TestCompleteOrderLifecycle:
         db_session.commit()
 
         # Reserve all items
-        success, message = reserve_inventory(order.id, items, 'cash', db_session)
+        success, message = reserve_inventory(order.id, items, payment_method='cash', session=db_session)
 
         assert success == True
 
@@ -183,7 +183,7 @@ class TestCompleteOrderLifecycle:
         db_session.commit()
 
         with patch('bot.database.methods.inventory.get_metrics', return_value=None):
-            success, message = deduct_inventory(order.id, test_admin.telegram_id, db_session)
+            success, message = deduct_inventory(order.id, test_admin.telegram_id, session=db_session)
 
         assert success == True
 
@@ -230,13 +230,13 @@ class TestCompleteOrderLifecycle:
 
         # Reserve and deduct
         items = [{'item_name': test_goods.name, 'quantity': 1}]
-        reserve_inventory(order.id, items, 'cash', db_session)
+        reserve_inventory(order.id, items, payment_method='cash', session=db_session)
 
         order.order_status = 'confirmed'
         db_session.commit()
 
         with patch('bot.database.methods.inventory.get_metrics', return_value=None):
-            deduct_inventory(order.id, test_admin.telegram_id, db_session)
+            deduct_inventory(order.id, test_admin.telegram_id, session=db_session)
 
         # Mark as delivered
         order.order_status = 'delivered'
@@ -277,7 +277,7 @@ class TestCompleteOrderLifecycle:
 
         # Try to reserve
         items = [{'item_name': test_goods_low_stock.name, 'quantity': 100}]
-        success, message = reserve_inventory(order.id, items, 'cash', db_session)
+        success, message = reserve_inventory(order.id, items, payment_method='cash', session=db_session)
 
         assert success == False
         assert "insufficient" in message.lower()

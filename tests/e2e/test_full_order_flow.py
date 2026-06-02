@@ -458,7 +458,7 @@ class TestOrderCreation:
         db_with_roles.commit()
 
         items = [{"item_name": "Pad Thai", "quantity": 2}]
-        success, msg = reserve_inventory(order.id, items, "cash", db_with_roles)
+        success, msg = reserve_inventory(order.id, items, payment_method="cash", session=db_with_roles)
         db_with_roles.commit()
 
         assert success is True
@@ -607,7 +607,7 @@ class TestOrderStatusWorkflow:
         order = self._setup_order(db_with_roles)
 
         items = [{"item_name": "Pad Thai", "quantity": 1}]
-        success, _ = reserve_inventory(order.id, items, "cash", db_with_roles)
+        success, _ = reserve_inventory(order.id, items, payment_method="cash", session=db_with_roles)
         db_with_roles.commit()
         assert success
 
@@ -615,7 +615,7 @@ class TestOrderStatusWorkflow:
         assert pad_thai.reserved_quantity == 1
 
         with patch("bot.database.methods.inventory.get_metrics", return_value=None):
-            success, _ = release_reservation(order.id, "Customer cancelled", db_with_roles)
+            success, _ = release_reservation(order.id, "Customer cancelled", session=db_with_roles)
         db_with_roles.commit()
 
         assert success
@@ -910,7 +910,7 @@ class TestAdminOperations:
 
         # Reserve
         items = [{"item_name": "Thai Iced Tea", "quantity": 1}]
-        reserve_inventory(order.id, items, "cash", db_with_roles)
+        reserve_inventory(order.id, items, payment_method="cash", session=db_with_roles)
         db_with_roles.commit()
 
         # Confirm + deduct
@@ -918,7 +918,7 @@ class TestAdminOperations:
         db_with_roles.commit()
 
         with patch("bot.database.methods.inventory.get_metrics", return_value=None):
-            success, _ = deduct_inventory(order.id, admin.telegram_id, db_with_roles)
+            success, _ = deduct_inventory(order.id, admin.telegram_id, session=db_with_roles)
         db_with_roles.commit()
         assert success
 
