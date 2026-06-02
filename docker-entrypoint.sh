@@ -13,7 +13,14 @@ mkdir -p /app/logs /app/data
 # This is necessary because mounted volumes inherit host permissions
 chown -R botuser:botuser /app/logs /app/data
 
-echo "Permissions fixed. Starting application as botuser..."
+echo "Permissions fixed."
+
+# Apply database migrations before starting (idempotent; stamps legacy
+# create_all databases, upgrades everything else). Runs as botuser.
+echo "Running database migrations..."
+gosu botuser python scripts/migrate.py
+
+echo "Starting application as botuser..."
 
 # Switch to botuser and execute the main command
 exec gosu botuser "$@"
