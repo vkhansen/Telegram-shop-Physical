@@ -335,7 +335,7 @@ class TestInventoryEdgeCases:
         s.commit()
 
         success, msg = reserve_inventory(
-            order.id, [{"item_name": "Scarce Item", "quantity": 5}], "cash", s)
+            order.id, [{"item_name": "Scarce Item", "quantity": 5}], payment_method="cash", session=s)
         s.commit()
 
         assert not success
@@ -357,7 +357,7 @@ class TestInventoryEdgeCases:
                         price=Decimal("149"), quantity=1))
         s.commit()
 
-        success1, _ = reserve_inventory(order.id, [{"item_name": "Pad Thai", "quantity": 1}], "cash", s)
+        success1, _ = reserve_inventory(order.id, [{"item_name": "Pad Thai", "quantity": 1}], payment_method="cash", session=s)
         s.commit()
         assert success1
 
@@ -365,7 +365,7 @@ class TestInventoryEdgeCases:
         reserved_after_first = pt.reserved_quantity
 
         # Second reserve attempt for same order
-        success2, _ = reserve_inventory(order.id, [{"item_name": "Pad Thai", "quantity": 1}], "cash", s)
+        success2, _ = reserve_inventory(order.id, [{"item_name": "Pad Thai", "quantity": 1}], payment_method="cash", session=s)
         s.commit()
 
         s.refresh(pt)

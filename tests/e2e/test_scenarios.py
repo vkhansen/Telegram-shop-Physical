@@ -174,7 +174,7 @@ class TestScenarioFullOrderJourney:
             {"item_name": "Green Curry", "quantity": 2},
             {"item_name": "Thai Iced Tea", "quantity": 1},
         ]
-        success, msg = reserve_inventory(order.id, items_to_reserve, "cash", s)
+        success, msg = reserve_inventory(order.id, items_to_reserve, payment_method="cash", session=s)
         s.commit()
         assert success, msg
         assert order.order_status == "reserved"
@@ -194,7 +194,7 @@ class TestScenarioFullOrderJourney:
 
         # Deduct inventory on confirmation
         with patch("bot.database.methods.inventory.get_metrics", return_value=None):
-            success, msg = deduct_inventory(order.id, admin.telegram_id, s)
+            success, msg = deduct_inventory(order.id, admin.telegram_id, session=s)
         s.commit()
         assert success, msg
 
@@ -391,7 +391,7 @@ class TestScenarioPromptPayVerification:
 
         # Reserve inventory
         items = [{"item_name": "Green Curry", "quantity": 1}, {"item_name": "Pad Thai", "quantity": 1}]
-        success, _ = reserve_inventory(order.id, items, "promptpay", s)
+        success, _ = reserve_inventory(order.id, items, payment_method="promptpay", session=s)
         s.commit()
         assert success
         assert order.order_status == "reserved"
@@ -412,7 +412,7 @@ class TestScenarioPromptPayVerification:
 
         # Deduct inventory
         with patch("bot.database.methods.inventory.get_metrics", return_value=None):
-            success, _ = deduct_inventory(order.id, admin.telegram_id, s)
+            success, _ = deduct_inventory(order.id, admin.telegram_id, session=s)
         s.commit()
         assert success
 
@@ -456,7 +456,7 @@ class TestScenarioCancellationRestore:
         s.commit()
 
         # Reserve
-        success, _ = reserve_inventory(order.id, [{"item_name": "Pad Thai", "quantity": 5}], "cash", s)
+        success, _ = reserve_inventory(order.id, [{"item_name": "Pad Thai", "quantity": 5}], payment_method="cash", session=s)
         s.commit()
         assert success
 
@@ -467,7 +467,7 @@ class TestScenarioCancellationRestore:
         # Cancel
         order.order_status = "cancelled"
         with patch("bot.database.methods.inventory.get_metrics", return_value=None):
-            success, _ = release_reservation(order.id, "Customer changed mind", s)
+            success, _ = release_reservation(order.id, "Customer changed mind", session=s)
         s.commit()
         assert success
 
@@ -939,8 +939,7 @@ class TestScenarioAdminMenuManagement:
 
         # Reserve
         success, _ = reserve_inventory(
-            order.id, [{"item_name": "Chef Special Soup", "quantity": 1}], "cash", s
-        )
+            order.id, [{"item_name": "Chef Special Soup", "quantity": 1}], payment_method="cash", session=s)
         s.commit()
         assert success
 
@@ -1014,12 +1013,12 @@ class TestScenarioBitcoinPayment:
         order.order_status = "reserved"
         s.commit()
         items = [{"item_name": "Green Curry", "quantity": 2}]
-        reserve_inventory(order.id, items, "bitcoin", s)
+        reserve_inventory(order.id, items, payment_method="bitcoin", session=s)
         s.commit()
 
         order.order_status = "confirmed"
         with patch("bot.database.methods.inventory.get_metrics", return_value=None):
-            deduct_inventory(order.id, admin.telegram_id, s)
+            deduct_inventory(order.id, admin.telegram_id, session=s)
         s.commit()
 
         assert order.order_status == "confirmed"
@@ -1129,7 +1128,7 @@ class TestScenarioInventoryIntegrity:
                         price=Decimal("59.00"), quantity=stock))
         s.commit()
 
-        success1, _ = reserve_inventory(o1.id, [{"item_name": "Thai Iced Tea", "quantity": stock}], "cash", s)
+        success1, _ = reserve_inventory(o1.id, [{"item_name": "Thai Iced Tea", "quantity": stock}], payment_method="cash", session=s)
         s.commit()
         assert success1
 
@@ -1149,6 +1148,6 @@ class TestScenarioInventoryIntegrity:
                         price=Decimal("59.00"), quantity=1))
         s.commit()
 
-        success2, msg2 = reserve_inventory(o2.id, [{"item_name": "Thai Iced Tea", "quantity": 1}], "cash", s)
+        success2, msg2 = reserve_inventory(o2.id, [{"item_name": "Thai Iced Tea", "quantity": 1}], payment_method="cash", session=s)
         s.commit()
         assert not success2  # Should fail - no stock left

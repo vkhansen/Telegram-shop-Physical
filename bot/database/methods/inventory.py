@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 def log_inventory_change(item_name: str, change_type: str, quantity_change: int,
                           order_id: int = None, admin_id: int = None,
-                          comment: str = None, session: Session = None):
+                          comment: str = None, *, session: Session = None):
     """
     Log inventory change for audit purposes.
 
@@ -57,7 +57,7 @@ def log_inventory_change(item_name: str, change_type: str, quantity_change: int,
         session.add(log_entry)
 
 
-def reserve_inventory(order_id: int, items: List[Dict[str, any]], payment_method: str = None, session: Session = None) -> Tuple[bool, str]:
+def reserve_inventory(order_id: int, items: List[Dict[str, any]], *, payment_method: str = None, session: Session = None) -> Tuple[bool, str]:
     """
     Reserve inventory for an order. Sets reservation timeout based on payment method.
 
@@ -72,7 +72,7 @@ def reserve_inventory(order_id: int, items: List[Dict[str, any]], payment_method
     """
     if session is None:
         with Database().session() as new_session:
-            return reserve_inventory(order_id, items, payment_method, session=new_session)
+            return reserve_inventory(order_id, items, payment_method=payment_method, session=new_session)
 
     try:
         order = session.query(Order).filter_by(id=order_id).with_for_update().first()
@@ -129,7 +129,7 @@ def reserve_inventory(order_id: int, items: List[Dict[str, any]], payment_method
         return False, f"Error reserving inventory: {str(e)}"
 
 
-def release_reservation(order_id: int, reason: str = "Order cancelled", session: Session = None) -> Tuple[bool, str]:
+def release_reservation(order_id: int, reason: str = "Order cancelled", *, session: Session = None) -> Tuple[bool, str]:
     """
     Release reserved inventory back to available stock.
     Called when order is cancelled or expires.
@@ -196,7 +196,7 @@ def release_reservation(order_id: int, reason: str = "Order cancelled", session:
         return False, f"Error releasing reservation: {str(e)}"
 
 
-def deduct_inventory(order_id: int, admin_id: int = None, session: Session = None) -> Tuple[bool, str]:
+def deduct_inventory(order_id: int, admin_id: int = None, *, session: Session = None) -> Tuple[bool, str]:
     """
     Deduct inventory from stock when order is confirmed by admin.
     This is the ACTUAL inventory reduction (not just reservation).
@@ -270,7 +270,7 @@ def deduct_inventory(order_id: int, admin_id: int = None, session: Session = Non
 
 
 def add_inventory(item_name: str, quantity: int, admin_id: int = None,
-                 comment: str = None, session: Session = None) -> Tuple[bool, str]:
+                 comment: str = None, *, session: Session = None) -> Tuple[bool, str]:
     """
     Add inventory to stock (e.g., restocking).
 

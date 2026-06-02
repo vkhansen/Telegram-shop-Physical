@@ -144,3 +144,6 @@ cython_debug/
 
 data
 logs
+
+# Alembic scratch DBs (local autogenerate)
+_alembic_*.db

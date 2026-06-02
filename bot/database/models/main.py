@@ -548,6 +548,9 @@ class Order(Database.BASE):
             "delivery_type IN ('door', 'dead_drop', 'pickup')",
             name='ck_orders_delivery_type'
         ),
+        # A verified bank slip can pay for exactly one order. NULLs are distinct
+        # in both Postgres and SQLite, so unpaid/unverified orders are unaffected.
+        UniqueConstraint('slip_transaction_id', name='uq_orders_slip_transaction_id'),
     )
 
     def __init__(self, buyer_id: int, total_price, payment_method: str,
