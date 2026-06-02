@@ -1,17 +1,17 @@
-# Project Roadmap — Telegram-shop-Physical
+# Project Roadmap — Telegram-shop-Physical (Growth Track)
 
-> Master plan for the Bangkok restaurant delivery bot. This file is the **planning** source of truth; [`FEATURE_CARDS.md`](../FEATURE_CARDS.md) is the **status** source of truth (what shipped, what's in flight). When they disagree, trust `FEATURE_CARDS.md` for status and update this file.
+> **Sequencing now lives in [`MASTER-PLAN.md`](MASTER-PLAN.md)** — the go-live gate, milestone order, and launch checklist. This file is retained for the **growth-track narrative** (platform scale, AI, multi-platform). [`FEATURE_CARDS.md`](FEATURE_CARDS.md) remains the **status** source of truth; when they disagree, trust `FEATURE_CARDS.md` and update here.
 
-Last reviewed: 2026-04-13
+Last reviewed: 2026-06-02
 
 ---
 
 ## Where we are
 
-- **32 cards shipped** across Phases 1–3 (Thailand core, localization, restaurant flow, multi-crypto payments, restaurant-core menu, revenue/trust, ops).
-- **4 cards open** in the backlog. One (CARD-19) has database models already merged.
-- Codebase is single-bot, single-brand in runtime but has brand/store DB models ready for multi-brand scale.
-- Test coverage ~40% after CARD-18 expansion. Handler layer, notifications, i18n, and CLI remain untested.
+- **22 numbered cards shipped** (Phases 1–5) plus the RC/FC menu & feature suites — including the multi-brand runtime (CARD-19) and both Grok assistants (CARD-17 admin, CARD-22 customer), which are now **done**, not backlog.
+- **Open work is reorganized around go-live.** The launch gate (CARD-23/24/25) and driver dispatch (CARD-26) are tracked in [`MASTER-PLAN.md`](MASTER-PLAN.md).
+- Codebase is single-bot, single-brand in runtime but has the multi-brand runtime shipped behind `MULTI_BOT_ENABLED`.
+- **Quality gate is currently red** (3 failing tests; 19.69% < 25% coverage; payment-verification layer 0% covered) — see [CARD-25](backlog/CARD-25-test-suite-recovery.md). Handler layer, notifications, i18n, and CLI remain largely untested.
 
 ## Guiding principles
 
@@ -59,7 +59,7 @@ CARD-17 (Grok Admin) ✅ ──▶ CARD-22 (Grok Customer Assistant)
 
 ---
 
-### M2 — Platform Scale  *(target: 3 weeks after M1)*
+### M2 — Platform Scale  *(✅ SHIPPED — CARD-19 complete)*
 
 **Goal:** One backend process runs N independent branded bots off shared business logic.
 
@@ -76,7 +76,7 @@ CARD-17 (Grok Admin) ✅ ──▶ CARD-22 (Grok Customer Assistant)
 
 ---
 
-### M3 — Admin Intelligence  *(can run in parallel with M2)*
+### M3 — Admin Intelligence  *(✅ SHIPPED — CARD-17 complete; CARD-22 customer assistant also done)*
 
 **Goal:** Natural-language admin ops replace rigid button navigation for bulk tasks.
 
@@ -116,14 +116,14 @@ These show up in the DRY audit and test gap analysis in `FEATURE_CARDS.md`. Not 
 - **Notification system tests** — `bot/payments/notifications.py` untested, but touches every order.
 - **Concurrent inventory race tests** — reservation system has known edge cases.
 
-Recommendation: bundle into a single "Test Hardening" card (CARD-22) and slot it between M1 and M2, or treat it as background work during M2.
+These are now carded and pulled forward into the launch gate: see [CARD-25](backlog/CARD-25-test-suite-recovery.md) (test recovery + payment-layer coverage) and [CARD-27](backlog/CARD-27-input-hardening.md) (input validation + error handling). They are **P0/P1 in [`MASTER-PLAN.md`](MASTER-PLAN.md)**, not background work.
 
 ---
 
 ## Out of scope (for now)
 
 - Loyalty/points program
-- Driver mobile app (vs. current driver chat handler)
+- Native driver mobile app — note: in-Telegram automated GPS matching/dispatch is now carded as [CARD-26](backlog/CARD-26-live-gps-driver-matching.md) (M2 in the master plan); a *native app* remains out of scope
 - In-app card payments beyond PromptPay QR
 - Franchise onboarding self-service UI (CARD-19 ships CLI only)
 
