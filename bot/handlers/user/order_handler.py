@@ -1967,28 +1967,45 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
         await message.answer(localize("order.payment.error_general"), reply_markup=back("view_cart"))
         return
 
-    # Generate QR code — DB setting overrides env var
-    from bot.handlers.admin.settings_management import get_promptpay_id as _get_pp_id
-    promptpay_id = _get_pp_id()
+    # Generate QR code — Card 28: resolve the PromptPay account store → brand → global
+    # so a branch collects to its own account. The SAME target drives slip
+    # verification below, so the paid account and the verified account always agree.
+    from bot.payments.store_payment import resolve_payment_target
+    target = resolve_payment_target(
+        store_id=data.get('current_store_id'),
+        brand_id=data.get('current_brand_id'),
+    )
+
+    from aiogram.types import BufferedInputFile
+    caption = (
+        localize("order.payment.promptpay.title") + "\n\n" +
+        localize("order.payment.promptpay.scan") + "\n" +
+        f"<b>{EnvKeys.PAY_CURRENCY} {final_amount}</b>\n" +
+        f"Order: <code>{order_code}</code>"
+    )
     try:
-        qr_bytes = generate_promptpay_qr(promptpay_id, final_amount)
-
-        from aiogram.types import BufferedInputFile
-        qr_file = BufferedInputFile(qr_bytes, filename=f"promptpay_{order_code}.png")
-
-        caption = (
-            localize("order.payment.promptpay.title") + "\n\n" +
-            localize("order.payment.promptpay.scan") + "\n" +
-            f"<b>{EnvKeys.PAY_CURRENCY} {final_amount}</b>\n" +
-            f"Order: <code>{order_code}</code>"
-        )
-
-        await message.answer_photo(photo=qr_file, caption=caption)
+        if target.promptpay_id:
+            # Dynamic, amount-embedded QR (preferred).
+            qr_bytes = generate_promptpay_qr(target.promptpay_id, final_amount)
+            qr_file = BufferedInputFile(qr_bytes, filename=f"promptpay_{order_code}.png")
+            await message.answer_photo(photo=qr_file, caption=caption)
+        elif target.static_qr_file_id:
+            # Card 28 Phase C: branch has a pre-made static QR (amount not embedded);
+            # the amount is shown in the caption for the customer to enter manually.
+            static_caption = caption + "\n" + localize("order.payment.promptpay.static_amount_note")
+            await message.answer_photo(photo=target.static_qr_file_id, caption=static_caption)
+        else:
+            # No PromptPay account configured anywhere — text fallback.
+            await message.answer(
+                localize("order.payment.promptpay.title") + "\n\n" +
+                f"Amount: <b>{final_amount} {EnvKeys.PAY_CURRENCY}</b>\n" +
+                f"Order: <code>{order_code}</code>"
+            )
     except Exception as qr_error:
         logger.error(f"QR generation failed: {qr_error}")
         await message.answer(
             localize("order.payment.promptpay.title") + "\n\n" +
-            f"PromptPay ID: <code>{promptpay_id}</code>\n" +
+            f"PromptPay ID: <code>{target.promptpay_id}</code>\n" +
             f"Amount: <b>{final_amount} {EnvKeys.PAY_CURRENCY}</b>\n" +
             f"Order: <code>{order_code}</code>"
         )
@@ -2026,6 +2043,8 @@ async def process_receipt_photo(message: Message, state: FSMContext):
     order_code = None
     order_total = None
     order_bonus = Decimal('0')
+    order_store_id = None
+    order_brand_id = None
     if order_id:
         with Database().session() as session:
             order = session.query(Order).filter_by(id=order_id).first()
@@ -2036,6 +2055,10 @@ async def process_receipt_photo(message: Message, state: FSMContext):
                 order_code = order.order_code
                 order_total = order.total_price
                 order_bonus = order.bonus_applied or Decimal('0')
+                # Card 28: capture the order's store/brand so the slip is verified
+                # against the SAME PromptPay account the QR routed payment to.
+                order_store_id = order.store_id
+                order_brand_id = order.brand_id
         # session closed before any Telegram/network I/O
 
     # Phase 2 — download + verify slip (network I/O, NO DB connection held)
@@ -2054,11 +2077,14 @@ async def process_receipt_photo(message: Message, state: FSMContext):
             # Calculate expected amount (total - bonus)
             expected_amount = order_total - order_bonus
 
-            from bot.handlers.admin.settings_management import get_promptpay_name as _get_pp_name
+            # Card 28: verify the slip's receiver against the SAME account the QR
+            # paid into (store → brand → global), not just the global name.
+            from bot.payments.store_payment import resolve_payment_target
+            target = resolve_payment_target(store_id=order_store_id, brand_id=order_brand_id)
             verify_result = await verify_slip(
                 slip_image=slip_image,
                 expected_amount=expected_amount,
-                expected_receiver=_get_pp_name() or None,
+                expected_receiver=target.promptpay_name or None,
             )
         except Exception as e:
             logger.error(f"Slip auto-verification error for order {order_code}: {e}")
