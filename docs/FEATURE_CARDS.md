@@ -60,7 +60,8 @@ Sequenced by the **go-live gate** first. Full rationale and dependency graph in 
 
 | # | Card | Name | Milestone | Progress | Priority | Effort | Detail |
 |---|------|------|-----------|----------|----------|--------|--------|
-| 1 | CARD-16 | Line API Integration | M3 — Growth | 0% | P2 | High (5–8d) | [CARD-16](later/CARD-16-line-api-integration.md) |
+| 1 | CARD-28 | Per-Store Menu Image + Per-Store Payment QR | Multi-Store Polish | 0% | P2 | Medium (3–5d) | [CARD-28](backlog/CARD-28-per-store-menu-image-and-payment-qr.md) |
+| 2 | CARD-16 | Line API Integration | M3 — Growth | 0% | P2 | High (5–8d) | [CARD-16](later/CARD-16-line-api-integration.md) |
 
 **Recently completed (moved to DONE):** CARD-26 (live GPS driver matching — driver model/onboarding, online/offline + live-location trail, nearest-driver offer/accept/escalate with manual fallback, live ETA; flag-gated; **M2 shipped**), CARD-24 (payment integrity — dup-slip rejection, refund/reversal audit trail, crypto reconciliation, receiver-name hardening; **M0 gate now fully green**), CARD-23 (payment session refactor — all 6 handlers off the session-across-await pattern + `get_metrics` fix), CARD-25 (test-suite recovery — `smoke` marker + marker reconcile + gate ratchet 25→30), CARD-27 (input hardening — phone validator + bare-except sweep), CARD-21 (persistent cart — all 6 phases incl. brand/store switch guards).
 
