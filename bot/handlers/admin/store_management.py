@@ -20,6 +20,11 @@ class StoreStates(StatesGroup):
     waiting_name = State()
     waiting_address = State()
     waiting_location = State()
+    # Card 28 — per-store menu image + PromptPay assets
+    waiting_menu_image = State()
+    waiting_promptpay_id = State()
+    waiting_promptpay_name = State()
+    waiting_static_qr = State()
 
 
 @router.callback_query(F.data == "store_management", HasPermissionFilter(permission=Permission.SETTINGS_MANAGE))
@@ -201,12 +206,21 @@ async def view_store(call: CallbackQuery):
         if store.phone:
             details += f"<b>{localize('admin.store.phone')}:</b> {store.phone}\n"
 
+        # Card 28 — per-store payment / menu assets
+        if store.promptpay_id or store.promptpay_name:
+            details += f"<b>PromptPay:</b> {store.promptpay_id or '—'} ({store.promptpay_name or '—'})\n"
+        details += f"<b>Menu image:</b> {'✅' if store.menu_image_file_id else '—'}\n"
+        details += f"<b>Static QR:</b> {'✅' if store.payment_qr_file_id else '—'}\n"
+
         toggle_label = localize("admin.store.deactivate") if store.is_active else localize("admin.store.activate")
         buttons = [
             (toggle_label, f"toggle_store_{store.id}"),
         ]
         if not store.is_default:
             buttons.append((localize("admin.store.set_default"), f"set_default_store_{store.id}"))
+        buttons.append((localize("admin.store.set_menu_image"), f"store_set_menuimg_{store.id}"))
+        buttons.append((localize("admin.store.set_promptpay"), f"store_set_pp_{store.id}"))
+        buttons.append((localize("admin.store.set_static_qr"), f"store_set_qr_{store.id}"))
         buttons.append((localize("btn.back"), "store_management"))
 
     await call.message.edit_text(
@@ -267,3 +281,118 @@ async def set_default_store(call: CallbackQuery):
     # Refresh the view
     call.data = f"view_store_{store_id}"
     await view_store(call)
+
+
+# ---------------------------------------------------------------------------
+# Per-store menu image + PromptPay assets (Card 28)
+# ---------------------------------------------------------------------------
+
+def _clear_token(text: str | None) -> bool:
+    """A lone '-' means "clear this field"."""
+    return (text or "").strip() == "-"
+
+
+async def _set_store_field(store_id: int, **fields) -> None:
+    with Database().session() as session:
+        store = session.query(Store).filter_by(id=store_id).first()
+        if store:
+            for k, v in fields.items():
+                setattr(store, k, v)
+            session.commit()
+
+
+@router.callback_query(F.data.regexp(r"^store_set_menuimg_\d+$"),
+                       HasPermissionFilter(permission=Permission.SETTINGS_MANAGE))
+async def set_menu_image_start(call: CallbackQuery, state: FSMContext):
+    store_id = int(call.data.split("_")[-1])
+    await state.update_data(asset_store_id=store_id)
+    await call.message.edit_text(localize("admin.store.prompt_menu_image"),
+                                 reply_markup=back(f"view_store_{store_id}"))
+    await state.set_state(StoreStates.waiting_menu_image)
+
+
+@router.message(StoreStates.waiting_menu_image, F.photo)
+async def set_menu_image_save(message: Message, state: FSMContext):
+    store_id = (await state.get_data()).get("asset_store_id")
+    await _set_store_field(store_id, menu_image_file_id=message.photo[-1].file_id)
+    await state.clear()
+    await message.answer(localize("admin.store.asset_updated"), reply_markup=back(f"view_store_{store_id}"))
+
+
+@router.message(StoreStates.waiting_menu_image)
+async def set_menu_image_other(message: Message, state: FSMContext):
+    store_id = (await state.get_data()).get("asset_store_id")
+    if _clear_token(message.text):
+        await _set_store_field(store_id, menu_image_file_id=None)
+        await state.clear()
+        await message.answer(localize("admin.store.asset_updated"), reply_markup=back(f"view_store_{store_id}"))
+    else:
+        await message.answer(localize("admin.store.expected_photo"))
+
+
+@router.callback_query(F.data.regexp(r"^store_set_qr_\d+$"),
+                       HasPermissionFilter(permission=Permission.SETTINGS_MANAGE))
+async def set_static_qr_start(call: CallbackQuery, state: FSMContext):
+    store_id = int(call.data.split("_")[-1])
+    await state.update_data(asset_store_id=store_id)
+    await call.message.edit_text(localize("admin.store.prompt_static_qr"),
+                                 reply_markup=back(f"view_store_{store_id}"))
+    await state.set_state(StoreStates.waiting_static_qr)
+
+
+@router.message(StoreStates.waiting_static_qr, F.photo)
+async def set_static_qr_save(message: Message, state: FSMContext):
+    store_id = (await state.get_data()).get("asset_store_id")
+    await _set_store_field(store_id, payment_qr_file_id=message.photo[-1].file_id)
+    await state.clear()
+    await message.answer(localize("admin.store.asset_updated"), reply_markup=back(f"view_store_{store_id}"))
+
+
+@router.message(StoreStates.waiting_static_qr)
+async def set_static_qr_other(message: Message, state: FSMContext):
+    store_id = (await state.get_data()).get("asset_store_id")
+    if _clear_token(message.text):
+        await _set_store_field(store_id, payment_qr_file_id=None)
+        await state.clear()
+        await message.answer(localize("admin.store.asset_updated"), reply_markup=back(f"view_store_{store_id}"))
+    else:
+        await message.answer(localize("admin.store.expected_photo"))
+
+
+@router.callback_query(F.data.regexp(r"^store_set_pp_\d+$"),
+                       HasPermissionFilter(permission=Permission.SETTINGS_MANAGE))
+async def set_promptpay_start(call: CallbackQuery, state: FSMContext):
+    store_id = int(call.data.split("_")[-1])
+    await state.update_data(asset_store_id=store_id)
+    await call.message.edit_text(localize("admin.store.prompt_promptpay_id"),
+                                 reply_markup=back(f"view_store_{store_id}"))
+    await state.set_state(StoreStates.waiting_promptpay_id)
+
+
+@router.message(StoreStates.waiting_promptpay_id, F.text)
+async def set_promptpay_id_save(message: Message, state: FSMContext):
+    store_id = (await state.get_data()).get("asset_store_id")
+    text = message.text.strip()
+    if _clear_token(text):
+        await _set_store_field(store_id, promptpay_id=None, promptpay_name=None)
+        await state.clear()
+        await message.answer(localize("admin.store.asset_updated"), reply_markup=back(f"view_store_{store_id}"))
+        return
+    # Validate: PromptPay id is a 10-digit phone or 13-digit national id.
+    digits = "".join(ch for ch in text if ch.isdigit())
+    if len(digits) not in (10, 13):
+        await message.answer(localize("admin.store.invalid_promptpay"))
+        return
+    await _set_store_field(store_id, promptpay_id=text)
+    await message.answer(localize("admin.store.prompt_promptpay_name"),
+                         reply_markup=back(f"view_store_{store_id}"))
+    await state.set_state(StoreStates.waiting_promptpay_name)
+
+
+@router.message(StoreStates.waiting_promptpay_name, F.text)
+async def set_promptpay_name_save(message: Message, state: FSMContext):
+    store_id = (await state.get_data()).get("asset_store_id")
+    name = None if _clear_token(message.text) else message.text.strip()
+    await _set_store_field(store_id, promptpay_name=name)
+    await state.clear()
+    await message.answer(localize("admin.store.asset_updated"), reply_markup=back(f"view_store_{store_id}"))

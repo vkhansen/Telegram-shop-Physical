@@ -10,6 +10,7 @@ Customer flow:
 4. User browses that brand's menu
 """
 import asyncio
+import logging
 import math
 from decimal import Decimal
 
@@ -229,7 +230,24 @@ async def switch_brand(call: CallbackQuery, state: FSMContext):
 
 
 async def _show_categories(call: CallbackQuery, state: FSMContext):
-    """Show categories for the selected brand. Delegates to shop_and_goods handler."""
+    """Show categories for the selected brand. Delegates to shop_and_goods handler.
+
+    Card 28: if the selected store has a menu-board image, send it as a simple
+    photo first so the customer sees the branch's menu the moment it's chosen.
+    """
+    data = await state.get_data()
+    store_id = data.get('current_store_id')
+    if store_id:
+        from bot.payments.store_payment import get_store_menu_image
+        menu_image = get_store_menu_image(store_id)
+        if menu_image:
+            try:
+                await call.message.answer_photo(
+                    menu_image, caption=data.get('current_store_name') or "",
+                )
+            except Exception:
+                logging.warning("Failed to send menu image for store %s", store_id)
+
     from bot.handlers.user.shop_and_goods import show_brand_categories
     await show_brand_categories(call, state)
 
