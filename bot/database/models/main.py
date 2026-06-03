@@ -520,6 +520,11 @@ class Order(Database.BASE):
     coupon_code = Column(String(32), nullable=True)
     coupon_discount = Column(Numeric(12, 2), nullable=True, default=0)
 
+    # Payment reversal / refund tracking (Card 24)
+    # NULL = no reversal; 'completed' = bonus-only reversal done; 'pending' = external
+    # payment (crypto/PromptPay/cash) still needs manual admin refund.
+    refund_status = Column(String(20), nullable=True)
+
     # Multi-brand / multi-store
     brand_id = Column(Integer, ForeignKey('brands.id', ondelete="SET NULL"), nullable=True, index=True)
     store_id = Column(Integer, ForeignKey('stores.id', ondelete="SET NULL"), nullable=True)
@@ -706,6 +711,8 @@ class CryptoPayment(Database.BASE):
     expected_amount_usd = Column(Numeric(12, 2), nullable=True)
     tx_hash = Column(String(200), nullable=True)
     received_amount = Column(Numeric(20, 8), nullable=True)
+    # Overpayment delta in native coin units (received - expected when positive). Card 24.
+    overpaid_amount = Column(Numeric(20, 8), nullable=True, default=0)
     confirmations = Column(Integer, nullable=False, default=0)
     required_confirmations = Column(Integer, nullable=False)
     status = Column(String(20), nullable=False, default='awaiting')  # awaiting → detected → confirmed → expired
@@ -721,6 +728,39 @@ class CryptoPayment(Database.BASE):
         CheckConstraint(
             "status IN ('awaiting', 'detected', 'confirmed', 'expired')",
             name='ck_crypto_payments_status'
+        ),
+    )
+
+
+class Refund(Database.BASE):
+    """Audit record of a payment reversal (Card 24).
+
+    One row per ``reverse_payment(order)`` call. Captures the bonus restored to
+    the customer's balance and — for orders paid via an external rail
+    (crypto / PromptPay / cash) — flags the cash amount that an admin must
+    refund out of band. ``status`` is ``completed`` when the reversal needed no
+    external action (bonus-only), or ``pending_manual`` when an admin still has
+    to return real funds.
+    """
+    __tablename__ = 'refunds'
+
+    id = Column(Integer, primary_key=True)
+    order_id = Column(Integer, ForeignKey('orders.id', ondelete='CASCADE'),
+                      nullable=False, index=True)
+    method = Column(String(20), nullable=False)   # original payment method being reversed
+    bonus_restored = Column(Numeric(12, 2), nullable=False, default=0)  # THB returned to bonus_balance
+    amount = Column(Numeric(12, 2), nullable=False, default=0)  # external (cash) amount needing manual refund
+    status = Column(String(20), nullable=False, default='completed')  # 'completed' | 'pending_manual'
+    reason = Column(Text, nullable=True)
+    created_by = Column(BigInteger, nullable=True)  # admin telegram id; 0/None = system/auto
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    order = relationship("Order", foreign_keys=lambda: [Refund.order_id])
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('completed', 'pending_manual')",
+            name='ck_refunds_status'
         ),
     )
 
@@ -1155,6 +1195,93 @@ class SavedCart(Database.BASE):
         self.store_id = store_id
         self.items_json = items_json
         self.original_total = original_total
+
+
+class Driver(Database.BASE):
+    """A delivery driver/rider available for GPS dispatch (Card 26).
+
+    Drivers are Telegram users promoted to a driver record via admin approval.
+    ``telegram_id`` is the link back to ``Order.driver_id`` (which stores a
+    Telegram id, not a Driver.id, for backward compatibility with the manual
+    rider-group flow). A NULL ``brand_id`` means a platform-wide driver eligible
+    for any brand's orders.
+    """
+    __tablename__ = 'drivers'
+
+    id = Column(Integer, primary_key=True)
+    telegram_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"),
+                         nullable=False, unique=True, index=True)
+    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="CASCADE"), nullable=True, index=True)
+    name = Column(String(120), nullable=False)
+    phone = Column(String(50), nullable=True)
+    vehicle_type = Column(String(30), nullable=True)  # 'motorbike', 'car', 'bicycle', 'foot'
+    service_zones = Column(JSON, nullable=True)  # list[str] of delivery_zone names; null = all zones
+
+    # Approval lifecycle: pending → approved (admin invite/approval flow)
+    status = Column(String(20), nullable=False, default='pending')  # pending, approved, rejected, suspended
+    approved_by = Column(BigInteger, nullable=True)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Live availability + last known position (updated from live-location trail)
+    is_online = Column(Boolean, nullable=False, default=False)
+    is_available = Column(Boolean, nullable=False, default=True)
+    active_order_count = Column(Integer, nullable=False, default=0)
+    rating = Column(Numeric(3, 2), nullable=True)  # 0.00–5.00
+    last_latitude = Column(Float, nullable=True)
+    last_longitude = Column(Float, nullable=True)
+    last_location_at = Column(DateTime(timezone=True), nullable=True)
+
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    user = relationship("User", foreign_keys=lambda: [Driver.telegram_id])
+    brand = relationship("Brand", foreign_keys=lambda: [Driver.brand_id])
+
+    __table_args__ = (
+        Index('ix_drivers_dispatch', 'status', 'is_online', 'is_available'),
+        CheckConstraint(
+            "status IN ('pending', 'approved', 'rejected', 'suspended')",
+            name='ck_drivers_status',
+        ),
+    )
+
+    def __init__(self, telegram_id: int, name: str, brand_id: int = None,
+                 phone: str = None, vehicle_type: str = None, service_zones: list = None,
+                 status: str = 'pending', **kw: Any):
+        super().__init__(**kw)
+        self.telegram_id = telegram_id
+        self.name = name
+        self.brand_id = brand_id
+        self.phone = phone
+        self.vehicle_type = vehicle_type
+        self.service_zones = service_zones
+        self.status = status
+
+
+class DriverLocationTrail(Database.BASE):
+    """Append-only breadcrumb of a driver's live location while online (Card 26).
+
+    Populated from Telegram ``edited_message`` live-location updates so dispatch
+    can rank by real distance and push live ETAs to customers.
+    """
+    __tablename__ = 'driver_location_trail'
+
+    id = Column(Integer, primary_key=True)
+    driver_id = Column(Integer, ForeignKey('drivers.id', ondelete="CASCADE"), nullable=False, index=True)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    driver = relationship("Driver", foreign_keys=lambda: [DriverLocationTrail.driver_id])
+
+    __table_args__ = (
+        Index('ix_driver_trail_driver_created', 'driver_id', 'created_at'),
+    )
+
+    def __init__(self, driver_id: int, latitude: float, longitude: float, **kw: Any):
+        super().__init__(**kw)
+        self.driver_id = driver_id
+        self.latitude = latitude
+        self.longitude = longitude
 
 
 def register_models():

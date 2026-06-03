@@ -86,3 +86,21 @@ def remove_items_from_cart(user_id: int, item_names: list[str]) -> None:
             session.commit()
     except Exception as e:
         logger.error(f"remove_items_from_cart error: {e}")
+
+
+def delete_saved_cart(user_id: int, saved_cart_id: int) -> bool:
+    """Card 21: Delete one of the user's saved-cart snapshots. Returns True if a row was removed."""
+    try:
+        from bot.database.models.main import SavedCart
+        with Database().session() as session:
+            row = session.query(SavedCart).filter_by(
+                id=saved_cart_id, user_id=user_id
+            ).first()
+            if not row:
+                return False
+            session.delete(row)
+            session.commit()
+        return True
+    except Exception as e:
+        logger.error(f"delete_saved_cart error: {e}")
+        return False

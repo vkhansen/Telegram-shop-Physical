@@ -12,6 +12,7 @@ The bot tries each configured provider in order until one succeeds.
 """
 import base64
 import logging
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
@@ -369,6 +370,59 @@ def _get_configured_providers() -> list[tuple[SlipProvider, str, str]]:
     return providers
 
 
+# Honorifics / titles to strip before comparing names (EN + Thai). Banks and
+# the configured PromptPay name often differ only by a leading title.
+_NAME_TITLES = {
+    "mr", "mrs", "ms", "miss", "dr", "khun",
+    "นาย", "นาง", "นางสาว", "น.ส", "ด.ช", "ด.ญ",
+}
+
+
+def _normalize_name(name: str) -> set:
+    """Normalize a name to a set of significant lowercase tokens.
+
+    Lowercases, strips punctuation/diacritic markers, drops common honorifics
+    and bank masking artefacts ('x'-runs), and splits into word tokens. Used to
+    compare a slip's receiver name against the expected PromptPay name without
+    the false positives a loose substring match produces.
+    """
+    if not name:
+        return set()
+    # Lowercase and replace any non-alphanumeric (incl. Thai is alnum) with space.
+    cleaned = re.sub(r"[^0-9a-z฀-๿]+", " ", name.lower())
+    tokens = set()
+    for tok in cleaned.split():
+        # Drop masking runs like 'xxx' / 'xxxxx' used to redact names on slips.
+        if tok and set(tok) == {"x"}:
+            continue
+        if tok in _NAME_TITLES:
+            continue
+        tokens.add(tok)
+    return tokens
+
+
+def _receiver_matches(expected: str, actual: str) -> bool:
+    """Return True if a slip's receiver name plausibly matches the expected one.
+
+    Strict enough to reject loose substrings (e.g. a "Bangkok" slip must NOT
+    satisfy an expected "Bank of Bangkok"), tolerant enough for word reordering
+    and partial bank masking: matches when the normalized token sets are equal,
+    or when one is a multi-token subset of the other.
+    """
+    exp = _normalize_name(expected)
+    act = _normalize_name(actual)
+    if not exp or not act:
+        return False
+    if exp == act:
+        return True
+    # Allow a genuine subset match only when the smaller side carries enough
+    # signal (>= 2 tokens), so a single shared word can't validate a payment.
+    smaller, larger = (exp, act) if len(exp) <= len(act) else (act, exp)
+    if len(smaller) >= 2 and smaller <= larger:
+        return True
+    return False
+
+
 async def verify_slip(
     slip_image: bytes,
     expected_amount: Optional[Decimal] = None,
@@ -421,9 +475,9 @@ async def verify_slip(
                     )
                     return result
 
-            # Cross-check receiver name
+            # Cross-check receiver name (normalized token match, not loose substring)
             if expected_receiver and result.receiver_name:
-                if expected_receiver.lower() not in result.receiver_name.lower():
+                if not _receiver_matches(expected_receiver, result.receiver_name):
                     logger.warning(
                         "Slip receiver mismatch: expected '%s', got '%s'",
                         expected_receiver, result.receiver_name,

@@ -176,6 +176,7 @@ class TestExecuteQuickTransition:
         order.order_status = "out_for_delivery"
         order.order_code = "T1"
         order.completed_at = None
+        order.driver_id = None
         db, session = self._patch_session(order)
 
         with patch.object(om, "Database", return_value=db), \

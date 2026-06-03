@@ -28,7 +28,8 @@ def main_menu(role: int, channel: str | None = None, helper: str | None = None) 
     return kb.as_markup()
 
 
-def profile_keyboard(referral_percent: int, user_items: int = 0) -> InlineKeyboardMarkup:
+def profile_keyboard(referral_percent: int, user_items: int = 0,
+                     saved_carts: int = 0) -> InlineKeyboardMarkup:
     """
     Profile keyboard.
     """
@@ -38,8 +39,25 @@ def profile_keyboard(referral_percent: int, user_items: int = 0) -> InlineKeyboa
         kb.button(text=localize("btn.referral"), callback_data="referral_system")
     if user_items != 0:
         kb.button(text=localize("btn.purchased"), callback_data="bought_items")
+    # Card 21: show saved-cart restore entry only when the user has snapshots
+    if saved_carts != 0:
+        kb.button(text=localize("btn.saved_carts", n=saved_carts), callback_data="saved_carts")
     kb.button(text=localize("btn.back"), callback_data="back_to_menu")
     kb.adjust(1)
+    return kb.as_markup()
+
+
+def saved_carts_keyboard(carts: list[dict]) -> InlineKeyboardMarkup:
+    """Card 21: One Restore + Discard row per saved cart, then back to profile."""
+    kb = InlineKeyboardBuilder()
+    for c in carts:
+        kb.button(
+            text=localize("btn.restore_cart", brand=c["brand_name"]),
+            callback_data=f"restore_cart:{c['id']}",
+        )
+        kb.button(text=localize("btn.discard"), callback_data=f"discard_saved:{c['id']}")
+    kb.button(text=localize("btn.back"), callback_data="profile")
+    kb.adjust(*([2] * len(carts)), 1)
     return kb.as_markup()
 
 

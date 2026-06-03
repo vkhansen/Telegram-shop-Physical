@@ -180,6 +180,73 @@ def mark_address_used(coin: str, address: str, user_id: int, order_id: int,
     return True
 
 
+def release_address(coin: str, address: str, *, session=None) -> bool:
+    """Return a previously-used address to the available pool (Card 24).
+
+    Flips ``is_used`` back to ``False`` and clears the order/user association so
+    ``get_available_address`` can hand the address out again. Used when an order
+    expires or is cancelled before the customer paid, so the pool no longer only
+    depletes. Re-adds the address to the coin's file to keep on-disk and DB
+    pools in sync.
+
+    Args:
+        coin: Coin identifier.
+        address: The crypto address string.
+        session: Optional SQLAlchemy session. If provided, the caller owns the
+                 commit; otherwise a short-lived session is used and committed.
+
+    Returns:
+        True if the address was found and released, False otherwise.
+    """
+    def _release(s) -> bool:
+        crypto_addr = (
+            s.query(CryptoAddress)
+            .filter_by(coin=coin, address=address)
+            .first()
+        )
+        if not crypto_addr:
+            logger.warning("release_address: not found coin=%s address=%s", coin, address)
+            return False
+        crypto_addr.is_used = False
+        crypto_addr.used_by = None
+        crypto_addr.order_id = None
+        crypto_addr.used_at = None
+        return True
+
+    if session is not None:
+        released = _release(session)
+    else:
+        with Database().session() as db_session:
+            released = _release(db_session)
+            if released:
+                db_session.commit()
+
+    if released:
+        readd_address_to_file(coin, address)
+        logger.info("Released %s address %s back to the pool", coin, address)
+    return released
+
+
+def readd_address_to_file(coin: str, address: str) -> None:
+    """Append an address back to the coin's file if not already present.
+
+    Inverse of ``remove_address_from_file``; keeps the on-disk pool in sync when
+    an address is released. No-op if the address is already listed.
+    """
+    address_file = _get_address_file(coin)
+
+    with _file_lock:
+        address_file.parent.mkdir(parents=True, exist_ok=True)
+        existing = set()
+        if address_file.exists():
+            with open(address_file, 'r') as f:
+                existing = {line.strip() for line in f if line.strip()}
+        if address in existing:
+            return
+        with open(address_file, 'a') as f:
+            f.write(f"{address}\n")
+
+
 def remove_address_from_file(coin: str, address: str) -> None:
     """
     Remove a specific address from the coin's address file.

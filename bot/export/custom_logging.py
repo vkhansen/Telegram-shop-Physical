@@ -288,6 +288,34 @@ def log_order_cancellation(order_id: int, buyer_id: int, buyer_username: str,
     )
 
 
+def log_order_refund(order_id: int, buyer_id: int, method: str,
+                     bonus_restored: float, amount: float, status: str,
+                     reason: str, order_code: Optional[str] = None,
+                     created_by: Optional[int] = None):
+    """
+    Log a payment reversal / refund (Card 24).
+
+    Args:
+        order_id: Order ID
+        buyer_id: Buyer's Telegram ID
+        method: Original payment method being reversed
+        bonus_restored: Bonus amount returned to the customer's balance
+        amount: External (cash) amount flagged for manual admin refund
+        status: 'completed' (bonus-only) or 'pending_manual' (admin must act)
+        reason: Reason for the reversal
+        order_code: Order code (e.g., ECBDJI) if available
+        created_by: Admin telegram id that initiated it (0/None = system/auto)
+    """
+    identifier = f"Code: {order_code}" if order_code else f"ID: {order_id}"
+    by_info = f" | By: {created_by}" if created_by else " | By: system"
+    _get_orders_logger().info(
+        f"ORDER_REFUND | {identifier} | Buyer: {buyer_id} | "
+        f"Method: {method} | BonusRestored: {bonus_restored} | "
+        f"ManualAmount: {amount} | Status: {status} | "
+        f"Reason: {reason}{by_info}"
+    )
+
+
 def log_customer_info_change(user_id: int, username: str, attribute: str,
                              old_value: str, new_value: str):
     """

@@ -2,16 +2,16 @@
 
 > **Sequencing now lives in [`MASTER-PLAN.md`](MASTER-PLAN.md)** — the go-live gate, milestone order, and launch checklist. This file is retained for the **growth-track narrative** (platform scale, AI, multi-platform). [`FEATURE_CARDS.md`](FEATURE_CARDS.md) remains the **status** source of truth; when they disagree, trust `FEATURE_CARDS.md` and update here.
 
-Last reviewed: 2026-06-02
+Last reviewed: 2026-06-03
 
 ---
 
 ## Where we are
 
-- **22 numbered cards shipped** (Phases 1–5) plus the RC/FC menu & feature suites — including the multi-brand runtime (CARD-19) and both Grok assistants (CARD-17 admin, CARD-22 customer), which are now **done**, not backlog.
-- **Open work is reorganized around go-live.** The launch gate (CARD-23/24/25) and driver dispatch (CARD-26) are tracked in [`MASTER-PLAN.md`](MASTER-PLAN.md).
+- **27 numbered cards shipped** (Phases 1–5 + M1 hardening + the full M0 launch gate + M2 dispatch) plus the RC/FC menu & feature suites — including the multi-brand runtime (CARD-19), both Grok assistants (CARD-17 admin, CARD-22 customer), the persistent cart (CARD-21) and input hardening (CARD-27), and as of 2026-06-03 the quality gate (CARD-25), payment-session refactor (CARD-23), payment integrity (CARD-24), and live GPS driver dispatch (CARD-26).
+- **The M0 launch gate is fully green and M2 is shipped (2026-06-03).** CARD-25, CARD-23, and CARD-24 closed the launch gate; CARD-26 then shipped automated GPS driver matching & dispatch (flag-gated behind `AUTO_DISPATCH_ENABLED`). Remaining open work is growth (M3 — CARD-16 Line API), tracked in [`MASTER-PLAN.md`](MASTER-PLAN.md).
 - Codebase is single-bot, single-brand in runtime but has the multi-brand runtime shipped behind `MULTI_BOT_ENABLED`.
-- **Quality gate is currently red** (3 failing tests; 19.69% < 25% coverage; payment-verification layer 0% covered) — see [CARD-25](backlog/CARD-25-test-suite-recovery.md). Handler layer, notifications, i18n, and CLI remain largely untested.
+- **Quality gate is green** (2026-06-03: **1460 passed, 150 skipped, 48.19% coverage** — above the now-30% gate). [CARD-25](done/CARD-25-test-suite-recovery.md) is ✅ done: `smoke` marker registered, marker drift reconciled, `fail_under` ratcheted 25→30; `pytest tests/` collects cleanly. Handler layer, notifications, i18n, and CLI remain comparatively light on tests.
 
 ## Guiding principles
 
@@ -44,11 +44,11 @@ CARD-17 (Grok Admin) ✅ ──▶ CARD-22 (Grok Customer Assistant)
 
 ## Milestones
 
-### M1 — UX Polish  *(target: 1 week after start)*
+### M1 — UX Polish  *(✅ SHIPPED 2026-06-02 — CARD-21 complete)*
 
 **Goal:** Customer-visible cart experience that behaves like a modern delivery app.
 
-- [ ] **CARD-21** — Persistent Cart Stub + Brand/Store Switch Guards *(3–5d)*
+- [x] **CARD-21** — Persistent Cart Stub + Brand/Store Switch Guards *(3–5d)*
   - Cart stub banner on every menu refresh
   - Flash animation on add-to-cart
   - Brand-switch save/delete/stay prompt (`SavedCart` model)
@@ -116,14 +116,14 @@ These show up in the DRY audit and test gap analysis in `FEATURE_CARDS.md`. Not 
 - **Notification system tests** — `bot/payments/notifications.py` untested, but touches every order.
 - **Concurrent inventory race tests** — reservation system has known edge cases.
 
-These are now carded and pulled forward into the launch gate: see [CARD-25](backlog/CARD-25-test-suite-recovery.md) (test recovery + payment-layer coverage) and [CARD-27](backlog/CARD-27-input-hardening.md) (input validation + error handling). They are **P0/P1 in [`MASTER-PLAN.md`](MASTER-PLAN.md)**, not background work.
+These were carded and pulled into the launch gate. **Update (2026-06-03):** [CARD-27](done/CARD-27-input-hardening.md) (input validation + error handling) and [CARD-25](done/CARD-25-test-suite-recovery.md) (test-suite recovery — `smoke` marker, marker reconcile, gate ratchet 25→30; suite green at 46.98%) are both **✅ done**. Handler-layer and CLI tests remain the largest standing gap.
 
 ---
 
 ## Out of scope (for now)
 
 - Loyalty/points program
-- Native driver mobile app — note: in-Telegram automated GPS matching/dispatch is now carded as [CARD-26](backlog/CARD-26-live-gps-driver-matching.md) (M2 in the master plan); a *native app* remains out of scope
+- Native driver mobile app — note: in-Telegram automated GPS matching/dispatch shipped as [CARD-26](done/CARD-26-live-gps-driver-matching.md) (M2); a *native app* remains out of scope
 - In-app card payments beyond PromptPay QR
 - Franchise onboarding self-service UI (CARD-19 ships CLI only)
 

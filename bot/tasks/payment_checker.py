@@ -75,6 +75,16 @@ async def check_pending_payments(bot):
                     payment.received_amount = result.amount
                     payment.confirmations = result.confirmations or 0
 
+                    # Card 24: record any overpayment delta (native coin units)
+                    # so it can be reconciled / refunded out of band.
+                    if result.amount is not None and result.amount > payment.expected_amount:
+                        payment.overpaid_amount = result.amount - payment.expected_amount
+                        logger.info(
+                            "Overpayment recorded: order=%s coin=%s expected=%s received=%s overpaid=%s",
+                            payment.order_id, payment.coin, payment.expected_amount,
+                            result.amount, payment.overpaid_amount,
+                        )
+
                     if payment.status == "awaiting":
                         payment.status = "detected"
                         payment.detected_at = now

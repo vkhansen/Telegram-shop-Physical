@@ -10,7 +10,7 @@ import datetime
 from bot.database.methods import (
     select_max_role_id, create_user, check_role,
     select_user_items, check_user_cached,
-    get_reference_bonus_percent
+    get_reference_bonus_percent, get_saved_carts
 )
 from bot.database import Database
 from bot.database.models.main import CustomerInfo, User
@@ -259,13 +259,14 @@ async def profile_callback_handler(call: CallbackQuery, state: FSMContext):
 
     items = select_user_items(user_id)
     referral = int(get_reference_bonus_percent())
+    saved_carts = len(get_saved_carts(user_id))  # Card 21: surface restore entry
 
     # Get referral bonus balance from CustomerInfo
     with Database().session() as session:
         customer_info = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
         bonus_balance = customer_info.bonus_balance if customer_info and customer_info.bonus_balance else 0
 
-    markup = profile_keyboard(referral, items)
+    markup = profile_keyboard(referral, items, saved_carts)
     text = (
         f"{localize('profile.caption', name=tg_user.first_name, id=user_id)}\n"
         f"{localize('profile.id', id=user_id)}\n"

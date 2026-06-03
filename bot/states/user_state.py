@@ -91,3 +91,10 @@ class GrokAssistantStates(StatesGroup):
     chatting = State()               # Main conversation loop
     awaiting_confirmation = State()  # Waiting for yes/no on mutation
     awaiting_file = State()          # Waiting for CSV/data upload
+
+
+class DriverRegistrationStates(StatesGroup):
+    """FSM for driver self-registration / onboarding (Card 26)."""
+    waiting_name = State()
+    waiting_phone = State()
+    waiting_vehicle = State()

@@ -209,6 +209,61 @@ def save_cart_snapshot(user_id: int, brand_id: int, store_id: int | None,
         return False
 
 
+async def restore_saved_cart(user_id: int, saved_cart_id: int) -> dict:
+    """Card 21: Restore a SavedCart snapshot into the active ShoppingCart.
+
+    Restoring replaces the current active cart (brand-switch semantics — a cart
+    belongs to one brand at a time), then re-adds each saved item through
+    ``add_to_cart`` so the same availability / stock / daily-limit rules apply.
+    Items that are no longer orderable are skipped and reported. The snapshot is
+    consumed (deleted) on success.
+
+    Returns: ``{"ok": bool, "not_found": bool, "restored": int,
+               "skipped": list[str], "brand_id": int|None, "store_id": int|None}``.
+    """
+    from bot.database.models.main import SavedCart
+    from bot.database.methods.delete import clear_cart, delete_saved_cart
+
+    with Database().session() as session:
+        snapshot = session.query(SavedCart).filter_by(
+            id=saved_cart_id, user_id=user_id
+        ).first()
+        if not snapshot:
+            return {"ok": False, "not_found": True, "restored": 0,
+                    "skipped": [], "brand_id": None, "store_id": None}
+        payload = snapshot.items_json or {}
+        items = payload.get("items", []) if isinstance(payload, dict) else []
+        brand_id = snapshot.brand_id
+        store_id = snapshot.store_id
+
+    # Replace the active cart, then re-add the saved items.
+    await clear_cart(user_id)
+
+    restored = 0
+    skipped: list[str] = []
+    for it in items:
+        name = it.get("name")
+        if not name:
+            continue
+        quantity = int(it.get("quantity", 1) or 1)
+        modifiers = it.get("modifiers")
+        ok, _msg = await add_to_cart(
+            user_id, name, quantity,
+            selected_modifiers=modifiers,
+            brand_id=brand_id, store_id=store_id,
+        )
+        if ok:
+            restored += 1
+        else:
+            skipped.append(name)
+
+    # Consume the snapshot regardless of partial skips — it has been applied.
+    delete_saved_cart(user_id, saved_cart_id)
+
+    return {"ok": True, "not_found": False, "restored": restored,
+            "skipped": skipped, "brand_id": brand_id, "store_id": store_id}
+
+
 def create_brand(name: str, slug: str, description: str = None,
                  logo_file_id: str = None, promptpay_id: str = None,
                  promptpay_name: str = None, timezone: str = None) -> int | None:

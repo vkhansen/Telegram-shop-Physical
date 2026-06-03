@@ -286,6 +286,12 @@ async def _mark_completed_hook(call: CallbackQuery, order: Order, session) -> No
     order.completed_at = datetime.now(UTC)
     from bot.handlers.user.delivery_chat_handler import set_post_delivery_window
     set_post_delivery_window(session, order)
+    # Card 26: free the driver's capacity and drop the live-ETA cache.
+    if order.driver_id:
+        from bot.database.methods import adjust_active_orders
+        adjust_active_orders(order.driver_id, -1)
+    from bot.handlers.driver.availability import clear_eta_cache
+    clear_eta_cache(order.id)
 
 
 async def _notify_customer_hook(call: CallbackQuery, order: Order, session) -> None:
@@ -293,7 +299,10 @@ async def _notify_customer_hook(call: CallbackQuery, order: Order, session) -> N
 
 
 async def _notify_rider_hook(call: CallbackQuery, order: Order, session) -> None:
-    await _send_rider_notification(call.bot, order, session)
+    # Card 26: when auto-dispatch is on, offer to nearby drivers instead of (or
+    # before falling back to) the manual rider-group post. Flag-gated inside.
+    from bot.dispatch.dispatcher import on_order_ready
+    await on_order_ready(call.bot, order.id, session=session)
 
 
 async def _prompt_gps_hook(call: CallbackQuery, order: Order, session) -> None:
@@ -401,7 +410,9 @@ async def _send_status_notifications(bot: Bot, order: Order, new_status: str, se
         if new_status == "confirmed":
             await _send_kitchen_notification(bot, order, session)
         elif new_status == "ready":
-            await _send_rider_notification(bot, order, session)
+            # Card 26: route through the dispatcher (auto-dispatch or manual).
+            from bot.dispatch.dispatcher import on_order_ready
+            await on_order_ready(bot, order.id, session=session)
         elif new_status == "out_for_delivery":
             await _notify_customer_status(bot, order)
             try:

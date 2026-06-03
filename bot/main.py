@@ -84,6 +84,11 @@ async def __on_start_up(dp: Dispatcher, bot: Bot) -> None:
         asyncio.ensure_future(payment_checker_loop(bot))
         logging.info("🔗 Crypto payment checker started (interval=%ds)", EnvKeys.CRYPTO_POLL_INTERVAL)
 
+        # Reclaim addresses from expired/cancelled orders back to the pool (Card 24)
+        from bot.tasks.address_reclaimer import start_address_reclaimer
+        start_address_reclaimer()
+        logging.info("♻️  Crypto address reclaimer started (expired/cancelled orders return to pool)")
+
     # Setting Rate Limiting
     rate_config = RateLimitConfig(
         global_limit=30,
@@ -332,6 +337,7 @@ async def start_bot() -> None:
                     bot,
                     allowed_updates=[
                         "message",
+                        "edited_message",  # live-location pin moves (Card 15 & 26)
                         "callback_query",
                         "pre_checkout_query",
                         "successful_payment"

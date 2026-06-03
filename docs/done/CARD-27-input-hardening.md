@@ -1,10 +1,21 @@
 # CARD-27: Input Validation & Error-Handling Hardening
 
-## Status: Not Started
+## Status: ✅ Complete (verified 2026-06-02)
 
 ## Priority: P1 — Production Hardening
 ## Effort: Low (1–2d)
 ## Phase: Production Hardening
+
+---
+
+## Completion Note (2026-06-02 code audit)
+
+Both weaknesses this card targeted are resolved in the working tree:
+
+- **Phone validation — DONE.** `bot/utils/validators.py:81` defines `validate_and_normalize_phone()`, which accepts `0XXXXXXXXX`, `+66XXXXXXXXX`, and bare `66XXXXXXXXX`, normalizing all to E.164 (`+66…`) and raising `ValueError` on malformed input. It is wired into checkout at `bot/handlers/user/order_handler.py:482` (try/except → localized `order.delivery.phone_invalid` on failure). 15 cases in `tests/unit/utils/test_validators.py:242-296` cover Thai/E.164/formatting/rejection paths.
+- **Silent failures — DONE.** A sweep of `bot/handlers/user/` found only **2** remaining bare `except Exception: pass` blocks (`order_handler.py:87`, `shop_and_goods.py:406`), both intentional idempotent `message.delete()` suppressions with explanatory comments. The ~23 swallows the card cited have already been replaced with typed handlers + logging.
+
+> The dedicated test file the card proposed (`tests/unit/utils/test_phone_validator.py`) was folded into the existing `test_validators.py` instead — equivalent coverage, fewer files. No further work required.
 
 ---
 
@@ -31,9 +42,9 @@ Two recurring weaknesses across the user-facing handlers make production debuggi
 
 ## Acceptance Criteria
 
-- [ ] `0812345678` and `+66812345678` both normalize to `+66812345678`
-- [ ] Malformed phone numbers are rejected with a localized message
-- [ ] No bare `except Exception: pass` remains in `bot/handlers/user/` (intentional swallows are commented and logged)
+- [x] `0812345678` and `+66812345678` both normalize to `+66812345678`
+- [x] Malformed phone numbers are rejected with a localized message
+- [x] No bare `except Exception: pass` remains in `bot/handlers/user/` (intentional swallows are commented and logged)
 
 ## Test Plan
 

@@ -398,36 +398,39 @@ async def cleanup_expired_reservations() -> Tuple[int, List[str]]:
             )
 
             if success:
+                # Reverse the payment while the order is still 'reserved', so an
+                # unpaid expiry restores bonus and writes a Refund audit record
+                # via the single reverse_payment path (Card 24).
+                from bot.payments.refunds import reverse_payment
+                refund = reverse_payment(order, session, reason="Reservation expired")
+
                 order.order_status = 'expired'
 
-                if order.bonus_applied and order.bonus_applied > 0:
+                if refund.bonus_restored and refund.bonus_restored > 0:
                     customer_info = session.query(CustomerInfo).filter_by(
                         telegram_id=order.buyer_id
                     ).first()
+                    new_bonus_balance = (
+                        customer_info.bonus_balance if customer_info else refund.bonus_restored
+                    )
 
-                    if customer_info:
-                        old_bonus_balance = customer_info.bonus_balance
-                        customer_info.bonus_balance += order.bonus_applied
-                        new_bonus_balance = customer_info.bonus_balance
+                    buyer_username = get_username_by_telegram_id(order.buyer_id) or f"user_{order.buyer_id}"
+                    sync_customer_to_csv(order.buyer_id, buyer_username)
 
-                        buyer_username = get_username_by_telegram_id(order.buyer_id) or f"user_{order.buyer_id}"
-                        sync_customer_to_csv(order.buyer_id, buyer_username)
+                    # Queue notification for after session close
+                    currency = EnvKeys.PAY_CURRENCY
+                    notifications_to_send.append({
+                        'buyer_id': order.buyer_id,
+                        'order_code': order.order_code,
+                        'bonus_applied': refund.bonus_restored,
+                        'new_bonus_balance': new_bonus_balance,
+                        'currency': currency,
+                    })
 
-                        # Queue notification for after session close
-                        currency = EnvKeys.PAY_CURRENCY
-                        notifications_to_send.append({
-                            'buyer_id': order.buyer_id,
-                            'order_code': order.order_code,
-                            'bonus_applied': order.bonus_applied,
-                            'new_bonus_balance': new_bonus_balance,
-                            'currency': currency,
-                        })
-
-                        logger.info(
-                            f"Refunded bonus {currency}{order.bonus_applied} to buyer {order.buyer_id} "
-                            f"(order: {order.order_code}, old balance: {currency}{old_bonus_balance}, "
-                            f"new balance: {currency}{new_bonus_balance})"
-                        )
+                    logger.info(
+                        f"Refunded bonus {currency}{refund.bonus_restored} to buyer {order.buyer_id} "
+                        f"(order: {order.order_code}, new balance: {currency}{new_bonus_balance})"
+                    )
 
                 order_items = session.query(OrderItem).filter_by(order_id=order.id).all()
                 items_summary = ", ".join(

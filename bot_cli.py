@@ -126,8 +126,10 @@ async def complete_order_by_code(order_code: str):
             print("   Order not completed")
             return
 
-        # Mark order as completed
-        order.order_status = 'completed'
+        # Mark order as delivered (terminal). 'completed' is not a valid
+        # order_status per ck_orders_order_status — it would fail the CHECK
+        # constraint; 'delivered' is the canonical terminal state (Card 24).
+        order.order_status = 'delivered'
         order.completed_at = datetime.now(timezone.utc)
 
         # Update customer spendings
@@ -248,19 +250,16 @@ async def cancel_order_by_code(order_code: str):
             print("   Make sure the order code is correct")
             return
 
-        # Check if already canceled
-        if order.order_status == 'canceled':
-            print(f"⚠️  Order {order_code} is already canceled")
+        # Check if already cancelled
+        if order.order_status == 'cancelled':
+            print(f"⚠️  Order {order_code} is already cancelled")
             return
 
-        # Check if already completed
-        if order.order_status == 'completed':
-            print(f"❌ Cannot cancel completed order {order_code}")
-            print("   Completed orders cannot be canceled")
+        # Check if already delivered
+        if order.order_status == 'delivered':
+            print(f"❌ Cannot cancel delivered order {order_code}")
+            print("   Delivered orders cannot be cancelled")
             return
-
-        # Get buyer information - try to get real username from CSV
-        buyer = session.query(User).filter_by(telegram_id=order.buyer_id).first()
 
         # Try to get username from CSV, fallback to user_{id}
         buyer_username = get_username_by_telegram_id(order.buyer_id) or f"user_{order.buyer_id}"
@@ -271,56 +270,62 @@ async def cancel_order_by_code(order_code: str):
             print(f"⚠️  Warning: Failed to release reservation: {release_message}")
             # Continue with cancellation anyway
 
-        # Mark order as canceled
-        order.order_status = 'canceled'
+        # Reverse the payment BEFORE flipping status, so a paid order is correctly
+        # flagged for manual refund. reverse_payment restores bonus, writes a
+        # Refund audit record, and sets order.refund_status (Card 24).
+        from bot.payments.refunds import reverse_payment
+        admin_id = get_admin_user_id() or int(os.getenv('OWNER_ID', 0))
+        refund = reverse_payment(order, session, reason="Canceled by admin", created_by=admin_id)
 
-        # Refund referral bonus if it was applied
-        bonus_refunded = False
-        if order.bonus_applied and order.bonus_applied > 0:
+        # Mark order as cancelled
+        order.order_status = 'cancelled'
+
+        # Notify customer if bonus was returned
+        new_bonus_balance = None
+        if refund.bonus_restored and refund.bonus_restored > 0:
             customer_info = session.query(CustomerInfo).filter_by(
                 telegram_id=order.buyer_id
             ).first()
+            new_bonus_balance = customer_info.bonus_balance if customer_info else refund.bonus_restored
 
-            if customer_info:
-                old_bonus_balance = customer_info.bonus_balance
-                customer_info.bonus_balance += order.bonus_applied
-                new_bonus_balance = customer_info.bonus_balance
-                bonus_refunded = True
+            print(f"💰 Refunded bonus: ${refund.bonus_restored}")
+            print(f"   New bonus balance: ${new_bonus_balance}")
+            print(f"   Buyer ID: {order.buyer_id}")
+            print(f"   Order code: {order.order_code}")
 
-                print(f"💰 Refunded bonus: ${order.bonus_applied}")
-                print(f"   Previous bonus balance: ${old_bonus_balance}")
-                print(f"   New bonus balance: ${new_bonus_balance}")
-                print(f"   Buyer ID: {order.buyer_id}")
-                print(f"   Order code: {order.order_code}")
+            # Sync to CSV file
+            sync_customer_to_csv(order.buyer_id, buyer_username)
 
-                # Sync to CSV file
-                sync_customer_to_csv(order.buyer_id, buyer_username)
+            # Send notification to customer about bonus refund
+            try:
+                bot = Bot(
+                    token=EnvKeys.TOKEN,
+                    default=DefaultBotProperties(parse_mode="HTML")
+                )
 
-                # Send notification to customer about bonus refund
                 try:
-                    bot = Bot(
-                        token=EnvKeys.TOKEN,
-                        default=DefaultBotProperties(parse_mode="HTML")
+                    notification_text = (
+                        f"ℹ️ <b>Order Canceled</b>\n\n"
+                        f"Your order <b>{order.order_code}</b> has been canceled by admin.\n\n"
+                        f"💰 <b>Bonus Refund: ${refund.bonus_restored}</b>\n"
+                        f"📊 New Bonus Balance: <b>${new_bonus_balance}</b>\n\n"
+                        f"Your referral bonus has been returned to your account.\n"
+                        f"You can use it for your next order!"
                     )
 
-                    try:
-                        notification_text = (
-                            f"ℹ️ <b>Order Canceled</b>\n\n"
-                            f"Your order <b>{order.order_code}</b> has been canceled by admin.\n\n"
-                            f"💰 <b>Bonus Refund: ${order.bonus_applied}</b>\n"
-                            f"📊 New Bonus Balance: <b>${new_bonus_balance}</b>\n\n"
-                            f"Your referral bonus has been returned to your account.\n"
-                            f"You can use it for your next order!"
-                        )
+                    await bot.send_message(order.buyer_id, notification_text)
+                    print("📧 Bonus refund notification sent to customer")
+                finally:
+                    await bot.session.close()
 
-                        await bot.send_message(order.buyer_id, notification_text)
-                        print("📧 Bonus refund notification sent to customer")
-                    finally:
-                        await bot.session.close()
+            except Exception as e:
+                print(f"⚠️  Failed to send bonus refund notification: {e}")
+                # Continue execution even if notification fails
 
-                except Exception as e:
-                    print(f"⚠️  Failed to send bonus refund notification: {e}")
-                    # Continue execution even if notification fails
+        # Surface any external payment that an admin must refund out of band
+        if refund.status == 'pending_manual':
+            print(f"⚠️  MANUAL REFUND REQUIRED: {refund.amount} {order.payment_method} "
+                  f"for order {order_code} — customer already paid.")
 
         # Get order items for logging
         from bot.database.models.main import OrderItem
@@ -355,6 +360,67 @@ async def cancel_order_by_code(order_code: str):
         print(f"   Customer: @{buyer_username} (ID: {order.buyer_id})")
         print(f"   Total: ${order.total_price}")
         print(f"   Payment Method: {order.payment_method}")
+
+
+async def refund_order_by_code(order_code: str, reason: str = "Manual refund (admin CLI)"):
+    """
+    Reverse a payment for an order (Card 24).
+
+    Restores any referral bonus, writes an auditable Refund record, and flags
+    external (crypto/PromptPay/cash) payments that an admin must return out of
+    band. Idempotent — a second call reports the existing refund and does
+    nothing. Does not change the order status (use `order --cancel` for that).
+
+    Args:
+        order_code: Unique 6-character order code (e.g., ECBDJI)
+        reason: Reason recorded on the refund
+    """
+    from bot.payments.refunds import reverse_payment
+    from bot.database.models.main import Refund
+
+    admin_id = get_admin_user_id() or int(os.getenv('OWNER_ID', 0))
+
+    with Database().session() as session:
+        order = session.query(Order).filter_by(order_code=order_code).first()
+        if not order:
+            print(f"❌ Order not found with code: {order_code}")
+            return
+
+        existing = session.query(Refund).filter_by(order_id=order.id).first()
+        if existing is not None:
+            print(f"⚠️  Order {order_code} already has a refund "
+                  f"(#{existing.id}, status={existing.status})")
+            return
+
+        refund = reverse_payment(order, session, reason=reason, created_by=admin_id)
+        session.commit()
+
+        print(f"✅ Refund recorded for order {order_code}")
+        print(f"   Method: {refund.method}")
+        print(f"   Bonus restored: {refund.bonus_restored}")
+        if refund.status == 'pending_manual':
+            print(f"   ⚠️  MANUAL REFUND REQUIRED: {refund.amount} {refund.method} "
+                  f"— customer already paid")
+        else:
+            print(f"   Status: {refund.status} (no external payout needed)")
+
+
+def reclaim_addresses_cmd(ttl_hours: int = 24):
+    """
+    Return crypto addresses held by expired/cancelled orders to the pool (Card 24).
+
+    Args:
+        ttl_hours: Only reclaim addresses idle at least this many hours.
+    """
+    from bot.tasks.address_reclaimer import reclaim_expired_addresses
+
+    count, addrs = reclaim_expired_addresses(ttl_hours)
+    if count:
+        print(f"♻️  Reclaimed {count} address(es) back to the pool:")
+        for a in addrs:
+            print(f"   - {a}")
+    else:
+        print("No addresses to reclaim (none past TTL on expired/cancelled orders).")
 
 
 async def confirm_order_with_delivery_time(order_code: str, delivery_time_str: str):
@@ -1332,6 +1398,27 @@ def main():
             asyncio.run(update_delivery_time(args.order_code, args.delivery_time, args.notify))
 
     order_parser.set_defaults(func=handle_order_action)
+
+    # Payment refund / reversal (Card 24)
+    refund_parser = subparsers.add_parser(
+        'refund',
+        help='Reverse a payment: restore bonus, record a Refund, flag manual payout'
+    )
+    refund_parser.add_argument('order_code', help='Order code (e.g., ECBDJI)')
+    refund_parser.add_argument('--reason', default='Manual refund (admin CLI)',
+                               help='Reason recorded on the refund')
+    refund_parser.set_defaults(
+        func=lambda args: asyncio.run(refund_order_by_code(args.order_code, args.reason))
+    )
+
+    # Crypto address pool maintenance (Card 24)
+    reclaim_parser = subparsers.add_parser(
+        'reclaim-addresses',
+        help='Return crypto addresses from expired/cancelled orders back to the pool'
+    )
+    reclaim_parser.add_argument('--ttl-hours', type=int, default=24,
+                                help='Only reclaim addresses idle at least this many hours (default 24)')
+    reclaim_parser.set_defaults(func=lambda args: reclaim_addresses_cmd(args.ttl_hours))
 
     # Reference code management
     refcode_parser = subparsers.add_parser('refcode', help='Manage reference codes')

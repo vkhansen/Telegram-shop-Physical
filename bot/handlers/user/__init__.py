@@ -9,6 +9,7 @@ from .orders_view_handler import router as orders_view_router
 from .reference_code_handler import router as reference_code_router
 from .referral_system import router as referral_system_router
 from .review_handler import router as review_router
+from .saved_carts_handler import router as saved_carts_router
 from .search_handler import router as search_router
 from .shop_and_goods import router as shop_and_goods_router
 from .store_selection import router as store_selection_router
@@ -28,6 +29,7 @@ router.include_router(orders_view_router)
 router.include_router(delivery_chat_router)
 router.include_router(search_router)
 router.include_router(review_router)
+router.include_router(saved_carts_router)
 router.include_router(ticket_router)
 router.include_router(grok_customer_router)
 router.include_router(shop_and_goods_router)

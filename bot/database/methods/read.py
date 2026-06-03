@@ -632,6 +632,38 @@ def get_stores_for_brand(brand_id: int, active_only: bool = True) -> list[dict]:
         ]
 
 
+def get_saved_carts(user_id: int) -> list[dict]:
+    """Card 21: Return the user's saved-cart snapshots (newest first) as dicts.
+
+    Each dict: id, brand_id, brand_name, store_id, store_name, item_count, total, saved_at.
+    """
+    from bot.database.models.main import SavedCart, Store
+    out: list[dict] = []
+    with Database().session() as s:
+        rows = (
+            s.query(SavedCart)
+            .filter_by(user_id=user_id)
+            .order_by(SavedCart.saved_at.desc())
+            .all()
+        )
+        for r in rows:
+            payload = r.items_json or {}
+            items = payload.get("items", []) if isinstance(payload, dict) else []
+            brand = s.query(Brand).filter_by(id=r.brand_id).first()
+            store = s.query(Store).filter_by(id=r.store_id).first() if r.store_id else None
+            out.append({
+                "id": r.id,
+                "brand_id": r.brand_id,
+                "brand_name": brand.name if brand else str(r.brand_id),
+                "store_id": r.store_id,
+                "store_name": store.name if store else None,
+                "item_count": sum(int(i.get("quantity", 0) or 0) for i in items),
+                "total": r.original_total,
+                "saved_at": r.saved_at,
+            })
+    return out
+
+
 def can_manage_brand(user_id: int, brand_id: int) -> bool:
     """Check if a user can manage a brand (SUPERADMIN or brand staff with owner/admin role)."""
     with Database().session() as s:

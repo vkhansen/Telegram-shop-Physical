@@ -33,6 +33,8 @@
 | CARD-17 | Grok AI Admin Assistant | Phase 5 | [docs/done/CARD-17](done/CARD-17-grok-admin-assistant.md) |
 | CARD-19 | Multi-Brand Bot Coordination | Phase 4 | [docs/done/CARD-19](done/CARD-19-multi-brand-bot-coordination.md) |
 | CARD-22 | Grok AI Customer Assistant | Phase 5 | [docs/done/CARD-22](done/CARD-22-grok-customer-assistant.md) |
+| CARD-21 | Persistent Cart Stub + Brand/Store Switch | M1 | [docs/done/CARD-21](done/CARD-21-persistent-cart-stub.md) |
+| CARD-27 | Input Validation & Error-Handling Hardening | M1 | [docs/done/CARD-27](done/CARD-27-input-hardening.md) |
 | CARD-RC1 | Multi-Media Menu Items | Restaurant Core | [see below](#restaurant-core-cards) |
 | CARD-RC2 | Prep Time + Kitchen Tracking | Restaurant Core | [see below](#restaurant-core-cards) |
 | CARD-RC3 | Allergen Management | Restaurant Core | [see below](#restaurant-core-cards) |
@@ -54,38 +56,34 @@
 
 Sequenced by the **go-live gate** first. Full rationale and dependency graph in [`MASTER-PLAN.md`](MASTER-PLAN.md).
 
+> **Status reconciliation (2026-06-03).** **CARD-26 is now complete** (moved to `docs/done/`) — **M2 (live delivery dispatch) is shipped.** All four phases landed flag-gated behind `AUTO_DISPATCH_ENABLED`: driver model/onboarding, online/offline + live-location trail, nearest-driver offer/accept/escalate with manual fallback, and live ETA. Suite: **1460 passed, 150 skipped, 0 failures** at **48.19% coverage**. Earlier the same day **CARD-24** closed the M0 launch gate (dup-slip rejection, refund/reversal audit trail, crypto reconciliation, receiver-name hardening); **CARD-25 and CARD-23** also completed; the 2026-06-02 audit closed **CARD-27 and CARD-21**.
+
 | # | Card | Name | Milestone | Progress | Priority | Effort | Detail |
 |---|------|------|-----------|----------|----------|--------|--------|
-| 1 | CARD-25 | Test Suite Recovery & Payment Coverage | M0 — Launch Gate | 0% | **P0** | Medium (3–5d) | [CARD-25](backlog/CARD-25-test-suite-recovery.md) |
-| 2 | CARD-23 | Payment Handler DB-Session Refactor | M0 — Launch Gate | 0% | **P0** | Medium (2–3d) | [CARD-23](backlog/CARD-23-payment-session-refactor.md) |
-| 3 | CARD-24 | Payment Integrity (dup slips / refunds / crypto) | M0 — Launch Gate | 0% | **P0** | Medium (2–3d) | [CARD-24](backlog/CARD-24-payment-integrity.md) |
-| 4 | CARD-27 | Input Validation & Error-Handling Hardening | M1 — Hardening | 0% | P1 | Low (1–2d) | [CARD-27](backlog/CARD-27-input-hardening.md) |
-| 5 | CARD-21 | Persistent Cart Stub + Brand/Store Switch Guards | M1 — Hardening | ~60% | P1 | Medium (2–3d) | [CARD-21](backlog/CARD-21-persistent-cart-stub.md) |
-| 6 | CARD-26 | Live GPS Driver Matching & Dispatch | M2 — Dispatch | 0% | P2 | Very High (2–3wk) | [CARD-26](backlog/CARD-26-live-gps-driver-matching.md) |
-| 7 | CARD-16 | Line API Integration | M3 — Growth | 0% | P2 | High (5–8d) | [CARD-16](later/CARD-16-line-api-integration.md) |
+| 1 | CARD-16 | Line API Integration | M3 — Growth | 0% | P2 | High (5–8d) | [CARD-16](later/CARD-16-line-api-integration.md) |
+
+**Recently completed (moved to DONE):** CARD-26 (live GPS driver matching — driver model/onboarding, online/offline + live-location trail, nearest-driver offer/accept/escalate with manual fallback, live ETA; flag-gated; **M2 shipped**), CARD-24 (payment integrity — dup-slip rejection, refund/reversal audit trail, crypto reconciliation, receiver-name hardening; **M0 gate now fully green**), CARD-23 (payment session refactor — all 6 handlers off the session-across-await pattern + `get_metrics` fix), CARD-25 (test-suite recovery — `smoke` marker + marker reconcile + gate ratchet 25→30), CARD-27 (input hardening — phone validator + bare-except sweep), CARD-21 (persistent cart — all 6 phases incl. brand/store switch guards).
 
 ### Next Up (Rationale)
 
-**M0 — Launch Gate (P0, ~1.5–2 weeks). Do not ship without these.**
-1. **CARD-25 — Test Suite Recovery.** Do this *first*: the suite is red (3 failures, 19.69% < 25% gate) and the payment-verification layer has 0% coverage, so it can't certify the next two cards. One failure (`metrics.py:75` set-mutation crash) is a real prod bug.
-2. **CARD-23 — Payment Session Refactor.** Payment handlers hold a DB session across 5–6 awaits → connection-pool exhaustion exactly when traffic spikes. Reliability blocker.
-3. **CARD-24 — Payment Integrity.** No duplicate-slip guard (one slip can pay many orders), no refund/reversal, no crypto reconciliation. Money-loss risk on day one.
+**M0 — Launch Gate (P0). ✅ COMPLETE.**
+- ✅ **CARD-25 — Test Suite Recovery (DONE 2026-06-03).** `smoke` marker registered, marker drift reconciled, `fail_under` 25→30. CI green.
+- ✅ **CARD-23 — Payment Session Refactor (DONE 2026-06-03).** All 6 payment/order handlers now release the DB session before any Telegram/network I/O (AST-guarded); fixed a latent `get_metrics` `NameError`.
+- ✅ **CARD-24 — Payment Integrity (DONE 2026-06-03).** Same slip can't pay twice (pre-check + constraint, friendly rejection + admin alert); `reverse_payment()` restores bonus and writes an auditable `Refund` (idempotent), wired into cancel + expiry; crypto overpayment recorded; expired/cancelled addresses reclaimed after a 24h TTL; receiver-name normalized match; `bot_cli.py refund` / `reclaim-addresses`. Also fixed an invalid-`order_status` (`'canceled'`/`'completed'`) bug class that violated the CHECK constraint.
 
-**M1 — Production Hardening (P1, ~1 week).**
-4. **CARD-27 — Input Hardening.** Real phone validation (Thai + E.164) so riders can actually call; kill ~23 silent `except: pass` blocks.
-5. **CARD-21 — Persistent Cart.** ~60% shipped (banner, flash, expiry). Finish brand-switch prompt (Phase 4) and store-switch availability (Phase 5).
-
-**M2 — Live Delivery Dispatch (P2, ~2–3 weeks).**
-6. **CARD-26 — GPS Driver Matching.** The differentiator: today there is **no automated driver matching** — manual rider-group pickup only. Builds the matching layer on the existing GPS/live-location/chat foundation. Launch can proceed with manual dispatch; this is the first post-launch epic.
+**M2 — Live Delivery Dispatch (P2). ✅ COMPLETE (2026-06-03).**
+- ✅ **CARD-26 — GPS Driver Matching (DONE).** All four phases shipped: driver model + `/driver` onboarding/approval; online/offline + live-location trail; nearest-driver offer/accept with decline/timeout escalation and manual rider-group fallback; live position-driven ETA to the customer. Flag-gated behind `AUTO_DISPATCH_ENABLED` (default off → legacy manual flow unchanged). 13 new tests; suite green.
 
 **M3 — Growth (P2, deferred).**
-7. **CARD-16 — Line API.** 53M Thai users, but forces a transport abstraction across all handlers. Inherits the shipped multi-brand context (CARD-19); do it after dispatch is stable.
+5. **CARD-16 — Line API.** 53M Thai users, but forces a transport abstraction across all handlers. Inherits the shipped multi-brand context (CARD-19); do it after dispatch is stable.
 
 ---
 
 ## Current Test Coverage Analysis
 
-### Existing Test Suite (171 tests, ~2,769 lines)
+> **Current as of 2026-06-02:** `pytest tests/` (collection-fix applied) runs **1426 passed, 150 skipped** at **46.89%** branch coverage — well above the 25% gate. The table below is the *original Phase-0 baseline (171 tests)* and is kept for historical context; it no longer reflects the live suite, which now includes payment-verification, middleware, cart-stub, and task tests.
+
+### Original baseline test suite (171 tests, ~2,769 lines) — historical
 
 | Test File | Tests | What's Covered |
 |-----------|-------|----------------|

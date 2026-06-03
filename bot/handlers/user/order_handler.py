@@ -21,6 +21,7 @@ from bot.utils import generate_unique_order_code, get_telegram_username
 from bot.utils.validators import validate_and_normalize_phone
 from bot.utils.message_utils import send_or_edit
 from bot.utils.tracking import track_payment
+from bot.monitoring.metrics import get_metrics
 from bot.utils.constants import (
     PAYMENT_BITCOIN, PAYMENT_CASH, PAYMENT_PROMPTPAY,
     PAYMENT_LITECOIN, PAYMENT_SOLANA, PAYMENT_USDT_SOL,
@@ -819,142 +820,167 @@ async def process_crypto_payment(message: Message, state: FSMContext, *, user_id
         )
         return
 
+    # Phase 1 — preflight read (short session, no awaits inside)
     with Database().session() as session:
         customer_info = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
-        if not customer_info:
-            await message.answer(localize("order.payment.customer_not_found"), reply_markup=back("view_cart"))
-            return
+        customer_found = customer_info is not None
+        customer_bonus = customer_info.bonus_balance if customer_info else Decimal("0")
+    # session closed before any Telegram I/O
 
-        if bonus_applied > 0:
-            if customer_info.bonus_balance < bonus_applied:
-                await message.answer(localize("order.bonus.insufficient"), reply_markup=back("view_cart"))
-                return
-            customer_info.bonus_balance -= bonus_applied
+    if not customer_found:
+        await message.answer(localize("order.payment.customer_not_found"), reply_markup=back("view_cart"))
+        return
+    if bonus_applied > 0 and customer_bonus < bonus_applied:
+        await message.answer(localize("order.bonus.insufficient"), reply_markup=back("view_cart"))
+        return
 
+    # Phase 2 — write transaction (no awaits inside session)
+    order_code = None
+    payment_text = None
+    reserve_failed = False
+    reserve_msg = None
+    create_failed = False
+    with Database().session() as session:
         try:
-            # Create order
-            order = Order(
-                buyer_id=user_id,
-                total_price=Decimal(str(total_amount)),
-                bonus_applied=bonus_applied,
-                payment_method=payment_method,
-                delivery_address=customer_info.delivery_address,
-                phone_number=customer_info.phone_number,
-                delivery_note=customer_info.delivery_note or "",
-                crypto_address=address,
-                payment_coin=coin,
-                order_status="pending",
-                latitude=customer_info.latitude,
-                longitude=customer_info.longitude,
-                google_maps_link=(
-                    f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}"
-                    if customer_info.latitude and customer_info.longitude else None
-                ),
-                delivery_type=dd_type,
-                drop_instructions=dd_instructions,
-                drop_latitude=dd_lat,
-                drop_longitude=dd_lng,
-                drop_media=dd_media,
-                brand_id=data.get('current_brand_id'),
-                store_id=data.get('current_store_id'),
-            )
-            session.add(order)
-            session.flush()
-            order.order_code = generate_unique_order_code(session)
+            customer_info = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
+            if not customer_info:
+                create_failed = True
+            else:
+                if bonus_applied > 0:
+                    customer_info.bonus_balance -= bonus_applied
 
-            # Order items
-            items_summary = []
-            items_to_reserve = []
-            for cart_item in cart_items:
-                oi = OrderItem(
-                    order_id=order.id,
-                    item_name=cart_item["item_name"],
-                    price=Decimal(str(cart_item["price"])),
-                    quantity=cart_item["quantity"],
-                    selected_modifiers=cart_item.get("selected_modifiers"),
+                # Create order
+                order = Order(
+                    buyer_id=user_id,
+                    total_price=Decimal(str(total_amount)),
+                    bonus_applied=bonus_applied,
+                    payment_method=payment_method,
+                    delivery_address=customer_info.delivery_address,
+                    phone_number=customer_info.phone_number,
+                    delivery_note=customer_info.delivery_note or "",
+                    crypto_address=address,
+                    payment_coin=coin,
+                    order_status="pending",
+                    latitude=customer_info.latitude,
+                    longitude=customer_info.longitude,
+                    google_maps_link=(
+                        f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}"
+                        if customer_info.latitude and customer_info.longitude else None
+                    ),
+                    delivery_type=dd_type,
+                    drop_instructions=dd_instructions,
+                    drop_latitude=dd_lat,
+                    drop_longitude=dd_lng,
+                    drop_media=dd_media,
+                    brand_id=data.get('current_brand_id'),
+                    store_id=data.get('current_store_id'),
                 )
-                session.add(oi)
-                items_summary.append(
-                    f"{cart_item['item_name']} x{cart_item['quantity']} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}"
-                )
-                items_to_reserve.append({"item_name": cart_item["item_name"], "quantity": cart_item["quantity"]})
+                session.add(order)
+                session.flush()
+                order.order_code = generate_unique_order_code(session)
 
-            # Reserve inventory (7 day timeout for crypto)
-            success, reserve_msg = reserve_inventory(order.id, items_to_reserve, payment_method=payment_method, session=session)
-            if not success:
-                session.rollback()
-                await message.answer(
-                    localize("order.inventory.unable_to_reserve", unavailable_items=reserve_msg),
-                    reply_markup=back("view_cart"),
-                )
-                return
+                # Order items
+                items_summary = []
+                items_to_reserve = []
+                for cart_item in cart_items:
+                    oi = OrderItem(
+                        order_id=order.id,
+                        item_name=cart_item["item_name"],
+                        price=Decimal(str(cart_item["price"])),
+                        quantity=cart_item["quantity"],
+                        selected_modifiers=cart_item.get("selected_modifiers"),
+                    )
+                    session.add(oi)
+                    items_summary.append(
+                        f"{cart_item['item_name']} x{cart_item['quantity']} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}"
+                    )
+                    items_to_reserve.append({"item_name": cart_item["item_name"], "quantity": cart_item["quantity"]})
 
-            # Mark address used
-            mark_address_used(coin, address, user_id, order.id, session=session)
+                # Reserve inventory (7 day timeout for crypto)
+                success, reserve_msg = reserve_inventory(order.id, items_to_reserve, payment_method=payment_method, session=session)
+                if not success:
+                    session.rollback()
+                    reserve_failed = True
+                else:
+                    # Mark address used
+                    mark_address_used(coin, address, user_id, order.id, session=session)
 
-            # Create CryptoPayment record for on-chain verification
-            from datetime import timedelta
-            timeout_map = {
-                "btc": EnvKeys.CRYPTO_PAYMENT_TIMEOUT_BTC,
-                "ltc": EnvKeys.CRYPTO_PAYMENT_TIMEOUT_LTC,
-                "sol": EnvKeys.CRYPTO_PAYMENT_TIMEOUT_SOL,
-                "usdt_sol": EnvKeys.CRYPTO_PAYMENT_TIMEOUT_USDT,
-            }
-            timeout_minutes = timeout_map.get(coin, 60)
-            from datetime import datetime as dt, timezone as tz
-            crypto_payment = CryptoPayment(
-                order_id=order.id,
-                coin=coin,
-                receive_address=address,
-                expected_amount=crypto_amount,
-                required_confirmations=verifier.required_confirmations(),
-                expires_at=dt.now(tz.utc) + timedelta(minutes=timeout_minutes),
-            )
-            session.add(crypto_payment)
+                    # Create CryptoPayment record for on-chain verification
+                    from datetime import timedelta
+                    timeout_map = {
+                        "btc": EnvKeys.CRYPTO_PAYMENT_TIMEOUT_BTC,
+                        "ltc": EnvKeys.CRYPTO_PAYMENT_TIMEOUT_LTC,
+                        "sol": EnvKeys.CRYPTO_PAYMENT_TIMEOUT_SOL,
+                        "usdt_sol": EnvKeys.CRYPTO_PAYMENT_TIMEOUT_USDT,
+                    }
+                    timeout_minutes = timeout_map.get(coin, 60)
+                    from datetime import datetime as dt, timezone as tz
+                    crypto_payment = CryptoPayment(
+                        order_id=order.id,
+                        coin=coin,
+                        receive_address=address,
+                        expected_amount=crypto_amount,
+                        required_confirmations=verifier.required_confirmations(),
+                        expires_at=dt.now(tz.utc) + timedelta(minutes=timeout_minutes),
+                    )
+                    session.add(crypto_payment)
 
-            log_order_creation(
-                order_id=order.id, buyer_id=user_id, buyer_username=username,
-                items_summary="\n".join(items_summary),
-                total_price=float(total_amount), payment_method=payment_method,
-                delivery_address=customer_info.delivery_address,
-                phone_number=customer_info.phone_number,
-                bitcoin_address=address, order_code=order.order_code,
-            )
+                    log_order_creation(
+                        order_id=order.id, buyer_id=user_id, buyer_username=username,
+                        items_summary="\n".join(items_summary),
+                        total_price=float(total_amount), payment_method=payment_method,
+                        delivery_address=customer_info.delivery_address,
+                        phone_number=customer_info.phone_number,
+                        bitcoin_address=address, order_code=order.order_code,
+                    )
 
-            session.query(ShoppingCart).filter_by(user_id=user_id).delete()
-            session.commit()
+                    session.query(ShoppingCart).filter_by(user_id=user_id).delete()
+                    session.commit()
+                    order_code = order.order_code
 
-            from bot.utils.tracking import track_event
-            track_event("order_created", user_id, {
-                "order_code": order.order_code,
-                "payment_method": payment_method,
-                "coin": coin,
-                "total": float(total_amount),
-                "bonus_applied": float(bonus_applied),
-            })
+                    from bot.utils.tracking import track_event
+                    track_event("order_created", user_id, {
+                        "order_code": order_code,
+                        "payment_method": payment_method,
+                        "coin": coin,
+                        "total": float(total_amount),
+                        "bonus_applied": float(bonus_applied),
+                    })
 
-            # Send payment message
-            payment_text = (
-                localize("crypto.payment.title", coin_name=coin_name) + "\n\n" +
-                localize("crypto.payment.order_code", code=order.order_code) + "\n" +
-                localize("crypto.payment.total_fiat", amount=final_amount, currency=EnvKeys.PAY_CURRENCY) + "\n" +
-                localize("crypto.payment.rate", coin=coin.upper(), rate=exchange_rate, currency=EnvKeys.PAY_CURRENCY) + "\n" +
-                localize("crypto.payment.amount_due", crypto_amount=crypto_amount, coin=coin.upper()) + "\n\n" +
-                localize("crypto.payment.address", address=address) + "\n\n" +
-                localize("crypto.payment.send_exact") + "\n" +
-                localize("crypto.payment.one_time") + "\n" +
-                localize("crypto.payment.auto_confirm") + "\n\n" +
-                localize("crypto.payment.waiting", timeout=timeout_minutes)
-            )
-
-            await message.answer(payment_text, reply_markup=back("back_to_menu"))
-            sync_customer_to_csv(user_id, username)
-            await state.clear()
+                    # Build payment message (sync — sent after session closes)
+                    payment_text = (
+                        localize("crypto.payment.title", coin_name=coin_name) + "\n\n" +
+                        localize("crypto.payment.order_code", code=order_code) + "\n" +
+                        localize("crypto.payment.total_fiat", amount=final_amount, currency=EnvKeys.PAY_CURRENCY) + "\n" +
+                        localize("crypto.payment.rate", coin=coin.upper(), rate=exchange_rate, currency=EnvKeys.PAY_CURRENCY) + "\n" +
+                        localize("crypto.payment.amount_due", crypto_amount=crypto_amount, coin=coin.upper()) + "\n\n" +
+                        localize("crypto.payment.address", address=address) + "\n\n" +
+                        localize("crypto.payment.send_exact") + "\n" +
+                        localize("crypto.payment.one_time") + "\n" +
+                        localize("crypto.payment.auto_confirm") + "\n\n" +
+                        localize("crypto.payment.waiting", timeout=timeout_minutes)
+                    )
 
         except Exception as e:
             session.rollback()
             logger.error("Error creating crypto order: %s", e)
-            await message.answer(localize("order.payment.error_general"), reply_markup=back("view_cart"))
+            create_failed = True
+    # session closed before any Telegram I/O
+
+    # Phase 3 — outbound I/O (no DB connection held)
+    if reserve_failed:
+        await message.answer(
+            localize("order.inventory.unable_to_reserve", unavailable_items=reserve_msg),
+            reply_markup=back("view_cart"),
+        )
+        return
+    if create_failed:
+        await message.answer(localize("order.payment.error_general"), reply_markup=back("view_cart"))
+        return
+
+    await message.answer(payment_text, reply_markup=back("back_to_menu"))
+    sync_customer_to_csv(user_id, username)
+    await state.clear()
 
 
 async def finalize_order_and_payment(message: Message, state: FSMContext, user_id: int = None,
@@ -1079,160 +1105,187 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
     dd_lng = fsm_data.get('drop_longitude')
     dd_media = fsm_data.get('drop_media')
 
-    # Get customer info
+    # Phase 1 — preflight read (short session, no awaits inside)
     with Database().session() as session:
         customer_info = session.query(CustomerInfo).filter_by(
             telegram_id=user_id
         ).first()
+        customer_found = customer_info is not None
+    # session closed before any Telegram I/O
 
-        if not customer_info:
-            await call.answer(localize("order.payment.customer_not_found"), show_alert=True)
-            return
+    if not customer_found:
+        await call.answer(localize("order.payment.customer_not_found"), show_alert=True)
+        return
 
-        # Create one order for entire cart
+    # Phase 2 — write transaction (no awaits inside session)
+    order_code = None
+    payment_text = None
+    items_summary = []
+    cust_address = None
+    cust_phone = None
+    cust_note = None
+    reserve_failed = False
+    reserve_msg = None
+    create_failed = False
+    with Database().session() as session:
         try:
-            items_summary = []
-
-            # Create the main order
-            order = Order(
-                buyer_id=user_id,
-                total_price=Decimal(str(total_amount)),
-                payment_method=PAYMENT_BITCOIN,
-                delivery_address=customer_info.delivery_address,
-                phone_number=customer_info.phone_number,
-                delivery_note=customer_info.delivery_note or "",
-                bitcoin_address=btc_address,
-                order_status="pending",
-                latitude=customer_info.latitude,
-                longitude=customer_info.longitude,
-                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude and customer_info.longitude else None,
-                delivery_type=dd_type,
-                drop_instructions=dd_instructions,
-                drop_latitude=dd_lat,
-                drop_longitude=dd_lng,
-                drop_media=dd_media,
-                brand_id=fsm_data.get('current_brand_id'),
-                store_id=fsm_data.get('current_store_id'),
-            )
-            session.add(order)
-            session.flush()  # Get the order ID
-
-            # Generate unique order code
-            order.order_code = generate_unique_order_code(session)
-
-            # Process each cart item and create OrderItems (Physical Goods - No ItemValues)
-            items_to_reserve = []
-            for cart_item in cart_items:
-                item_name = cart_item['item_name']
-                quantity = cart_item['quantity']
-                price = cart_item['price']
-
-                # Create OrderItem (no item_values field for physical goods)
-                order_item = OrderItem(
-                    order_id=order.id,
-                    item_name=item_name,
-                    price=Decimal(str(price)),
-                    quantity=quantity,
-                    selected_modifiers=cart_item.get('selected_modifiers')
+            customer_info = session.query(CustomerInfo).filter_by(
+                telegram_id=user_id
+            ).first()
+            if not customer_info:
+                create_failed = True
+            else:
+                # Create the main order
+                order = Order(
+                    buyer_id=user_id,
+                    total_price=Decimal(str(total_amount)),
+                    payment_method=PAYMENT_BITCOIN,
+                    delivery_address=customer_info.delivery_address,
+                    phone_number=customer_info.phone_number,
+                    delivery_note=customer_info.delivery_note or "",
+                    bitcoin_address=btc_address,
+                    order_status="pending",
+                    latitude=customer_info.latitude,
+                    longitude=customer_info.longitude,
+                    google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude and customer_info.longitude else None,
+                    delivery_type=dd_type,
+                    drop_instructions=dd_instructions,
+                    drop_latitude=dd_lat,
+                    drop_longitude=dd_lng,
+                    drop_media=dd_media,
+                    brand_id=fsm_data.get('current_brand_id'),
+                    store_id=fsm_data.get('current_store_id'),
                 )
-                session.add(order_item)
+                session.add(order)
+                session.flush()  # Get the order ID
 
-                # Add to reservation list
-                items_to_reserve.append({
-                    'item_name': item_name,
-                    'quantity': quantity
-                })
+                # Generate unique order code
+                order.order_code = generate_unique_order_code(session)
 
-                items_summary.append(f"{item_name} x{quantity} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}")
+                # Process each cart item and create OrderItems (Physical Goods - No ItemValues)
+                items_to_reserve = []
+                for cart_item in cart_items:
+                    item_name = cart_item['item_name']
+                    quantity = cart_item['quantity']
+                    price = cart_item['price']
 
-            # Reserve inventory for 15 minutes.
-            # NOTE: pass `session` by keyword — passing it positionally would bind
-            # it to `payment_method` and run the reservation in a separate
-            # transaction, breaking atomicity with the rest of order creation.
-            success, msg = reserve_inventory(order.id, items_to_reserve, session=session)
-            if not success:
-                session.rollback()
-                await call.message.edit_text(
-                    localize("order.inventory.unable_to_reserve", unavailable_items=msg),
-                    reply_markup=back("view_cart")
-                )
-                return
+                    # Create OrderItem (no item_values field for physical goods)
+                    order_item = OrderItem(
+                        order_id=order.id,
+                        item_name=item_name,
+                        price=Decimal(str(price)),
+                        quantity=quantity,
+                        selected_modifiers=cart_item.get('selected_modifiers')
+                    )
+                    session.add(order_item)
 
-            # Mark Bitcoin address as used with this order
-            mark_bitcoin_address_used(btc_address, user_id, username, order.id, session=session,
-                                      order_code=order.order_code)
+                    # Add to reservation list
+                    items_to_reserve.append({
+                        'item_name': item_name,
+                        'quantity': quantity
+                    })
 
-            # Log order creation
-            log_order_creation(
-                order_id=order.id,
-                buyer_id=user_id,
-                buyer_username=username,
-                items_summary="\n".join(items_summary),
-                total_price=float(total_amount),
-                payment_method=PAYMENT_BITCOIN,
-                delivery_address=customer_info.delivery_address,
-                phone_number=customer_info.phone_number,
-                bitcoin_address=btc_address,
-                order_code=order.order_code
-            )
+                    items_summary.append(f"{item_name} x{quantity} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}")
 
-            # Clear cart
-            session.query(ShoppingCart).filter_by(user_id=user_id).delete()
+                # Reserve inventory for 15 minutes.
+                # NOTE: pass `session` by keyword — passing it positionally would bind
+                # it to `payment_method` and run the reservation in a separate
+                # transaction, breaking atomicity with the rest of order creation.
+                success, reserve_msg = reserve_inventory(order.id, items_to_reserve, session=session)
+                if not success:
+                    session.rollback()
+                    reserve_failed = True
+                else:
+                    # Mark Bitcoin address as used with this order
+                    mark_bitcoin_address_used(btc_address, user_id, username, order.id, session=session,
+                                              order_code=order.order_code)
 
-            session.commit()
+                    # Log order creation
+                    log_order_creation(
+                        order_id=order.id,
+                        buyer_id=user_id,
+                        buyer_username=username,
+                        items_summary="\n".join(items_summary),
+                        total_price=float(total_amount),
+                        payment_method=PAYMENT_BITCOIN,
+                        delivery_address=customer_info.delivery_address,
+                        phone_number=customer_info.phone_number,
+                        bitcoin_address=btc_address,
+                        order_code=order.order_code
+                    )
 
-            # Send payment instructions to user
-            payment_text = (
-                    localize("order.payment.bitcoin.title") + "\n\n" +
-                    localize("order.payment.bitcoin.order_code", code=order.order_code) + "\n" +
-                    localize("order.payment.bitcoin.total_amount", amount=total_amount,
-                             currency=EnvKeys.PAY_CURRENCY) + "\n\n" +
-                    localize("order.payment.bitcoin.items_title") + "\n" +
-                    f"{chr(10).join(items_summary)}\n\n" +
-                    localize("order.payment.bitcoin.delivery_title") + "\n"
-                                                                       f"📍 Address: {customer_info.delivery_address}\n"
-                                                                       f"📞 Phone: {customer_info.phone_number}\n"
-            )
+                    # Clear cart
+                    session.query(ShoppingCart).filter_by(user_id=user_id).delete()
 
-            if customer_info.delivery_note:
-                payment_text += f"📝 Note: {customer_info.delivery_note}\n"
+                    session.commit()
+                    order_code = order.order_code
+                    cust_address = customer_info.delivery_address
+                    cust_phone = customer_info.phone_number
+                    cust_note = customer_info.delivery_note or ""
 
-            payment_text += (
-                    "\n" + localize("order.payment.bitcoin.address_title") + "\n"
-                                                                             f"<code>{btc_address}</code>\n\n" +
-                    localize("order.payment.bitcoin.important_title") + "\n" +
-                    localize("order.payment.bitcoin.send_exact") + "\n" +
-                    localize("order.payment.bitcoin.one_time_address") + "\n" +
-                    localize("order.payment.bitcoin.admin_confirm") + "\n\n" +
-                    localize("order.payment.bitcoin.need_help")
-            )
+                    # Build payment instructions (sync — sent after session closes)
+                    payment_text = (
+                            localize("order.payment.bitcoin.title") + "\n\n" +
+                            localize("order.payment.bitcoin.order_code", code=order_code) + "\n" +
+                            localize("order.payment.bitcoin.total_amount", amount=total_amount,
+                                     currency=EnvKeys.PAY_CURRENCY) + "\n\n" +
+                            localize("order.payment.bitcoin.items_title") + "\n" +
+                            f"{chr(10).join(items_summary)}\n\n" +
+                            localize("order.payment.bitcoin.delivery_title") + "\n"
+                                                                               f"📍 Address: {cust_address}\n"
+                                                                               f"📞 Phone: {cust_phone}\n"
+                    )
 
-            await call.message.edit_text(
-                payment_text,
-                reply_markup=back("back_to_menu")
-            )
+                    if cust_note:
+                        payment_text += f"📝 Note: {cust_note}\n"
 
-            # Notify admin
-            await notify_admin_new_order(
-                call.bot, order.order_code, user_id, username,
-                "\n".join(items_summary), total_amount, btc_address,
-                customer_info.delivery_address, customer_info.phone_number,
-                customer_info.delivery_note or ""
-            )
-
-            # Sync customer CSV
-            sync_customer_to_csv(user_id, username)
-
-            await state.clear()
+                    payment_text += (
+                            "\n" + localize("order.payment.bitcoin.address_title") + "\n"
+                                                                                     f"<code>{btc_address}</code>\n\n" +
+                            localize("order.payment.bitcoin.important_title") + "\n" +
+                            localize("order.payment.bitcoin.send_exact") + "\n" +
+                            localize("order.payment.bitcoin.one_time_address") + "\n" +
+                            localize("order.payment.bitcoin.admin_confirm") + "\n\n" +
+                            localize("order.payment.bitcoin.need_help")
+                    )
 
         except Exception as e:
             session.rollback()
             logger.error(f"Error creating orders: {e}")
-            await call.message.edit_text(
-                localize("order.payment.creation_error"),
-                reply_markup=back("view_cart")
-            )
-            return
+            create_failed = True
+    # session closed before any Telegram I/O
+
+    # Phase 3 — outbound I/O (no DB connection held)
+    if reserve_failed:
+        await call.message.edit_text(
+            localize("order.inventory.unable_to_reserve", unavailable_items=reserve_msg),
+            reply_markup=back("view_cart")
+        )
+        return
+    if create_failed:
+        await call.message.edit_text(
+            localize("order.payment.creation_error"),
+            reply_markup=back("view_cart")
+        )
+        return
+
+    await call.message.edit_text(
+        payment_text,
+        reply_markup=back("back_to_menu")
+    )
+
+    # Notify admin
+    await notify_admin_new_order(
+        call.bot, order_code, user_id, username,
+        "\n".join(items_summary), total_amount, btc_address,
+        cust_address, cust_phone,
+        cust_note or ""
+    )
+
+    # Sync customer CSV
+    sync_customer_to_csv(user_id, username)
+
+    await state.clear()
 
 
 async def process_bitcoin_payment_new_message(message: Message, state: FSMContext, user_id: int = None):
@@ -1277,208 +1330,236 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
         )
         return
 
-    # Get customer info
+    # Phase 1 — preflight read (short session, no awaits inside)
     with Database().session() as session:
         customer_info = session.query(CustomerInfo).filter_by(
             telegram_id=user_id
         ).first()
+        customer_found = customer_info is not None
+        customer_bonus = customer_info.bonus_balance if customer_info else Decimal("0")
+    # session closed before any Telegram I/O
 
-        if not customer_info:
-            await message.answer(
-                localize("order.payment.customer_not_found"),
-                reply_markup=back("view_cart")
-            )
-            return
+    if not customer_found:
+        await message.answer(
+            localize("order.payment.customer_not_found"),
+            reply_markup=back("view_cart")
+        )
+        return
+    if bonus_applied > 0 and customer_bonus < bonus_applied:
+        await message.answer(
+            localize("order.bonus.insufficient"),
+            reply_markup=back("view_cart")
+        )
+        return
 
-        # Deduct bonus from customer's bonus_balance if applied
-        if bonus_applied > 0:
-            if customer_info.bonus_balance < bonus_applied:
-                await message.answer(
-                    localize("order.bonus.insufficient"),
-                    reply_markup=back("view_cart")
-                )
-                return
-            customer_info.bonus_balance -= bonus_applied
-
-        # Create one order for entire cart
+    # Phase 2 — write transaction (no awaits inside session)
+    order_code = None
+    payment_text = None
+    items_summary = []
+    cust_address = None
+    cust_phone = None
+    cust_note = None
+    reserve_failed = False
+    reserve_message = None
+    create_failed = False
+    with Database().session() as session:
         try:
-            items_summary = []
-
-            # Create the main order
-            order = Order(
-                buyer_id=user_id,
-                total_price=Decimal(str(total_amount)),
-                bonus_applied=bonus_applied,
-                payment_method=PAYMENT_BITCOIN,
-                delivery_address=customer_info.delivery_address,
-                phone_number=customer_info.phone_number,
-                delivery_note=customer_info.delivery_note or "",
-                bitcoin_address=btc_address,
-                order_status="pending",
-                latitude=customer_info.latitude,
-                longitude=customer_info.longitude,
-                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude and customer_info.longitude else None,
-                delivery_type=dd_type,
-                drop_instructions=dd_instructions,
-                drop_latitude=dd_lat,
-                drop_longitude=dd_lng,
-                drop_media=dd_media,
-                brand_id=data.get('current_brand_id'),
-                store_id=data.get('current_store_id'),
-            )
-            session.add(order)
-            session.flush()  # Get the order ID
-
-            # Generate unique order code
-            order.order_code = generate_unique_order_code(session)
-
-            # Process each cart item and create OrderItems
-            items_to_reserve = []
-            for cart_item in cart_items:
-                item_name = cart_item['item_name']
-                quantity = cart_item['quantity']
-                price = cart_item['price']
-
-                # Create OrderItem (without item_values - physical goods)
-                order_item = OrderItem(
-                    order_id=order.id,
-                    item_name=item_name,
-                    price=Decimal(str(price)),
-                    quantity=quantity,
-                    selected_modifiers=cart_item.get('selected_modifiers')
-                )
-                session.add(order_item)
-
-                items_summary.append(f"{item_name} x{quantity} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}")
-
-                # Prepare for inventory reservation
-                items_to_reserve.append({
-                    'item_name': item_name,
-                    'quantity': quantity
-                })
-
-            # Reserve inventory for this order (extended timeout for bitcoin - 7 days)
-            success, reserve_message = reserve_inventory(order.id, items_to_reserve, payment_method='bitcoin',
-                                                         session=session)
-            if not success:
-                session.rollback()
-                await message.answer(
-                    localize("order.inventory.unable_to_reserve", unavailable_items=reserve_message),
-                    reply_markup=back("view_cart")
-                )
-                return
-
-            # Mark Bitcoin address as used with this order
-            mark_bitcoin_address_used(btc_address, user_id, username, order.id, session=session,
-                                      order_code=order.order_code)
-
-            # Log order creation
-            log_order_creation(
-                order_id=order.id,
-                buyer_id=user_id,
-                buyer_username=username,
-                items_summary="\n".join(items_summary),
-                total_price=float(total_amount),
-                payment_method=PAYMENT_BITCOIN,
-                delivery_address=customer_info.delivery_address,
-                phone_number=customer_info.phone_number,
-                bitcoin_address=btc_address,
-                order_code=order.order_code
-            )
-
-            # Clear cart
-            session.query(ShoppingCart).filter_by(user_id=user_id).delete()
-
-            session.commit()
-
-            # Track order creation metrics
-            metrics = get_metrics()
-            if metrics:
-                metrics.track_event("order_created", user_id, {
-                    "order_code": order.order_code,
-                    "payment_method": "bitcoin",
-                    "total": float(total_amount),
-                    "bonus_applied": float(bonus_applied)
-                })
-                # Track inventory reservation
-                for item in items_to_reserve:
-                    metrics.track_event("inventory_reserved", user_id, {
-                        "item": item['item_name'],
-                        "quantity": item['quantity'],
-                        "order_code": order.order_code
-                    })
-                # Track bonus usage if applied
-                if bonus_applied > 0:
-                    metrics.track_event("payment_bonus_applied", user_id, {
-                        "bonus_amount": float(bonus_applied),
-                        "order_code": order.order_code
-                    })
-
-            # Send payment instructions to user
-            payment_text = (
-                    localize("order.payment.bitcoin.title") + "\n\n" +
-                    localize("order.payment.bitcoin.order_code", code=order.order_code) + "\n" +
-                    localize("order.payment.subtotal_label", amount=total_amount, currency=EnvKeys.PAY_CURRENCY) + "\n"
-            )
-
-            if bonus_applied > 0:
-                payment_text += (
-                        localize("order.payment.bonus_applied_label", amount=bonus_applied,
-                                 currency=EnvKeys.PAY_CURRENCY) + "\n" +
-                        localize("order.payment.final_amount_label", amount=final_amount,
-                                 currency=EnvKeys.PAY_CURRENCY) + "\n\n"
-                )
+            customer_info = session.query(CustomerInfo).filter_by(
+                telegram_id=user_id
+            ).first()
+            if not customer_info:
+                create_failed = True
             else:
-                payment_text += localize("order.payment.total_amount_label", amount=total_amount,
+                # Deduct bonus from customer's bonus_balance if applied
+                if bonus_applied > 0:
+                    customer_info.bonus_balance -= bonus_applied
+
+                # Create the main order
+                order = Order(
+                    buyer_id=user_id,
+                    total_price=Decimal(str(total_amount)),
+                    bonus_applied=bonus_applied,
+                    payment_method=PAYMENT_BITCOIN,
+                    delivery_address=customer_info.delivery_address,
+                    phone_number=customer_info.phone_number,
+                    delivery_note=customer_info.delivery_note or "",
+                    bitcoin_address=btc_address,
+                    order_status="pending",
+                    latitude=customer_info.latitude,
+                    longitude=customer_info.longitude,
+                    google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude and customer_info.longitude else None,
+                    delivery_type=dd_type,
+                    drop_instructions=dd_instructions,
+                    drop_latitude=dd_lat,
+                    drop_longitude=dd_lng,
+                    drop_media=dd_media,
+                    brand_id=data.get('current_brand_id'),
+                    store_id=data.get('current_store_id'),
+                )
+                session.add(order)
+                session.flush()  # Get the order ID
+
+                # Generate unique order code
+                order.order_code = generate_unique_order_code(session)
+
+                # Process each cart item and create OrderItems
+                items_to_reserve = []
+                for cart_item in cart_items:
+                    item_name = cart_item['item_name']
+                    quantity = cart_item['quantity']
+                    price = cart_item['price']
+
+                    # Create OrderItem (without item_values - physical goods)
+                    order_item = OrderItem(
+                        order_id=order.id,
+                        item_name=item_name,
+                        price=Decimal(str(price)),
+                        quantity=quantity,
+                        selected_modifiers=cart_item.get('selected_modifiers')
+                    )
+                    session.add(order_item)
+
+                    items_summary.append(f"{item_name} x{quantity} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}")
+
+                    # Prepare for inventory reservation
+                    items_to_reserve.append({
+                        'item_name': item_name,
+                        'quantity': quantity
+                    })
+
+                # Reserve inventory for this order (extended timeout for bitcoin - 7 days)
+                success, reserve_message = reserve_inventory(order.id, items_to_reserve, payment_method='bitcoin',
+                                                             session=session)
+                if not success:
+                    session.rollback()
+                    reserve_failed = True
+                else:
+                    # Mark Bitcoin address as used with this order
+                    mark_bitcoin_address_used(btc_address, user_id, username, order.id, session=session,
+                                              order_code=order.order_code)
+
+                    # Log order creation
+                    log_order_creation(
+                        order_id=order.id,
+                        buyer_id=user_id,
+                        buyer_username=username,
+                        items_summary="\n".join(items_summary),
+                        total_price=float(total_amount),
+                        payment_method=PAYMENT_BITCOIN,
+                        delivery_address=customer_info.delivery_address,
+                        phone_number=customer_info.phone_number,
+                        bitcoin_address=btc_address,
+                        order_code=order.order_code
+                    )
+
+                    # Clear cart
+                    session.query(ShoppingCart).filter_by(user_id=user_id).delete()
+
+                    session.commit()
+                    order_code = order.order_code
+                    cust_address = customer_info.delivery_address
+                    cust_phone = customer_info.phone_number
+                    cust_note = customer_info.delivery_note or ""
+
+                    # Track order creation metrics
+                    metrics = get_metrics()
+                    if metrics:
+                        metrics.track_event("order_created", user_id, {
+                            "order_code": order_code,
+                            "payment_method": "bitcoin",
+                            "total": float(total_amount),
+                            "bonus_applied": float(bonus_applied)
+                        })
+                        # Track inventory reservation
+                        for item in items_to_reserve:
+                            metrics.track_event("inventory_reserved", user_id, {
+                                "item": item['item_name'],
+                                "quantity": item['quantity'],
+                                "order_code": order_code
+                            })
+                        # Track bonus usage if applied
+                        if bonus_applied > 0:
+                            metrics.track_event("payment_bonus_applied", user_id, {
+                                "bonus_amount": float(bonus_applied),
+                                "order_code": order_code
+                            })
+
+                    # Build payment instructions (sync — sent after session closes)
+                    payment_text = (
+                            localize("order.payment.bitcoin.title") + "\n\n" +
+                            localize("order.payment.bitcoin.order_code", code=order_code) + "\n" +
+                            localize("order.payment.subtotal_label", amount=total_amount, currency=EnvKeys.PAY_CURRENCY) + "\n"
+                    )
+
+                    if bonus_applied > 0:
+                        payment_text += (
+                                localize("order.payment.bonus_applied_label", amount=bonus_applied,
+                                         currency=EnvKeys.PAY_CURRENCY) + "\n" +
+                                localize("order.payment.final_amount_label", amount=final_amount,
                                          currency=EnvKeys.PAY_CURRENCY) + "\n\n"
+                        )
+                    else:
+                        payment_text += localize("order.payment.total_amount_label", amount=total_amount,
+                                                 currency=EnvKeys.PAY_CURRENCY) + "\n\n"
 
-            payment_text += (
-                    localize("order.payment.bitcoin.items_title") + "\n"
-                                                                    f"{chr(10).join(items_summary)}\n\n" +
-                    localize("order.payment.bitcoin.delivery_title") + "\n"
-                                                                       f"📍 Address: {customer_info.delivery_address}\n"
-                                                                       f"📞 Phone: {customer_info.phone_number}\n"
-            )
+                    payment_text += (
+                            localize("order.payment.bitcoin.items_title") + "\n"
+                                                                            f"{chr(10).join(items_summary)}\n\n" +
+                            localize("order.payment.bitcoin.delivery_title") + "\n"
+                                                                               f"📍 Address: {cust_address}\n"
+                                                                               f"📞 Phone: {cust_phone}\n"
+                    )
 
-            if customer_info.delivery_note:
-                payment_text += f"📝 Note: {customer_info.delivery_note}\n"
+                    if cust_note:
+                        payment_text += f"📝 Note: {cust_note}\n"
 
-            payment_text += (
-                    "\n" + localize("order.payment.bitcoin.address_title") + "\n"
-                                                                             f"<code>{btc_address}</code>\n\n" +
-                    localize("order.payment.bitcoin.important_title") + "\n" +
-                    localize("order.payment.bitcoin.send_exact") + "\n" +
-                    localize("order.payment.bitcoin.one_time_address") + "\n" +
-                    localize("order.payment.bitcoin.admin_confirm") + "\n\n" +
-                    localize("order.payment.bitcoin.need_help")
-            )
-
-            await message.answer(
-                payment_text,
-                reply_markup=back("back_to_menu")
-            )
-
-            # Notify admin
-            await notify_admin_new_order(
-                message.bot, order.order_code, user_id, username,
-                "\n".join(items_summary), total_amount, btc_address,
-                customer_info.delivery_address, customer_info.phone_number,
-                customer_info.delivery_note or "", bonus_applied, final_amount
-            )
-
-            # Sync customer CSV
-            sync_customer_to_csv(user_id, username)
-
-            await state.clear()
+                    payment_text += (
+                            "\n" + localize("order.payment.bitcoin.address_title") + "\n"
+                                                                                     f"<code>{btc_address}</code>\n\n" +
+                            localize("order.payment.bitcoin.important_title") + "\n" +
+                            localize("order.payment.bitcoin.send_exact") + "\n" +
+                            localize("order.payment.bitcoin.one_time_address") + "\n" +
+                            localize("order.payment.bitcoin.admin_confirm") + "\n\n" +
+                            localize("order.payment.bitcoin.need_help")
+                    )
 
         except Exception as e:
             session.rollback()
             logger.error(f"Error creating orders: {e}")
-            await message.answer(
-                localize("order.payment.error_general"),
-                reply_markup=back("view_cart")
-            )
-            return
+            create_failed = True
+    # session closed before any Telegram I/O
+
+    # Phase 3 — outbound I/O (no DB connection held)
+    if reserve_failed:
+        await message.answer(
+            localize("order.inventory.unable_to_reserve", unavailable_items=reserve_message),
+            reply_markup=back("view_cart")
+        )
+        return
+    if create_failed:
+        await message.answer(
+            localize("order.payment.error_general"),
+            reply_markup=back("view_cart")
+        )
+        return
+
+    await message.answer(
+        payment_text,
+        reply_markup=back("back_to_menu")
+    )
+
+    # Notify admin
+    await notify_admin_new_order(
+        message.bot, order_code, user_id, username,
+        "\n".join(items_summary), total_amount, btc_address,
+        cust_address, cust_phone,
+        cust_note or "", bonus_applied, final_amount
+    )
+
+    # Sync customer CSV
+    sync_customer_to_csv(user_id, username)
+
+    await state.clear()
 
 
 async def process_cash_payment_new_message(message: Message, state: FSMContext, user_id: int = None):
@@ -1513,209 +1594,237 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
     # Calculate final amount after bonus
     final_amount = total_amount - bonus_applied
 
-    # Get customer info
+    # Phase 1 — preflight read (short session, no awaits inside)
     with Database().session() as session:
         customer_info = session.query(CustomerInfo).filter_by(
             telegram_id=user_id
         ).first()
+        customer_found = customer_info is not None
+        customer_bonus = customer_info.bonus_balance if customer_info else Decimal("0")
+    # session closed before any Telegram I/O
 
-        if not customer_info:
-            await message.answer(
-                localize("order.payment.customer_not_found"),
-                reply_markup=back("view_cart")
-            )
-            return
+    if not customer_found:
+        await message.answer(
+            localize("order.payment.customer_not_found"),
+            reply_markup=back("view_cart")
+        )
+        return
+    if bonus_applied > 0 and customer_bonus < bonus_applied:
+        await message.answer(
+            localize("order.bonus.insufficient"),
+            reply_markup=back("view_cart")
+        )
+        return
 
-        # Deduct bonus from customer's bonus_balance if applied
-        if bonus_applied > 0:
-            if customer_info.bonus_balance < bonus_applied:
-                await message.answer(
-                    localize("order.bonus.insufficient"),
-                    reply_markup=back("view_cart")
-                )
-                return
-            customer_info.bonus_balance -= bonus_applied
-
-        # Create one order for entire cart
+    # Phase 2 — write transaction (no awaits inside session)
+    order_code = None
+    payment_text = None
+    items_summary = []
+    cust_address = None
+    cust_phone = None
+    cust_note = None
+    reserve_failed = False
+    reserve_message = None
+    create_failed = False
+    with Database().session() as session:
         try:
-            items_summary = []
-
-            # Create the main order (cash payment - no Bitcoin address)
-            order = Order(
-                buyer_id=user_id,
-                total_price=Decimal(str(total_amount)),
-                bonus_applied=bonus_applied,
-                payment_method=PAYMENT_CASH,
-                delivery_address=customer_info.delivery_address,
-                phone_number=customer_info.phone_number,
-                delivery_note=customer_info.delivery_note or "",
-                bitcoin_address=None,  # No Bitcoin address for cash
-                order_status="pending",
-                latitude=customer_info.latitude,
-                longitude=customer_info.longitude,
-                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude and customer_info.longitude else None,
-                delivery_type=dd_type,
-                drop_instructions=dd_instructions,
-                drop_latitude=dd_lat,
-                drop_longitude=dd_lng,
-                drop_media=dd_media,
-                brand_id=data.get('current_brand_id'),
-                store_id=data.get('current_store_id'),
-            )
-            session.add(order)
-            session.flush()  # Get the order ID
-
-            # Generate unique order code
-            order.order_code = generate_unique_order_code(session)
-
-            # Process each cart item and create OrderItems
-            items_to_reserve = []
-            for cart_item in cart_items:
-                item_name = cart_item['item_name']
-                quantity = cart_item['quantity']
-                price = cart_item['price']
-
-                # Create OrderItem (without item_values - physical goods)
-                order_item = OrderItem(
-                    order_id=order.id,
-                    item_name=item_name,
-                    price=Decimal(str(price)),
-                    quantity=quantity,
-                    selected_modifiers=cart_item.get('selected_modifiers')
-                )
-                session.add(order_item)
-
-                items_summary.append(f"{item_name} x{quantity} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}")
-
-                # Prepare for inventory reservation
-                items_to_reserve.append({
-                    'item_name': item_name,
-                    'quantity': quantity
-                })
-
-            # Reserve inventory for this order (configurable timeout for cash - default 24 hours)
-            success, reserve_message = reserve_inventory(order.id, items_to_reserve, payment_method='cash',
-                                                         session=session)
-            if not success:
-                session.rollback()
-                await message.answer(
-                    localize("order.inventory.unable_to_reserve", unavailable_items=reserve_message),
-                    reply_markup=back("view_cart")
-                )
-                return
-
-            # Log order creation
-            log_order_creation(
-                order_id=order.id,
-                buyer_id=user_id,
-                buyer_username=username,
-                items_summary="\n".join(items_summary),
-                total_price=float(total_amount),
-                payment_method=PAYMENT_CASH,
-                delivery_address=customer_info.delivery_address,
-                phone_number=customer_info.phone_number,
-                bitcoin_address=None,
-                order_code=order.order_code
-            )
-
-            # Clear cart
-            session.query(ShoppingCart).filter_by(user_id=user_id).delete()
-
-            session.commit()
-
-            # Track order creation metrics
-            metrics = get_metrics()
-            if metrics:
-                metrics.track_event("order_created", user_id, {
-                    "order_code": order.order_code,
-                    "payment_method": "cash",
-                    "total": float(total_amount),
-                    "bonus_applied": float(bonus_applied)
-                })
-                # Track inventory reservation
-                for item in items_to_reserve:
-                    metrics.track_event("inventory_reserved", user_id, {
-                        "item": item['item_name'],
-                        "quantity": item['quantity'],
-                        "order_code": order.order_code
-                    })
-                # Track bonus usage if applied
-                if bonus_applied > 0:
-                    metrics.track_event("payment_bonus_applied", user_id, {
-                        "bonus_amount": float(bonus_applied),
-                        "order_code": order.order_code
-                    })
-
-            cash_instructions = (
-                    localize("order.payment.cash.title") + "\n\n" +
-                    localize("order.payment.cash.created", code=order.order_code) + "\n\n" +
-                    localize("order.payment.cash.items_title") + "\n" + chr(10).join(items_summary) + "\n\n" + localize(
-                "order.payment.cash.total", amount=float(total_amount)) + "\n\n" +
-                    localize("order.payment.cash.after_confirm") + "\n" +
-                    localize("order.payment.cash.payment_to_courier") + "\n\n" +
-                    localize("order.payment.cash.important") + "\n" +
-                    localize("order.payment.cash.admin_contact")
-            )
-
-            # Send payment instructions to user
-            payment_text = (
-                    f"{cash_instructions}\n\n" +
-                    localize("order.payment.order_label", code=order.order_code) + "\n" +
-                    localize("order.payment.subtotal_label", amount=total_amount, currency=EnvKeys.PAY_CURRENCY) + "\n"
-            )
-
-            if bonus_applied > 0:
-                payment_text += (
-                        localize("order.payment.bonus_applied_label", amount=bonus_applied,
-                                 currency=EnvKeys.PAY_CURRENCY) + "\n" +
-                        localize("order.payment.cash.amount_with_bonus", amount=final_amount,
-                                 currency=EnvKeys.PAY_CURRENCY) + "\n\n"
-                )
+            customer_info = session.query(CustomerInfo).filter_by(
+                telegram_id=user_id
+            ).first()
+            if not customer_info:
+                create_failed = True
             else:
-                payment_text += localize("order.payment.cash.total_label", amount=total_amount,
+                # Deduct bonus from customer's bonus_balance if applied
+                if bonus_applied > 0:
+                    customer_info.bonus_balance -= bonus_applied
+
+                # Create the main order (cash payment - no Bitcoin address)
+                order = Order(
+                    buyer_id=user_id,
+                    total_price=Decimal(str(total_amount)),
+                    bonus_applied=bonus_applied,
+                    payment_method=PAYMENT_CASH,
+                    delivery_address=customer_info.delivery_address,
+                    phone_number=customer_info.phone_number,
+                    delivery_note=customer_info.delivery_note or "",
+                    bitcoin_address=None,  # No Bitcoin address for cash
+                    order_status="pending",
+                    latitude=customer_info.latitude,
+                    longitude=customer_info.longitude,
+                    google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude and customer_info.longitude else None,
+                    delivery_type=dd_type,
+                    drop_instructions=dd_instructions,
+                    drop_latitude=dd_lat,
+                    drop_longitude=dd_lng,
+                    drop_media=dd_media,
+                    brand_id=data.get('current_brand_id'),
+                    store_id=data.get('current_store_id'),
+                )
+                session.add(order)
+                session.flush()  # Get the order ID
+
+                # Generate unique order code
+                order.order_code = generate_unique_order_code(session)
+
+                # Process each cart item and create OrderItems
+                items_to_reserve = []
+                for cart_item in cart_items:
+                    item_name = cart_item['item_name']
+                    quantity = cart_item['quantity']
+                    price = cart_item['price']
+
+                    # Create OrderItem (without item_values - physical goods)
+                    order_item = OrderItem(
+                        order_id=order.id,
+                        item_name=item_name,
+                        price=Decimal(str(price)),
+                        quantity=quantity,
+                        selected_modifiers=cart_item.get('selected_modifiers')
+                    )
+                    session.add(order_item)
+
+                    items_summary.append(f"{item_name} x{quantity} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}")
+
+                    # Prepare for inventory reservation
+                    items_to_reserve.append({
+                        'item_name': item_name,
+                        'quantity': quantity
+                    })
+
+                # Reserve inventory for this order (configurable timeout for cash - default 24 hours)
+                success, reserve_message = reserve_inventory(order.id, items_to_reserve, payment_method='cash',
+                                                             session=session)
+                if not success:
+                    session.rollback()
+                    reserve_failed = True
+                else:
+                    # Log order creation
+                    log_order_creation(
+                        order_id=order.id,
+                        buyer_id=user_id,
+                        buyer_username=username,
+                        items_summary="\n".join(items_summary),
+                        total_price=float(total_amount),
+                        payment_method=PAYMENT_CASH,
+                        delivery_address=customer_info.delivery_address,
+                        phone_number=customer_info.phone_number,
+                        bitcoin_address=None,
+                        order_code=order.order_code
+                    )
+
+                    # Clear cart
+                    session.query(ShoppingCart).filter_by(user_id=user_id).delete()
+
+                    session.commit()
+                    order_code = order.order_code
+                    cust_address = customer_info.delivery_address
+                    cust_phone = customer_info.phone_number
+                    cust_note = customer_info.delivery_note or ""
+
+                    # Track order creation metrics
+                    metrics = get_metrics()
+                    if metrics:
+                        metrics.track_event("order_created", user_id, {
+                            "order_code": order_code,
+                            "payment_method": "cash",
+                            "total": float(total_amount),
+                            "bonus_applied": float(bonus_applied)
+                        })
+                        # Track inventory reservation
+                        for item in items_to_reserve:
+                            metrics.track_event("inventory_reserved", user_id, {
+                                "item": item['item_name'],
+                                "quantity": item['quantity'],
+                                "order_code": order_code
+                            })
+                        # Track bonus usage if applied
+                        if bonus_applied > 0:
+                            metrics.track_event("payment_bonus_applied", user_id, {
+                                "bonus_amount": float(bonus_applied),
+                                "order_code": order_code
+                            })
+
+                    cash_instructions = (
+                            localize("order.payment.cash.title") + "\n\n" +
+                            localize("order.payment.cash.created", code=order_code) + "\n\n" +
+                            localize("order.payment.cash.items_title") + "\n" + chr(10).join(items_summary) + "\n\n" + localize(
+                        "order.payment.cash.total", amount=float(total_amount)) + "\n\n" +
+                            localize("order.payment.cash.after_confirm") + "\n" +
+                            localize("order.payment.cash.payment_to_courier") + "\n\n" +
+                            localize("order.payment.cash.important") + "\n" +
+                            localize("order.payment.cash.admin_contact")
+                    )
+
+                    # Build payment instructions (sync — sent after session closes)
+                    payment_text = (
+                            f"{cash_instructions}\n\n" +
+                            localize("order.payment.order_label", code=order_code) + "\n" +
+                            localize("order.payment.subtotal_label", amount=total_amount, currency=EnvKeys.PAY_CURRENCY) + "\n"
+                    )
+
+                    if bonus_applied > 0:
+                        payment_text += (
+                                localize("order.payment.bonus_applied_label", amount=bonus_applied,
+                                         currency=EnvKeys.PAY_CURRENCY) + "\n" +
+                                localize("order.payment.cash.amount_with_bonus", amount=final_amount,
                                          currency=EnvKeys.PAY_CURRENCY) + "\n\n"
+                        )
+                    else:
+                        payment_text += localize("order.payment.cash.total_label", amount=total_amount,
+                                                 currency=EnvKeys.PAY_CURRENCY) + "\n\n"
 
-            payment_text += (
-                    localize("order.payment.bitcoin.items_title") + "\n"
-                                                                    f"{chr(10).join(items_summary)}\n\n" +
-                    localize("order.payment.bitcoin.delivery_title") + "\n"
-                                                                       f"📍 Address: {customer_info.delivery_address}\n"
-                                                                       f"📞 Phone: {customer_info.phone_number}\n"
-            )
+                    payment_text += (
+                            localize("order.payment.bitcoin.items_title") + "\n"
+                                                                            f"{chr(10).join(items_summary)}\n\n" +
+                            localize("order.payment.bitcoin.delivery_title") + "\n"
+                                                                               f"📍 Address: {cust_address}\n"
+                                                                               f"📞 Phone: {cust_phone}\n"
+                    )
 
-            if customer_info.delivery_note:
-                payment_text += f"📝 Note: {customer_info.delivery_note}\n"
+                    if cust_note:
+                        payment_text += f"📝 Note: {cust_note}\n"
 
-            payment_text += (
-                    "\n" + localize("order.info.view_status_hint")
-            )
-
-            await message.answer(
-                payment_text,
-                reply_markup=back("back_to_menu")
-            )
-
-            # Notify admin about new cash order
-            await notify_admin_new_cash_order(
-                message.bot, order.order_code, user_id, username,
-                "\n".join(items_summary), total_amount,
-                customer_info.delivery_address, customer_info.phone_number,
-                customer_info.delivery_note or "", bonus_applied, final_amount
-            )
-
-            # Sync customer CSV
-            sync_customer_to_csv(user_id, username)
-
-            await state.clear()
+                    payment_text += (
+                            "\n" + localize("order.info.view_status_hint")
+                    )
 
         except Exception as e:
             session.rollback()
             logger.error(f"Error creating cash order: {e}")
-            await message.answer(
-                localize("order.payment.error_general"),
-                reply_markup=back("view_cart")
-            )
-            return
+            create_failed = True
+    # session closed before any Telegram I/O
+
+    # Phase 3 — outbound I/O (no DB connection held)
+    if reserve_failed:
+        await message.answer(
+            localize("order.inventory.unable_to_reserve", unavailable_items=reserve_message),
+            reply_markup=back("view_cart")
+        )
+        return
+    if create_failed:
+        await message.answer(
+            localize("order.payment.error_general"),
+            reply_markup=back("view_cart")
+        )
+        return
+
+    await message.answer(
+        payment_text,
+        reply_markup=back("back_to_menu")
+    )
+
+    # Notify admin about new cash order
+    await notify_admin_new_cash_order(
+        message.bot, order_code, user_id, username,
+        "\n".join(items_summary), total_amount,
+        cust_address, cust_phone,
+        cust_note or "", bonus_applied, final_amount
+    )
+
+    # Sync customer CSV
+    sync_customer_to_csv(user_id, username)
+
+    await state.clear()
 
 
 async def process_promptpay_payment(message: Message, state: FSMContext, user_id: int = None):
@@ -1744,134 +1853,165 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
     dd_media = data.get('drop_media')
     final_amount = total_amount - bonus_applied
 
+    # Phase 1 — preflight read (short session, no awaits inside)
     with Database().session() as session:
         customer_info = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
-        if not customer_info:
-            await message.answer(localize("order.payment.customer_not_found"), reply_markup=back("view_cart"))
-            return
+        customer_found = customer_info is not None
+        customer_bonus = customer_info.bonus_balance if customer_info else Decimal("0")
+    # session closed before any Telegram I/O
 
-        if bonus_applied > 0:
-            if customer_info.bonus_balance < bonus_applied:
-                await message.answer(localize("order.bonus.insufficient"), reply_markup=back("view_cart"))
-                return
-            customer_info.bonus_balance -= bonus_applied
+    if not customer_found:
+        await message.answer(localize("order.payment.customer_not_found"), reply_markup=back("view_cart"))
+        return
+    if bonus_applied > 0 and customer_bonus < bonus_applied:
+        await message.answer(localize("order.bonus.insufficient"), reply_markup=back("view_cart"))
+        return
 
+    # Phase 2 — write transaction (no awaits inside session)
+    order_id = None
+    order_code = None
+    items_summary = []
+    cust_address = None
+    cust_phone = None
+    cust_note = None
+    reserve_failed = False
+    reserve_message = None
+    create_failed = False
+    with Database().session() as session:
         try:
-            items_summary = []
-            order = Order(
-                buyer_id=user_id,
-                total_price=Decimal(str(total_amount)),
-                bonus_applied=bonus_applied,
-                payment_method=PAYMENT_PROMPTPAY,
-                delivery_address=customer_info.delivery_address,
-                phone_number=customer_info.phone_number,
-                delivery_note=customer_info.delivery_note or "",
-                order_status="pending",
-                latitude=customer_info.latitude,
-                longitude=customer_info.longitude,
-                google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude and customer_info.longitude else None,
-                delivery_type=dd_type,
-                drop_instructions=dd_instructions,
-                drop_latitude=dd_lat,
-                drop_longitude=dd_lng,
-                drop_media=dd_media,
-                brand_id=data.get('current_brand_id'),
-                store_id=data.get('current_store_id'),
-            )
-            session.add(order)
-            session.flush()
+            customer_info = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
+            if not customer_info:
+                create_failed = True
+            else:
+                if bonus_applied > 0:
+                    customer_info.bonus_balance -= bonus_applied
 
-            order.order_code = generate_unique_order_code(session)
-
-            items_to_reserve = []
-            for cart_item in cart_items:
-                item_name = cart_item['item_name']
-                quantity = cart_item['quantity']
-                price = cart_item['price']
-
-                order_item = OrderItem(
-                    order_id=order.id,
-                    item_name=item_name,
-                    price=Decimal(str(price)),
-                    quantity=quantity,
-                    selected_modifiers=cart_item.get('selected_modifiers')
+                order = Order(
+                    buyer_id=user_id,
+                    total_price=Decimal(str(total_amount)),
+                    bonus_applied=bonus_applied,
+                    payment_method=PAYMENT_PROMPTPAY,
+                    delivery_address=customer_info.delivery_address,
+                    phone_number=customer_info.phone_number,
+                    delivery_note=customer_info.delivery_note or "",
+                    order_status="pending",
+                    latitude=customer_info.latitude,
+                    longitude=customer_info.longitude,
+                    google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude and customer_info.longitude else None,
+                    delivery_type=dd_type,
+                    drop_instructions=dd_instructions,
+                    drop_latitude=dd_lat,
+                    drop_longitude=dd_lng,
+                    drop_media=dd_media,
+                    brand_id=data.get('current_brand_id'),
+                    store_id=data.get('current_store_id'),
                 )
-                session.add(order_item)
-                items_summary.append(f"{item_name} x{quantity} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}")
-                items_to_reserve.append({'item_name': item_name, 'quantity': quantity})
+                session.add(order)
+                session.flush()
 
-            success, reserve_message = reserve_inventory(order.id, items_to_reserve, payment_method='promptpay',
-                                                          session=session)
-            if not success:
-                session.rollback()
-                await message.answer(
-                    localize("order.inventory.unable_to_reserve", unavailable_items=reserve_message),
-                    reply_markup=back("view_cart")
-                )
-                return
+                order.order_code = generate_unique_order_code(session)
 
-            log_order_creation(
-                order_id=order.id, buyer_id=user_id, buyer_username=username,
-                items_summary="\n".join(items_summary), total_price=float(total_amount),
-                payment_method=PAYMENT_PROMPTPAY, delivery_address=customer_info.delivery_address,
-                phone_number=customer_info.phone_number, bitcoin_address=None,
-                order_code=order.order_code
-            )
+                items_to_reserve = []
+                for cart_item in cart_items:
+                    item_name = cart_item['item_name']
+                    quantity = cart_item['quantity']
+                    price = cart_item['price']
 
-            session.query(ShoppingCart).filter_by(user_id=user_id).delete()
-            session.commit()
+                    order_item = OrderItem(
+                        order_id=order.id,
+                        item_name=item_name,
+                        price=Decimal(str(price)),
+                        quantity=quantity,
+                        selected_modifiers=cart_item.get('selected_modifiers')
+                    )
+                    session.add(order_item)
+                    items_summary.append(f"{item_name} x{quantity} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}")
+                    items_to_reserve.append({'item_name': item_name, 'quantity': quantity})
 
-            # Generate QR code — DB setting overrides env var
-            from bot.handlers.admin.settings_management import get_promptpay_id as _get_pp_id
-            promptpay_id = _get_pp_id()
-            try:
-                qr_bytes = generate_promptpay_qr(promptpay_id, final_amount)
+                success, reserve_message = reserve_inventory(order.id, items_to_reserve, payment_method='promptpay',
+                                                              session=session)
+                if not success:
+                    session.rollback()
+                    reserve_failed = True
+                else:
+                    log_order_creation(
+                        order_id=order.id, buyer_id=user_id, buyer_username=username,
+                        items_summary="\n".join(items_summary), total_price=float(total_amount),
+                        payment_method=PAYMENT_PROMPTPAY, delivery_address=customer_info.delivery_address,
+                        phone_number=customer_info.phone_number, bitcoin_address=None,
+                        order_code=order.order_code
+                    )
 
-                from aiogram.types import BufferedInputFile
-                qr_file = BufferedInputFile(qr_bytes, filename=f"promptpay_{order.order_code}.png")
-
-                caption = (
-                    localize("order.payment.promptpay.title") + "\n\n" +
-                    localize("order.payment.promptpay.scan") + "\n" +
-                    f"<b>{EnvKeys.PAY_CURRENCY} {final_amount}</b>\n" +
-                    f"Order: <code>{order.order_code}</code>"
-                )
-
-                await message.answer_photo(photo=qr_file, caption=caption)
-            except Exception as qr_error:
-                logger.error(f"QR generation failed: {qr_error}")
-                await message.answer(
-                    localize("order.payment.promptpay.title") + "\n\n" +
-                    f"PromptPay ID: <code>{promptpay_id}</code>\n" +
-                    f"Amount: <b>{final_amount} {EnvKeys.PAY_CURRENCY}</b>\n" +
-                    f"Order: <code>{order.order_code}</code>"
-                )
-
-            # Ask user to upload receipt
-            await message.answer(
-                localize("order.payment.promptpay.upload_receipt"),
-                reply_markup=back("back_to_menu")
-            )
-
-            # Save order_id in state for receipt association
-            await state.update_data(promptpay_order_id=order.id, promptpay_order_code=order.order_code)
-            await state.set_state(PromptPayStates.waiting_receipt_photo)
-
-            # Notify admin
-            await notify_admin_new_cash_order(
-                message.bot, order.order_code, user_id, username,
-                "\n".join(items_summary), total_amount,
-                customer_info.delivery_address, customer_info.phone_number,
-                customer_info.delivery_note or "", bonus_applied, final_amount
-            )
-
-            sync_customer_to_csv(user_id, username)
+                    session.query(ShoppingCart).filter_by(user_id=user_id).delete()
+                    session.commit()
+                    order_id = order.id
+                    order_code = order.order_code
+                    cust_address = customer_info.delivery_address
+                    cust_phone = customer_info.phone_number
+                    cust_note = customer_info.delivery_note or ""
 
         except Exception as e:
             session.rollback()
             logger.error(f"Error creating PromptPay order: {e}")
-            await message.answer(localize("order.payment.error_general"), reply_markup=back("view_cart"))
-            return
+            create_failed = True
+    # session closed before any Telegram I/O
+
+    # Phase 3 — outbound I/O (no DB connection held)
+    if reserve_failed:
+        await message.answer(
+            localize("order.inventory.unable_to_reserve", unavailable_items=reserve_message),
+            reply_markup=back("view_cart")
+        )
+        return
+    if create_failed:
+        await message.answer(localize("order.payment.error_general"), reply_markup=back("view_cart"))
+        return
+
+    # Generate QR code — DB setting overrides env var
+    from bot.handlers.admin.settings_management import get_promptpay_id as _get_pp_id
+    promptpay_id = _get_pp_id()
+    try:
+        qr_bytes = generate_promptpay_qr(promptpay_id, final_amount)
+
+        from aiogram.types import BufferedInputFile
+        qr_file = BufferedInputFile(qr_bytes, filename=f"promptpay_{order_code}.png")
+
+        caption = (
+            localize("order.payment.promptpay.title") + "\n\n" +
+            localize("order.payment.promptpay.scan") + "\n" +
+            f"<b>{EnvKeys.PAY_CURRENCY} {final_amount}</b>\n" +
+            f"Order: <code>{order_code}</code>"
+        )
+
+        await message.answer_photo(photo=qr_file, caption=caption)
+    except Exception as qr_error:
+        logger.error(f"QR generation failed: {qr_error}")
+        await message.answer(
+            localize("order.payment.promptpay.title") + "\n\n" +
+            f"PromptPay ID: <code>{promptpay_id}</code>\n" +
+            f"Amount: <b>{final_amount} {EnvKeys.PAY_CURRENCY}</b>\n" +
+            f"Order: <code>{order_code}</code>"
+        )
+
+    # Ask user to upload receipt
+    await message.answer(
+        localize("order.payment.promptpay.upload_receipt"),
+        reply_markup=back("back_to_menu")
+    )
+
+    # Save order_id in state for receipt association
+    await state.update_data(promptpay_order_id=order_id, promptpay_order_code=order_code)
+    await state.set_state(PromptPayStates.waiting_receipt_photo)
+
+    # Notify admin
+    await notify_admin_new_cash_order(
+        message.bot, order_code, user_id, username,
+        "\n".join(items_summary), total_amount,
+        cust_address, cust_phone,
+        cust_note or "", bonus_applied, final_amount
+    )
+
+    sync_customer_to_csv(user_id, username)
 
 
 @router.message(PromptPayStates.waiting_receipt_photo, F.photo)
@@ -1881,105 +2021,169 @@ async def process_receipt_photo(message: Message, state: FSMContext):
     data = await state.get_data()
     order_id = data.get('promptpay_order_id')
 
+    # Phase 1 — persist the receipt photo (short session, no awaits inside)
+    order_found = False
+    order_code = None
+    order_total = None
+    order_bonus = Decimal('0')
     if order_id:
         with Database().session() as session:
             order = session.query(Order).filter_by(id=order_id).first()
             if order:
                 order.payment_receipt_photo = photo_file_id
                 session.commit()
+                order_found = True
+                order_code = order.order_code
+                order_total = order.total_price
+                order_bonus = order.bonus_applied or Decimal('0')
+        # session closed before any Telegram/network I/O
 
-                # Attempt auto-verification via bank APIs
-                verify_result = None
-                if EnvKeys.SLIP_AUTO_VERIFY == "1":
-                    try:
-                        from bot.payments.slip_verify import verify_slip, VerifyStatus
+    # Phase 2 — download + verify slip (network I/O, NO DB connection held)
+    verify_result = None
+    duplicate_detected = False
+    duplicate_owner_code = None
+    if order_found and EnvKeys.SLIP_AUTO_VERIFY == "1":
+        try:
+            from bot.payments.slip_verify import verify_slip
 
-                        # Download the photo from Telegram
-                        file_obj = await message.bot.get_file(photo_file_id)
-                        photo_bytes_io = await message.bot.download_file(file_obj.file_path)
-                        slip_image = photo_bytes_io.read()
+            # Download the photo from Telegram
+            file_obj = await message.bot.get_file(photo_file_id)
+            photo_bytes_io = await message.bot.download_file(file_obj.file_path)
+            slip_image = photo_bytes_io.read()
 
-                        # Calculate expected amount (total - bonus)
-                        expected_amount = order.total_price - (order.bonus_applied or Decimal('0'))
+            # Calculate expected amount (total - bonus)
+            expected_amount = order_total - order_bonus
 
-                        from bot.handlers.admin.settings_management import get_promptpay_name as _get_pp_name
-                        verify_result = await verify_slip(
-                            slip_image=slip_image,
-                            expected_amount=expected_amount,
-                            expected_receiver=_get_pp_name() or None,
-                        )
+            from bot.handlers.admin.settings_management import get_promptpay_name as _get_pp_name
+            verify_result = await verify_slip(
+                slip_image=slip_image,
+                expected_amount=expected_amount,
+                expected_receiver=_get_pp_name() or None,
+            )
+        except Exception as e:
+            logger.error(f"Slip auto-verification error for order {order_code}: {e}")
+            verify_result = None
 
-                        # Save verification result to order
-                        import datetime as dt
-                        order.slip_verify_status = verify_result.status.value
+        # Phase 3 — persist verification result (short session, no awaits inside)
+        if verify_result is not None:
+            try:
+                from bot.payments.slip_verify import VerifyStatus
+                import datetime as dt
+                with Database().session() as session:
+                    order = session.query(Order).filter_by(id=order_id).first()
+                    if order:
                         order.slip_verify_bank = verify_result.provider.value if verify_result.provider else None
-                        order.slip_transaction_id = verify_result.transaction_id
                         order.slip_verified_amount = verify_result.amount
                         order.slip_sender_name = verify_result.sender_name
                         order.slip_receiver_name = verify_result.receiver_name
                         order.slip_verified_at = dt.datetime.now(dt.timezone.utc)
 
-                        if verify_result.status == VerifyStatus.VERIFIED:
-                            # Auto-confirm the payment
-                            order.payment_verified_at = dt.datetime.now(dt.timezone.utc)
-                            order.payment_verified_by = 0  # 0 = auto-verified by API
-                            order.order_status = "confirmed"
-                            logger.info(
-                                "Order %s auto-verified via %s (txn: %s)",
-                                order.order_code, verify_result.provider.value, verify_result.transaction_id,
+                        # Duplicate-slip guard (Card 24): a verified bank slip can
+                        # pay for exactly one order. SlipOK/RDCW don't flag reuse
+                        # server-side, so before storing the txn id / auto-confirming
+                        # we check no *other* order already claimed it. This is also
+                        # constraint-safe — we never copy a txn id already in use,
+                        # which would otherwise trip uq_orders_slip_transaction_id.
+                        txn_id = verify_result.transaction_id
+                        duplicate_owner = None
+                        if txn_id:
+                            duplicate_owner = (
+                                session.query(Order)
+                                .filter(Order.slip_transaction_id == txn_id,
+                                        Order.id != order.id)
+                                .first()
                             )
 
+                        if duplicate_owner is not None:
+                            duplicate_detected = True
+                            duplicate_owner_code = duplicate_owner.order_code or str(duplicate_owner.id)
+                            order.slip_verify_status = VerifyStatus.DUPLICATE.value
+                            # Do NOT store the txn id on this order or confirm it.
+                            logger.warning(
+                                "Duplicate slip rejected: order %s tried to reuse txn %s "
+                                "already claimed by order %s",
+                                order_code, txn_id, duplicate_owner_code,
+                            )
+                        else:
+                            order.slip_verify_status = verify_result.status.value
+                            order.slip_transaction_id = txn_id
+                            if verify_result.status == VerifyStatus.VERIFIED:
+                                # Auto-confirm the payment
+                                order.payment_verified_at = dt.datetime.now(dt.timezone.utc)
+                                order.payment_verified_by = 0  # 0 = auto-verified by API
+                                order.order_status = "confirmed"
+                                logger.info(
+                                    "Order %s auto-verified via %s (txn: %s)",
+                                    order_code, verify_result.provider.value, verify_result.transaction_id,
+                                )
+
                         session.commit()
+            except Exception as e:
+                logger.error(f"Slip auto-verification error for order {order_code}: {e}")
 
-                    except Exception as e:
-                        logger.error(f"Slip auto-verification error for order {order.order_code}: {e}")
+    # Phase 4 — outbound I/O (no DB connection held)
+    if order_found:
+        # Build admin notification caption
+        admin_caption = (
+            f"💳 <b>PromptPay Receipt</b>\n"
+            f"Order: <code>{order_code}</code>\n"
+            f"Amount: {order_total} {EnvKeys.PAY_CURRENCY}\n"
+            f"From: {message.from_user.id}"
+        )
 
-                # Build admin notification caption
-                admin_caption = (
-                    f"💳 <b>PromptPay Receipt</b>\n"
-                    f"Order: <code>{order.order_code}</code>\n"
-                    f"Amount: {order.total_price} {EnvKeys.PAY_CURRENCY}\n"
-                    f"From: {message.from_user.id}"
+        if duplicate_detected:
+            admin_caption += (
+                f"\n\n🚫 <b>DUPLICATE SLIP REJECTED</b>\n"
+                f"Txn: <code>{verify_result.transaction_id if verify_result else '?'}</code>\n"
+                f"Already used by order <code>{duplicate_owner_code}</code>\n"
+                f"This order was NOT auto-confirmed — verify manually."
+            )
+        elif verify_result:
+            from bot.payments.slip_verify import VerifyStatus
+            if verify_result.status == VerifyStatus.VERIFIED:
+                admin_caption += (
+                    f"\n\n✅ <b>AUTO-VERIFIED</b> via {verify_result.provider.value.upper()}\n"
+                    f"Txn: <code>{verify_result.transaction_id}</code>\n"
+                    f"Amount: {verify_result.amount} THB"
+                )
+                if verify_result.sender_name:
+                    admin_caption += f"\nSender: {verify_result.sender_name}"
+            elif verify_result.status == VerifyStatus.NO_API_CONFIGURED:
+                admin_caption += "\n\n⏳ Manual verification required (no bank API configured)"
+            else:
+                admin_caption += (
+                    f"\n\n⚠️ <b>VERIFY FAILED:</b> {verify_result.status.value}\n"
+                    f"{verify_result.error_message or 'Check manually'}"
                 )
 
-                if verify_result:
-                    from bot.payments.slip_verify import VerifyStatus
-                    if verify_result.status == VerifyStatus.VERIFIED:
-                        admin_caption += (
-                            f"\n\n✅ <b>AUTO-VERIFIED</b> via {verify_result.provider.value.upper()}\n"
-                            f"Txn: <code>{verify_result.transaction_id}</code>\n"
-                            f"Amount: {verify_result.amount} THB"
-                        )
-                        if verify_result.sender_name:
-                            admin_caption += f"\nSender: {verify_result.sender_name}"
-                    elif verify_result.status == VerifyStatus.NO_API_CONFIGURED:
-                        admin_caption += "\n\n⏳ Manual verification required (no bank API configured)"
-                    else:
-                        admin_caption += (
-                            f"\n\n⚠️ <b>VERIFY FAILED:</b> {verify_result.status.value}\n"
-                            f"{verify_result.error_message or 'Check manually'}"
-                        )
+        # Notify admin with receipt
+        owner_id = EnvKeys.OWNER_ID
+        if owner_id:
+            try:
+                await message.bot.send_photo(
+                    int(owner_id),
+                    photo_file_id,
+                    caption=admin_caption,
+                )
+            except Exception as e:
+                logger.error(f"Failed to forward receipt to admin: {e}")
 
-                # Notify admin with receipt
-                owner_id = EnvKeys.OWNER_ID
-                if owner_id:
-                    try:
-                        await message.bot.send_photo(
-                            int(owner_id),
-                            photo_file_id,
-                            caption=admin_caption,
-                        )
-                    except Exception as e:
-                        logger.error(f"Failed to forward receipt to admin: {e}")
+        # Send appropriate response to user
+        if duplicate_detected:
+            await message.answer(
+                localize("order.payment.promptpay.duplicate_slip"),
+                reply_markup=back("back_to_menu"),
+            )
+            await state.clear()
+            return
 
-                # Send appropriate response to user
-                if verify_result and verify_result.status == VerifyStatus.VERIFIED:
-                    await message.answer(
-                        localize("order.payment.promptpay.slip_verified"),
-                        reply_markup=back("back_to_menu"),
-                    )
-                    await state.clear()
-                    return
+        if verify_result and verify_result.status == VerifyStatus.VERIFIED:
+            await message.answer(
+                localize("order.payment.promptpay.slip_verified"),
+                reply_markup=back("back_to_menu"),
+            )
+            await state.clear()
+            return
 
     await message.answer(localize("order.payment.promptpay.receipt_received"), reply_markup=back("back_to_menu"))
     await state.clear()

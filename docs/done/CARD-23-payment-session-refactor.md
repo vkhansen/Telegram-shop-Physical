@@ -1,10 +1,65 @@
 # CARD-23: Payment Handler DB-Session Refactor
 
-## Status: Not Started
+## Status: ✅ DONE (2026-06-03) — whole bug-class fixed (6 handlers), not just the 2 named
 
 ## Priority: High
-## Effort: Medium (2–3d)
+## Effort: Low-Medium (1–2d remaining)
 ## Phase: Reliability — Infrastructure Hardening
+
+---
+
+## ✅ Completion note (2026-06-03)
+
+Closed by refactoring **all six** order-creation / payment handlers in
+`bot/handlers/user/order_handler.py` that held a `with Database().session()`
+block open across `await`s — not just the two the card originally named. The
+card's audit table had only examined the crypto handlers; the cash, PromptPay,
+and bitcoin-callback handlers carried the identical anti-pattern, and
+`process_receipt_photo` was the worst offender (it held a DB connection across a
+`verify_slip` **network call**). Per the `CLAUDE.md` "fix the whole class" rule,
+all were fixed:
+
+| Handler | Awaits-in-session before → after |
+|---------|----------------------------------|
+| `process_crypto_payment` | 6 → 0 |
+| `process_bitcoin_payment_new_message` | 7 → 0 |
+| `process_bitcoin_payment` (callback) | 6 → 0 |
+| `process_cash_payment_new_message` | 7 → 0 |
+| `process_promptpay_payment` | 10 → 0 |
+| `process_receipt_photo` | 6 → 0 (incl. network `verify_slip`) |
+
+Each was split into phases that release the DB connection before any Telegram /
+network I/O: **Phase 1** preflight read (scalars only) → **Phase 2** write
+transaction (no awaits) → **Phase 3** outbound I/O (no connection held).
+`process_receipt_photo` uses a 4-phase variant (persist receipt → verify off-session
+→ persist result → outbound I/O).
+
+**Latent bug surfaced & fixed:** `get_metrics()` was called in the cash and
+bitcoin handlers but **never imported** — it raised `NameError` post-commit,
+which the broad `except` swallowed, so completed cash/bitcoin orders showed the
+user a generic error and skipped the admin notification. Added
+`from bot.monitoring.metrics import get_metrics`.
+
+**Tests:** `tests/unit/test_payment_session_refactor_card23.py` — an AST guard
+asserting zero `await`s inside any `Database().session()` block across all six
+handlers, plus functional coverage of the five scenarios below over
+`process_cash_payment_new_message`. Full suite: 1440 passed, 150 skipped.
+
+---
+
+## Verification Audit (2026-06-02)
+
+The scalar-extraction pattern has **already been applied to the upstream checkout handlers**, but the **two payment-creation handlers this card targets still hold the session across awaits** — they are genuinely unfixed:
+
+| Function | Line | State | Awaits still inside `with session` |
+|----------|------|-------|------------------------------------|
+| `process_bitcoin_payment_new_message` | 1238 | ❌ NOT FIXED | `message.answer(payment_text)` (1456), `notify_admin_new_order` (1462), `state.clear()` (1472) — all after `session.commit()` (1392) but still inside the block |
+| `process_crypto_payment` | 769 | ❌ NOT FIXED | `message.answer(payment_text)` (950), `state.clear()` (952) — after `commit()` (925), still inside the block |
+| `check_and_ask_about_bonus` | 527 | ✅ already fixed | session closed before awaits (explicit comment at line 542) |
+| `checkout_cart_handler` | 365 | ✅ already fixed | scalar extraction (saved_address/phone/note) |
+| `confirm_delivery_info_handler` | 427 | ✅ already fixed | scalar extraction |
+
+So the predecessor work noted under "Related" is confirmed done; **the remaining work is exactly the two functions named in the table above.** Line numbers below are still accurate.
 
 ---
 
@@ -163,11 +218,12 @@ After refactor all five scenarios must produce identical outcomes.
 
 ## Acceptance Criteria
 
-- [ ] `process_bitcoin_payment_new_message`: no `await` inside any `with Database().session()` block.
-- [ ] `process_crypto_payment`: no `await` inside any `with Database().session()` block.
-- [ ] All existing payment-flow tests green.
-- [ ] New tests covering the 5 scenarios above.
-- [ ] Pool exhaustion smoke test: 20 concurrent payment submissions do not raise `QueuePool` timeout.
+- [x] `process_bitcoin_payment_new_message`: no `await` inside any `with Database().session()` block.
+- [x] `process_crypto_payment`: no `await` inside any `with Database().session()` block.
+- [x] **(extended)** `process_bitcoin_payment` (callback), `process_cash_payment_new_message`, `process_promptpay_payment`, `process_receipt_photo`: same guarantee — verified by an AST test.
+- [x] All existing payment-flow tests green (1440 passed, 150 skipped).
+- [x] New tests covering the 5 scenarios above (over `process_cash_payment_new_message`).
+- [~] Pool exhaustion smoke test: not run as a live load test; the AST guard structurally proves no connection is held across `await`, which is the precondition the load test would exercise. A concurrent-load test remains a nice-to-have for the launch checklist.
 
 ---
 

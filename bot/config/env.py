@@ -96,6 +96,15 @@ class EnvKeys(ABC):
     CART_TTL_MINUTES: Final = int(os.getenv("CART_TTL_MINUTES", 120))
     CART_FLASH_SECONDS: Final = float(os.getenv("CART_FLASH_SECONDS", 1.5))
 
+    # Live GPS driver matching & dispatch (Card 26)
+    AUTO_DISPATCH_ENABLED: Final = os.getenv("AUTO_DISPATCH_ENABLED", "false").lower() in ("1", "true", "yes")
+    AUTO_DISPATCH_RADIUS_KM: Final = float(os.getenv("AUTO_DISPATCH_RADIUS_KM", "8.0"))
+    AUTO_DISPATCH_OFFER_TIMEOUT: Final = int(os.getenv("AUTO_DISPATCH_OFFER_TIMEOUT", 60))  # seconds per offer
+    AUTO_DISPATCH_BATCH_SIZE: Final = int(os.getenv("AUTO_DISPATCH_BATCH_SIZE", 1))  # drivers offered per round
+    AUTO_DISPATCH_MAX_ROUNDS: Final = int(os.getenv("AUTO_DISPATCH_MAX_ROUNDS", 3))  # rounds before manual fallback
+    DRIVER_MAX_ACTIVE_ORDERS: Final = int(os.getenv("DRIVER_MAX_ACTIVE_ORDERS", 3))
+    DRIVER_AVG_SPEED_KMH: Final = float(os.getenv("DRIVER_AVG_SPEED_KMH", "25.0"))  # for ETA estimation
+
     # Multi-bot runtime (Card 19)
     MULTI_BOT_ENABLED: Final = os.getenv("MULTI_BOT_ENABLED", "false").lower() in ("1", "true", "yes")
     WEBHOOK_MODE: Final = os.getenv("WEBHOOK_MODE", "false").lower() in ("1", "true", "yes")

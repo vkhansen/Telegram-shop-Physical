@@ -1,8 +1,26 @@
 # CARD-21: Persistent Cart Stub on Menu Navigation
 
-## Status: Phases 2/3/6 shipped — Phases 4/5 pending
+## Status: ✅ Complete — all 6 phases + saved-cart restore shipped (2026-06-03)
 
 ## Progress Log
+
+### 2026-06-03 — Closed the last gap: saved-cart restore-from-Profile
+Phase 4 let users **save** a cart on brand switch but there was no way to **restore** it (the `shop.brand_switch.saved` message promised "restore from Profile" with nothing behind it). That dangling feature is now implemented:
+
+- **Data:** `get_saved_carts(user_id)` (`read.py`), `restore_saved_cart(user_id, id)` (`create.py` — clears the active cart, re-adds each saved item **through `add_to_cart`** so availability/stock/daily-limit rules are enforced, skips unorderable items, consumes the snapshot), `delete_saved_cart(user_id, id)` (`delete.py`).
+- **UI:** new `bot/handlers/user/saved_carts_handler.py` (`saved_carts` list, `restore_cart:{id}`, `discard_saved:{id}`); `saved_carts_keyboard()` + `profile_keyboard(..., saved_carts)` entry shown only when snapshots exist (`inline.py`); profile handler counts snapshots (`main.py`). Router registered in `handlers/user/__init__.py`.
+- **i18n:** 10 new keys across all **7 locales** (`btn.saved_carts`, `btn.restore_cart`, `btn.discard`, `saved_carts.{title,empty,entry,restored,restored_partial,discarded,not_found}`).
+- **Tests:** `tests/unit/test_saved_cart_restore_card21.py` (8 tests: shape, restore+consume, replace-active-cart, skip-unavailable, preserve-modifiers, not-found, delete). All green; i18n parity tests pass.
+
+> Remaining known non-blocking gap: `shop.store_switch.flash` is defined but the store-switch path still jumps straight to categories without showing the flash (cosmetic; tracked as a follow-up).
+
+### 2026-06-02 — Verification audit: Phases 4 & 5 confirmed shipped
+A code audit found Phases **4** (brand-switch Save/Delete/Stay) and **5** (store-switch availability) are now fully implemented — the card's "pending" status was stale.
+
+- **Phase 4 (brand switch):** FSM state `confirming_brand_switch` (`bot/states/shop_state.py:14`); `brand_switch_confirm_keyboard()` (`bot/keyboards/inline.py:161-168`) with `save_cart:` / `delete_cart:` / `stay_brand` callbacks; handlers `select_brand()` cross-brand guard (`store_selection.py:84,93-109`), `save_cart_callback()` (257-287), `delete_cart_callback()` (290-311), `stay_brand_callback()` (314-321); `SavedCart` model (`main.py:1134-1158`).
+- **Phase 5 (store switch):** FSM state `confirming_store_switch` (`shop_state.py:16`); `store_switch_confirm_keyboard()` (`inline.py:171-180`); `select_branch()` availability intercept (`store_selection.py:168-217`) via `_check_unavailable_items()` (328-348) — **correctly skips `prepared` items** (`item_type == 'prepared'`, line 338-340) so unlimited-stock items never show as unavailable; `switch_and_remove_callback()` (351-374), `stay_store_callback()` (377-386); `BranchInventory` model (`main.py:1054-1082`).
+
+All phases (2 banner, 3 flash, 4 brand switch, 5 store switch, 6 expiry) are present. Card moved to `docs/done/`.
 
 ### 2026-04-13 — Pass 1 (commit `c3cad02`)
 Phases **2** (banner injection) + **6** (cart expiry) landed.
