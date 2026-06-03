@@ -12,7 +12,7 @@ Last reviewed: 2026-06-03
 
 ## 1. Where we actually are
 
-The bot **runs** and a customer can complete a happy-path order end to end (verified live: PromptPay QR is correct, slip/crypto verification call real APIs, the order state machine and rider-group workflow work). **27 cards are shipped** (CARD-21 and CARD-27 closed in the 2026-06-02 audit; CARD-25, CARD-23, CARD-24, and CARD-26 closed 2026-06-03).
+The bot **runs** and a customer can complete a happy-path order end to end (verified live: PromptPay QR is correct, slip/crypto verification call real APIs, the order state machine and rider-group workflow work). **28 cards are shipped** (CARD-21 and CARD-27 closed in the 2026-06-02 audit; CARD-25, CARD-23, CARD-24, CARD-26, and CARD-28 closed 2026-06-03).
 
 **The M0 launch gate is fully green and M2 (live delivery dispatch) is shipped** — quality, concurrency, money-safety, and now automated GPS driver dispatch are all closed. The table below reflects the 2026-06-03 state:
 

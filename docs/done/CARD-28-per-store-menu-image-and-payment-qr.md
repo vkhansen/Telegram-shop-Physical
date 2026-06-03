@@ -1,6 +1,6 @@
 # CARD-28: Per-Store Menu Image + Per-Store Payment QR
 
-## Status: Not Started
+## Status: ✅ DONE (2026-06-03) — all three phases shipped & tested; see Completion Note
 
 ## Priority: P2 — Multi-store ops polish
 ## Effort: Medium (3–5d)
@@ -73,3 +73,34 @@ Multi-store brands (CARD-19) can pick a branch at checkout, but two branch-level
 ## Links
 
 Builds on [CARD-19](../done/CARD-19-multi-brand-bot-coordination.md) (multi-store), [CARD-01](../done/CARD-01-promptpay-qr-payment.md) (PromptPay QR), and CARD-RC1 (multi-media menu items). Multi-store polish; independent of the launch gate and M2 dispatch.
+
+---
+
+## Completion Note (2026-06-03)
+
+All three phases shipped, fully backward compatible, committed in stages. Full suite green: **1476 passed (+16 new), 150 skipped, 48.87% coverage**.
+
+### What was built
+
+**The critical path (Phase B + slip verification) — the user's priority.**
+- `bot/payments/store_payment.py::resolve_payment_target` is the single source of truth, precedence **store → brand → global**, used by **both** QR generation and slip verification so the account paid and the account verified can never diverge (before this, the QR used a global id while verification used a global name — per-store would have silently mismatched).
+- QR generation (`order_handler.process_promptpay_payment`): dynamic amount-embedded QR to the resolved id; **static-QR-image fallback** (Phase C, amount shown in caption) when a store has a static QR and no dynamic id; text fallback when nothing is configured.
+- Slip verification (`order_handler.process_receipt_photo`): `expected_receiver` resolved from the order's own `store_id`/`brand_id`, so a customer pays the branch's QR and the uploaded slip auto-verifies against that same branch account.
+
+**Phase A — per-store menu image.** `Store.menu_image_file_id`; `_show_categories` sends it as a simple photo (store-name caption) the moment a store is selected. No image → unchanged.
+
+**Admin management.** Store management view shows the PromptPay / menu-image / static-QR state and lets an admin set, replace, or clear each: photo uploads for the menu image and static QR; PromptPay id (validated: 10-digit phone or 13-digit national id) followed by the account name; `-` clears.
+
+### Schema & files
+- `Store`: + `menu_image_file_id`, `promptpay_id`, `promptpay_name`, `payment_qr_file_id` (all nullable). Migration `b3f2c4e8a1d7` (head; `add_column` only — Postgres + SQLite safe).
+- New `bot/payments/store_payment.py`; modified `order_handler.py`, `store_selection.py`, `store_management.py`; 11 i18n keys × 7 locales.
+
+### Tests (16 new)
+- `tests/unit/payments/test_store_payment_card28.py` (7): resolver precedence matrix (store/brand/global), static-QR-only, menu-image getter, and QR payload encodes the store's id.
+- `tests/integration/test_store_payment_routing.py` (3): end-to-end `process_receipt_photo` verifying the slip against store / brand / global accounts with auto-confirm.
+- `tests/unit/handlers/test_store_assets_card28.py` (6): menu image sent only when set; admin set menu image, set/validate/reject/clear PromptPay.
+
+### Notes / follow-ups
+- Brand-level PromptPay (`Brand.promptpay_id`) is now honoured by the resolver — previously the order flow ignored it and only used the global setting.
+- Static QR can't embed the amount; the caption instructs the customer to enter it manually (`order.payment.promptpay.static_amount_note`).
+- Admin-facing strings follow the repo convention (translated `ru`, English placeholders in other non-English locales).
