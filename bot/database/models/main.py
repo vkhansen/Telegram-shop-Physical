@@ -1066,6 +1066,13 @@ class Store(Database.BASE):
     is_default = Column(Boolean, nullable=False, default=False)
     kitchen_group_id = Column(BigInteger, nullable=True)  # Per-branch kitchen Telegram group
     rider_group_id = Column(BigInteger, nullable=True)  # Per-branch rider Telegram group
+
+    # Per-store storefront & payment (Card 28)
+    menu_image_file_id = Column(String(255), nullable=True)  # Telegram file_id of the branch menu board, sent on store select
+    promptpay_id = Column(String(20), nullable=True)         # Branch PromptPay phone/national-id; overrides brand/global
+    promptpay_name = Column(String(200), nullable=True)      # Branch PromptPay account name (for slip receiver match)
+    payment_qr_file_id = Column(String(255), nullable=True)  # Telegram file_id of a static branch QR (fallback if no dynamic id)
+
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     brand = relationship("Brand", back_populates="stores")
@@ -1078,7 +1085,9 @@ class Store(Database.BASE):
     def __init__(self, name: str, address: str = None, latitude: float = None,
                  longitude: float = None, phone: str = None, is_default: bool = False,
                  brand_id: int = None, kitchen_group_id: int = None,
-                 rider_group_id: int = None, **kw: Any):
+                 rider_group_id: int = None, menu_image_file_id: str = None,
+                 promptpay_id: str = None, promptpay_name: str = None,
+                 payment_qr_file_id: str = None, **kw: Any):
         super().__init__(**kw)
         self.name = name
         self.brand_id = brand_id
@@ -1089,6 +1098,10 @@ class Store(Database.BASE):
         self.is_default = is_default
         self.kitchen_group_id = kitchen_group_id
         self.rider_group_id = rider_group_id
+        self.menu_image_file_id = menu_image_file_id
+        self.promptpay_id = promptpay_id
+        self.promptpay_name = promptpay_name
+        self.payment_qr_file_id = payment_qr_file_id
 
 
 class BranchInventory(Database.BASE):
