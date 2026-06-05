@@ -2,10 +2,12 @@ from aiogram import Router
 
 from .cart_handler import router as cart_router
 from .delivery_chat_handler import router as delivery_chat_router
+from .grok_customer import router as grok_customer_router
 from .help_handler import router as help_router
 from .main import router as main_router
 from .order_handler import router as order_router
 from .orders_view_handler import router as orders_view_router
+from .privacy_handler import router as privacy_router
 from .reference_code_handler import router as reference_code_router
 from .referral_system import router as referral_system_router
 from .review_handler import router as review_router
@@ -13,9 +15,7 @@ from .saved_carts_handler import router as saved_carts_router
 from .search_handler import router as search_router
 from .shop_and_goods import router as shop_and_goods_router
 from .store_selection import router as store_selection_router
-from .privacy_handler import router as privacy_router
 from .ticket_handler import router as ticket_router
-from .grok_customer import router as grok_customer_router
 
 router = Router()
 router.include_router(main_router)

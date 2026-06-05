@@ -36,17 +36,16 @@ async def extract_content(message: Message) -> str:
 
         if filename.lower().endswith(".csv"):
             return _parse_csv_to_text(raw)
-        elif filename.lower().endswith((".xlsx", ".xls")):
+        if filename.lower().endswith((".xlsx", ".xls")):
             return _parse_excel_to_text(raw)
-        elif filename.lower().endswith(".json"):
+        if filename.lower().endswith(".json"):
             return _parse_json_to_text(raw)
-        else:
-            # Generic text file
-            try:
-                text = raw.decode("utf-8", errors="replace")
-                return f"File content ({filename}):\n{text[:5000]}"
-            except Exception:
-                return f"[Could not read file: {filename}]"
+        # Generic text file
+        try:
+            text = raw.decode("utf-8", errors="replace")
+            return f"File content ({filename}):\n{text[:5000]}"
+        except Exception:
+            return f"[Could not read file: {filename}]"
 
     # Photo
     if message.photo:

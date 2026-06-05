@@ -1,18 +1,18 @@
 import logging
 
-from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message
 
-from bot.database.models.main import Permission, BotSettings
-from bot.database.main import Database
-from bot.database.methods.read import get_reference_bonus_percent, get_bot_setting
-from bot.states.user_state import SettingsFSM
-from bot.keyboards.inline import back, settings_management_keyboard, timezone_selection_keyboard
-from bot.filters import HasPermissionFilter
 from bot.config import timezone
 from bot.config.env import EnvKeys
+from bot.database.main import Database
+from bot.database.methods.read import get_bot_setting, get_reference_bonus_percent
+from bot.database.models.main import BotSettings, Permission
+from bot.filters import HasPermissionFilter
 from bot.i18n import localize
+from bot.keyboards.inline import back, settings_management_keyboard, timezone_selection_keyboard
+from bot.states.user_state import SettingsFSM
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +40,11 @@ async def settings_menu(call: CallbackQuery, state: FSMContext):
 
     # Get current settings
     current_percent = get_reference_bonus_percent()
-    current_timeout = get_bot_setting('cash_order_timeout_hours', default=24, value_type=int)
+    current_timeout = get_bot_setting("cash_order_timeout_hours", default=24, value_type=int)
     current_timezone = timezone.get_timezone()
-    promptpay_id = get_bot_setting('promptpay_id') or EnvKeys.PROMPTPAY_ID or "Not set"
-    promptpay_name = get_bot_setting('promptpay_account_name') or EnvKeys.PROMPTPAY_ACCOUNT_NAME or "Not set"
-    current_currency = get_bot_setting('pay_currency') or EnvKeys.PAY_CURRENCY
+    promptpay_id = get_bot_setting("promptpay_id") or EnvKeys.PROMPTPAY_ID or "Not set"
+    promptpay_name = get_bot_setting("promptpay_account_name") or EnvKeys.PROMPTPAY_ACCOUNT_NAME or "Not set"
+    current_currency = get_bot_setting("pay_currency") or EnvKeys.PAY_CURRENCY
 
     await call.message.edit_text(
         f"⚙️ <b>Bot Settings</b>\n\n"
@@ -56,7 +56,7 @@ async def settings_menu(call: CallbackQuery, state: FSMContext):
         f"• Currency: <b>{current_currency}</b>\n\n"
         f"Select a setting to modify:",
         reply_markup=settings_management_keyboard(),
-        parse_mode='HTML'
+        parse_mode="HTML",
     )
 
 
@@ -76,7 +76,7 @@ async def set_referral_percent_start(call: CallbackQuery, state: FSMContext):
         f"• Example: <code>0</code> (to disable referral bonuses)\n\n"
         f"<i>This percentage will be applied to all future completed orders.</i>",
         reply_markup=back("settings_management"),
-        parse_mode='HTML'
+        parse_mode="HTML",
     )
     await state.set_state(SettingsFSM.waiting_referral_percent)
 
@@ -93,17 +93,15 @@ async def process_referral_percent(message: Message, state: FSMContext):
 
         if percent_value < 0 or percent_value > 100:
             await message.answer(
-                "❌ <b>Invalid input</b>\n\n"
-                "Percentage must be between 0 and 100.\n"
-                "Please try again:",
+                "❌ <b>Invalid input</b>\n\nPercentage must be between 0 and 100.\nPlease try again:",
                 reply_markup=back("settings_management"),
-                parse_mode='HTML'
+                parse_mode="HTML",
             )
             return
 
         # Update database
         with Database().session() as session:
-            _upsert_bot_setting(session, 'reference_bonus_percent', str(percent_value))
+            _upsert_bot_setting(session, "reference_bonus_percent", str(percent_value))
 
         # Show confirmation
         status_text = "enabled" if percent_value > 0 else "disabled"
@@ -114,16 +112,14 @@ async def process_referral_percent(message: Message, state: FSMContext):
             f"This will apply to all future completed orders.\n"
             f"Users will receive {percent_value}% of their referral's order total as bonus balance.",
             reply_markup=settings_management_keyboard(),
-            parse_mode='HTML'
+            parse_mode="HTML",
         )
 
     except ValueError:
         await message.answer(
-            "❌ <b>Invalid input</b>\n\n"
-            "Please enter a valid whole number (0-100).\n"
-            "Examples: 5, 10, 15, 20",
+            "❌ <b>Invalid input</b>\n\nPlease enter a valid whole number (0-100).\nExamples: 5, 10, 15, 20",
             reply_markup=back("settings_management"),
-            parse_mode='HTML'
+            parse_mode="HTML",
         )
         return
 
@@ -135,7 +131,7 @@ async def set_order_timeout_start(call: CallbackQuery, state: FSMContext):
     """
     Start order timeout update flow.
     """
-    current_timeout = get_bot_setting('cash_order_timeout_hours', default=24, value_type=int)
+    current_timeout = get_bot_setting("cash_order_timeout_hours", default=24, value_type=int)
 
     await call.message.edit_text(
         f"⏱️ <b>Update Order Timeout</b>\n\n"
@@ -146,7 +142,7 @@ async def set_order_timeout_start(call: CallbackQuery, state: FSMContext):
         f"• Example: <code>72</code> (72 hours / 3 days)\n\n"
         f"<i>Orders will automatically expire after this time if not paid.</i>",
         reply_markup=back("settings_management"),
-        parse_mode='HTML'
+        parse_mode="HTML",
     )
     await state.set_state(SettingsFSM.waiting_order_timeout)
 
@@ -163,17 +159,15 @@ async def process_order_timeout(message: Message, state: FSMContext):
 
         if timeout_hours < 1 or timeout_hours > 168:  # Max 1 week
             await message.answer(
-                "❌ <b>Invalid input</b>\n\n"
-                "Timeout must be between 1 and 168 hours (1 week).\n"
-                "Please try again:",
+                "❌ <b>Invalid input</b>\n\nTimeout must be between 1 and 168 hours (1 week).\nPlease try again:",
                 reply_markup=back("settings_management"),
-                parse_mode='HTML'
+                parse_mode="HTML",
             )
             return
 
         # Update database
         with Database().session() as session:
-            _upsert_bot_setting(session, 'cash_order_timeout_hours', str(timeout_hours))
+            _upsert_bot_setting(session, "cash_order_timeout_hours", str(timeout_hours))
 
         # Calculate days for display
         days = timeout_hours / 24
@@ -186,16 +180,14 @@ async def process_order_timeout(message: Message, state: FSMContext):
             f"All new orders will automatically expire after {timeout_hours} hours if not paid.\n"
             f"Reserved inventory will be released when orders expire.",
             reply_markup=settings_management_keyboard(),
-            parse_mode='HTML'
+            parse_mode="HTML",
         )
 
     except ValueError:
         await message.answer(
-            "❌ <b>Invalid input</b>\n\n"
-            "Please enter a valid whole number (1-168).\n"
-            "Examples: 12, 24, 48, 72",
+            "❌ <b>Invalid input</b>\n\nPlease enter a valid whole number (1-168).\nExamples: 12, 24, 48, 72",
             reply_markup=back("settings_management"),
-            parse_mode='HTML'
+            parse_mode="HTML",
         )
         return
 
@@ -218,7 +210,7 @@ async def set_timezone_start(call: CallbackQuery, state: FSMContext):
         f"or choose 'Enter manually' to type your own.\n\n"
         f"<i>This affects all logging timestamps.</i>",
         reply_markup=timezone_selection_keyboard(),
-        parse_mode='HTML'
+        parse_mode="HTML",
     )
 
 
@@ -237,7 +229,7 @@ async def select_timezone_from_button(call: CallbackQuery, state: FSMContext):
 
     # Update database
     with Database().session() as session:
-        _upsert_bot_setting(session, 'timezone', timezone_str)
+        _upsert_bot_setting(session, "timezone", timezone_str)
 
     # Hot reload timezone
     timezone.reload_timezone()
@@ -251,7 +243,7 @@ async def select_timezone_from_button(call: CallbackQuery, state: FSMContext):
         f"All logging timestamps will now use this timezone.\n"
         f"Changes applied immediately (hot reload).",
         reply_markup=settings_management_keyboard(),
-        parse_mode='HTML'
+        parse_mode="HTML",
     )
 
     await state.clear()
@@ -275,7 +267,7 @@ async def set_timezone_manual(call: CallbackQuery, state: FSMContext):
         f"📋 Full list: <a href='https://en.wikipedia.org/wiki/List_of_tz_database_time_zones'>Wikipedia</a>\n\n"
         f"<i>Timezone must be valid according to the IANA time zone database.</i>",
         reply_markup=back("settings_management"),
-        parse_mode='HTML'
+        parse_mode="HTML",
     )
     await state.set_state(SettingsFSM.waiting_timezone)
 
@@ -300,13 +292,13 @@ async def process_timezone_input(message: Message, state: FSMContext):
             f"Check the full list: "
             f"<a href='https://en.wikipedia.org/wiki/List_of_tz_database_time_zones'>Wikipedia</a>",
             reply_markup=back("settings_management"),
-            parse_mode='HTML'
+            parse_mode="HTML",
         )
         return
 
     # Update database
     with Database().session() as session:
-        _upsert_bot_setting(session, 'timezone', timezone_str)
+        _upsert_bot_setting(session, "timezone", timezone_str)
 
     # Hot reload timezone
     timezone.reload_timezone()
@@ -320,7 +312,7 @@ async def process_timezone_input(message: Message, state: FSMContext):
         f"All logging timestamps will now use this timezone.\n"
         f"Changes applied immediately (hot reload).",
         reply_markup=settings_management_keyboard(),
-        parse_mode='HTML'
+        parse_mode="HTML",
     )
 
     await state.clear()
@@ -330,14 +322,15 @@ async def process_timezone_input(message: Message, state: FSMContext):
 # PromptPay Recipient Account Settings
 # ---------------------------------------------------------------------------
 
+
 def get_promptpay_id() -> str:
     """Get PromptPay ID from DB, falling back to env var."""
-    return get_bot_setting('promptpay_id') or EnvKeys.PROMPTPAY_ID or ""
+    return get_bot_setting("promptpay_id") or EnvKeys.PROMPTPAY_ID or ""
 
 
 def get_promptpay_name() -> str:
     """Get PromptPay account name from DB, falling back to env var."""
-    return get_bot_setting('promptpay_account_name') or EnvKeys.PROMPTPAY_ACCOUNT_NAME or ""
+    return get_bot_setting("promptpay_account_name") or EnvKeys.PROMPTPAY_ACCOUNT_NAME or ""
 
 
 @router.callback_query(F.data == "setting_promptpay", HasPermissionFilter(Permission.SETTINGS_MANAGE))
@@ -358,12 +351,13 @@ async def set_promptpay_start(call: CallbackQuery, state: FSMContext):
         f"• Account Name: {name_display}\n\n"
         f"Choose how to set up your account:",
         reply_markup=_promptpay_setup_keyboard(),
-        parse_mode='HTML'
+        parse_mode="HTML",
     )
 
 
 def _promptpay_setup_keyboard():
     from aiogram.utils.keyboard import InlineKeyboardBuilder
+
     kb = InlineKeyboardBuilder()
     kb.button(text="📷 Upload QR Code Image", callback_data="promptpay_upload_qr")
     kb.button(text="✍️ Enter ID Manually", callback_data="promptpay_manual_id")
@@ -373,6 +367,7 @@ def _promptpay_setup_keyboard():
 
 
 # --- Option 1: Upload QR code image ---
+
 
 @router.callback_query(F.data == "promptpay_upload_qr", HasPermissionFilter(Permission.SETTINGS_MANAGE))
 async def promptpay_upload_qr_start(call: CallbackQuery, state: FSMContext):
@@ -386,7 +381,7 @@ async def promptpay_upload_qr_start(call: CallbackQuery, state: FSMContext):
         "• A QR image saved on your phone\n\n"
         "<i>The bot will automatically extract your PromptPay ID from the QR code.</i>",
         reply_markup=back("setting_promptpay"),
-        parse_mode='HTML'
+        parse_mode="HTML",
     )
     await state.set_state(SettingsFSM.waiting_promptpay_id)
     await state.update_data(promptpay_input_mode="qr_upload")
@@ -402,7 +397,7 @@ async def process_promptpay_qr_photo(message: Message, state: FSMContext):
             "❌ Please enter your PromptPay ID as text, not a photo.\n"
             "Or go back and choose 'Upload QR Code Image' instead.",
             reply_markup=back("setting_promptpay"),
-            parse_mode='HTML'
+            parse_mode="HTML",
         )
         return
 
@@ -440,7 +435,7 @@ async def process_promptpay_qr_photo(message: Message, state: FSMContext):
             f"• Example: <code>Somchai Jaidee</code>\n"
             f"• Example: <code>My Restaurant Co Ltd</code>",
             reply_markup=back("settings_management"),
-            parse_mode='HTML'
+            parse_mode="HTML",
         )
         await state.set_state(SettingsFSM.waiting_promptpay_name)
 
@@ -451,7 +446,7 @@ async def process_promptpay_qr_photo(message: Message, state: FSMContext):
             "Install it with: <code>pip install pyzbar</code>\n\n"
             "You can still enter your PromptPay ID manually.",
             reply_markup=_promptpay_setup_keyboard(),
-            parse_mode='HTML'
+            parse_mode="HTML",
         )
         await state.clear()
 
@@ -461,7 +456,7 @@ async def process_promptpay_qr_photo(message: Message, state: FSMContext):
             f"{e}\n\n"
             f"Please try again with a clearer image, or enter your ID manually.",
             reply_markup=_promptpay_setup_keyboard(),
-            parse_mode='HTML'
+            parse_mode="HTML",
         )
         await state.clear()
 
@@ -472,12 +467,13 @@ async def process_promptpay_qr_photo(message: Message, state: FSMContext):
             "Could not extract PromptPay info from the image.\n"
             "Please try a different image or enter your ID manually.",
             reply_markup=_promptpay_setup_keyboard(),
-            parse_mode='HTML'
+            parse_mode="HTML",
         )
         await state.clear()
 
 
 # --- Option 2: Manual entry ---
+
 
 @router.callback_query(F.data == "promptpay_manual_id", HasPermissionFilter(Permission.SETTINGS_MANAGE))
 async def promptpay_manual_start(call: CallbackQuery, state: FSMContext):
@@ -489,7 +485,7 @@ async def promptpay_manual_start(call: CallbackQuery, state: FSMContext):
         "• National ID (13 digits): <code>1234567890123</code>\n\n"
         "<i>This is the phone number or national ID registered with PromptPay at your bank.</i>",
         reply_markup=back("setting_promptpay"),
-        parse_mode='HTML'
+        parse_mode="HTML",
     )
     await state.set_state(SettingsFSM.waiting_promptpay_id)
     await state.update_data(promptpay_input_mode="manual")
@@ -513,7 +509,7 @@ async def process_promptpay_id(message: Message, state: FSMContext):
             "• 13-digit national ID (e.g. <code>1234567890123</code>)\n\n"
             "Please try again:",
             reply_markup=back("settings_management"),
-            parse_mode='HTML'
+            parse_mode="HTML",
         )
         return
 
@@ -531,7 +527,7 @@ async def process_promptpay_id(message: Message, state: FSMContext):
         f"• Example: <code>Somchai Jaidee</code>\n"
         f"• Example: <code>My Restaurant Co Ltd</code>",
         reply_markup=back("settings_management"),
-        parse_mode='HTML'
+        parse_mode="HTML",
     )
     await state.set_state(SettingsFSM.waiting_promptpay_name)
 
@@ -543,22 +539,20 @@ async def process_promptpay_name(message: Message, state: FSMContext):
 
     if len(account_name) < 2 or len(account_name) > 200:
         await message.answer(
-            "❌ <b>Invalid name</b>\n\n"
-            "Account name must be between 2 and 200 characters.\n"
-            "Please try again:",
+            "❌ <b>Invalid name</b>\n\nAccount name must be between 2 and 200 characters.\nPlease try again:",
             reply_markup=back("settings_management"),
-            parse_mode='HTML'
+            parse_mode="HTML",
         )
         return
 
     data = await state.get_data()
-    promptpay_id = data.get('new_promptpay_id', '')
-    id_type = data.get('promptpay_id_type', '')
+    promptpay_id = data.get("new_promptpay_id", "")
+    id_type = data.get("promptpay_id_type", "")
 
     # Save both settings to database
     with Database().session() as session:
-        _upsert_bot_setting(session, 'promptpay_id', promptpay_id, commit=False)
-        _upsert_bot_setting(session, 'promptpay_account_name', account_name)
+        _upsert_bot_setting(session, "promptpay_id", promptpay_id, commit=False)
+        _upsert_bot_setting(session, "promptpay_account_name", account_name)
 
     await message.answer(
         f"✅ <b>PromptPay Account Updated!</b>\n\n"
@@ -567,7 +561,7 @@ async def process_promptpay_name(message: Message, state: FSMContext):
         f"All new orders will generate QR codes directing payment to this account.\n"
         f"Slip verification will check that payments match this recipient.",
         reply_markup=settings_management_keyboard(),
-        parse_mode='HTML'
+        parse_mode="HTML",
     )
     await state.clear()
 
@@ -595,15 +589,14 @@ SUPPORTED_CURRENCIES = [
 async def set_currency_start(call: CallbackQuery, state: FSMContext):
     """Show currency selection menu."""
     from bot.keyboards.inline import simple_buttons
-    current = get_bot_setting('pay_currency') or EnvKeys.PAY_CURRENCY
+
+    current = get_bot_setting("pay_currency") or EnvKeys.PAY_CURRENCY
 
     buttons = [(label, f"currency_select_{code}") for label, code in SUPPORTED_CURRENCIES]
     buttons.append((localize("btn.back"), "settings_management"))
 
     await call.message.edit_text(
-        f"💱 <b>Currency Selection</b>\n\n"
-        f"Current: <b>{current}</b>\n\n"
-        f"Select currency:",
+        f"💱 <b>Currency Selection</b>\n\nCurrent: <b>{current}</b>\n\nSelect currency:",
         reply_markup=simple_buttons(buttons, per_row=2),
     )
 
@@ -614,7 +607,7 @@ async def set_currency_confirm(call: CallbackQuery, state: FSMContext):
     currency_code = call.data.replace("currency_select_", "")
 
     with Database().session() as session:
-        _upsert_bot_setting(session, 'pay_currency', currency_code)
+        _upsert_bot_setting(session, "pay_currency", currency_code)
 
     await call.answer(f"Currency set to {currency_code}", show_alert=True)
     await settings_menu(call, state)

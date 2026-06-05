@@ -14,6 +14,7 @@ to a database that was originally built with ``Base.metadata.create_all()``:
 
 Idempotent: safe to run on every container start.
 """
+
 import logging
 import os
 import sys
@@ -24,11 +25,11 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-from alembic import command
-from alembic.config import Config
-from sqlalchemy import inspect
+from alembic import command  # noqa: E402
+from alembic.config import Config  # noqa: E402
+from sqlalchemy import inspect  # noqa: E402
 
-from bot.database.main import Database
+from bot.database.main import Database  # noqa: E402
 
 # Sentinel tables that exist in any schema built from the app models.
 _SENTINEL_TABLES = {"users", "roles", "goods"}
@@ -44,10 +45,7 @@ def run() -> None:
         logging.info("alembic_version present — running 'upgrade head'")
         command.upgrade(cfg, "head")
     elif tables & _SENTINEL_TABLES:
-        logging.info(
-            "Existing schema without alembic_version (legacy create_all) — "
-            "stamping 'head' to adopt it"
-        )
+        logging.info("Existing schema without alembic_version (legacy create_all) — stamping 'head' to adopt it")
         command.stamp(cfg, "head")
     else:
         logging.info("Fresh database — running 'upgrade head'")

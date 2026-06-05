@@ -9,6 +9,7 @@ Run with:
 or:
     scripts/test/run.ps1 -Suite e2e
 """
+
 from __future__ import annotations
 
 import importlib

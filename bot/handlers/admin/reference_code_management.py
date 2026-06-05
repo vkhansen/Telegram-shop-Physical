@@ -1,14 +1,14 @@
-from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message
 
 from bot.database.methods import check_role
 from bot.database.models.main import Permission
-from bot.states.user_state import ReferenceCodeStates
 from bot.keyboards import back, reference_code_admin_keyboard
 from bot.keyboards.inline import InlineKeyboardBuilder
-from bot.referrals import create_reference_code
 from bot.monitoring import get_metrics
+from bot.referrals import create_reference_code
+from bot.states.user_state import ReferenceCodeStates
 
 router = Router()
 
@@ -33,7 +33,7 @@ async def admin_refcode_menu(call: CallbackQuery, state: FSMContext):
         "Manage reference codes for shop access control.\n\n"
         "Admin codes can have custom expiry and usage limits.",
         reply_markup=reference_code_admin_keyboard(),
-        parse_mode='HTML'
+        parse_mode="HTML",
     )
     await state.clear()
 
@@ -61,7 +61,7 @@ async def admin_create_refcode_start(call: CallbackQuery, state: FSMContext):
         "• Send <code>168</code> for 1 week\n\n"
         "Or click Back to cancel.",
         reply_markup=back("admin_refcode_management"),
-        parse_mode='HTML'
+        parse_mode="HTML",
     )
     await state.set_state(ReferenceCodeStates.waiting_refcode_expires)
 
@@ -97,7 +97,7 @@ async def admin_create_refcode_expires(message: Message, state: FSMContext):
             "• Send <code>10</code> for 10 uses\n\n"
             "Or click Back to cancel.",
             reply_markup=back("admin_refcode_management"),
-            parse_mode='HTML'
+            parse_mode="HTML",
         )
         await state.set_state(ReferenceCodeStates.waiting_refcode_max_uses)
 
@@ -135,7 +135,7 @@ async def admin_create_refcode_max_uses(message: Message, state: FSMContext):
             "• Or send <code>skip</code> to skip\n\n"
             "Or click Back to cancel.",
             reply_markup=back("admin_refcode_management"),
-            parse_mode='HTML'
+            parse_mode="HTML",
         )
         await state.set_state(ReferenceCodeStates.waiting_refcode_note)
 
@@ -158,14 +158,14 @@ async def admin_create_refcode_note(message: Message, state: FSMContext):
         await message.answer("❌ Access denied")
         await state.clear()
         return
-    note = None if message.text.lower() == 'skip' else message.text
+    note = None if message.text.lower() == "skip" else message.text
     user_id = message.from_user.id
     username = message.from_user.username or f"admin_{user_id}"
 
     # Get stored data
     data = await state.get_data()
-    expires_hours = data.get('expires_hours', 0)
-    max_uses = data.get('max_uses', 0)
+    expires_hours = data.get("expires_hours", 0)
+    max_uses = data.get("max_uses", 0)
 
     try:
         code = create_reference_code(
@@ -174,18 +174,17 @@ async def admin_create_refcode_note(message: Message, state: FSMContext):
             is_admin_code=True,
             expires_in_hours=expires_hours if expires_hours > 0 else None,
             max_uses=max_uses if max_uses > 0 else None,
-            note=note
+            note=note,
         )
 
         # Track admin referral code creation
         metrics = get_metrics()
         if metrics:
-            metrics.track_event("admin_referral_code_created", user_id, {
-                "code": code,
-                "expires_hours": expires_hours,
-                "max_uses": max_uses,
-                "has_note": bool(note)
-            })
+            metrics.track_event(
+                "admin_referral_code_created",
+                user_id,
+                {"code": code, "expires_hours": expires_hours, "max_uses": max_uses, "has_note": bool(note)},
+            )
 
         expires_text = f"{expires_hours} hours" if expires_hours > 0 else "Never"
         max_uses_text = str(max_uses) if max_uses > 0 else "Unlimited"
@@ -198,13 +197,10 @@ async def admin_create_refcode_note(message: Message, state: FSMContext):
             f"📝 Note: {note or 'None'}\n\n"
             f"Share this code to grant shop access.",
             reply_markup=reference_code_admin_keyboard(),
-            parse_mode='HTML'
+            parse_mode="HTML",
         )
     except Exception as e:
-        await message.answer(
-            f"❌ Error creating code: {str(e)}",
-            reply_markup=reference_code_admin_keyboard()
-        )
+        await message.answer(f"❌ Error creating code: {e!s}", reply_markup=reference_code_admin_keyboard())
 
     await state.clear()
 
@@ -228,15 +224,10 @@ async def admin_list_refcodes(call: CallbackQuery, state: FSMContext):
     from bot.database.models.main import ReferenceCode
 
     with Database().session() as session:
-        codes = session.query(ReferenceCode).order_by(
-            ReferenceCode.created_at.desc()
-        ).limit(20).all()
+        codes = session.query(ReferenceCode).order_by(ReferenceCode.created_at.desc()).limit(20).all()
 
         if not codes:
-            await call.message.edit_text(
-                "ℹ️ No reference codes found.",
-                reply_markup=back("admin_refcode_management")
-            )
+            await call.message.edit_text("ℹ️ No reference codes found.", reply_markup=back("admin_refcode_management"))
             return
 
         text = "📋 <b>Reference Codes</b> (Latest 20)\n\n"
@@ -245,7 +236,7 @@ async def admin_list_refcodes(call: CallbackQuery, state: FSMContext):
             status = "✅" if code.is_active else "❌"
             code_type = "👑 Admin" if code.is_admin_code else "👤 User"
             max_uses = str(code.max_uses) if code.max_uses else "∞"
-            expires = code.expires_at.strftime('%Y-%m-%d %H:%M') if code.expires_at else "Never"
+            expires = code.expires_at.strftime("%Y-%m-%d %H:%M") if code.expires_at else "Never"
 
             text += (
                 f"{status} <code>{code.code}</code> {code_type}\n"
@@ -260,10 +251,6 @@ async def admin_list_refcodes(call: CallbackQuery, state: FSMContext):
         kb.button(text="🔙 Back", callback_data="admin_refcode_management")
         kb.adjust(1)
 
-        await call.message.edit_text(
-            text,
-            reply_markup=kb.as_markup(),
-            parse_mode='HTML'
-        )
+        await call.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
 
     await state.clear()

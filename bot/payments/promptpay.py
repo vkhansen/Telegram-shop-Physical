@@ -5,11 +5,11 @@ Generates EMVCo-standard QR codes that work with all Thai banking apps
 (SCB, KBank, Bangkok Bank, TrueMoney, etc.).
 Also decodes/parses QR images to extract PromptPay IDs.
 """
+
 import io
 import logging
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -48,9 +48,7 @@ def generate_promptpay_payload(promptpay_id: str, amount: Decimal) -> str:
         aid = "A000000677010112"
         formatted_id = clean_id
     else:
-        raise ValueError(
-            f"Invalid PromptPay ID '{promptpay_id}': must be 10-digit phone or 13-digit national ID"
-        )
+        raise ValueError(f"Invalid PromptPay ID '{promptpay_id}': must be 10-digit phone or 13-digit national ID")
 
     # Build EMVCo payload
     def tlv(tag: str, value: str) -> str:
@@ -60,12 +58,12 @@ def generate_promptpay_payload(promptpay_id: str, amount: Decimal) -> str:
     merchant_info = tlv("00", aid) + tlv("01", formatted_id)
 
     payload_parts = [
-        tlv("00", "01"),              # Payload format indicator
-        tlv("01", "11"),              # Point of sale (static QR)
-        tlv("29", merchant_info),     # Merchant account info
-        tlv("53", "764"),             # Transaction currency (THB)
-        tlv("54", str(amount)),       # Transaction amount
-        tlv("58", "TH"),             # Country code
+        tlv("00", "01"),  # Payload format indicator
+        tlv("01", "11"),  # Point of sale (static QR)
+        tlv("29", merchant_info),  # Merchant account info
+        tlv("53", "764"),  # Transaction currency (THB)
+        tlv("54", str(amount)),  # Transaction amount
+        tlv("58", "TH"),  # Country code
     ]
 
     payload_without_crc = "".join(payload_parts) + "6304"
@@ -108,9 +106,7 @@ def generate_promptpay_qr(promptpay_id: str, amount: Decimal) -> bytes:
     try:
         import qrcode
     except ImportError as e:
-        raise ImportError(
-            "qrcode library required for PromptPay QR. Install with: pip install qrcode[pil]"
-        ) from e
+        raise ImportError("qrcode library required for PromptPay QR. Install with: pip install qrcode[pil]") from e
 
     payload = generate_promptpay_payload(promptpay_id, amount)
 
@@ -144,11 +140,12 @@ _AID_NATIONAL_ID = "A000000677010112"
 @dataclass
 class PromptPayInfo:
     """Extracted PromptPay account info from a QR payload."""
-    promptpay_id: str           # Phone (0812345678) or national ID (1234567890123)
-    id_type: str                # "phone" or "national_id"
-    amount: Optional[Decimal]   # None for static QR (no amount embedded)
-    country_code: Optional[str]
-    currency_code: Optional[str]
+
+    promptpay_id: str  # Phone (0812345678) or national ID (1234567890123)
+    id_type: str  # "phone" or "national_id"
+    amount: Decimal | None  # None for static QR (no amount embedded)
+    country_code: str | None
+    currency_code: str | None
     raw_payload: str
 
 
@@ -162,12 +159,12 @@ def parse_emvco_tlv(payload: str) -> dict[str, str]:
     result = {}
     pos = 0
     while pos + 4 <= len(payload):
-        tag = payload[pos:pos + 2]
+        tag = payload[pos : pos + 2]
         try:
-            length = int(payload[pos + 2:pos + 4])
+            length = int(payload[pos + 2 : pos + 4])
         except ValueError:
             break
-        value = payload[pos + 4:pos + 4 + length]
+        value = payload[pos + 4 : pos + 4 + length]
         if len(value) < length:
             break
         result[tag] = value
@@ -270,6 +267,7 @@ def decode_qr_image(image_bytes: bytes) -> str:
     # Try pyzbar first (more reliable for various QR formats)
     try:
         from pyzbar.pyzbar import decode as pyzbar_decode
+
         results = pyzbar_decode(img)
         if results:
             return results[0].data.decode("utf-8")
@@ -294,15 +292,15 @@ def decode_qr_image(image_bytes: bytes) -> str:
 
     # Neither library available
     try:
-        from pyzbar.pyzbar import decode as _  # noqa: F401
+        from pyzbar.pyzbar import decode  # noqa: F401
     except ImportError:
         try:
-            import cv2  # noqa: F401
-        except ImportError:
+            import cv2
+        except ImportError as e:
             raise ImportError(
                 "QR decoding requires pyzbar or opencv-python. "
                 "Install with: pip install pyzbar  or  pip install opencv-python"
-            )
+            ) from e
 
     raise ValueError("No QR code found in the image")
 

@@ -4,7 +4,7 @@ full order flow with store context, and cascade/cleanup behaviour.
 
 Tests operate at the database/model level — no Telegram API mocking.
 """
-import math
+
 from datetime import UTC, datetime
 from decimal import Decimal
 
@@ -23,10 +23,10 @@ from bot.database.models.main import (
 )
 from bot.handlers.user.store_selection import _haversine
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _create_user(session: Session, telegram_id: int, role_id: int = 1) -> User:
     user = User(
@@ -40,7 +40,7 @@ def _create_user(session: Session, telegram_id: int, role_id: int = 1) -> User:
     return user
 
 
-def _create_brand(session: Session, name: str, slug: str, description: str = None) -> Brand:
+def _create_brand(session: Session, name: str, slug: str, description: str | None = None) -> Brand:
     brand = Brand(name=name, slug=slug, description=description)
     session.add(brand)
     session.commit()
@@ -52,9 +52,9 @@ def _create_store(
     session: Session,
     brand: Brand,
     name: str,
-    address: str = None,
-    latitude: float = None,
-    longitude: float = None,
+    address: str | None = None,
+    latitude: float | None = None,
+    longitude: float | None = None,
     is_default: bool = False,
 ) -> Store:
     store = Store(
@@ -103,6 +103,7 @@ def _create_order(
 # 1. TestMultiLocationSetup
 # ===================================================================
 
+
 @pytest.mark.e2e
 class TestMultiLocationSetup:
     """Verify brand/store creation and product linkage."""
@@ -111,8 +112,8 @@ class TestMultiLocationSetup:
         """Create brand 'TestCoffee' with 2 stores, verify both persisted with correct brand_id."""
         brand = _create_brand(db_session, "TestCoffee", "testcoffee", "Best coffee")
 
-        store_bkk = _create_store(db_session, brand, "Bangkok Central", address="Silom Rd")
-        store_phuket = _create_store(db_session, brand, "Phuket Beach", address="Patong Beach Rd")
+        _create_store(db_session, brand, "Bangkok Central", address="Silom Rd")
+        _create_store(db_session, brand, "Phuket Beach", address="Patong Beach Rd")
 
         stores = db_session.query(Store).filter_by(brand_id=brand.id).all()
         assert len(stores) == 2
@@ -126,8 +127,11 @@ class TestMultiLocationSetup:
         """Verify store GPS lat/lng are stored correctly."""
         brand = _create_brand(db_session, "GPSBrand", "gpsbrand")
         store = _create_store(
-            db_session, brand, "GPS Store",
-            latitude=13.7563, longitude=100.5018,
+            db_session,
+            brand,
+            "GPS Store",
+            latitude=13.7563,
+            longitude=100.5018,
         )
 
         fetched = db_session.query(Store).filter_by(id=store.id).one()
@@ -168,6 +172,7 @@ class TestMultiLocationSetup:
 # 2. TestLocationSelection
 # ===================================================================
 
+
 @pytest.mark.e2e
 class TestLocationSelection:
     """Test auto-select and GPS-nearest logic for store selection."""
@@ -200,13 +205,19 @@ class TestLocationSelection:
         brand = _create_brand(db_session, "NearBrand", "nearbrand")
         # Bangkok Central — 13.7563, 100.5018
         store_bkk = _create_store(
-            db_session, brand, "Bangkok Central",
-            latitude=13.7563, longitude=100.5018,
+            db_session,
+            brand,
+            "Bangkok Central",
+            latitude=13.7563,
+            longitude=100.5018,
         )
         # Phuket Beach — 7.8804, 98.3923
         store_phuket = _create_store(
-            db_session, brand, "Phuket Beach",
-            latitude=7.8804, longitude=98.3923,
+            db_session,
+            brand,
+            "Phuket Beach",
+            latitude=7.8804,
+            longitude=98.3923,
         )
 
         # User is near Bangkok (13.75, 100.50)
@@ -232,6 +243,7 @@ class TestLocationSelection:
 # ===================================================================
 # 3. TestFullOrderFlowWithLocation
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestFullOrderFlowWithLocation:
@@ -260,24 +272,32 @@ class TestFullOrderFlowWithLocation:
         db_with_roles.commit()
 
         item_a = Goods(
-            name="Latte", price=Decimal("89.00"), description="Hot latte",
-            category_name=cat.name, stock_quantity=100, reserved_quantity=0,
-            brand_id=brand.id, item_type="prepared",
+            name="Latte",
+            price=Decimal("89.00"),
+            description="Hot latte",
+            category_name=cat.name,
+            stock_quantity=100,
+            reserved_quantity=0,
+            brand_id=brand.id,
+            item_type="prepared",
         )
         item_b = Goods(
-            name="Mocha", price=Decimal("99.00"), description="Hot mocha",
-            category_name=cat.name, stock_quantity=100, reserved_quantity=0,
-            brand_id=brand.id, item_type="prepared",
+            name="Mocha",
+            price=Decimal("99.00"),
+            description="Hot mocha",
+            category_name=cat.name,
+            stock_quantity=100,
+            reserved_quantity=0,
+            brand_id=brand.id,
+            item_type="prepared",
         )
         db_with_roles.add_all([item_a, item_b])
         db_with_roles.commit()
 
         # Simulate cart
         cart_items = [
-            ShoppingCart(user_id=user.telegram_id, item_name="Latte", quantity=2,
-                         brand_id=brand.id, store_id=store.id),
-            ShoppingCart(user_id=user.telegram_id, item_name="Mocha", quantity=1,
-                         brand_id=brand.id, store_id=store.id),
+            ShoppingCart(user_id=user.telegram_id, item_name="Latte", quantity=2, brand_id=brand.id, store_id=store.id),
+            ShoppingCart(user_id=user.telegram_id, item_name="Mocha", quantity=1, brand_id=brand.id, store_id=store.id),
         ]
         db_with_roles.add_all(cart_items)
         db_with_roles.commit()
@@ -333,6 +353,7 @@ class TestFullOrderFlowWithLocation:
 # 4. TestSmartNavigation (behavioral / contract tests)
 # ===================================================================
 
+
 @pytest.mark.e2e
 class TestSmartNavigation:
     """Contract-level tests for cart context and order variations."""
@@ -348,9 +369,14 @@ class TestSmartNavigation:
         db_with_roles.commit()
 
         goods = Goods(
-            name="Cookie", price=Decimal("35.00"), description="Choc chip",
-            category_name=cat.name, stock_quantity=50, reserved_quantity=0,
-            brand_id=brand.id, item_type="product",
+            name="Cookie",
+            price=Decimal("35.00"),
+            description="Choc chip",
+            category_name=cat.name,
+            stock_quantity=50,
+            reserved_quantity=0,
+            brand_id=brand.id,
+            item_type="product",
         )
         db_with_roles.add(goods)
         db_with_roles.commit()
@@ -376,7 +402,9 @@ class TestSmartNavigation:
 
         for dtype in ("door", "dead_drop", "pickup"):
             order = _create_order(
-                db_with_roles, user, brand,
+                db_with_roles,
+                user,
+                brand,
                 delivery_type=dtype,
                 total_price=Decimal("50.00"),
             )
@@ -395,7 +423,9 @@ class TestSmartNavigation:
         total = Decimal("500.00")
         bonus = Decimal("50.00")
         order = _create_order(
-            db_with_roles, user, brand,
+            db_with_roles,
+            user,
+            brand,
             total_price=total,
             bonus_applied=bonus,
         )
@@ -410,6 +440,7 @@ class TestSmartNavigation:
 # ===================================================================
 # 5. TestDataCleanup
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestDataCleanup:

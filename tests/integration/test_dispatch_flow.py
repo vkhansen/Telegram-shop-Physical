@@ -70,10 +70,15 @@ async def test_ready_to_delivered_auto(db_with_roles, monkeypatch):
     record_driver_location(driver_tg, 13.757, 100.502)
 
     order = Order(
-        buyer_id=buyer_tg, total_price=Decimal("250.00"), payment_method="cash",
-        delivery_address="55 Customer Lane", phone_number="+66999999999",
-        order_status="ready", order_code="FLOW01",
-        latitude=ORIGIN[0], longitude=ORIGIN[1],
+        buyer_id=buyer_tg,
+        total_price=Decimal("250.00"),
+        payment_method="cash",
+        delivery_address="55 Customer Lane",
+        phone_number="+66999999999",
+        order_status="ready",
+        order_code="FLOW01",
+        latitude=ORIGIN[0],
+        longitude=ORIGIN[1],
     )
     s.add(order)
     s.commit()

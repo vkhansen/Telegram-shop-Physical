@@ -7,7 +7,8 @@ These tests pin the behavior of QUICK_TRANSITIONS so that:
   - Removing/reordering hooks is caught by structural assertions.
   - The row-lock + is_valid_transition invariants cannot regress.
 """
-from datetime import UTC, datetime
+
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -32,16 +33,16 @@ def _make_call(data: str, user_id: int = 555):
 # Table integrity
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 class TestQuickTransitionTable:
     def test_all_prefixes_end_with_underscore(self):
         for prefix in om.QUICK_TRANSITIONS:
-            assert prefix.endswith("_"), (
-                f"{prefix!r} must end with '_' so removeprefix strips exactly the prefix"
-            )
+            assert prefix.endswith("_"), f"{prefix!r} must end with '_' so removeprefix strips exactly the prefix"
 
     def test_target_statuses_are_valid_destinations(self):
         from bot.utils.order_status import ALL_STATUSES
+
         for spec in om.QUICK_TRANSITIONS.values():
             assert spec.target_status in ALL_STATUSES, (
                 f"Unknown target status {spec.target_status!r} in QUICK_TRANSITIONS"
@@ -58,12 +59,11 @@ class TestQuickTransitionTable:
 
     def test_hooks_are_all_async_callables(self):
         import asyncio
+
         for spec in om.QUICK_TRANSITIONS.values():
             for hook in (*spec.pre_commit, *spec.post_commit):
                 assert callable(hook)
-                assert asyncio.iscoroutinefunction(hook), (
-                    f"{hook.__name__} must be async"
-                )
+                assert asyncio.iscoroutinefunction(hook), f"{hook.__name__} must be async"
 
     def test_spec_is_frozen_dataclass(self):
         spec = om.QUICK_TRANSITIONS["kitchen_preparing_"]
@@ -74,6 +74,7 @@ class TestQuickTransitionTable:
 # ---------------------------------------------------------------------------
 # Dispatch body
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.unit
 class TestExecuteQuickTransition:
@@ -97,7 +98,9 @@ class TestExecuteQuickTransition:
     async def test_invalid_order_id_alerts(self):
         call = _make_call("kitchen_preparing_notanint")
         await om._execute_quick_transition(
-            call, "kitchen_preparing_", om.QUICK_TRANSITIONS["kitchen_preparing_"],
+            call,
+            "kitchen_preparing_",
+            om.QUICK_TRANSITIONS["kitchen_preparing_"],
         )
         call.answer.assert_awaited_once_with("Invalid order", show_alert=True)
         call.message.edit_text.assert_not_called()
@@ -107,7 +110,9 @@ class TestExecuteQuickTransition:
         db, session = self._patch_session(order=None)
         with patch.object(om, "Database", return_value=db):
             await om._execute_quick_transition(
-                call, "kitchen_preparing_", om.QUICK_TRANSITIONS["kitchen_preparing_"],
+                call,
+                "kitchen_preparing_",
+                om.QUICK_TRANSITIONS["kitchen_preparing_"],
             )
         call.answer.assert_awaited_with("Cannot change status", show_alert=True)
         session.commit.assert_not_called()
@@ -121,7 +126,9 @@ class TestExecuteQuickTransition:
         db, session = self._patch_session(order)
         with patch.object(om, "Database", return_value=db):
             await om._execute_quick_transition(
-                call, "kitchen_preparing_", om.QUICK_TRANSITIONS["kitchen_preparing_"],
+                call,
+                "kitchen_preparing_",
+                om.QUICK_TRANSITIONS["kitchen_preparing_"],
             )
         assert order.order_status == "delivered"  # unchanged
         session.commit.assert_not_called()
@@ -134,10 +141,14 @@ class TestExecuteQuickTransition:
         order.order_code = "T1"
         db, session = self._patch_session(order)
 
-        with patch.object(om, "Database", return_value=db), \
-             patch.object(om, "_notify_customer_status", new=AsyncMock()) as notify:
+        with (
+            patch.object(om, "Database", return_value=db),
+            patch.object(om, "_notify_customer_status", new=AsyncMock()) as notify,
+        ):
             await om._execute_quick_transition(
-                call, "kitchen_preparing_", om.QUICK_TRANSITIONS["kitchen_preparing_"],
+                call,
+                "kitchen_preparing_",
+                om.QUICK_TRANSITIONS["kitchen_preparing_"],
             )
 
         assert order.order_status == "preparing"
@@ -153,16 +164,19 @@ class TestExecuteQuickTransition:
         order.order_status = "ready"
         order.driver_id = None
         order.order_code = "T1"
-        db, session = self._patch_session(order)
+        db, _session = self._patch_session(order)
 
         notify_customer = AsyncMock()
         prompt = AsyncMock()
-        with patch.object(om, "Database", return_value=db), \
-             patch.object(om, "_notify_customer_status", new=notify_customer), \
-             patch("bot.handlers.user.delivery_chat_handler.prompt_customer_gps",
-                   new=prompt, create=True):
+        with (
+            patch.object(om, "Database", return_value=db),
+            patch.object(om, "_notify_customer_status", new=notify_customer),
+            patch("bot.handlers.user.delivery_chat_handler.prompt_customer_gps", new=prompt, create=True),
+        ):
             await om._execute_quick_transition(
-                call, "rider_picked_", om.QUICK_TRANSITIONS["rider_picked_"],
+                call,
+                "rider_picked_",
+                om.QUICK_TRANSITIONS["rider_picked_"],
             )
 
         assert order.driver_id == 999
@@ -179,12 +193,15 @@ class TestExecuteQuickTransition:
         order.driver_id = None
         db, session = self._patch_session(order)
 
-        with patch.object(om, "Database", return_value=db), \
-             patch.object(om, "_notify_customer_status", new=AsyncMock()), \
-             patch("bot.handlers.user.delivery_chat_handler.set_post_delivery_window",
-                   create=True) as set_window:
+        with (
+            patch.object(om, "Database", return_value=db),
+            patch.object(om, "_notify_customer_status", new=AsyncMock()),
+            patch("bot.handlers.user.delivery_chat_handler.set_post_delivery_window", create=True) as set_window,
+        ):
             await om._execute_quick_transition(
-                call, "rider_delivered_", om.QUICK_TRANSITIONS["rider_delivered_"],
+                call,
+                "rider_delivered_",
+                om.QUICK_TRANSITIONS["rider_delivered_"],
             )
 
         assert order.order_status == "delivered"
@@ -197,16 +214,20 @@ class TestExecuteQuickTransition:
         order = MagicMock(spec=Order)
         order.order_status = "preparing"
         order.order_code = "T1"
-        db, session = self._patch_session(order)
+        db, _session = self._patch_session(order)
 
         call_order = []
         notify_rider = AsyncMock(side_effect=lambda *a, **k: call_order.append("rider"))
         notify_customer = AsyncMock(side_effect=lambda *a, **k: call_order.append("customer"))
-        with patch.object(om, "Database", return_value=db), \
-             patch.object(om, "_send_rider_notification", new=notify_rider), \
-             patch.object(om, "_notify_customer_status", new=notify_customer):
+        with (
+            patch.object(om, "Database", return_value=db),
+            patch.object(om, "_send_rider_notification", new=notify_rider),
+            patch.object(om, "_notify_customer_status", new=notify_customer),
+        ):
             await om._execute_quick_transition(
-                call, "kitchen_ready_", om.QUICK_TRANSITIONS["kitchen_ready_"],
+                call,
+                "kitchen_ready_",
+                om.QUICK_TRANSITIONS["kitchen_ready_"],
             )
 
         assert order.order_status == "ready"

@@ -13,6 +13,9 @@ import pytest
 from pydantic import ValidationError
 
 from bot.ai.schemas import (
+    MUTATION_TOOLS,
+    READ_TOOLS,
+    TOOL_SCHEMA_MAP,
     AdjustStockAction,
     BulkPriceUpdateAction,
     BulkPriceUpdateEntry,
@@ -26,16 +29,12 @@ from bot.ai.schemas import (
     LookupUserAction,
     MenuImportAction,
     MenuImportRow,
-    MUTATION_TOOLS,
-    READ_TOOLS,
     SearchChatMessagesAction,
     SearchDeliveriesAction,
     SearchOrdersAction,
-    TOOL_SCHEMA_MAP,
     UpdateItemAction,
     ViewInventoryAction,
 )
-
 
 # ── CreateItemAction ────────────────────────────────────────────────
 
@@ -218,10 +217,12 @@ class TestDeleteItemAction:
 
 class TestBulkPriceUpdateAction:
     def test_valid_bulk_update(self):
-        a = BulkPriceUpdateAction(updates=[
-            {"item_name": "Pad Thai", "new_price": Decimal("150")},
-            {"item_name": "Som Tam", "new_price": Decimal("80")},
-        ])
+        a = BulkPriceUpdateAction(
+            updates=[
+                {"item_name": "Pad Thai", "new_price": Decimal("150")},
+                {"item_name": "Som Tam", "new_price": Decimal("80")},
+            ]
+        )
         assert len(a.updates) == 2
         assert isinstance(a.updates[0], BulkPriceUpdateEntry)
         assert a.updates[0].item_name == "Pad Thai"
@@ -233,9 +234,7 @@ class TestBulkPriceUpdateAction:
 
     def test_rejects_too_many_updates(self):
         with pytest.raises(ValidationError):
-            BulkPriceUpdateAction(
-                updates=[{"item_name": f"Item {i}", "new_price": Decimal("10")} for i in range(51)]
-            )
+            BulkPriceUpdateAction(updates=[{"item_name": f"Item {i}", "new_price": Decimal("10")} for i in range(51)])
 
     def test_rejects_missing_item_name_in_entry(self):
         with pytest.raises(ValidationError):
@@ -247,15 +246,11 @@ class TestBulkPriceUpdateAction:
 
     def test_rejects_negative_price_in_entry(self):
         with pytest.raises(ValidationError):
-            BulkPriceUpdateAction(
-                updates=[{"item_name": "Item", "new_price": Decimal("-5")}]
-            )
+            BulkPriceUpdateAction(updates=[{"item_name": "Item", "new_price": Decimal("-5")}])
 
     def test_rejects_price_over_10000_in_entry(self):
         with pytest.raises(ValidationError, match="10,000"):
-            BulkPriceUpdateAction(
-                updates=[{"item_name": "Item", "new_price": Decimal("15000")}]
-            )
+            BulkPriceUpdateAction(updates=[{"item_name": "Item", "new_price": Decimal("15000")}])
 
 
 # ── CreateCategoryAction ───────────────────────────────────────────
@@ -323,7 +318,9 @@ class TestAdjustStockAction:
     def test_comment_max_length(self):
         with pytest.raises(ValidationError):
             AdjustStockAction(
-                item_name="Item", operation="add", quantity=1,
+                item_name="Item",
+                operation="add",
+                quantity=1,
                 comment="x" * 201,
             )
 
@@ -544,10 +541,12 @@ class TestMenuImportRow:
 
 class TestMenuImportAction:
     def test_valid_import(self):
-        a = MenuImportAction(items=[
-            {"item_name": "A", "price": Decimal("10"), "category_name": "c"},
-            {"item_name": "B", "price": Decimal("20"), "category_name": "c"},
-        ])
+        a = MenuImportAction(
+            items=[
+                {"item_name": "A", "price": Decimal("10"), "category_name": "c"},
+                {"item_name": "B", "price": Decimal("20"), "category_name": "c"},
+            ]
+        )
         assert len(a.items) == 2
         assert a.create_missing_categories is True
         assert a.skip_existing is True
@@ -559,18 +558,19 @@ class TestMenuImportAction:
 
     def test_rejects_too_many_items(self):
         with pytest.raises(ValidationError):
-            MenuImportAction(items=[
-                {"item_name": f"Item {i}", "price": Decimal("10"), "category_name": "c"}
-                for i in range(501)
-            ])
+            MenuImportAction(
+                items=[{"item_name": f"Item {i}", "price": Decimal("10"), "category_name": "c"} for i in range(501)]
+            )
 
     def test_validates_each_row(self):
         """Invalid row within import should fail validation."""
         with pytest.raises(ValidationError):
-            MenuImportAction(items=[
-                {"item_name": "Good", "price": Decimal("10"), "category_name": "c"},
-                {"item_name": "", "price": Decimal("10"), "category_name": "c"},  # empty name
-            ])
+            MenuImportAction(
+                items=[
+                    {"item_name": "Good", "price": Decimal("10"), "category_name": "c"},
+                    {"item_name": "", "price": Decimal("10"), "category_name": "c"},  # empty name
+                ]
+            )
 
 
 # ── DataMappingProposal ─────────────────────────────────────────
@@ -578,19 +578,21 @@ class TestMenuImportAction:
 
 class TestDataMappingProposal:
     def test_valid_proposal(self):
-        a = DataMappingProposal(mappings=[
-            ColumnMappingGuess(
-                source_column="name",
-                target_field="item_name",
-                confidence=0.95,
-                sample_values=["Pad Thai", "Som Tam"],
-            ),
-            ColumnMappingGuess(
-                source_column="cost",
-                target_field="price",
-                confidence=0.8,
-            ),
-        ])
+        a = DataMappingProposal(
+            mappings=[
+                ColumnMappingGuess(
+                    source_column="name",
+                    target_field="item_name",
+                    confidence=0.95,
+                    sample_values=["Pad Thai", "Som Tam"],
+                ),
+                ColumnMappingGuess(
+                    source_column="cost",
+                    target_field="price",
+                    confidence=0.8,
+                ),
+            ]
+        )
         assert len(a.mappings) == 2
         assert a.unmapped_required == []
         assert a.warnings == []

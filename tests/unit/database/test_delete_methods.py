@@ -1,12 +1,14 @@
 """
 Tests for bot/database/methods/delete.py - delete operations.
 """
-import pytest
-from decimal import Decimal
-from datetime import datetime, timezone
 
-from bot.database.methods.delete import delete_item, delete_category, remove_from_cart, clear_cart
-from bot.database.models.main import Goods, Categories, ShoppingCart, User
+from datetime import UTC, datetime
+from decimal import Decimal
+
+import pytest
+
+from bot.database.methods.delete import clear_cart, delete_category, delete_item, remove_from_cart
+from bot.database.models.main import Categories, Goods, ShoppingCart, User
 
 
 @pytest.mark.unit
@@ -70,10 +72,7 @@ class TestRemoveFromCart:
 
     @pytest.mark.asyncio
     async def test_remove_from_cart_success(self, db_session, test_shopping_cart):
-        success, message = await remove_from_cart(
-            test_shopping_cart.id,
-            test_shopping_cart.user_id
-        )
+        success, message = await remove_from_cart(test_shopping_cart.id, test_shopping_cart.user_id)
         assert success is True
         assert "removed" in message.lower()
 
@@ -90,19 +89,29 @@ class TestRemoveFromCart:
     @pytest.mark.asyncio
     async def test_remove_from_cart_wrong_user(self, db_session, test_shopping_cart):
         """Cannot remove another user's cart item"""
-        success, message = await remove_from_cart(
+        success, _message = await remove_from_cart(
             test_shopping_cart.id,
-            999999999  # Wrong user
+            999999999,  # Wrong user
         )
         assert success is False
 
     @pytest.mark.asyncio
     async def test_remove_from_cart_does_not_affect_other_items(self, db_with_roles, test_user, test_category):
         # Create two products and cart items
-        goods1 = Goods(name="Cart Item 1", price=Decimal("10.00"), description="d",
-                       category_name=test_category.name, stock_quantity=10)
-        goods2 = Goods(name="Cart Item 2", price=Decimal("20.00"), description="d",
-                       category_name=test_category.name, stock_quantity=10)
+        goods1 = Goods(
+            name="Cart Item 1",
+            price=Decimal("10.00"),
+            description="d",
+            category_name=test_category.name,
+            stock_quantity=10,
+        )
+        goods2 = Goods(
+            name="Cart Item 2",
+            price=Decimal("20.00"),
+            description="d",
+            category_name=test_category.name,
+            stock_quantity=10,
+        )
         db_with_roles.add_all([goods1, goods2])
         db_with_roles.commit()
 
@@ -116,9 +125,7 @@ class TestRemoveFromCart:
         assert success is True
 
         # Second item should still exist
-        remaining = db_with_roles.query(ShoppingCart).filter_by(
-            user_id=test_user.telegram_id
-        ).all()
+        remaining = db_with_roles.query(ShoppingCart).filter_by(user_id=test_user.telegram_id).all()
         assert len(remaining) == 1
         assert remaining[0].item_name == "Cart Item 2"
 
@@ -134,23 +141,26 @@ class TestClearCart:
         assert success is True
         assert "cleared" in message.lower()
 
-        remaining = db_session.query(ShoppingCart).filter_by(
-            user_id=test_shopping_cart.user_id
-        ).count()
+        remaining = db_session.query(ShoppingCart).filter_by(user_id=test_shopping_cart.user_id).count()
         assert remaining == 0
 
     @pytest.mark.asyncio
     async def test_clear_cart_empty_cart(self, db_with_roles, test_user):
         """Clearing an already empty cart should succeed"""
-        success, message = await clear_cart(test_user.telegram_id)
+        success, _message = await clear_cart(test_user.telegram_id)
         assert success is True
 
     @pytest.mark.asyncio
     async def test_clear_cart_multiple_items(self, db_with_roles, test_user, test_category):
         # Create products and multiple cart items
         for i in range(3):
-            goods = Goods(name=f"Multi Cart {i}", price=Decimal("10.00"), description="d",
-                          category_name=test_category.name, stock_quantity=10)
+            goods = Goods(
+                name=f"Multi Cart {i}",
+                price=Decimal("10.00"),
+                description="d",
+                category_name=test_category.name,
+                stock_quantity=10,
+            )
             db_with_roles.add(goods)
         db_with_roles.commit()
 
@@ -159,26 +169,27 @@ class TestClearCart:
             db_with_roles.add(cart)
         db_with_roles.commit()
 
-        assert db_with_roles.query(ShoppingCart).filter_by(
-            user_id=test_user.telegram_id
-        ).count() == 3
+        assert db_with_roles.query(ShoppingCart).filter_by(user_id=test_user.telegram_id).count() == 3
 
         success, _ = await clear_cart(test_user.telegram_id)
         assert success is True
 
-        assert db_with_roles.query(ShoppingCart).filter_by(
-            user_id=test_user.telegram_id
-        ).count() == 0
+        assert db_with_roles.query(ShoppingCart).filter_by(user_id=test_user.telegram_id).count() == 0
 
     @pytest.mark.asyncio
     async def test_clear_cart_does_not_affect_other_users(self, db_with_roles, test_category):
         # Create two users with cart items
-        user1 = User(telegram_id=900001, role_id=1, registration_date=datetime.now(timezone.utc))
-        user2 = User(telegram_id=900002, role_id=1, registration_date=datetime.now(timezone.utc))
+        user1 = User(telegram_id=900001, role_id=1, registration_date=datetime.now(UTC))
+        user2 = User(telegram_id=900002, role_id=1, registration_date=datetime.now(UTC))
         db_with_roles.add_all([user1, user2])
 
-        goods = Goods(name="Shared Product", price=Decimal("10.00"), description="d",
-                      category_name=test_category.name, stock_quantity=50)
+        goods = Goods(
+            name="Shared Product",
+            price=Decimal("10.00"),
+            description="d",
+            category_name=test_category.name,
+            stock_quantity=50,
+        )
         db_with_roles.add(goods)
         db_with_roles.commit()
 

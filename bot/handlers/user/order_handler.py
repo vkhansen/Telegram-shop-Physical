@@ -1,32 +1,41 @@
-from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
-from aiogram.fsm.context import FSMContext
+import contextlib
 import html
 import re
+from datetime import UTC
 from decimal import Decimal
 from urllib.parse import quote_plus
 
-from bot.database import Database
-from bot.database.models.main import Order, OrderItem, CustomerInfo, ShoppingCart
-from bot.database.methods import reserve_inventory, get_cart_items, calculate_cart_total
-from bot.keyboards import back, simple_buttons
-from bot.i18n import localize
+from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, KeyboardButton, Message, ReplyKeyboardMarkup, ReplyKeyboardRemove
+
 from bot.config import EnvKeys
+from bot.database import Database
+from bot.database.methods import calculate_cart_total, get_cart_items, reserve_inventory
+from bot.database.models.main import CustomerInfo, Order, OrderItem, ShoppingCart
+from bot.export import log_order_creation, sync_customer_to_csv
+from bot.i18n import localize
+from bot.keyboards import back, simple_buttons
+from bot.logger_mesh import logger
+from bot.monitoring.metrics import get_metrics
+from bot.payments.bitcoin import get_available_bitcoin_address, mark_bitcoin_address_used
 from bot.states import OrderStates
 from bot.states.payment_state import PromptPayStates
-from bot.logger_mesh import logger
-from bot.payments.bitcoin import get_available_bitcoin_address, mark_bitcoin_address_used
-from bot.export import log_order_creation, sync_customer_to_csv
 from bot.utils import generate_unique_order_code, get_telegram_username
-from bot.utils.validators import validate_and_normalize_phone
+from bot.utils.constants import (
+    DELIVERY_DEAD_DROP,
+    DELIVERY_DOOR,
+    DELIVERY_PICKUP,
+    PAYMENT_BITCOIN,
+    PAYMENT_CASH,
+    PAYMENT_LITECOIN,
+    PAYMENT_PROMPTPAY,
+    PAYMENT_SOLANA,
+    PAYMENT_USDT_SOL,
+)
 from bot.utils.message_utils import send_or_edit
 from bot.utils.tracking import track_payment
-from bot.monitoring.metrics import get_metrics
-from bot.utils.constants import (
-    PAYMENT_BITCOIN, PAYMENT_CASH, PAYMENT_PROMPTPAY,
-    PAYMENT_LITECOIN, PAYMENT_SOLANA, PAYMENT_USDT_SOL,
-    DELIVERY_DOOR, DELIVERY_DEAD_DROP, DELIVERY_PICKUP,
-)
+from bot.utils.validators import validate_and_normalize_phone
 
 router = Router()
 
@@ -35,10 +44,10 @@ router = Router()
 # Helper: extract lat/lng from Google Maps URLs
 # ---------------------------------------------------------------------------
 _MAPS_COORD_PATTERNS = [
-    re.compile(r'@(-?\d+\.\d+),(-?\d+\.\d+)'),           # maps/@lat,lng
-    re.compile(r'q=(-?\d+\.\d+),(-?\d+\.\d+)'),           # maps?q=lat,lng
-    re.compile(r'll=(-?\d+\.\d+),(-?\d+\.\d+)'),          # ll=lat,lng
-    re.compile(r'/(-?\d+\.\d+),(-?\d+\.\d+)'),            # generic /lat,lng in path
+    re.compile(r"@(-?\d+\.\d+),(-?\d+\.\d+)"),  # maps/@lat,lng
+    re.compile(r"q=(-?\d+\.\d+),(-?\d+\.\d+)"),  # maps?q=lat,lng
+    re.compile(r"ll=(-?\d+\.\d+),(-?\d+\.\d+)"),  # ll=lat,lng
+    re.compile(r"/(-?\d+\.\d+),(-?\d+\.\d+)"),  # generic /lat,lng in path
 ]
 
 
@@ -56,12 +65,15 @@ def _extract_coords_from_url(url: str):
 async def show_location_method_choice(target, state: FSMContext, *, edit: bool = False):
     """Show the 4-option location method picker."""
     text = localize("order.delivery.location_method_prompt")
-    kb = simple_buttons([
-        (localize("btn.location_method.gps"), "loc_method_gps"),
-        (localize("btn.location_method.live_gps"), "loc_method_live_gps"),
-        (localize("btn.location_method.google_link"), "loc_method_google_link"),
-        (localize("btn.location_method.type_address"), "loc_method_type_address"),
-    ], per_row=1)
+    kb = simple_buttons(
+        [
+            (localize("btn.location_method.gps"), "loc_method_gps"),
+            (localize("btn.location_method.live_gps"), "loc_method_live_gps"),
+            (localize("btn.location_method.google_link"), "loc_method_google_link"),
+            (localize("btn.location_method.type_address"), "loc_method_type_address"),
+        ],
+        per_row=1,
+    )
     await send_or_edit(target, text, reply_markup=kb, edit=edit)
     await state.set_state(OrderStates.waiting_location_method)
 
@@ -70,6 +82,7 @@ async def show_location_method_choice(target, state: FSMContext, *, edit: bool =
 # Step 1: Location method choice
 # ---------------------------------------------------------------------------
 
+
 @router.callback_query(F.data == "loc_method_gps", OrderStates.waiting_location_method)
 async def loc_method_gps(call: CallbackQuery, state: FSMContext):
     """User chose GPS via Telegram"""
@@ -77,20 +90,15 @@ async def loc_method_gps(call: CallbackQuery, state: FSMContext):
     location_kb = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=localize("btn.share_location"), request_location=True)],
-            [KeyboardButton(text=localize("btn.back"))]
+            [KeyboardButton(text=localize("btn.back"))],
         ],
         resize_keyboard=True,
-        one_time_keyboard=True
+        one_time_keyboard=True,
     )
     # LOGIC-21 fix: Don't send duplicate text — just delete old inline message
-    try:
+    with contextlib.suppress(Exception):
         await call.message.delete()
-    except Exception:
-        pass
-    await call.message.answer(
-        localize("order.delivery.gps_prompt"),
-        reply_markup=location_kb
-    )
+    await call.message.answer(localize("order.delivery.gps_prompt"), reply_markup=location_kb)
     await state.set_state(OrderStates.waiting_location)
 
 
@@ -98,10 +106,7 @@ async def loc_method_gps(call: CallbackQuery, state: FSMContext):
 async def loc_method_live_gps(call: CallbackQuery, state: FSMContext):
     """User chose to share live location"""
     await call.answer()
-    await call.message.edit_text(
-        localize("order.delivery.live_gps_prompt"),
-        reply_markup=back("view_cart")
-    )
+    await call.message.edit_text(localize("order.delivery.live_gps_prompt"), reply_markup=back("view_cart"))
     await state.set_state(OrderStates.waiting_live_location)
 
 
@@ -109,10 +114,7 @@ async def loc_method_live_gps(call: CallbackQuery, state: FSMContext):
 async def loc_method_google_link(call: CallbackQuery, state: FSMContext):
     """User chose to paste a Google Maps link"""
     await call.answer()
-    await call.message.edit_text(
-        localize("order.delivery.google_link_prompt"),
-        reply_markup=back("view_cart")
-    )
+    await call.message.edit_text(localize("order.delivery.google_link_prompt"), reply_markup=back("view_cart"))
     await state.set_state(OrderStates.waiting_google_maps_link)
 
 
@@ -120,16 +122,14 @@ async def loc_method_google_link(call: CallbackQuery, state: FSMContext):
 async def loc_method_type_address(call: CallbackQuery, state: FSMContext):
     """User chose to type an address"""
     await call.answer()
-    await call.message.edit_text(
-        localize("order.delivery.address_prompt"),
-        reply_markup=back("view_cart")
-    )
+    await call.message.edit_text(localize("order.delivery.address_prompt"), reply_markup=back("view_cart"))
     await state.set_state(OrderStates.waiting_delivery_address)
 
 
 # ---------------------------------------------------------------------------
 # Option 1: GPS via Telegram
 # ---------------------------------------------------------------------------
+
 
 @router.message(OrderStates.waiting_location, F.location)
 async def process_location(message: Message, state: FSMContext):
@@ -139,15 +139,13 @@ async def process_location(message: Message, state: FSMContext):
     maps_link = f"https://www.google.com/maps?q={lat},{lng}"
 
     await state.update_data(
-        latitude=lat, longitude=lng,
+        latitude=lat,
+        longitude=lng,
         google_maps_link=maps_link,
         delivery_address=maps_link,
     )
 
-    await message.answer(
-        localize("order.delivery.location_saved"),
-        reply_markup=ReplyKeyboardRemove()
-    )
+    await message.answer(localize("order.delivery.location_saved"), reply_markup=ReplyKeyboardRemove())
 
     # Proceed to delivery type
     await ask_delivery_type(message, state)
@@ -157,10 +155,7 @@ async def process_location(message: Message, state: FSMContext):
 async def location_not_shared(message: Message, state: FSMContext):
     """User sent text instead of location — nudge them or go back"""
     if message.text and message.text.strip() == localize("btn.back"):
-        await message.answer(
-            localize("order.delivery.location_method_prompt"),
-            reply_markup=ReplyKeyboardRemove()
-        )
+        await message.answer(localize("order.delivery.location_method_prompt"), reply_markup=ReplyKeyboardRemove())
         await show_location_method_choice(message, state)
         return
 
@@ -169,17 +164,18 @@ async def location_not_shared(message: Message, state: FSMContext):
         reply_markup=ReplyKeyboardMarkup(
             keyboard=[
                 [KeyboardButton(text=localize("btn.share_location"), request_location=True)],
-                [KeyboardButton(text=localize("btn.back"))]
+                [KeyboardButton(text=localize("btn.back"))],
             ],
             resize_keyboard=True,
-            one_time_keyboard=True
-        )
+            one_time_keyboard=True,
+        ),
     )
 
 
 # ---------------------------------------------------------------------------
 # Option 1b: Live Location via Telegram
 # ---------------------------------------------------------------------------
+
 
 @router.message(OrderStates.waiting_live_location, F.location)
 async def process_live_location(message: Message, state: FSMContext):
@@ -190,7 +186,8 @@ async def process_live_location(message: Message, state: FSMContext):
     is_live = bool(message.location.live_period)
 
     await state.update_data(
-        latitude=lat, longitude=lng,
+        latitude=lat,
+        longitude=lng,
         google_maps_link=maps_link,
         delivery_address=maps_link,
         live_location_message_id=message.message_id if is_live else None,
@@ -209,15 +206,13 @@ async def process_live_location(message: Message, state: FSMContext):
 @router.message(OrderStates.waiting_live_location)
 async def live_location_not_shared(message: Message, state: FSMContext):
     """User sent text instead of live location — remind them"""
-    await message.answer(
-        localize("order.delivery.live_gps_hint"),
-        reply_markup=back("view_cart")
-    )
+    await message.answer(localize("order.delivery.live_gps_hint"), reply_markup=back("view_cart"))
 
 
 # ---------------------------------------------------------------------------
 # Option 2: Google Maps link
 # ---------------------------------------------------------------------------
+
 
 @router.message(OrderStates.waiting_google_maps_link)
 async def process_google_maps_link(message: Message, state: FSMContext):
@@ -225,11 +220,10 @@ async def process_google_maps_link(message: Message, state: FSMContext):
     text = (message.text or "").strip()
 
     # Basic URL validation
-    if not text or not any(domain in text.lower() for domain in ["google.com/maps", "maps.google", "goo.gl/maps", "maps.app.goo.gl"]):
-        await message.answer(
-            localize("order.delivery.google_link_invalid"),
-            reply_markup=back("view_cart")
-        )
+    if not text or not any(
+        domain in text.lower() for domain in ["google.com/maps", "maps.google", "goo.gl/maps", "maps.app.goo.gl"]
+    ):
+        await message.answer(localize("order.delivery.google_link_invalid"), reply_markup=back("view_cart"))
         return
 
     coords = _extract_coords_from_url(text)
@@ -237,7 +231,8 @@ async def process_google_maps_link(message: Message, state: FSMContext):
         lat, lng = coords
         maps_link = f"https://www.google.com/maps?q={lat},{lng}"
         await state.update_data(
-            latitude=lat, longitude=lng,
+            latitude=lat,
+            longitude=lng,
             google_maps_link=maps_link,
             delivery_address=maps_link,
         )
@@ -257,16 +252,14 @@ async def process_google_maps_link(message: Message, state: FSMContext):
 # Option 3: Type an address → search & confirm
 # ---------------------------------------------------------------------------
 
+
 @router.message(OrderStates.waiting_delivery_address)
 async def process_delivery_address(message: Message, state: FSMContext):
     """Collect delivery address from user, then ask to confirm via map link"""
     delivery_address = (message.text or "").strip()
 
     if len(delivery_address) < 5:
-        await message.answer(
-            localize("order.delivery.address_invalid"),
-            reply_markup=back("view_cart")
-        )
+        await message.answer(localize("order.delivery.address_invalid"), reply_markup=back("view_cart"))
         return
 
     # Save to state
@@ -278,13 +271,14 @@ async def process_delivery_address(message: Message, state: FSMContext):
 
     # Ask user to confirm the address
     await message.answer(
-        localize("order.delivery.address_confirm_prompt",
-                 address=html.escape(delivery_address),
-                 maps_link=search_url),
-        reply_markup=simple_buttons([
-            (localize("btn.address_confirm_yes"), "address_confirm_yes"),
-            (localize("btn.address_confirm_retry"), "address_confirm_retry"),
-        ], per_row=1),
+        localize("order.delivery.address_confirm_prompt", address=html.escape(delivery_address), maps_link=search_url),
+        reply_markup=simple_buttons(
+            [
+                (localize("btn.address_confirm_yes"), "address_confirm_yes"),
+                (localize("btn.address_confirm_retry"), "address_confirm_retry"),
+            ],
+            per_row=1,
+        ),
         parse_mode="HTML",
         disable_web_page_preview=True,
     )
@@ -309,11 +303,14 @@ async def address_retry(call: CallbackQuery, state: FSMContext):
 async def ask_delivery_type(message: Message, state: FSMContext, *, edit: bool = False):
     """Show delivery type selection (Card 3)"""
     text = localize("order.delivery.type_prompt")
-    kb = simple_buttons([
-        (localize("btn.delivery.door"), "delivery_type_door"),
-        (localize("btn.delivery.dead_drop"), "delivery_type_dead_drop"),
-        (localize("btn.delivery.pickup"), "delivery_type_pickup"),
-    ], per_row=1)
+    kb = simple_buttons(
+        [
+            (localize("btn.delivery.door"), "delivery_type_door"),
+            (localize("btn.delivery.dead_drop"), "delivery_type_dead_drop"),
+            (localize("btn.delivery.pickup"), "delivery_type_pickup"),
+        ],
+        per_row=1,
+    )
     await send_or_edit(message, text, reply_markup=kb, edit=edit)
     await state.set_state(OrderStates.waiting_delivery_type)
 
@@ -323,10 +320,7 @@ async def delivery_type_door(call: CallbackQuery, state: FSMContext):
     """User selected door delivery"""
     await call.answer()
     await state.update_data(delivery_type=DELIVERY_DOOR)
-    await call.message.edit_text(
-        localize("order.delivery.phone_prompt"),
-        reply_markup=back("view_cart")
-    )
+    await call.message.edit_text(localize("order.delivery.phone_prompt"), reply_markup=back("view_cart"))
     await state.set_state(OrderStates.waiting_phone_number)
 
 
@@ -346,10 +340,7 @@ async def delivery_type_pickup(call: CallbackQuery, state: FSMContext):
     """User selected self-pickup — skip address/location details"""
     await call.answer()
     await state.update_data(delivery_type=DELIVERY_PICKUP)
-    await call.message.edit_text(
-        localize("order.delivery.phone_prompt"),
-        reply_markup=back("view_cart")
-    )
+    await call.message.edit_text(localize("order.delivery.phone_prompt"), reply_markup=back("view_cart"))
     await state.set_state(OrderStates.waiting_phone_number)
 
 
@@ -363,13 +354,10 @@ async def process_drop_instructions(message: Message, state: FSMContext):
     await message.answer(
         localize("order.delivery.drop_gps_prompt"),
         reply_markup=ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(
-                text=localize("btn.share_drop_location"),
-                request_location=True
-            )]],
+            keyboard=[[KeyboardButton(text=localize("btn.share_drop_location"), request_location=True)]],
             resize_keyboard=True,
             one_time_keyboard=True,
-        )
+        ),
     )
     await state.set_state(OrderStates.waiting_drop_gps)
 
@@ -390,9 +378,7 @@ async def process_drop_gps(message: Message, state: FSMContext):
     await state.update_data(drop_media=[])
     await message.answer(
         localize("order.delivery.drop_media_prompt"),
-        reply_markup=simple_buttons([
-            (localize("btn.skip_drop_media"), "skip_drop_media")
-        ], per_row=1)
+        reply_markup=simple_buttons([(localize("btn.skip_drop_media"), "skip_drop_media")], per_row=1),
     )
     await state.set_state(OrderStates.waiting_drop_media)
 
@@ -400,16 +386,19 @@ async def process_drop_gps(message: Message, state: FSMContext):
 async def _accumulate_drop_media(message: Message, state: FSMContext, file_id: str, media_type: str):
     """Shared helper: accumulate a media file for the dead drop location."""
     data = await state.get_data()
-    media_list = data.get('drop_media', [])
+    media_list = data.get("drop_media", [])
     media_list.append({"file_id": file_id, "type": media_type})
     await state.update_data(drop_media=media_list)
 
     await message.answer(
         localize("order.delivery.drop_media_saved", count=len(media_list)),
-        reply_markup=simple_buttons([
-            (localize("btn.drop_media_done"), "done_drop_media"),
-            (localize("btn.skip_drop_media"), "skip_drop_media"),
-        ], per_row=1)
+        reply_markup=simple_buttons(
+            [
+                (localize("btn.drop_media_done"), "done_drop_media"),
+                (localize("btn.skip_drop_media"), "skip_drop_media"),
+            ],
+            per_row=1,
+        ),
     )
 
 
@@ -429,10 +418,7 @@ async def process_drop_media_video(message: Message, state: FSMContext):
 async def done_drop_media(call: CallbackQuery, state: FSMContext):
     """User finished uploading drop media — proceed to phone number"""
     await call.answer()
-    await call.message.edit_text(
-        localize("order.delivery.phone_prompt"),
-        reply_markup=back("view_cart")
-    )
+    await call.message.edit_text(localize("order.delivery.phone_prompt"), reply_markup=back("view_cart"))
     await state.set_state(OrderStates.waiting_phone_number)
 
 
@@ -440,14 +426,12 @@ async def done_drop_media(call: CallbackQuery, state: FSMContext):
 async def skip_drop_media(call: CallbackQuery, state: FSMContext):
     """User skipped drop location media"""
     await call.answer()
-    await call.message.edit_text(
-        localize("order.delivery.phone_prompt"),
-        reply_markup=back("view_cart")
-    )
+    await call.message.edit_text(localize("order.delivery.phone_prompt"), reply_markup=back("view_cart"))
     await state.set_state(OrderStates.waiting_phone_number)
 
 
 # --- Legacy single-photo handlers (kept for backward compat) ---
+
 
 @router.message(OrderStates.waiting_drop_photo, F.photo)
 async def process_drop_photo(message: Message, state: FSMContext):
@@ -456,10 +440,7 @@ async def process_drop_photo(message: Message, state: FSMContext):
     await state.update_data(drop_location_photo=photo_file_id)
 
     await message.answer(localize("order.delivery.drop_photo_saved"))
-    await message.answer(
-        localize("order.delivery.phone_prompt"),
-        reply_markup=back("view_cart")
-    )
+    await message.answer(localize("order.delivery.phone_prompt"), reply_markup=back("view_cart"))
     await state.set_state(OrderStates.waiting_phone_number)
 
 
@@ -467,10 +448,7 @@ async def process_drop_photo(message: Message, state: FSMContext):
 async def skip_drop_photo(call: CallbackQuery, state: FSMContext):
     """User skipped drop location photo (legacy flow)"""
     await call.answer()
-    await call.message.edit_text(
-        localize("order.delivery.phone_prompt"),
-        reply_markup=back("view_cart")
-    )
+    await call.message.edit_text(localize("order.delivery.phone_prompt"), reply_markup=back("view_cart"))
     await state.set_state(OrderStates.waiting_phone_number)
 
 
@@ -482,10 +460,7 @@ async def process_phone_number(message: Message, state: FSMContext):
     try:
         phone_number = validate_and_normalize_phone(message.text or "")
     except ValueError:
-        await message.answer(
-            localize("order.delivery.phone_invalid"),
-            reply_markup=back("view_cart")
-        )
+        await message.answer(localize("order.delivery.phone_invalid"), reply_markup=back("view_cart"))
         return
 
     # Save normalised E.164 number to state
@@ -494,8 +469,9 @@ async def process_phone_number(message: Message, state: FSMContext):
     # Ask for delivery note (optional)
     await message.answer(
         localize("order.delivery.note_prompt"),
-        reply_markup=simple_buttons([(localize("btn.skip"), "skip_delivery_note"), (localize("btn.back"), "view_cart")],
-                                    per_row=2)
+        reply_markup=simple_buttons(
+            [(localize("btn.skip"), "skip_delivery_note"), (localize("btn.back"), "view_cart")], per_row=2
+        ),
     )
     await state.set_state(OrderStates.waiting_delivery_note)
 
@@ -525,8 +501,9 @@ async def skip_delivery_note_handler(call: CallbackQuery, state: FSMContext):
     await check_and_ask_about_bonus(call.message, state, user_id=call.from_user.id, from_callback=True)
 
 
-async def check_and_ask_about_bonus(message: Message, state: FSMContext, user_id: int = None,
-                                    from_callback: bool = False):
+async def check_and_ask_about_bonus(
+    message: Message, state: FSMContext, user_id: int | None = None, from_callback: bool = False
+):
     """
     Check if user has referral bonus and ask if they want to apply it to the order
     """
@@ -547,17 +524,18 @@ async def check_and_ask_about_bonus(message: Message, state: FSMContext, user_id
         await state.update_data(available_bonus=str(bonus_balance))
 
         text = (
-                localize("order.bonus.available", bonus_balance=bonus_balance) +
-                localize("order.bonus.order_total_label", amount=total_amount,
-                         currency=EnvKeys.PAY_CURRENCY) + "\n\n" +
-                localize("order.bonus.apply_question") + f"\n" +
-                localize("order.bonus.choose_amount_hint", max_amount=min(bonus_balance, total_amount))
+            localize("order.bonus.available", bonus_balance=bonus_balance)
+            + localize("order.bonus.order_total_label", amount=total_amount, currency=EnvKeys.PAY_CURRENCY)
+            + "\n\n"
+            + localize("order.bonus.apply_question")
+            + "\n"
+            + localize("order.bonus.choose_amount_hint", max_amount=min(bonus_balance, total_amount))
         )
 
-        kb = simple_buttons([
-            (localize("btn.apply_bonus_yes"), "apply_bonus_yes"),
-            (localize("btn.apply_bonus_no"), "apply_bonus_no")
-        ], per_row=2)
+        kb = simple_buttons(
+            [(localize("btn.apply_bonus_yes"), "apply_bonus_yes"), (localize("btn.apply_bonus_no"), "apply_bonus_no")],
+            per_row=2,
+        )
         await send_or_edit(message, text, reply_markup=kb, edit=from_callback)
         return
 
@@ -572,21 +550,28 @@ async def apply_bonus_yes_handler(call: CallbackQuery, state: FSMContext):
     User wants to apply bonus - ask for amount
     """
     data = await state.get_data()
-    available_bonus = Decimal(str(data.get('available_bonus', 0)))
+    available_bonus = Decimal(str(data.get("available_bonus", 0)))
 
     total_amount = await calculate_cart_total(call.from_user.id)
     max_applicable = min(available_bonus, Decimal(str(total_amount)))
 
     await call.message.edit_text(
-        localize("order.bonus.enter_amount_title") + "\n\n" +
-        localize("order.bonus.available_label", amount=available_bonus) + "\n" +
-        localize("order.bonus.order_total_label", amount=total_amount, currency=EnvKeys.PAY_CURRENCY) + "\n" +
-        localize("order.bonus.max_applicable_label", amount=max_applicable) + "\n\n" +
-        localize("order.bonus.enter_amount", max_applicable=max_applicable),
-        reply_markup=simple_buttons([
-            (localize("btn.use_all_bonus", amount=max_applicable), f"use_all_bonus_{max_applicable}"),
-            (localize("btn.cancel"), "apply_bonus_no")
-        ], per_row=2)
+        localize("order.bonus.enter_amount_title")
+        + "\n\n"
+        + localize("order.bonus.available_label", amount=available_bonus)
+        + "\n"
+        + localize("order.bonus.order_total_label", amount=total_amount, currency=EnvKeys.PAY_CURRENCY)
+        + "\n"
+        + localize("order.bonus.max_applicable_label", amount=max_applicable)
+        + "\n\n"
+        + localize("order.bonus.enter_amount", max_applicable=max_applicable),
+        reply_markup=simple_buttons(
+            [
+                (localize("btn.use_all_bonus", amount=max_applicable), f"use_all_bonus_{max_applicable}"),
+                (localize("btn.cancel"), "apply_bonus_no"),
+            ],
+            per_row=2,
+        ),
     )
     await state.set_state(OrderStates.waiting_bonus_amount)
 
@@ -617,14 +602,12 @@ async def process_bonus_amount(message: Message, state: FSMContext):
             return
 
         data = await state.get_data()
-        available_bonus = Decimal(str(data.get('available_bonus', 0)))
+        available_bonus = Decimal(str(data.get("available_bonus", 0)))
         total_amount = await calculate_cart_total(message.from_user.id)
         max_applicable = min(available_bonus, Decimal(str(total_amount)))
 
         if bonus_amount > max_applicable:
-            await message.answer(
-                localize("order.bonus.amount_too_high", max_applicable=max_applicable)
-            )
+            await message.answer(localize("order.bonus.amount_too_high", max_applicable=max_applicable))
             return
 
         # Valid amount - save and proceed
@@ -644,7 +627,9 @@ async def apply_bonus_no_handler(call: CallbackQuery, state: FSMContext):
     await finalize_order_and_payment(call.message, state, user_id=call.from_user.id, from_callback=True)
 
 
-async def show_payment_method_selection(message: Message, state: FSMContext, user_id: int = None, from_callback: bool = False):
+async def show_payment_method_selection(
+    message: Message, state: FSMContext, user_id: int | None = None, from_callback: bool = False
+):
     """
     Show payment method selection (Bitcoin or Cash)
     """
@@ -654,23 +639,21 @@ async def show_payment_method_selection(message: Message, state: FSMContext, use
     # Get cart total
     cart_total = await calculate_cart_total(user_id)
     data = await state.get_data()
-    bonus_applied = Decimal(str(data.get('bonus_applied', 0)))
+    bonus_applied = Decimal(str(data.get("bonus_applied", 0)))
     final_amount = cart_total - bonus_applied
 
     # Get localized strings
     text = localize("order.payment_method.choose")
 
-    summary_text = (
-            localize("order.summary.title") +
-            localize("order.summary.cart_total", cart_total=cart_total) + "\n"
-    )
+    summary_text = localize("order.summary.title") + localize("order.summary.cart_total", cart_total=cart_total) + "\n"
 
     if bonus_applied > 0:
         summary_text += localize("order.summary.bonus_applied", bonus_applied=bonus_applied) + "\n"
-        summary_text += f"<b>" + localize("order.summary.final_amount", final_amount=final_amount) + "</b>\n\n"
+        summary_text += "<b>" + localize("order.summary.final_amount", final_amount=final_amount) + "</b>\n\n"
     else:
-        summary_text += localize("order.summary.total_label", amount=final_amount,
-                                 currency=EnvKeys.PAY_CURRENCY) + "\n\n"
+        summary_text += (
+            localize("order.summary.total_label", amount=final_amount, currency=EnvKeys.PAY_CURRENCY) + "\n\n"
+        )
 
     summary_text += text
 
@@ -681,6 +664,7 @@ async def show_payment_method_selection(message: Message, state: FSMContext, use
 
     # Add PromptPay if configured (Card 1) — check DB first, then env var
     from bot.handlers.admin.settings_management import get_promptpay_id
+
     if get_promptpay_id():
         payment_buttons.insert(0, (localize("order.payment_method.promptpay"), "payment_method_promptpay"))
 
@@ -690,6 +674,7 @@ async def show_payment_method_selection(message: Message, state: FSMContext, use
     if EnvKeys.CRYPTO_PAYMENTS_ENABLED:
         enabled_coins = [c.strip() for c in EnvKeys.CRYPTO_COINS_ENABLED.split(",") if c.strip()]
         from bot.utils.constants import PAYMENT_METHOD_TO_COIN
+
         coin_to_method = {v: k for k, v in PAYMENT_METHOD_TO_COIN.items()}
         for coin in enabled_coins:
             method = coin_to_method.get(coin)
@@ -698,7 +683,8 @@ async def show_payment_method_selection(message: Message, state: FSMContext, use
                 payment_buttons.append((localize(label_key), f"payment_method_{method}"))
 
     await send_or_edit(
-        message, summary_text,
+        message,
+        summary_text,
         reply_markup=simple_buttons(payment_buttons, per_row=1),
         edit=from_callback,
     )
@@ -767,12 +753,13 @@ async def payment_method_usdt_sol_handler(call: CallbackQuery, state: FSMContext
 # BTC still uses legacy process_bitcoin_payment_new_message for backward compat.
 # ---------------------------------------------------------------------------
 
-async def process_crypto_payment(message: Message, state: FSMContext, *, user_id: int = None):
+
+async def process_crypto_payment(message: Message, state: FSMContext, *, user_id: int | None = None):
     """Generic flow for on-chain-verified crypto payments (LTC, SOL, USDT)."""
-    from bot.utils.constants import PAYMENT_METHOD_TO_COIN
-    from bot.payments.crypto_addresses import get_available_address, mark_address_used
-    from bot.payments.chain_verify import get_verifier
     from bot.database.models.main import CryptoPayment
+    from bot.payments.chain_verify import get_verifier
+    from bot.payments.crypto_addresses import get_available_address, mark_address_used
+    from bot.utils.constants import PAYMENT_METHOD_TO_COIN
 
     if user_id is None:
         user_id = message.from_user.id
@@ -805,6 +792,7 @@ async def process_crypto_payment(message: Message, state: FSMContext, *, user_id
     # Get price conversion
     try:
         from bot.payments.price_feed import get_crypto_amount
+
         crypto_amount, exchange_rate = await get_crypto_amount(coin, final_amount)
     except Exception as exc:
         logger.error("Price feed error for %s: %s", coin, exc)
@@ -865,15 +853,16 @@ async def process_crypto_payment(message: Message, state: FSMContext, *, user_id
                     longitude=customer_info.longitude,
                     google_maps_link=(
                         f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}"
-                        if customer_info.latitude and customer_info.longitude else None
+                        if customer_info.latitude and customer_info.longitude
+                        else None
                     ),
                     delivery_type=dd_type,
                     drop_instructions=dd_instructions,
                     drop_latitude=dd_lat,
                     drop_longitude=dd_lng,
                     drop_media=dd_media,
-                    brand_id=data.get('current_brand_id'),
-                    store_id=data.get('current_store_id'),
+                    brand_id=data.get("current_brand_id"),
+                    store_id=data.get("current_store_id"),
                 )
                 session.add(order)
                 session.flush()
@@ -897,7 +886,9 @@ async def process_crypto_payment(message: Message, state: FSMContext, *, user_id
                     items_to_reserve.append({"item_name": cart_item["item_name"], "quantity": cart_item["quantity"]})
 
                 # Reserve inventory (7 day timeout for crypto)
-                success, reserve_msg = reserve_inventory(order.id, items_to_reserve, payment_method=payment_method, session=session)
+                success, reserve_msg = reserve_inventory(
+                    order.id, items_to_reserve, payment_method=payment_method, session=session
+                )
                 if not success:
                     session.rollback()
                     reserve_failed = True
@@ -907,6 +898,7 @@ async def process_crypto_payment(message: Message, state: FSMContext, *, user_id
 
                     # Create CryptoPayment record for on-chain verification
                     from datetime import timedelta
+
                     timeout_map = {
                         "btc": EnvKeys.CRYPTO_PAYMENT_TIMEOUT_BTC,
                         "ltc": EnvKeys.CRYPTO_PAYMENT_TIMEOUT_LTC,
@@ -914,24 +906,29 @@ async def process_crypto_payment(message: Message, state: FSMContext, *, user_id
                         "usdt_sol": EnvKeys.CRYPTO_PAYMENT_TIMEOUT_USDT,
                     }
                     timeout_minutes = timeout_map.get(coin, 60)
-                    from datetime import datetime as dt, timezone as tz
+                    from datetime import datetime as dt
+
                     crypto_payment = CryptoPayment(
                         order_id=order.id,
                         coin=coin,
                         receive_address=address,
                         expected_amount=crypto_amount,
                         required_confirmations=verifier.required_confirmations(),
-                        expires_at=dt.now(tz.utc) + timedelta(minutes=timeout_minutes),
+                        expires_at=dt.now(UTC) + timedelta(minutes=timeout_minutes),
                     )
                     session.add(crypto_payment)
 
                     log_order_creation(
-                        order_id=order.id, buyer_id=user_id, buyer_username=username,
+                        order_id=order.id,
+                        buyer_id=user_id,
+                        buyer_username=username,
                         items_summary="\n".join(items_summary),
-                        total_price=float(total_amount), payment_method=payment_method,
+                        total_price=float(total_amount),
+                        payment_method=payment_method,
                         delivery_address=customer_info.delivery_address,
                         phone_number=customer_info.phone_number,
-                        bitcoin_address=address, order_code=order.order_code,
+                        bitcoin_address=address,
+                        order_code=order.order_code,
                     )
 
                     session.query(ShoppingCart).filter_by(user_id=user_id).delete()
@@ -939,26 +936,42 @@ async def process_crypto_payment(message: Message, state: FSMContext, *, user_id
                     order_code = order.order_code
 
                     from bot.utils.tracking import track_event
-                    track_event("order_created", user_id, {
-                        "order_code": order_code,
-                        "payment_method": payment_method,
-                        "coin": coin,
-                        "total": float(total_amount),
-                        "bonus_applied": float(bonus_applied),
-                    })
+
+                    track_event(
+                        "order_created",
+                        user_id,
+                        {
+                            "order_code": order_code,
+                            "payment_method": payment_method,
+                            "coin": coin,
+                            "total": float(total_amount),
+                            "bonus_applied": float(bonus_applied),
+                        },
+                    )
 
                     # Build payment message (sync — sent after session closes)
                     payment_text = (
-                        localize("crypto.payment.title", coin_name=coin_name) + "\n\n" +
-                        localize("crypto.payment.order_code", code=order_code) + "\n" +
-                        localize("crypto.payment.total_fiat", amount=final_amount, currency=EnvKeys.PAY_CURRENCY) + "\n" +
-                        localize("crypto.payment.rate", coin=coin.upper(), rate=exchange_rate, currency=EnvKeys.PAY_CURRENCY) + "\n" +
-                        localize("crypto.payment.amount_due", crypto_amount=crypto_amount, coin=coin.upper()) + "\n\n" +
-                        localize("crypto.payment.address", address=address) + "\n\n" +
-                        localize("crypto.payment.send_exact") + "\n" +
-                        localize("crypto.payment.one_time") + "\n" +
-                        localize("crypto.payment.auto_confirm") + "\n\n" +
-                        localize("crypto.payment.waiting", timeout=timeout_minutes)
+                        localize("crypto.payment.title", coin_name=coin_name)
+                        + "\n\n"
+                        + localize("crypto.payment.order_code", code=order_code)
+                        + "\n"
+                        + localize("crypto.payment.total_fiat", amount=final_amount, currency=EnvKeys.PAY_CURRENCY)
+                        + "\n"
+                        + localize(
+                            "crypto.payment.rate", coin=coin.upper(), rate=exchange_rate, currency=EnvKeys.PAY_CURRENCY
+                        )
+                        + "\n"
+                        + localize("crypto.payment.amount_due", crypto_amount=crypto_amount, coin=coin.upper())
+                        + "\n\n"
+                        + localize("crypto.payment.address", address=address)
+                        + "\n\n"
+                        + localize("crypto.payment.send_exact")
+                        + "\n"
+                        + localize("crypto.payment.one_time")
+                        + "\n"
+                        + localize("crypto.payment.auto_confirm")
+                        + "\n\n"
+                        + localize("crypto.payment.waiting", timeout=timeout_minutes)
                     )
 
         except Exception as e:
@@ -983,8 +996,9 @@ async def process_crypto_payment(message: Message, state: FSMContext, *, user_id
     await state.clear()
 
 
-async def finalize_order_and_payment(message: Message, state: FSMContext, user_id: int = None,
-                                     from_callback: bool = False):
+async def finalize_order_and_payment(
+    message: Message, state: FSMContext, user_id: int | None = None, from_callback: bool = False
+):
     """
     Save customer info and proceed to payment method selection
     """
@@ -996,19 +1010,17 @@ async def finalize_order_and_payment(message: Message, state: FSMContext, user_i
 
     # Get data from state
     data = await state.get_data()
-    delivery_address = data.get('delivery_address')
-    phone_number = data.get('phone_number')
-    delivery_note = data.get('delivery_note', '')
-    latitude = data.get('latitude')
-    longitude = data.get('longitude')
-    google_maps_link = data.get('google_maps_link')
+    delivery_address = data.get("delivery_address")
+    phone_number = data.get("phone_number")
+    delivery_note = data.get("delivery_note", "")
+    latitude = data.get("latitude")
+    longitude = data.get("longitude")
+    data.get("google_maps_link")
 
     # Save/update customer info
     try:
         with Database().session() as session:
-            customer_info = session.query(CustomerInfo).filter_by(
-                telegram_id=user_id
-            ).first()
+            customer_info = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
 
             if customer_info:
                 # Log changes
@@ -1016,22 +1028,17 @@ async def finalize_order_and_payment(message: Message, state: FSMContext, user_i
 
                 if customer_info.delivery_address != delivery_address:
                     log_customer_info_change(
-                        user_id, username, "ADDRESS",
-                        customer_info.delivery_address, delivery_address
+                        user_id, username, "ADDRESS", customer_info.delivery_address, delivery_address
                     )
                     customer_info.delivery_address = delivery_address
 
                 if customer_info.phone_number != phone_number:
-                    log_customer_info_change(
-                        user_id, username, "PHONE",
-                        customer_info.phone_number, phone_number
-                    )
+                    log_customer_info_change(user_id, username, "PHONE", customer_info.phone_number, phone_number)
                     customer_info.phone_number = phone_number
 
                 if customer_info.delivery_note != delivery_note:
                     log_customer_info_change(
-                        user_id, username, "DELIVERY_NOTE",
-                        customer_info.delivery_note, delivery_note
+                        user_id, username, "DELIVERY_NOTE", customer_info.delivery_note, delivery_note
                     )
                     customer_info.delivery_note = delivery_note
 
@@ -1046,7 +1053,7 @@ async def finalize_order_and_payment(message: Message, state: FSMContext, user_i
                     telegram_id=user_id,
                     phone_number=phone_number,
                     delivery_address=delivery_address,
-                    delivery_note=delivery_note
+                    delivery_note=delivery_note,
                 )
                 # Set GPS if provided
                 if latitude is not None and longitude is not None:
@@ -1058,10 +1065,7 @@ async def finalize_order_and_payment(message: Message, state: FSMContext, user_i
 
     except Exception as e:
         logger.error(f"Error saving customer info: {e}")
-        await message.answer(
-            localize("order.delivery.info_save_error"),
-            reply_markup=back("view_cart")
-        )
+        await message.answer(localize("order.delivery.info_save_error"), reply_markup=back("view_cart"))
         return
 
     # Show payment method selection
@@ -1091,25 +1095,20 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
     btc_address = get_available_bitcoin_address()
 
     if not btc_address:
-        await call.message.edit_text(
-            localize("order.payment.system_unavailable"),
-            reply_markup=back("back_to_menu")
-        )
+        await call.message.edit_text(localize("order.payment.system_unavailable"), reply_markup=back("back_to_menu"))
         return
 
     # Dead drop fields from FSM state
     fsm_data = await state.get_data()
-    dd_type = fsm_data.get('delivery_type', DELIVERY_DOOR)
-    dd_instructions = fsm_data.get('drop_instructions')
-    dd_lat = fsm_data.get('drop_latitude')
-    dd_lng = fsm_data.get('drop_longitude')
-    dd_media = fsm_data.get('drop_media')
+    dd_type = fsm_data.get("delivery_type", DELIVERY_DOOR)
+    dd_instructions = fsm_data.get("drop_instructions")
+    dd_lat = fsm_data.get("drop_latitude")
+    dd_lng = fsm_data.get("drop_longitude")
+    dd_media = fsm_data.get("drop_media")
 
     # Phase 1 — preflight read (short session, no awaits inside)
     with Database().session() as session:
-        customer_info = session.query(CustomerInfo).filter_by(
-            telegram_id=user_id
-        ).first()
+        customer_info = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
         customer_found = customer_info is not None
     # session closed before any Telegram I/O
 
@@ -1129,9 +1128,7 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
     create_failed = False
     with Database().session() as session:
         try:
-            customer_info = session.query(CustomerInfo).filter_by(
-                telegram_id=user_id
-            ).first()
+            customer_info = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
             if not customer_info:
                 create_failed = True
             else:
@@ -1147,14 +1144,16 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
                     order_status="pending",
                     latitude=customer_info.latitude,
                     longitude=customer_info.longitude,
-                    google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude and customer_info.longitude else None,
+                    google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}"
+                    if customer_info.latitude and customer_info.longitude
+                    else None,
                     delivery_type=dd_type,
                     drop_instructions=dd_instructions,
                     drop_latitude=dd_lat,
                     drop_longitude=dd_lng,
                     drop_media=dd_media,
-                    brand_id=fsm_data.get('current_brand_id'),
-                    store_id=fsm_data.get('current_store_id'),
+                    brand_id=fsm_data.get("current_brand_id"),
+                    store_id=fsm_data.get("current_store_id"),
                 )
                 session.add(order)
                 session.flush()  # Get the order ID
@@ -1165,9 +1164,9 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
                 # Process each cart item and create OrderItems (Physical Goods - No ItemValues)
                 items_to_reserve = []
                 for cart_item in cart_items:
-                    item_name = cart_item['item_name']
-                    quantity = cart_item['quantity']
-                    price = cart_item['price']
+                    item_name = cart_item["item_name"]
+                    quantity = cart_item["quantity"]
+                    price = cart_item["price"]
 
                     # Create OrderItem (no item_values field for physical goods)
                     order_item = OrderItem(
@@ -1175,15 +1174,12 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
                         item_name=item_name,
                         price=Decimal(str(price)),
                         quantity=quantity,
-                        selected_modifiers=cart_item.get('selected_modifiers')
+                        selected_modifiers=cart_item.get("selected_modifiers"),
                     )
                     session.add(order_item)
 
                     # Add to reservation list
-                    items_to_reserve.append({
-                        'item_name': item_name,
-                        'quantity': quantity
-                    })
+                    items_to_reserve.append({"item_name": item_name, "quantity": quantity})
 
                     items_summary.append(f"{item_name} x{quantity} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}")
 
@@ -1197,8 +1193,9 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
                     reserve_failed = True
                 else:
                     # Mark Bitcoin address as used with this order
-                    mark_bitcoin_address_used(btc_address, user_id, username, order.id, session=session,
-                                              order_code=order.order_code)
+                    mark_bitcoin_address_used(
+                        btc_address, user_id, username, order.id, session=session, order_code=order.order_code
+                    )
 
                     # Log order creation
                     log_order_creation(
@@ -1211,7 +1208,7 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
                         delivery_address=customer_info.delivery_address,
                         phone_number=customer_info.phone_number,
                         bitcoin_address=btc_address,
-                        order_code=order.order_code
+                        order_code=order.order_code,
                     )
 
                     # Clear cart
@@ -1225,28 +1222,38 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
 
                     # Build payment instructions (sync — sent after session closes)
                     payment_text = (
-                            localize("order.payment.bitcoin.title") + "\n\n" +
-                            localize("order.payment.bitcoin.order_code", code=order_code) + "\n" +
-                            localize("order.payment.bitcoin.total_amount", amount=total_amount,
-                                     currency=EnvKeys.PAY_CURRENCY) + "\n\n" +
-                            localize("order.payment.bitcoin.items_title") + "\n" +
-                            f"{chr(10).join(items_summary)}\n\n" +
-                            localize("order.payment.bitcoin.delivery_title") + "\n"
-                                                                               f"📍 Address: {cust_address}\n"
-                                                                               f"📞 Phone: {cust_phone}\n"
+                        localize("order.payment.bitcoin.title")
+                        + "\n\n"
+                        + localize("order.payment.bitcoin.order_code", code=order_code)
+                        + "\n"
+                        + localize(
+                            "order.payment.bitcoin.total_amount", amount=total_amount, currency=EnvKeys.PAY_CURRENCY
+                        )
+                        + "\n\n"
+                        + localize("order.payment.bitcoin.items_title")
+                        + "\n"
+                        + f"{chr(10).join(items_summary)}\n\n"
+                        + localize("order.payment.bitcoin.delivery_title")
+                        + "\n"
+                        f"📍 Address: {cust_address}\n"
+                        f"📞 Phone: {cust_phone}\n"
                     )
 
                     if cust_note:
                         payment_text += f"📝 Note: {cust_note}\n"
 
                     payment_text += (
-                            "\n" + localize("order.payment.bitcoin.address_title") + "\n"
-                                                                                     f"<code>{btc_address}</code>\n\n" +
-                            localize("order.payment.bitcoin.important_title") + "\n" +
-                            localize("order.payment.bitcoin.send_exact") + "\n" +
-                            localize("order.payment.bitcoin.one_time_address") + "\n" +
-                            localize("order.payment.bitcoin.admin_confirm") + "\n\n" +
-                            localize("order.payment.bitcoin.need_help")
+                        "\n" + localize("order.payment.bitcoin.address_title") + "\n"
+                        f"<code>{btc_address}</code>\n\n"
+                        + localize("order.payment.bitcoin.important_title")
+                        + "\n"
+                        + localize("order.payment.bitcoin.send_exact")
+                        + "\n"
+                        + localize("order.payment.bitcoin.one_time_address")
+                        + "\n"
+                        + localize("order.payment.bitcoin.admin_confirm")
+                        + "\n\n"
+                        + localize("order.payment.bitcoin.need_help")
                     )
 
         except Exception as e:
@@ -1258,28 +1265,27 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
     # Phase 3 — outbound I/O (no DB connection held)
     if reserve_failed:
         await call.message.edit_text(
-            localize("order.inventory.unable_to_reserve", unavailable_items=reserve_msg),
-            reply_markup=back("view_cart")
+            localize("order.inventory.unable_to_reserve", unavailable_items=reserve_msg), reply_markup=back("view_cart")
         )
         return
     if create_failed:
-        await call.message.edit_text(
-            localize("order.payment.creation_error"),
-            reply_markup=back("view_cart")
-        )
+        await call.message.edit_text(localize("order.payment.creation_error"), reply_markup=back("view_cart"))
         return
 
-    await call.message.edit_text(
-        payment_text,
-        reply_markup=back("back_to_menu")
-    )
+    await call.message.edit_text(payment_text, reply_markup=back("back_to_menu"))
 
     # Notify admin
     await notify_admin_new_order(
-        call.bot, order_code, user_id, username,
-        "\n".join(items_summary), total_amount, btc_address,
-        cust_address, cust_phone,
-        cust_note or ""
+        call.bot,
+        order_code,
+        user_id,
+        username,
+        "\n".join(items_summary),
+        total_amount,
+        btc_address,
+        cust_address,
+        cust_phone,
+        cust_note or "",
     )
 
     # Sync customer CSV
@@ -1288,7 +1294,7 @@ async def process_bitcoin_payment(call: CallbackQuery, state: FSMContext):
     await state.clear()
 
 
-async def process_bitcoin_payment_new_message(message: Message, state: FSMContext, user_id: int = None):
+async def process_bitcoin_payment_new_message(message: Message, state: FSMContext, user_id: int | None = None):
     """
     Process Bitcoin payment by sending a new message
     """
@@ -1310,12 +1316,12 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
 
     # Get state data (bonus + dead drop fields)
     data = await state.get_data()
-    bonus_applied = Decimal(str(data.get('bonus_applied', 0)))
-    dd_type = data.get('delivery_type', DELIVERY_DOOR)
-    dd_instructions = data.get('drop_instructions')
-    dd_lat = data.get('drop_latitude')
-    dd_lng = data.get('drop_longitude')
-    dd_media = data.get('drop_media')
+    bonus_applied = Decimal(str(data.get("bonus_applied", 0)))
+    dd_type = data.get("delivery_type", DELIVERY_DOOR)
+    dd_instructions = data.get("drop_instructions")
+    dd_lat = data.get("drop_latitude")
+    dd_lng = data.get("drop_longitude")
+    dd_media = data.get("drop_media")
 
     # Calculate final amount after bonus
     final_amount = total_amount - bonus_applied
@@ -1324,32 +1330,21 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
     btc_address = get_available_bitcoin_address()
 
     if not btc_address:
-        await message.answer(
-            localize("order.payment.system_unavailable"),
-            reply_markup=back("back_to_menu")
-        )
+        await message.answer(localize("order.payment.system_unavailable"), reply_markup=back("back_to_menu"))
         return
 
     # Phase 1 — preflight read (short session, no awaits inside)
     with Database().session() as session:
-        customer_info = session.query(CustomerInfo).filter_by(
-            telegram_id=user_id
-        ).first()
+        customer_info = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
         customer_found = customer_info is not None
         customer_bonus = customer_info.bonus_balance if customer_info else Decimal("0")
     # session closed before any Telegram I/O
 
     if not customer_found:
-        await message.answer(
-            localize("order.payment.customer_not_found"),
-            reply_markup=back("view_cart")
-        )
+        await message.answer(localize("order.payment.customer_not_found"), reply_markup=back("view_cart"))
         return
     if bonus_applied > 0 and customer_bonus < bonus_applied:
-        await message.answer(
-            localize("order.bonus.insufficient"),
-            reply_markup=back("view_cart")
-        )
+        await message.answer(localize("order.bonus.insufficient"), reply_markup=back("view_cart"))
         return
 
     # Phase 2 — write transaction (no awaits inside session)
@@ -1364,9 +1359,7 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
     create_failed = False
     with Database().session() as session:
         try:
-            customer_info = session.query(CustomerInfo).filter_by(
-                telegram_id=user_id
-            ).first()
+            customer_info = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
             if not customer_info:
                 create_failed = True
             else:
@@ -1387,14 +1380,16 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
                     order_status="pending",
                     latitude=customer_info.latitude,
                     longitude=customer_info.longitude,
-                    google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude and customer_info.longitude else None,
+                    google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}"
+                    if customer_info.latitude and customer_info.longitude
+                    else None,
                     delivery_type=dd_type,
                     drop_instructions=dd_instructions,
                     drop_latitude=dd_lat,
                     drop_longitude=dd_lng,
                     drop_media=dd_media,
-                    brand_id=data.get('current_brand_id'),
-                    store_id=data.get('current_store_id'),
+                    brand_id=data.get("current_brand_id"),
+                    store_id=data.get("current_store_id"),
                 )
                 session.add(order)
                 session.flush()  # Get the order ID
@@ -1405,9 +1400,9 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
                 # Process each cart item and create OrderItems
                 items_to_reserve = []
                 for cart_item in cart_items:
-                    item_name = cart_item['item_name']
-                    quantity = cart_item['quantity']
-                    price = cart_item['price']
+                    item_name = cart_item["item_name"]
+                    quantity = cart_item["quantity"]
+                    price = cart_item["price"]
 
                     # Create OrderItem (without item_values - physical goods)
                     order_item = OrderItem(
@@ -1415,28 +1410,27 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
                         item_name=item_name,
                         price=Decimal(str(price)),
                         quantity=quantity,
-                        selected_modifiers=cart_item.get('selected_modifiers')
+                        selected_modifiers=cart_item.get("selected_modifiers"),
                     )
                     session.add(order_item)
 
                     items_summary.append(f"{item_name} x{quantity} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}")
 
                     # Prepare for inventory reservation
-                    items_to_reserve.append({
-                        'item_name': item_name,
-                        'quantity': quantity
-                    })
+                    items_to_reserve.append({"item_name": item_name, "quantity": quantity})
 
                 # Reserve inventory for this order (extended timeout for bitcoin - 7 days)
-                success, reserve_message = reserve_inventory(order.id, items_to_reserve, payment_method='bitcoin',
-                                                             session=session)
+                success, reserve_message = reserve_inventory(
+                    order.id, items_to_reserve, payment_method="bitcoin", session=session
+                )
                 if not success:
                     session.rollback()
                     reserve_failed = True
                 else:
                     # Mark Bitcoin address as used with this order
-                    mark_bitcoin_address_used(btc_address, user_id, username, order.id, session=session,
-                                              order_code=order.order_code)
+                    mark_bitcoin_address_used(
+                        btc_address, user_id, username, order.id, session=session, order_code=order.order_code
+                    )
 
                     # Log order creation
                     log_order_creation(
@@ -1449,7 +1443,7 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
                         delivery_address=customer_info.delivery_address,
                         phone_number=customer_info.phone_number,
                         bitcoin_address=btc_address,
-                        order_code=order.order_code
+                        order_code=order.order_code,
                     )
 
                     # Clear cart
@@ -1464,63 +1458,82 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
                     # Track order creation metrics
                     metrics = get_metrics()
                     if metrics:
-                        metrics.track_event("order_created", user_id, {
-                            "order_code": order_code,
-                            "payment_method": "bitcoin",
-                            "total": float(total_amount),
-                            "bonus_applied": float(bonus_applied)
-                        })
+                        metrics.track_event(
+                            "order_created",
+                            user_id,
+                            {
+                                "order_code": order_code,
+                                "payment_method": "bitcoin",
+                                "total": float(total_amount),
+                                "bonus_applied": float(bonus_applied),
+                            },
+                        )
                         # Track inventory reservation
                         for item in items_to_reserve:
-                            metrics.track_event("inventory_reserved", user_id, {
-                                "item": item['item_name'],
-                                "quantity": item['quantity'],
-                                "order_code": order_code
-                            })
+                            metrics.track_event(
+                                "inventory_reserved",
+                                user_id,
+                                {"item": item["item_name"], "quantity": item["quantity"], "order_code": order_code},
+                            )
                         # Track bonus usage if applied
                         if bonus_applied > 0:
-                            metrics.track_event("payment_bonus_applied", user_id, {
-                                "bonus_amount": float(bonus_applied),
-                                "order_code": order_code
-                            })
+                            metrics.track_event(
+                                "payment_bonus_applied",
+                                user_id,
+                                {"bonus_amount": float(bonus_applied), "order_code": order_code},
+                            )
 
                     # Build payment instructions (sync — sent after session closes)
                     payment_text = (
-                            localize("order.payment.bitcoin.title") + "\n\n" +
-                            localize("order.payment.bitcoin.order_code", code=order_code) + "\n" +
-                            localize("order.payment.subtotal_label", amount=total_amount, currency=EnvKeys.PAY_CURRENCY) + "\n"
+                        localize("order.payment.bitcoin.title")
+                        + "\n\n"
+                        + localize("order.payment.bitcoin.order_code", code=order_code)
+                        + "\n"
+                        + localize("order.payment.subtotal_label", amount=total_amount, currency=EnvKeys.PAY_CURRENCY)
+                        + "\n"
                     )
 
                     if bonus_applied > 0:
                         payment_text += (
-                                localize("order.payment.bonus_applied_label", amount=bonus_applied,
-                                         currency=EnvKeys.PAY_CURRENCY) + "\n" +
-                                localize("order.payment.final_amount_label", amount=final_amount,
-                                         currency=EnvKeys.PAY_CURRENCY) + "\n\n"
+                            localize(
+                                "order.payment.bonus_applied_label", amount=bonus_applied, currency=EnvKeys.PAY_CURRENCY
+                            )
+                            + "\n"
+                            + localize(
+                                "order.payment.final_amount_label", amount=final_amount, currency=EnvKeys.PAY_CURRENCY
+                            )
+                            + "\n\n"
                         )
                     else:
-                        payment_text += localize("order.payment.total_amount_label", amount=total_amount,
-                                                 currency=EnvKeys.PAY_CURRENCY) + "\n\n"
+                        payment_text += (
+                            localize(
+                                "order.payment.total_amount_label", amount=total_amount, currency=EnvKeys.PAY_CURRENCY
+                            )
+                            + "\n\n"
+                        )
 
                     payment_text += (
-                            localize("order.payment.bitcoin.items_title") + "\n"
-                                                                            f"{chr(10).join(items_summary)}\n\n" +
-                            localize("order.payment.bitcoin.delivery_title") + "\n"
-                                                                               f"📍 Address: {cust_address}\n"
-                                                                               f"📞 Phone: {cust_phone}\n"
+                        localize("order.payment.bitcoin.items_title") + "\n"
+                        f"{chr(10).join(items_summary)}\n\n" + localize("order.payment.bitcoin.delivery_title") + "\n"
+                        f"📍 Address: {cust_address}\n"
+                        f"📞 Phone: {cust_phone}\n"
                     )
 
                     if cust_note:
                         payment_text += f"📝 Note: {cust_note}\n"
 
                     payment_text += (
-                            "\n" + localize("order.payment.bitcoin.address_title") + "\n"
-                                                                                     f"<code>{btc_address}</code>\n\n" +
-                            localize("order.payment.bitcoin.important_title") + "\n" +
-                            localize("order.payment.bitcoin.send_exact") + "\n" +
-                            localize("order.payment.bitcoin.one_time_address") + "\n" +
-                            localize("order.payment.bitcoin.admin_confirm") + "\n\n" +
-                            localize("order.payment.bitcoin.need_help")
+                        "\n" + localize("order.payment.bitcoin.address_title") + "\n"
+                        f"<code>{btc_address}</code>\n\n"
+                        + localize("order.payment.bitcoin.important_title")
+                        + "\n"
+                        + localize("order.payment.bitcoin.send_exact")
+                        + "\n"
+                        + localize("order.payment.bitcoin.one_time_address")
+                        + "\n"
+                        + localize("order.payment.bitcoin.admin_confirm")
+                        + "\n\n"
+                        + localize("order.payment.bitcoin.need_help")
                     )
 
         except Exception as e:
@@ -1533,27 +1546,29 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
     if reserve_failed:
         await message.answer(
             localize("order.inventory.unable_to_reserve", unavailable_items=reserve_message),
-            reply_markup=back("view_cart")
+            reply_markup=back("view_cart"),
         )
         return
     if create_failed:
-        await message.answer(
-            localize("order.payment.error_general"),
-            reply_markup=back("view_cart")
-        )
+        await message.answer(localize("order.payment.error_general"), reply_markup=back("view_cart"))
         return
 
-    await message.answer(
-        payment_text,
-        reply_markup=back("back_to_menu")
-    )
+    await message.answer(payment_text, reply_markup=back("back_to_menu"))
 
     # Notify admin
     await notify_admin_new_order(
-        message.bot, order_code, user_id, username,
-        "\n".join(items_summary), total_amount, btc_address,
-        cust_address, cust_phone,
-        cust_note or "", bonus_applied, final_amount
+        message.bot,
+        order_code,
+        user_id,
+        username,
+        "\n".join(items_summary),
+        total_amount,
+        btc_address,
+        cust_address,
+        cust_phone,
+        cust_note or "",
+        bonus_applied,
+        final_amount,
     )
 
     # Sync customer CSV
@@ -1562,7 +1577,7 @@ async def process_bitcoin_payment_new_message(message: Message, state: FSMContex
     await state.clear()
 
 
-async def process_cash_payment_new_message(message: Message, state: FSMContext, user_id: int = None):
+async def process_cash_payment_new_message(message: Message, state: FSMContext, user_id: int | None = None):
     """
     Process Cash on Delivery payment by sending a new message
     """
@@ -1584,36 +1599,28 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
 
     # Get state data (bonus + dead drop fields)
     data = await state.get_data()
-    bonus_applied = Decimal(str(data.get('bonus_applied', 0)))
-    dd_type = data.get('delivery_type', DELIVERY_DOOR)
-    dd_instructions = data.get('drop_instructions')
-    dd_lat = data.get('drop_latitude')
-    dd_lng = data.get('drop_longitude')
-    dd_media = data.get('drop_media')
+    bonus_applied = Decimal(str(data.get("bonus_applied", 0)))
+    dd_type = data.get("delivery_type", DELIVERY_DOOR)
+    dd_instructions = data.get("drop_instructions")
+    dd_lat = data.get("drop_latitude")
+    dd_lng = data.get("drop_longitude")
+    dd_media = data.get("drop_media")
 
     # Calculate final amount after bonus
     final_amount = total_amount - bonus_applied
 
     # Phase 1 — preflight read (short session, no awaits inside)
     with Database().session() as session:
-        customer_info = session.query(CustomerInfo).filter_by(
-            telegram_id=user_id
-        ).first()
+        customer_info = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
         customer_found = customer_info is not None
         customer_bonus = customer_info.bonus_balance if customer_info else Decimal("0")
     # session closed before any Telegram I/O
 
     if not customer_found:
-        await message.answer(
-            localize("order.payment.customer_not_found"),
-            reply_markup=back("view_cart")
-        )
+        await message.answer(localize("order.payment.customer_not_found"), reply_markup=back("view_cart"))
         return
     if bonus_applied > 0 and customer_bonus < bonus_applied:
-        await message.answer(
-            localize("order.bonus.insufficient"),
-            reply_markup=back("view_cart")
-        )
+        await message.answer(localize("order.bonus.insufficient"), reply_markup=back("view_cart"))
         return
 
     # Phase 2 — write transaction (no awaits inside session)
@@ -1628,9 +1635,7 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
     create_failed = False
     with Database().session() as session:
         try:
-            customer_info = session.query(CustomerInfo).filter_by(
-                telegram_id=user_id
-            ).first()
+            customer_info = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
             if not customer_info:
                 create_failed = True
             else:
@@ -1651,14 +1656,16 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
                     order_status="pending",
                     latitude=customer_info.latitude,
                     longitude=customer_info.longitude,
-                    google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude and customer_info.longitude else None,
+                    google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}"
+                    if customer_info.latitude and customer_info.longitude
+                    else None,
                     delivery_type=dd_type,
                     drop_instructions=dd_instructions,
                     drop_latitude=dd_lat,
                     drop_longitude=dd_lng,
                     drop_media=dd_media,
-                    brand_id=data.get('current_brand_id'),
-                    store_id=data.get('current_store_id'),
+                    brand_id=data.get("current_brand_id"),
+                    store_id=data.get("current_store_id"),
                 )
                 session.add(order)
                 session.flush()  # Get the order ID
@@ -1669,9 +1676,9 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
                 # Process each cart item and create OrderItems
                 items_to_reserve = []
                 for cart_item in cart_items:
-                    item_name = cart_item['item_name']
-                    quantity = cart_item['quantity']
-                    price = cart_item['price']
+                    item_name = cart_item["item_name"]
+                    quantity = cart_item["quantity"]
+                    price = cart_item["price"]
 
                     # Create OrderItem (without item_values - physical goods)
                     order_item = OrderItem(
@@ -1679,21 +1686,19 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
                         item_name=item_name,
                         price=Decimal(str(price)),
                         quantity=quantity,
-                        selected_modifiers=cart_item.get('selected_modifiers')
+                        selected_modifiers=cart_item.get("selected_modifiers"),
                     )
                     session.add(order_item)
 
                     items_summary.append(f"{item_name} x{quantity} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}")
 
                     # Prepare for inventory reservation
-                    items_to_reserve.append({
-                        'item_name': item_name,
-                        'quantity': quantity
-                    })
+                    items_to_reserve.append({"item_name": item_name, "quantity": quantity})
 
                 # Reserve inventory for this order (configurable timeout for cash - default 24 hours)
-                success, reserve_message = reserve_inventory(order.id, items_to_reserve, payment_method='cash',
-                                                             session=session)
+                success, reserve_message = reserve_inventory(
+                    order.id, items_to_reserve, payment_method="cash", session=session
+                )
                 if not success:
                     session.rollback()
                     reserve_failed = True
@@ -1709,7 +1714,7 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
                         delivery_address=customer_info.delivery_address,
                         phone_number=customer_info.phone_number,
                         bitcoin_address=None,
-                        order_code=order.order_code
+                        order_code=order.order_code,
                     )
 
                     # Clear cart
@@ -1724,69 +1729,92 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
                     # Track order creation metrics
                     metrics = get_metrics()
                     if metrics:
-                        metrics.track_event("order_created", user_id, {
-                            "order_code": order_code,
-                            "payment_method": "cash",
-                            "total": float(total_amount),
-                            "bonus_applied": float(bonus_applied)
-                        })
+                        metrics.track_event(
+                            "order_created",
+                            user_id,
+                            {
+                                "order_code": order_code,
+                                "payment_method": "cash",
+                                "total": float(total_amount),
+                                "bonus_applied": float(bonus_applied),
+                            },
+                        )
                         # Track inventory reservation
                         for item in items_to_reserve:
-                            metrics.track_event("inventory_reserved", user_id, {
-                                "item": item['item_name'],
-                                "quantity": item['quantity'],
-                                "order_code": order_code
-                            })
+                            metrics.track_event(
+                                "inventory_reserved",
+                                user_id,
+                                {"item": item["item_name"], "quantity": item["quantity"], "order_code": order_code},
+                            )
                         # Track bonus usage if applied
                         if bonus_applied > 0:
-                            metrics.track_event("payment_bonus_applied", user_id, {
-                                "bonus_amount": float(bonus_applied),
-                                "order_code": order_code
-                            })
+                            metrics.track_event(
+                                "payment_bonus_applied",
+                                user_id,
+                                {"bonus_amount": float(bonus_applied), "order_code": order_code},
+                            )
 
                     cash_instructions = (
-                            localize("order.payment.cash.title") + "\n\n" +
-                            localize("order.payment.cash.created", code=order_code) + "\n\n" +
-                            localize("order.payment.cash.items_title") + "\n" + chr(10).join(items_summary) + "\n\n" + localize(
-                        "order.payment.cash.total", amount=float(total_amount)) + "\n\n" +
-                            localize("order.payment.cash.after_confirm") + "\n" +
-                            localize("order.payment.cash.payment_to_courier") + "\n\n" +
-                            localize("order.payment.cash.important") + "\n" +
-                            localize("order.payment.cash.admin_contact")
+                        localize("order.payment.cash.title")
+                        + "\n\n"
+                        + localize("order.payment.cash.created", code=order_code)
+                        + "\n\n"
+                        + localize("order.payment.cash.items_title")
+                        + "\n"
+                        + chr(10).join(items_summary)
+                        + "\n\n"
+                        + localize("order.payment.cash.total", amount=float(total_amount))
+                        + "\n\n"
+                        + localize("order.payment.cash.after_confirm")
+                        + "\n"
+                        + localize("order.payment.cash.payment_to_courier")
+                        + "\n\n"
+                        + localize("order.payment.cash.important")
+                        + "\n"
+                        + localize("order.payment.cash.admin_contact")
                     )
 
                     # Build payment instructions (sync — sent after session closes)
                     payment_text = (
-                            f"{cash_instructions}\n\n" +
-                            localize("order.payment.order_label", code=order_code) + "\n" +
-                            localize("order.payment.subtotal_label", amount=total_amount, currency=EnvKeys.PAY_CURRENCY) + "\n"
+                        f"{cash_instructions}\n\n"
+                        + localize("order.payment.order_label", code=order_code)
+                        + "\n"
+                        + localize("order.payment.subtotal_label", amount=total_amount, currency=EnvKeys.PAY_CURRENCY)
+                        + "\n"
                     )
 
                     if bonus_applied > 0:
                         payment_text += (
-                                localize("order.payment.bonus_applied_label", amount=bonus_applied,
-                                         currency=EnvKeys.PAY_CURRENCY) + "\n" +
-                                localize("order.payment.cash.amount_with_bonus", amount=final_amount,
-                                         currency=EnvKeys.PAY_CURRENCY) + "\n\n"
+                            localize(
+                                "order.payment.bonus_applied_label", amount=bonus_applied, currency=EnvKeys.PAY_CURRENCY
+                            )
+                            + "\n"
+                            + localize(
+                                "order.payment.cash.amount_with_bonus",
+                                amount=final_amount,
+                                currency=EnvKeys.PAY_CURRENCY,
+                            )
+                            + "\n\n"
                         )
                     else:
-                        payment_text += localize("order.payment.cash.total_label", amount=total_amount,
-                                                 currency=EnvKeys.PAY_CURRENCY) + "\n\n"
+                        payment_text += (
+                            localize(
+                                "order.payment.cash.total_label", amount=total_amount, currency=EnvKeys.PAY_CURRENCY
+                            )
+                            + "\n\n"
+                        )
 
                     payment_text += (
-                            localize("order.payment.bitcoin.items_title") + "\n"
-                                                                            f"{chr(10).join(items_summary)}\n\n" +
-                            localize("order.payment.bitcoin.delivery_title") + "\n"
-                                                                               f"📍 Address: {cust_address}\n"
-                                                                               f"📞 Phone: {cust_phone}\n"
+                        localize("order.payment.bitcoin.items_title") + "\n"
+                        f"{chr(10).join(items_summary)}\n\n" + localize("order.payment.bitcoin.delivery_title") + "\n"
+                        f"📍 Address: {cust_address}\n"
+                        f"📞 Phone: {cust_phone}\n"
                     )
 
                     if cust_note:
                         payment_text += f"📝 Note: {cust_note}\n"
 
-                    payment_text += (
-                            "\n" + localize("order.info.view_status_hint")
-                    )
+                    payment_text += "\n" + localize("order.info.view_status_hint")
 
         except Exception as e:
             session.rollback()
@@ -1798,27 +1826,28 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
     if reserve_failed:
         await message.answer(
             localize("order.inventory.unable_to_reserve", unavailable_items=reserve_message),
-            reply_markup=back("view_cart")
+            reply_markup=back("view_cart"),
         )
         return
     if create_failed:
-        await message.answer(
-            localize("order.payment.error_general"),
-            reply_markup=back("view_cart")
-        )
+        await message.answer(localize("order.payment.error_general"), reply_markup=back("view_cart"))
         return
 
-    await message.answer(
-        payment_text,
-        reply_markup=back("back_to_menu")
-    )
+    await message.answer(payment_text, reply_markup=back("back_to_menu"))
 
     # Notify admin about new cash order
     await notify_admin_new_cash_order(
-        message.bot, order_code, user_id, username,
-        "\n".join(items_summary), total_amount,
-        cust_address, cust_phone,
-        cust_note or "", bonus_applied, final_amount
+        message.bot,
+        order_code,
+        user_id,
+        username,
+        "\n".join(items_summary),
+        total_amount,
+        cust_address,
+        cust_phone,
+        cust_note or "",
+        bonus_applied,
+        final_amount,
     )
 
     # Sync customer CSV
@@ -1827,7 +1856,7 @@ async def process_cash_payment_new_message(message: Message, state: FSMContext, 
     await state.clear()
 
 
-async def process_promptpay_payment(message: Message, state: FSMContext, user_id: int = None):
+async def process_promptpay_payment(message: Message, state: FSMContext, user_id: int | None = None):
     """
     Process PromptPay payment: generate QR, create order, ask for receipt (Card 1)
     """
@@ -1845,12 +1874,12 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
 
     total_amount = await calculate_cart_total(user_id)
     data = await state.get_data()
-    bonus_applied = Decimal(str(data.get('bonus_applied', 0)))
-    dd_type = data.get('delivery_type', DELIVERY_DOOR)
-    dd_instructions = data.get('drop_instructions')
-    dd_lat = data.get('drop_latitude')
-    dd_lng = data.get('drop_longitude')
-    dd_media = data.get('drop_media')
+    bonus_applied = Decimal(str(data.get("bonus_applied", 0)))
+    dd_type = data.get("delivery_type", DELIVERY_DOOR)
+    dd_instructions = data.get("drop_instructions")
+    dd_lat = data.get("drop_latitude")
+    dd_lng = data.get("drop_longitude")
+    dd_media = data.get("drop_media")
     final_amount = total_amount - bonus_applied
 
     # Phase 1 — preflight read (short session, no awaits inside)
@@ -1897,14 +1926,16 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
                     order_status="pending",
                     latitude=customer_info.latitude,
                     longitude=customer_info.longitude,
-                    google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}" if customer_info.latitude and customer_info.longitude else None,
+                    google_maps_link=f"https://www.google.com/maps?q={customer_info.latitude},{customer_info.longitude}"
+                    if customer_info.latitude and customer_info.longitude
+                    else None,
                     delivery_type=dd_type,
                     drop_instructions=dd_instructions,
                     drop_latitude=dd_lat,
                     drop_longitude=dd_lng,
                     drop_media=dd_media,
-                    brand_id=data.get('current_brand_id'),
-                    store_id=data.get('current_store_id'),
+                    brand_id=data.get("current_brand_id"),
+                    store_id=data.get("current_store_id"),
                 )
                 session.add(order)
                 session.flush()
@@ -1913,33 +1944,39 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
 
                 items_to_reserve = []
                 for cart_item in cart_items:
-                    item_name = cart_item['item_name']
-                    quantity = cart_item['quantity']
-                    price = cart_item['price']
+                    item_name = cart_item["item_name"]
+                    quantity = cart_item["quantity"]
+                    price = cart_item["price"]
 
                     order_item = OrderItem(
                         order_id=order.id,
                         item_name=item_name,
                         price=Decimal(str(price)),
                         quantity=quantity,
-                        selected_modifiers=cart_item.get('selected_modifiers')
+                        selected_modifiers=cart_item.get("selected_modifiers"),
                     )
                     session.add(order_item)
                     items_summary.append(f"{item_name} x{quantity} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}")
-                    items_to_reserve.append({'item_name': item_name, 'quantity': quantity})
+                    items_to_reserve.append({"item_name": item_name, "quantity": quantity})
 
-                success, reserve_message = reserve_inventory(order.id, items_to_reserve, payment_method='promptpay',
-                                                              session=session)
+                success, reserve_message = reserve_inventory(
+                    order.id, items_to_reserve, payment_method="promptpay", session=session
+                )
                 if not success:
                     session.rollback()
                     reserve_failed = True
                 else:
                     log_order_creation(
-                        order_id=order.id, buyer_id=user_id, buyer_username=username,
-                        items_summary="\n".join(items_summary), total_price=float(total_amount),
-                        payment_method=PAYMENT_PROMPTPAY, delivery_address=customer_info.delivery_address,
-                        phone_number=customer_info.phone_number, bitcoin_address=None,
-                        order_code=order.order_code
+                        order_id=order.id,
+                        buyer_id=user_id,
+                        buyer_username=username,
+                        items_summary="\n".join(items_summary),
+                        total_price=float(total_amount),
+                        payment_method=PAYMENT_PROMPTPAY,
+                        delivery_address=customer_info.delivery_address,
+                        phone_number=customer_info.phone_number,
+                        bitcoin_address=None,
+                        order_code=order.order_code,
                     )
 
                     session.query(ShoppingCart).filter_by(user_id=user_id).delete()
@@ -1960,7 +1997,7 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
     if reserve_failed:
         await message.answer(
             localize("order.inventory.unable_to_reserve", unavailable_items=reserve_message),
-            reply_markup=back("view_cart")
+            reply_markup=back("view_cart"),
         )
         return
     if create_failed:
@@ -1971,17 +2008,21 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
     # so a branch collects to its own account. The SAME target drives slip
     # verification below, so the paid account and the verified account always agree.
     from bot.payments.store_payment import resolve_payment_target
+
     target = resolve_payment_target(
-        store_id=data.get('current_store_id'),
-        brand_id=data.get('current_brand_id'),
+        store_id=data.get("current_store_id"),
+        brand_id=data.get("current_brand_id"),
     )
 
     from aiogram.types import BufferedInputFile
+
     caption = (
-        localize("order.payment.promptpay.title") + "\n\n" +
-        localize("order.payment.promptpay.scan") + "\n" +
-        f"<b>{EnvKeys.PAY_CURRENCY} {final_amount}</b>\n" +
-        f"Order: <code>{order_code}</code>"
+        localize("order.payment.promptpay.title")
+        + "\n\n"
+        + localize("order.payment.promptpay.scan")
+        + "\n"
+        + f"<b>{EnvKeys.PAY_CURRENCY} {final_amount}</b>\n"
+        + f"Order: <code>{order_code}</code>"
     )
     try:
         if target.promptpay_id:
@@ -1997,24 +2038,23 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
         else:
             # No PromptPay account configured anywhere — text fallback.
             await message.answer(
-                localize("order.payment.promptpay.title") + "\n\n" +
-                f"Amount: <b>{final_amount} {EnvKeys.PAY_CURRENCY}</b>\n" +
-                f"Order: <code>{order_code}</code>"
+                localize("order.payment.promptpay.title")
+                + "\n\n"
+                + f"Amount: <b>{final_amount} {EnvKeys.PAY_CURRENCY}</b>\n"
+                + f"Order: <code>{order_code}</code>"
             )
     except Exception as qr_error:
         logger.error(f"QR generation failed: {qr_error}")
         await message.answer(
-            localize("order.payment.promptpay.title") + "\n\n" +
-            f"PromptPay ID: <code>{target.promptpay_id}</code>\n" +
-            f"Amount: <b>{final_amount} {EnvKeys.PAY_CURRENCY}</b>\n" +
-            f"Order: <code>{order_code}</code>"
+            localize("order.payment.promptpay.title")
+            + "\n\n"
+            + f"PromptPay ID: <code>{target.promptpay_id}</code>\n"
+            + f"Amount: <b>{final_amount} {EnvKeys.PAY_CURRENCY}</b>\n"
+            + f"Order: <code>{order_code}</code>"
         )
 
     # Ask user to upload receipt
-    await message.answer(
-        localize("order.payment.promptpay.upload_receipt"),
-        reply_markup=back("back_to_menu")
-    )
+    await message.answer(localize("order.payment.promptpay.upload_receipt"), reply_markup=back("back_to_menu"))
 
     # Save order_id in state for receipt association
     await state.update_data(promptpay_order_id=order_id, promptpay_order_code=order_code)
@@ -2022,10 +2062,17 @@ async def process_promptpay_payment(message: Message, state: FSMContext, user_id
 
     # Notify admin
     await notify_admin_new_cash_order(
-        message.bot, order_code, user_id, username,
-        "\n".join(items_summary), total_amount,
-        cust_address, cust_phone,
-        cust_note or "", bonus_applied, final_amount
+        message.bot,
+        order_code,
+        user_id,
+        username,
+        "\n".join(items_summary),
+        total_amount,
+        cust_address,
+        cust_phone,
+        cust_note or "",
+        bonus_applied,
+        final_amount,
     )
 
     sync_customer_to_csv(user_id, username)
@@ -2036,13 +2083,13 @@ async def process_receipt_photo(message: Message, state: FSMContext):
     """User uploaded payment receipt photo (Card 1) — with optional auto-verification"""
     photo_file_id = message.photo[-1].file_id
     data = await state.get_data()
-    order_id = data.get('promptpay_order_id')
+    order_id = data.get("promptpay_order_id")
 
     # Phase 1 — persist the receipt photo (short session, no awaits inside)
     order_found = False
     order_code = None
     order_total = None
-    order_bonus = Decimal('0')
+    order_bonus = Decimal("0")
     order_store_id = None
     order_brand_id = None
     if order_id:
@@ -2054,7 +2101,7 @@ async def process_receipt_photo(message: Message, state: FSMContext):
                 order_found = True
                 order_code = order.order_code
                 order_total = order.total_price
-                order_bonus = order.bonus_applied or Decimal('0')
+                order_bonus = order.bonus_applied or Decimal("0")
                 # Card 28: capture the order's store/brand so the slip is verified
                 # against the SAME PromptPay account the QR routed payment to.
                 order_store_id = order.store_id
@@ -2080,6 +2127,7 @@ async def process_receipt_photo(message: Message, state: FSMContext):
             # Card 28: verify the slip's receiver against the SAME account the QR
             # paid into (store → brand → global), not just the global name.
             from bot.payments.store_payment import resolve_payment_target
+
             target = resolve_payment_target(store_id=order_store_id, brand_id=order_brand_id)
             verify_result = await verify_slip(
                 slip_image=slip_image,
@@ -2093,8 +2141,10 @@ async def process_receipt_photo(message: Message, state: FSMContext):
         # Phase 3 — persist verification result (short session, no awaits inside)
         if verify_result is not None:
             try:
-                from bot.payments.slip_verify import VerifyStatus
                 import datetime as dt
+
+                from bot.payments.slip_verify import VerifyStatus
+
                 with Database().session() as session:
                     order = session.query(Order).filter_by(id=order_id).first()
                     if order:
@@ -2102,7 +2152,7 @@ async def process_receipt_photo(message: Message, state: FSMContext):
                         order.slip_verified_amount = verify_result.amount
                         order.slip_sender_name = verify_result.sender_name
                         order.slip_receiver_name = verify_result.receiver_name
-                        order.slip_verified_at = dt.datetime.now(dt.timezone.utc)
+                        order.slip_verified_at = dt.datetime.now(dt.UTC)
 
                         # Duplicate-slip guard (Card 24): a verified bank slip can
                         # pay for exactly one order. SlipOK/RDCW don't flag reuse
@@ -2115,8 +2165,7 @@ async def process_receipt_photo(message: Message, state: FSMContext):
                         if txn_id:
                             duplicate_owner = (
                                 session.query(Order)
-                                .filter(Order.slip_transaction_id == txn_id,
-                                        Order.id != order.id)
+                                .filter(Order.slip_transaction_id == txn_id, Order.id != order.id)
                                 .first()
                             )
 
@@ -2126,21 +2175,24 @@ async def process_receipt_photo(message: Message, state: FSMContext):
                             order.slip_verify_status = VerifyStatus.DUPLICATE.value
                             # Do NOT store the txn id on this order or confirm it.
                             logger.warning(
-                                "Duplicate slip rejected: order %s tried to reuse txn %s "
-                                "already claimed by order %s",
-                                order_code, txn_id, duplicate_owner_code,
+                                "Duplicate slip rejected: order %s tried to reuse txn %s already claimed by order %s",
+                                order_code,
+                                txn_id,
+                                duplicate_owner_code,
                             )
                         else:
                             order.slip_verify_status = verify_result.status.value
                             order.slip_transaction_id = txn_id
                             if verify_result.status == VerifyStatus.VERIFIED:
                                 # Auto-confirm the payment
-                                order.payment_verified_at = dt.datetime.now(dt.timezone.utc)
+                                order.payment_verified_at = dt.datetime.now(dt.UTC)
                                 order.payment_verified_by = 0  # 0 = auto-verified by API
                                 order.order_status = "confirmed"
                                 logger.info(
                                     "Order %s auto-verified via %s (txn: %s)",
-                                    order_code, verify_result.provider.value, verify_result.transaction_id,
+                                    order_code,
+                                    verify_result.provider.value,
+                                    verify_result.transaction_id,
                                 )
 
                         session.commit()
@@ -2166,6 +2218,7 @@ async def process_receipt_photo(message: Message, state: FSMContext):
             )
         elif verify_result:
             from bot.payments.slip_verify import VerifyStatus
+
             if verify_result.status == VerifyStatus.VERIFIED:
                 admin_caption += (
                     f"\n\n✅ <b>AUTO-VERIFIED</b> via {verify_result.provider.value.upper()}\n"
@@ -2221,10 +2274,20 @@ async def process_receipt_invalid(message: Message, state: FSMContext):
     await message.answer(localize("order.payment.promptpay.receipt_invalid"))
 
 
-async def notify_admin_new_order(bot, order_code: str, buyer_id: int, buyer_username: str,
-                                 items_summary: str, total_amount: Decimal, btc_address: str,
-                                 delivery_address: str, phone_number: str, delivery_note: str,
-                                 bonus_applied: Decimal = Decimal('0'), final_amount: Decimal = None):
+async def notify_admin_new_order(
+    bot,
+    order_code: str,
+    buyer_id: int,
+    buyer_username: str,
+    items_summary: str,
+    total_amount: Decimal,
+    btc_address: str,
+    delivery_address: str,
+    phone_number: str,
+    delivery_note: str,
+    bonus_applied: Decimal = Decimal("0"),
+    final_amount: Decimal | None = None,
+):
     """
     Send notification to admin about new order
     """
@@ -2239,52 +2302,70 @@ async def notify_admin_new_order(bot, order_code: str, buyer_id: int, buyer_user
 
     try:
         admin_text = (
-                localize("admin.order.new_bitcoin_order") + "\n\n" +
-                localize("admin.order.order_label", code=html.escape(order_code)) + "\n" +
-                localize("admin.order.customer_label", username=html.escape(buyer_username), id=buyer_id) + "\n" +
-                localize("admin.order.subtotal_label", amount=html.escape(str(total_amount)),
-                         currency=html.escape(EnvKeys.PAY_CURRENCY)) + "\n"
+            localize("admin.order.new_bitcoin_order")
+            + "\n\n"
+            + localize("admin.order.order_label", code=html.escape(order_code))
+            + "\n"
+            + localize("admin.order.customer_label", username=html.escape(buyer_username), id=buyer_id)
+            + "\n"
+            + localize(
+                "admin.order.subtotal_label",
+                amount=html.escape(str(total_amount)),
+                currency=html.escape(EnvKeys.PAY_CURRENCY),
+            )
+            + "\n"
         )
 
         if bonus_applied > 0:
             admin_text += (
-                    localize("admin.order.bonus_applied_label", amount=html.escape(str(bonus_applied))) + "\n" +
-                    localize("admin.order.amount_to_receive_label", amount=html.escape(str(final_amount)),
-                             currency=html.escape(EnvKeys.PAY_CURRENCY)) + "\n\n"
+                localize("admin.order.bonus_applied_label", amount=html.escape(str(bonus_applied)))
+                + "\n"
+                + localize(
+                    "admin.order.amount_to_receive_label",
+                    amount=html.escape(str(final_amount)),
+                    currency=html.escape(EnvKeys.PAY_CURRENCY),
+                )
+                + "\n\n"
             )
         else:
             admin_text += f"<b>Total: ${html.escape(str(total_amount))} {html.escape(EnvKeys.PAY_CURRENCY)}</b>\n\n"
 
         admin_text += (
-                localize("order.payment.bitcoin.items_title") + "\n"
-                                                                f"{html.escape(items_summary)}\n\n" +
-                localize("order.payment.bitcoin.delivery_title") + "\n"
-                                                                   f"📍 Address: {html.escape(delivery_address)}\n"
-                                                                   f"📞 Phone: {html.escape(phone_number)}\n"
+            localize("order.payment.bitcoin.items_title") + "\n"
+            f"{html.escape(items_summary)}\n\n" + localize("order.payment.bitcoin.delivery_title") + "\n"
+            f"📍 Address: {html.escape(delivery_address)}\n"
+            f"📞 Phone: {html.escape(phone_number)}\n"
         )
 
         if delivery_note:
             admin_text += f"📝 Note: {html.escape(delivery_note)}\n"
 
         admin_text += (
-                f"\n<b>Payment:</b>\n" +
-                localize("admin.order.bitcoin_address_label", address=html.escape(btc_address)) + "\n\n" +
-                localize("admin.order.awaiting_payment_status")
+            "\n<b>Payment:</b>\n"
+            + localize("admin.order.bitcoin_address_label", address=html.escape(btc_address))
+            + "\n\n"
+            + localize("admin.order.awaiting_payment_status")
         )
 
-        await bot.send_message(
-            int(owner_id),
-            admin_text
-        )
+        await bot.send_message(int(owner_id), admin_text)
 
     except Exception as e:
         logger.error(f"Failed to send admin notification: {e}")
 
 
-async def notify_admin_new_cash_order(bot, order_code: str, buyer_id: int, buyer_username: str,
-                                      items_summary: str, total_amount: Decimal,
-                                      delivery_address: str, phone_number: str, delivery_note: str,
-                                      bonus_applied: Decimal = Decimal('0'), final_amount: Decimal = None):
+async def notify_admin_new_cash_order(
+    bot,
+    order_code: str,
+    buyer_id: int,
+    buyer_username: str,
+    items_summary: str,
+    total_amount: Decimal,
+    delivery_address: str,
+    phone_number: str,
+    delivery_note: str,
+    bonus_applied: Decimal = Decimal("0"),
+    final_amount: Decimal | None = None,
+):
     """
     Send notification to admin about new cash order
     """
@@ -2299,43 +2380,56 @@ async def notify_admin_new_cash_order(bot, order_code: str, buyer_id: int, buyer
 
     try:
         admin_text = (
-                localize("admin.order.new_cash_order") + "\n\n" +
-                localize("admin.order.order_label", code=html.escape(order_code)) + "\n" +
-                localize("admin.order.customer_label", username=html.escape(buyer_username), id=buyer_id) + "\n" +
-                localize("admin.order.payment_method_label", method=localize("admin.order.payment_cash")) + "\n" +
-                localize("admin.order.subtotal_label", amount=html.escape(str(total_amount)),
-                         currency=html.escape(EnvKeys.PAY_CURRENCY)) + "\n"
+            localize("admin.order.new_cash_order")
+            + "\n\n"
+            + localize("admin.order.order_label", code=html.escape(order_code))
+            + "\n"
+            + localize("admin.order.customer_label", username=html.escape(buyer_username), id=buyer_id)
+            + "\n"
+            + localize("admin.order.payment_method_label", method=localize("admin.order.payment_cash"))
+            + "\n"
+            + localize(
+                "admin.order.subtotal_label",
+                amount=html.escape(str(total_amount)),
+                currency=html.escape(EnvKeys.PAY_CURRENCY),
+            )
+            + "\n"
         )
 
         if bonus_applied > 0:
             admin_text += (
-                    localize("admin.order.bonus_applied_label", amount=html.escape(str(bonus_applied))) + "\n" +
-                    localize("admin.order.amount_to_collect_label", amount=html.escape(str(final_amount)),
-                             currency=html.escape(
-                                 EnvKeys.PAY_CURRENCY)) + "\n\n"
+                localize("admin.order.bonus_applied_label", amount=html.escape(str(bonus_applied)))
+                + "\n"
+                + localize(
+                    "admin.order.amount_to_collect_label",
+                    amount=html.escape(str(final_amount)),
+                    currency=html.escape(EnvKeys.PAY_CURRENCY),
+                )
+                + "\n\n"
             )
         else:
-            admin_text += f"<b>Amount to Collect: ${html.escape(str(total_amount))} {html.escape(EnvKeys.PAY_CURRENCY)}</b>\n\n"
+            admin_text += (
+                f"<b>Amount to Collect: ${html.escape(str(total_amount))} {html.escape(EnvKeys.PAY_CURRENCY)}</b>\n\n"
+            )
 
         admin_text += (
-                localize("order.payment.bitcoin.items_title") + "\n"
-                                                                f"{html.escape(items_summary)}\n\n" +
-                localize("order.payment.bitcoin.delivery_title") + "\n"
-                                                                   f"📍 Address: {html.escape(delivery_address)}\n"
-                                                                   f"📞 Phone: {html.escape(phone_number)}\n"
+            localize("order.payment.bitcoin.items_title") + "\n"
+            f"{html.escape(items_summary)}\n\n" + localize("order.payment.bitcoin.delivery_title") + "\n"
+            f"📍 Address: {html.escape(delivery_address)}\n"
+            f"📞 Phone: {html.escape(phone_number)}\n"
         )
 
         if delivery_note:
             admin_text += f"📝 Note: {html.escape(delivery_note)}\n"
 
         admin_text += (
-                "\n" + localize("admin.order.action_required_title") + "\n" +
-                localize("admin.order.use_cli_confirm", code=html.escape(order_code)))
-
-        await bot.send_message(
-            int(owner_id),
-            admin_text
+            "\n"
+            + localize("admin.order.action_required_title")
+            + "\n"
+            + localize("admin.order.use_cli_confirm", code=html.escape(order_code))
         )
+
+        await bot.send_message(int(owner_id), admin_text)
 
     except Exception as e:
         logger.error(f"Failed to send admin notification for cash order: {e}")

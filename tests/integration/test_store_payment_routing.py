@@ -69,22 +69,25 @@ class FakeMessage:
         self.answers.append(("photo", a, k))
 
 
-def _seed_order(session, *, store_promptpay=None, store_name_acct=None,
-                brand_promptpay=None, brand_name_acct=None):
+def _seed_order(session, *, store_promptpay=None, store_name_acct=None, brand_promptpay=None, brand_name_acct=None):
     """Create user + brand + store + a pending PromptPay order; return order id."""
     session.add(User(telegram_id=555, role_id=1, registration_date=datetime.now(UTC), referral_id=None))
     brand = Brand(name="Acme", slug="acme", promptpay_id=brand_promptpay, promptpay_name=brand_name_acct)
     session.add(brand)
     session.commit()
-    store = Store(name="Downtown", brand_id=brand.id,
-                  promptpay_id=store_promptpay, promptpay_name=store_name_acct)
+    store = Store(name="Downtown", brand_id=brand.id, promptpay_id=store_promptpay, promptpay_name=store_name_acct)
     session.add(store)
     session.commit()
     order = Order(
-        buyer_id=555, total_price=Decimal("250.00"), payment_method="promptpay",
-        delivery_address="1 Test Rd", phone_number="+66000000000",
-        order_status="pending", order_code="PAY028",
-        brand_id=brand.id, store_id=store.id,
+        buyer_id=555,
+        total_price=Decimal("250.00"),
+        payment_method="promptpay",
+        delivery_address="1 Test Rd",
+        phone_number="+66000000000",
+        order_status="pending",
+        order_code="PAY028",
+        brand_id=brand.id,
+        store_id=store.id,
     )
     session.add(order)
     session.commit()
@@ -108,8 +111,10 @@ async def test_slip_verified_against_store_account(db_with_roles, monkeypatch):
     """A store with its own PromptPay → the slip is verified against the store name."""
     order_id = _seed_order(
         db_with_roles,
-        store_promptpay="0811111111", store_name_acct="Downtown Branch Co",
-        brand_promptpay="0822222222", brand_name_acct="Acme HQ",
+        store_promptpay="0811111111",
+        store_name_acct="Downtown Branch Co",
+        brand_promptpay="0822222222",
+        brand_name_acct="Acme HQ",
     )
 
     captured = {}
@@ -120,6 +125,7 @@ async def test_slip_verified_against_store_account(db_with_roles, monkeypatch):
         return _verified_result("Downtown Branch Co")
 
     import bot.payments.slip_verify as sv
+
     monkeypatch.setattr(sv, "verify_slip", fake_verify_slip)
     monkeypatch.setattr("bot.config.EnvKeys.SLIP_AUTO_VERIFY", "1")
 
@@ -146,8 +152,10 @@ async def test_slip_verified_against_brand_when_store_unset(db_with_roles, monke
     """A store with no PromptPay → slip verified against the brand account."""
     order_id = _seed_order(
         db_with_roles,
-        store_promptpay=None, store_name_acct=None,
-        brand_promptpay="0822222222", brand_name_acct="Acme HQ",
+        store_promptpay=None,
+        store_name_acct=None,
+        brand_promptpay="0822222222",
+        brand_name_acct="Acme HQ",
     )
 
     captured = {}
@@ -157,6 +165,7 @@ async def test_slip_verified_against_brand_when_store_unset(db_with_roles, monke
         return _verified_result("Acme HQ")
 
     import bot.payments.slip_verify as sv
+
     monkeypatch.setattr(sv, "verify_slip", fake_verify_slip)
     monkeypatch.setattr("bot.config.EnvKeys.SLIP_AUTO_VERIFY", "1")
 
@@ -178,6 +187,7 @@ async def test_slip_verified_against_global_when_no_store_or_brand(db_with_roles
     order_id = _seed_order(db_with_roles)  # neither store nor brand promptpay
 
     import bot.handlers.admin.settings_management as sm
+
     monkeypatch.setattr(sm, "get_promptpay_id", lambda: "0833333333")
     monkeypatch.setattr(sm, "get_promptpay_name", lambda: "Global Account")
 
@@ -188,6 +198,7 @@ async def test_slip_verified_against_global_when_no_store_or_brand(db_with_roles
         return _verified_result("Global Account")
 
     import bot.payments.slip_verify as sv
+
     monkeypatch.setattr(sv, "verify_slip", fake_verify_slip)
     monkeypatch.setattr("bot.config.EnvKeys.SLIP_AUTO_VERIFY", "1")
 

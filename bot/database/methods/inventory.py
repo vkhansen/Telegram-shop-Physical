@@ -1,17 +1,16 @@
-from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Tuple, Optional
+import logging
+from datetime import UTC, datetime, timedelta
+
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
-import logging
 
+from bot.config import EnvKeys
 from bot.database.main import Database
-from bot.database.models.main import Goods, Order, OrderItem, InventoryLog, CustomerInfo
-from bot.database.methods import invalidate_item_cache
 from bot.database.methods.cache_utils import safe_create_task
-from bot.database.methods.read import get_bot_setting
+from bot.database.methods.read import get_bot_setting, invalidate_item_cache
+from bot.database.models.main import CustomerInfo, Goods, InventoryLog, Order, OrderItem
 from bot.export.custom_logging import log_order_cancellation
 from bot.export.customer_csv import get_username_by_telegram_id, sync_customer_to_csv
-from bot.config import EnvKeys
 from bot.monitoring import get_metrics
 
 logger = logging.getLogger(__name__)
@@ -27,9 +26,16 @@ def _rollback_savepoint(savepoint) -> None:
         savepoint.rollback()
 
 
-def log_inventory_change(item_name: str, change_type: str, quantity_change: int,
-                          order_id: int = None, admin_id: int = None,
-                          comment: str = None, *, session: Session = None):
+def log_inventory_change(
+    item_name: str,
+    change_type: str,
+    quantity_change: int,
+    order_id: int | None = None,
+    admin_id: int | None = None,
+    comment: str | None = None,
+    *,
+    session: Session = None,
+):
     """
     Log inventory change for audit purposes.
 
@@ -51,7 +57,7 @@ def log_inventory_change(item_name: str, change_type: str, quantity_change: int,
                 quantity_change=quantity_change,
                 order_id=order_id,
                 admin_id=admin_id,
-                comment=comment
+                comment=comment,
             )
             session.add(log_entry)
             session.commit()
@@ -62,12 +68,14 @@ def log_inventory_change(item_name: str, change_type: str, quantity_change: int,
             quantity_change=quantity_change,
             order_id=order_id,
             admin_id=admin_id,
-            comment=comment
+            comment=comment,
         )
         session.add(log_entry)
 
 
-def reserve_inventory(order_id: int, items: List[Dict[str, any]], *, payment_method: str = None, session: Session = None) -> Tuple[bool, str]:
+def reserve_inventory(
+    order_id: int, items: list[dict[str, any]], *, payment_method: str | None = None, session: Session = None
+) -> tuple[bool, str]:
     """
     Reserve inventory for an order. Sets reservation timeout based on payment method.
 
@@ -88,7 +96,7 @@ def reserve_inventory(order_id: int, items: List[Dict[str, any]], *, payment_met
     # work, never the caller's surrounding transaction (the session may be shared).
     # Read settings BEFORE opening the savepoint — get_bot_setting opens its own
     # session/transaction, which must not run inside our nested SAVEPOINT.
-    timeout_hours = get_bot_setting('cash_order_timeout_hours', default=24, value_type=int)
+    timeout_hours = get_bot_setting("cash_order_timeout_hours", default=24, value_type=int)
 
     savepoint = None
     try:
@@ -104,8 +112,8 @@ def reserve_inventory(order_id: int, items: List[Dict[str, any]], *, payment_met
 
         # Check and reserve each item
         for item_data in items:
-            item_name = item_data['item_name']
-            quantity = item_data['quantity']
+            item_name = item_data["item_name"]
+            quantity = item_data["quantity"]
 
             # Lock the goods row
             goods = session.query(Goods).filter_by(name=item_name).with_for_update().first()
@@ -125,30 +133,30 @@ def reserve_inventory(order_id: int, items: List[Dict[str, any]], *, payment_met
             # Log the reservation
             log_inventory_change(
                 item_name=item_name,
-                change_type='reserve',
+                change_type="reserve",
                 quantity_change=quantity,
                 order_id=order_id,
                 comment=f"Reserved for order {order.order_code or order_id} ({payment_method} payment)",
-                session=session
+                session=session,
             )
 
             # Invalidate cache for this item
             safe_create_task(invalidate_item_cache(item_name))
 
         # Set reservation timeout (timeout_hours read above, before the savepoint)
-        order.reserved_until = datetime.now(timezone.utc) + timedelta(hours=timeout_hours)
+        order.reserved_until = datetime.now(UTC) + timedelta(hours=timeout_hours)
 
-        order.order_status = 'reserved'
+        order.order_status = "reserved"
 
         savepoint.commit()  # release savepoint; changes stay pending in the caller's txn
         return True, "Inventory reserved successfully"
 
     except Exception as e:
         _rollback_savepoint(savepoint)
-        return False, f"Error reserving inventory: {str(e)}"
+        return False, f"Error reserving inventory: {e!s}"
 
 
-def release_reservation(order_id: int, reason: str = "Order cancelled", *, session: Session = None) -> Tuple[bool, str]:
+def release_reservation(order_id: int, reason: str = "Order cancelled", *, session: Session = None) -> tuple[bool, str]:
     """
     Release reserved inventory back to available stock.
     Called when order is cancelled or expires.
@@ -187,11 +195,11 @@ def release_reservation(order_id: int, reason: str = "Order cancelled", *, sessi
                 # Log the release
                 log_inventory_change(
                     item_name=order_item.item_name,
-                    change_type='release',
+                    change_type="release",
                     quantity_change=-order_item.quantity,
                     order_id=order_id,
                     comment=f"{reason} - {order.order_code or order_id}",
-                    session=session
+                    session=session,
                 )
 
                 # Invalidate cache for this item
@@ -204,22 +212,26 @@ def release_reservation(order_id: int, reason: str = "Order cancelled", *, sessi
         metrics = get_metrics()
         if metrics:
             for order_item in order.items:
-                metrics.track_event("inventory_released", None, {
-                    "item": order_item.item_name,
-                    "quantity": order_item.quantity,
-                    "order_code": order.order_code,
-                    "reason": reason
-                })
+                metrics.track_event(
+                    "inventory_released",
+                    None,
+                    {
+                        "item": order_item.item_name,
+                        "quantity": order_item.quantity,
+                        "order_code": order.order_code,
+                        "reason": reason,
+                    },
+                )
 
         savepoint.commit()
         return True, "Reservation released successfully"
 
     except Exception as e:
         _rollback_savepoint(savepoint)
-        return False, f"Error releasing reservation: {str(e)}"
+        return False, f"Error releasing reservation: {e!s}"
 
 
-def deduct_inventory(order_id: int, admin_id: int = None, *, session: Session = None) -> Tuple[bool, str]:
+def deduct_inventory(order_id: int, admin_id: int | None = None, *, session: Session = None) -> tuple[bool, str]:
     """
     Deduct inventory from stock when order is confirmed by admin.
     This is the ACTUAL inventory reduction (not just reservation).
@@ -265,12 +277,12 @@ def deduct_inventory(order_id: int, admin_id: int = None, *, session: Session = 
 
             log_inventory_change(
                 item_name=order_item.item_name,
-                change_type='deduct',
+                change_type="deduct",
                 quantity_change=-order_item.quantity,
                 order_id=order_id,
                 admin_id=admin_id,
                 comment=f"Order confirmed: {order.order_code or order_id}",
-                session=session
+                session=session,
             )
 
             safe_create_task(invalidate_item_cache(order_item.item_name))
@@ -281,23 +293,28 @@ def deduct_inventory(order_id: int, admin_id: int = None, *, session: Session = 
         metrics = get_metrics()
         if metrics:
             for order_item in order.items:
-                metrics.track_event("inventory_deducted", None, {
-                    "item": order_item.item_name,
-                    "quantity": order_item.quantity,
-                    "order_code": order.order_code,
-                    "admin_id": admin_id
-                })
+                metrics.track_event(
+                    "inventory_deducted",
+                    None,
+                    {
+                        "item": order_item.item_name,
+                        "quantity": order_item.quantity,
+                        "order_code": order.order_code,
+                        "admin_id": admin_id,
+                    },
+                )
 
         savepoint.commit()
         return True, "Inventory deducted successfully"
 
     except Exception as e:
         _rollback_savepoint(savepoint)
-        return False, f"Error deducting inventory: {str(e)}"
+        return False, f"Error deducting inventory: {e!s}"
 
 
-def add_inventory(item_name: str, quantity: int, admin_id: int = None,
-                 comment: str = None, *, session: Session = None) -> Tuple[bool, str]:
+def add_inventory(
+    item_name: str, quantity: int, admin_id: int | None = None, comment: str | None = None, *, session: Session = None
+) -> tuple[bool, str]:
     """
     Add inventory to stock (e.g., restocking).
 
@@ -327,11 +344,11 @@ def add_inventory(item_name: str, quantity: int, admin_id: int = None,
 
         log_inventory_change(
             item_name=item_name,
-            change_type='add',
+            change_type="add",
             quantity_change=quantity,
             admin_id=admin_id,
             comment=comment or "Stock added",
-            session=session
+            session=session,
         )
 
         safe_create_task(invalidate_item_cache(item_name))
@@ -341,10 +358,10 @@ def add_inventory(item_name: str, quantity: int, admin_id: int = None,
 
     except Exception as e:
         _rollback_savepoint(savepoint)
-        return False, f"Error adding inventory: {str(e)}"
+        return False, f"Error adding inventory: {e!s}"
 
 
-def get_inventory_stats(item_name: str) -> Optional[Dict[str, int]]:
+def get_inventory_stats(item_name: str) -> dict[str, int] | None:
     """
     Get current inventory statistics for an item.
 
@@ -360,13 +377,13 @@ def get_inventory_stats(item_name: str) -> Optional[Dict[str, int]]:
             return None
 
         return {
-            'stock': goods.stock_quantity,
-            'reserved': goods.reserved_quantity,
-            'available': goods.available_quantity
+            "stock": goods.stock_quantity,
+            "reserved": goods.reserved_quantity,
+            "available": goods.available_quantity,
         }
 
 
-async def cleanup_expired_reservations() -> Tuple[int, List[str]]:
+async def cleanup_expired_reservations() -> tuple[int, list[str]]:
     """
     Find and release expired reservations.
     Called by background task every 1-2 minutes.
@@ -382,50 +399,42 @@ async def cleanup_expired_reservations() -> Tuple[int, List[str]]:
     order_codes = []
 
     with Database().session() as session:
-        now = datetime.now(timezone.utc)
-        expired_orders = session.query(Order).filter(
-            and_(
-                Order.order_status == 'reserved',
-                Order.reserved_until < now
-            )
-        ).all()
+        now = datetime.now(UTC)
+        expired_orders = (
+            session.query(Order).filter(and_(Order.order_status == "reserved", Order.reserved_until < now)).all()
+        )
 
         for order in expired_orders:
-            success, message = release_reservation(
-                order.id,
-                reason="Reservation timeout expired",
-                session=session
-            )
+            success, _message = release_reservation(order.id, reason="Reservation timeout expired", session=session)
 
             if success:
                 # Reverse the payment while the order is still 'reserved', so an
                 # unpaid expiry restores bonus and writes a Refund audit record
                 # via the single reverse_payment path (Card 24).
                 from bot.payments.refunds import reverse_payment
+
                 refund = reverse_payment(order, session, reason="Reservation expired")
 
-                order.order_status = 'expired'
+                order.order_status = "expired"
 
                 if refund.bonus_restored and refund.bonus_restored > 0:
-                    customer_info = session.query(CustomerInfo).filter_by(
-                        telegram_id=order.buyer_id
-                    ).first()
-                    new_bonus_balance = (
-                        customer_info.bonus_balance if customer_info else refund.bonus_restored
-                    )
+                    customer_info = session.query(CustomerInfo).filter_by(telegram_id=order.buyer_id).first()
+                    new_bonus_balance = customer_info.bonus_balance if customer_info else refund.bonus_restored
 
                     buyer_username = get_username_by_telegram_id(order.buyer_id) or f"user_{order.buyer_id}"
                     sync_customer_to_csv(order.buyer_id, buyer_username)
 
                     # Queue notification for after session close
                     currency = EnvKeys.PAY_CURRENCY
-                    notifications_to_send.append({
-                        'buyer_id': order.buyer_id,
-                        'order_code': order.order_code,
-                        'bonus_applied': refund.bonus_restored,
-                        'new_bonus_balance': new_bonus_balance,
-                        'currency': currency,
-                    })
+                    notifications_to_send.append(
+                        {
+                            "buyer_id": order.buyer_id,
+                            "order_code": order.order_code,
+                            "bonus_applied": refund.bonus_restored,
+                            "new_bonus_balance": new_bonus_balance,
+                            "currency": currency,
+                        }
+                    )
 
                     logger.info(
                         f"Refunded bonus {currency}{refund.bonus_restored} to buyer {order.buyer_id} "
@@ -433,9 +442,9 @@ async def cleanup_expired_reservations() -> Tuple[int, List[str]]:
                     )
 
                 order_items = session.query(OrderItem).filter_by(order_id=order.id).all()
-                items_summary = ", ".join(
-                    f"{item.item_name} x {item.quantity}" for item in order_items
-                ) if order_items else "N/A"
+                items_summary = (
+                    ", ".join(f"{item.item_name} x {item.quantity}" for item in order_items) if order_items else "N/A"
+                )
 
                 buyer_username = get_username_by_telegram_id(order.buyer_id) or f"user_{order.buyer_id}"
                 log_order_cancellation(
@@ -445,7 +454,7 @@ async def cleanup_expired_reservations() -> Tuple[int, List[str]]:
                     items_summary=items_summary,
                     total=float(order.total_price),
                     reason="Reservation expired",
-                    order_code=order.order_code
+                    order_code=order.order_code,
                 )
 
                 count += 1
@@ -457,11 +466,12 @@ async def cleanup_expired_reservations() -> Tuple[int, List[str]]:
     if notifications_to_send:
         try:
             from bot.payments.notifications import get_shared_bot
+
             bot = get_shared_bot()
 
             for notif in notifications_to_send:
                 try:
-                    currency = notif['currency']
+                    currency = notif["currency"]
                     notification_text = (
                         f"⏱️ <b>Order Expired</b>\n\n"
                         f"Your order <b>{notif['order_code']}</b> has expired due to payment timeout.\n\n"
@@ -470,7 +480,7 @@ async def cleanup_expired_reservations() -> Tuple[int, List[str]]:
                         f"Your referral bonus has been returned to your account.\n"
                         f"You can use it for your next order!"
                     )
-                    await bot.send_message(notif['buyer_id'], notification_text)
+                    await bot.send_message(notif["buyer_id"], notification_text)
                     logger.info(f"Bonus refund notification sent for expired order {notif['order_code']}")
                 except Exception as e:
                     logger.warning(f"Failed to send bonus refund notification for order {notif['order_code']}: {e}")

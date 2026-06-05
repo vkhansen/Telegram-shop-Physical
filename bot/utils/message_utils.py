@@ -7,10 +7,9 @@ and the TelegramBadRequest "message is not modified" guard.
 from __future__ import annotations
 
 import logging
-from typing import Union
 
-from aiogram.types import Message
 from aiogram.exceptions import TelegramBadRequest
+from aiogram.types import Message
 
 logger = logging.getLogger(__name__)
 

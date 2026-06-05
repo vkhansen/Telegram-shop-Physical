@@ -1,24 +1,28 @@
-from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
-from aiogram.enums.chat_type import ChatType
-from aiogram.fsm.context import FSMContext
-from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
-
-from urllib.parse import urlparse
 import datetime
+from urllib.parse import urlparse
 
-from bot.database.methods import (
-    select_max_role_id, create_user, check_role,
-    select_user_items, check_user_cached,
-    get_reference_bonus_percent, get_saved_carts
-)
+from aiogram import F, Router
+from aiogram.enums.chat_type import ChatType
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message
+
+from bot.config import EnvKeys
 from bot.database import Database
+from bot.database.methods import (
+    check_role,
+    check_user_cached,
+    create_user,
+    get_reference_bonus_percent,
+    get_saved_carts,
+    select_max_role_id,
+    select_user_items,
+)
 from bot.database.models.main import CustomerInfo, User
 from bot.handlers.other import check_sub_channel
-from bot.keyboards import main_menu, back, profile_keyboard, check_sub, language_picker_keyboard
-from bot.config import EnvKeys
-from bot.i18n import localize, set_request_locale, get_user_locale
-from bot.i18n.strings import LANGUAGE_PICKER_MESSAGE, LANGUAGE_CHANGED_MESSAGES, AVAILABLE_LOCALES
+from bot.i18n import get_user_locale, localize, set_request_locale
+from bot.i18n.strings import AVAILABLE_LOCALES, LANGUAGE_CHANGED_MESSAGES, LANGUAGE_PICKER_MESSAGE
+from bot.keyboards import back, check_sub, language_picker_keyboard, main_menu, profile_keyboard
 from bot.logger_mesh import logger
 
 router = Router()
@@ -38,16 +42,17 @@ async def show_main_menu(message: Message, state: FSMContext):
     channel_url = EnvKeys.CHANNEL_URL or ""
     parsed = urlparse(channel_url)
     channel_username = (
-                           parsed.path.lstrip('/')
-                           if parsed.path else channel_url.replace("https://t.me/", "").replace("t.me/", "").lstrip('@')
-                       ) or None
+        parsed.path.lstrip("/")
+        if parsed.path
+        else channel_url.replace("https://t.me/", "").replace("t.me/", "").lstrip("@")
+    ) or None
 
     role_data = check_role(user_id)
 
     # Optional subscription check
     try:
         if channel_username:
-            chat_member = await message.bot.get_chat_member(chat_id=f'@{channel_username}', user_id=user_id)
+            chat_member = await message.bot.get_chat_member(chat_id=f"@{channel_username}", user_id=user_id)
             if not await check_sub_channel(chat_member):
                 markup = check_sub(channel_username)
                 await message.answer(localize("subscribe.prompt"), reply_markup=markup)
@@ -61,7 +66,7 @@ async def show_main_menu(message: Message, state: FSMContext):
     await state.clear()
 
 
-@router.message(F.text.startswith('/start'))
+@router.message(F.text.startswith("/start"))
 async def start(message: Message, state: FSMContext):
     """
     Handle /start:
@@ -86,26 +91,16 @@ async def start(message: Message, state: FSMContext):
             await show_main_menu(message, state)
             await message.delete()
             return
-        else:
-            # Existing user but no language — show picker
-            await message.answer(
-                LANGUAGE_PICKER_MESSAGE,
-                reply_markup=language_picker_keyboard()
-            )
-            await state.update_data(after_language="menu")
-            return
+        # Existing user but no language — show picker
+        await message.answer(LANGUAGE_PICKER_MESSAGE, reply_markup=language_picker_keyboard())
+        await state.update_data(after_language="menu")
+        return
 
     # New user — show language picker first (Card 14)
     # Save referral info in state for after language selection
     referral_text = message.text[7:] if len(message.text) > 7 else ""
-    await state.update_data(
-        after_language="register",
-        referral_text=referral_text
-    )
-    await message.answer(
-        LANGUAGE_PICKER_MESSAGE,
-        reply_markup=language_picker_keyboard()
-    )
+    await state.update_data(after_language="register", referral_text=referral_text)
+    await message.answer(LANGUAGE_PICKER_MESSAGE, reply_markup=language_picker_keyboard())
 
 
 @router.callback_query(F.data.startswith("set_locale_"))
@@ -146,9 +141,10 @@ async def set_locale_callback(call: CallbackQuery, state: FSMContext):
 
         # Check if reference codes are enabled
         from bot.database.models.main import BotSettings
+
         with Database().session() as session:
-            setting = session.query(BotSettings).filter_by(setting_key='reference_codes_enabled').first()
-            refcodes_enabled = setting and setting.setting_value.lower() == 'true' if setting else True
+            setting = session.query(BotSettings).filter_by(setting_key="reference_codes_enabled").first()
+            refcodes_enabled = setting and setting.setting_value.lower() == "true" if setting else True
 
         if not refcodes_enabled or str(user_id) == EnvKeys.OWNER_ID:
             owner_max_role = select_max_role_id()
@@ -160,7 +156,7 @@ async def set_locale_callback(call: CallbackQuery, state: FSMContext):
                 registration_date=datetime.datetime.now(),
                 referral_id=int(referral_id) if referral_id and referral_id.isdigit() else None,
                 role=user_role,
-                locale=locale_code
+                locale=locale_code,
             )
 
             await call.message.edit_text(confirm_msg)
@@ -168,6 +164,7 @@ async def set_locale_callback(call: CallbackQuery, state: FSMContext):
             # Show PDPA privacy notice before main menu (Card: Privacy)
             await state.update_data(after_privacy="register")
             from bot.handlers.user.privacy_handler import show_privacy_notice
+
             await show_privacy_notice(call.message, state)
             return
 
@@ -176,6 +173,7 @@ async def set_locale_callback(call: CallbackQuery, state: FSMContext):
         await call.message.edit_text(confirm_msg)
 
         from bot.handlers.user.reference_code_handler import prompt_reference_code
+
         await prompt_reference_code(call.message, state)
 
     elif after_language == "language_change":
@@ -199,10 +197,7 @@ async def language_command(message: Message, state: FSMContext):
 
     await state.clear()
     await state.update_data(after_language="language_change")
-    await message.answer(
-        LANGUAGE_PICKER_MESSAGE,
-        reply_markup=language_picker_keyboard()
-    )
+    await message.answer(LANGUAGE_PICKER_MESSAGE, reply_markup=language_picker_keyboard())
 
 
 @router.callback_query(F.data == "back_to_menu")
@@ -213,22 +208,18 @@ async def back_to_menu_callback_handler(call: CallbackQuery, state: FSMContext):
     user_id = call.from_user.id
     user = await check_user_cached(user_id)
     if not user:
-        create_user(
-            telegram_id=user_id,
-            registration_date=datetime.datetime.now(),
-            referral_id=None,
-            role=1
-        )
+        create_user(telegram_id=user_id, registration_date=datetime.datetime.now(), referral_id=None, role=1)
         user = await check_user_cached(user_id)
 
-    role_id = user.get('role_id')
+    role_id = user.get("role_id")
 
     channel_url = EnvKeys.CHANNEL_URL or ""
     parsed = urlparse(channel_url)
     channel_username = (
-                           parsed.path.lstrip('/')
-                           if parsed.path else channel_url.replace("https://t.me/", "").replace("t.me/", "").lstrip('@')
-                       ) or None
+        parsed.path.lstrip("/")
+        if parsed.path
+        else channel_url.replace("https://t.me/", "").replace("t.me/", "").lstrip("@")
+    ) or None
 
     markup = main_menu(role=role_id, channel=channel_username, helper=EnvKeys.HELPER_ID)
     await call.message.edit_text(localize("menu.title"), reply_markup=markup)
@@ -255,7 +246,7 @@ async def profile_callback_handler(call: CallbackQuery, state: FSMContext):
     """
     user_id = call.from_user.id
     tg_user = call.from_user
-    user_info = await check_user_cached(user_id)
+    await check_user_cached(user_id)
 
     items = select_user_items(user_id)
     referral = int(get_reference_bonus_percent())
@@ -273,7 +264,7 @@ async def profile_callback_handler(call: CallbackQuery, state: FSMContext):
         f"{localize('profile.bonus_balance', bonus_balance=bonus_balance)}\n"
         f"{localize('profile.purchased_count', count=items)}"
     )
-    await call.message.edit_text(text, reply_markup=markup, parse_mode='HTML')
+    await call.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
     await state.clear()
 
 
@@ -286,16 +277,17 @@ async def check_sub_to_channel(call: CallbackQuery, state: FSMContext):
     chat = EnvKeys.CHANNEL_URL or ""
     parsed_url = urlparse(chat)
     channel_username = (
-                           parsed_url.path.lstrip('/')
-                           if parsed_url.path else chat.replace("https://t.me/", "").replace("t.me/", "").lstrip('@')
-                       ) or None
+        parsed_url.path.lstrip("/")
+        if parsed_url.path
+        else chat.replace("https://t.me/", "").replace("t.me/", "").lstrip("@")
+    ) or None
     helper = EnvKeys.HELPER_ID
 
     if channel_username:
-        chat_member = await call.bot.get_chat_member(chat_id='@' + channel_username, user_id=user_id)
+        chat_member = await call.bot.get_chat_member(chat_id="@" + channel_username, user_id=user_id)
         if await check_sub_channel(chat_member):
             user = await check_user_cached(user_id)
-            role_id = user.get('role_id')
+            role_id = user.get("role_id")
             markup = main_menu(role_id, channel_username, helper)
             await call.message.edit_text(localize("menu.title"), reply_markup=markup)
             await state.clear()

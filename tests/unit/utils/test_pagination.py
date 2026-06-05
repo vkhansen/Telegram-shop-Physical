@@ -1,9 +1,11 @@
 """
 Tests for bot/utils/pagination.py - LazyPaginator class.
 """
-import pytest
+
 from datetime import datetime
 from unittest.mock import AsyncMock
+
+import pytest
 
 from bot.utils.pagination import LazyPaginator
 
@@ -30,7 +32,7 @@ class TestLazyPaginatorInit:
         assert p.cache_pages == 5
 
     def test_restore_from_state(self):
-        state = {'total_count': 50, 'current_page': 3}
+        state = {"total_count": 50, "current_page": 3}
         p = LazyPaginator(query_func=AsyncMock(), state=state)
         assert p._total_count == 50
         assert p.current_page == 3
@@ -73,7 +75,7 @@ class TestLazyPaginatorGetTotalCount:
     @pytest.mark.asyncio
     async def test_get_total_count_uses_state(self):
         query_fn = AsyncMock()
-        p = LazyPaginator(query_func=query_fn, state={'total_count': 100, 'current_page': 0})
+        p = LazyPaginator(query_func=query_fn, state={"total_count": 100, "current_page": 0})
 
         count = await p.get_total_count()
         assert count == 100
@@ -188,25 +190,25 @@ class TestLazyPaginatorSerialize:
 
     def test_serialize_dict_item(self):
         p = LazyPaginator(query_func=AsyncMock())
-        result = p._serialize_item({'key': 'value', 'num': 42})
-        assert result == {'key': 'value', 'num': 42}
+        result = p._serialize_item({"key": "value", "num": 42})
+        assert result == {"key": "value", "num": 42}
 
     def test_serialize_dict_with_datetime(self):
         p = LazyPaginator(query_func=AsyncMock())
         dt = datetime(2025, 1, 1, 12, 0, 0)
-        result = p._serialize_item({'date': dt, 'name': 'test'})
-        assert result['date'] == dt.isoformat()
-        assert result['name'] == 'test'
+        result = p._serialize_item({"date": dt, "name": "test"})
+        assert result["date"] == dt.isoformat()
+        assert result["name"] == "test"
 
     def test_serialize_simple_type(self):
         p = LazyPaginator(query_func=AsyncMock())
         result = p._serialize_item("simple_string")
-        assert result == {'value': 'simple_string'}
+        assert result == {"value": "simple_string"}
 
     def test_serialize_integer(self):
         p = LazyPaginator(query_func=AsyncMock())
         result = p._serialize_item(42)
-        assert result == {'value': 42}
+        assert result == {"value": 42}
 
     def test_get_state(self):
         p = LazyPaginator(query_func=AsyncMock())
@@ -214,12 +216,12 @@ class TestLazyPaginatorSerialize:
         p.current_page = 3
 
         state = p.get_state()
-        assert state == {'total_count': 50, 'current_page': 3}
+        assert state == {"total_count": 50, "current_page": 3}
 
     def test_get_state_initial(self):
         p = LazyPaginator(query_func=AsyncMock())
         state = p.get_state()
-        assert state == {'total_count': None, 'current_page': 0}
+        assert state == {"total_count": None, "current_page": 0}
 
 
 @pytest.mark.unit

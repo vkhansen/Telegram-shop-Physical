@@ -7,18 +7,19 @@ URL precedence:
 ``target_metadata`` is the live application metadata, so ``--autogenerate``
 diffs real models against the connected database.
 """
+
 import os
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from alembic import context
+import bot.database.models  # noqa: F401  -- registers all tables on Database.BASE.metadata
+from bot.database.dsn import dsn
 
 # Import the application's declarative Base and register every model on its
 # metadata (the star-import in bot.database.models triggers table registration).
 from bot.database.main import Database
-import bot.database.models  # noqa: F401  -- registers all tables on Database.BASE.metadata
-from bot.database.dsn import dsn
 
 config = context.config
 

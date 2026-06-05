@@ -1,19 +1,20 @@
-from typing import Dict, Any, Callable, Awaitable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject, CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, TelegramObject
 
-from bot.i18n import set_request_locale, get_user_locale
+from bot.i18n import get_user_locale, set_request_locale
 
 
 class LocaleMiddleware(BaseMiddleware):
     """Sets the per-request locale from the user's saved DB preference."""
 
     async def __call__(
-            self,
-            handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
-            event: TelegramObject,
-            data: Dict[str, Any]
+        self,
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
+        event: TelegramObject,
+        data: dict[str, Any],
     ) -> Any:
         user = None
         if isinstance(event, (Message, CallbackQuery)):

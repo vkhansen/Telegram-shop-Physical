@@ -1,15 +1,14 @@
-from datetime import datetime, timedelta
+import logging
+from datetime import datetime
 
 from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
 from aiogram.types import InlineKeyboardMarkup
 
+from bot.config.env import EnvKeys
 from bot.database.models.main import Order
 from bot.i18n import localize
-from bot.config.env import EnvKeys
 from bot.utils.currency import format_currency
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +44,7 @@ async def close_shared_bot() -> None:
 # Core send helpers
 # ---------------------------------------------------------------------------
 
+
 async def send_order_notification(telegram_id: int, message_text: str) -> bool:
     """
     Send a notification message to user via Telegram.
@@ -65,8 +65,9 @@ async def send_order_notification(telegram_id: int, message_text: str) -> bool:
         return False
 
 
-async def _send_to_group(chat_id: str | int, message_text: str,
-                         reply_markup: InlineKeyboardMarkup = None) -> int | None:
+async def _send_to_group(
+    chat_id: str | int, message_text: str, reply_markup: InlineKeyboardMarkup = None
+) -> int | None:
     """
     Send a message to a Telegram group and return the message_id.
 
@@ -92,6 +93,7 @@ async def _send_to_group(chat_id: str | int, message_text: str,
 # Item formatting helper
 # ---------------------------------------------------------------------------
 
+
 def format_order_items(items: list) -> str:
     """
     Format order items for display.
@@ -107,8 +109,7 @@ def format_order_items(items: list) -> str:
 
     # LOGIC-34 fix: Use configured currency instead of hardcoded $
     currency = EnvKeys.PAY_CURRENCY
-    items_list = [f"  • {item.item_name} x {item.quantity} - {currency}{item.price * item.quantity}"
-                  for item in items]
+    items_list = [f"  • {item.item_name} x {item.quantity} - {currency}{item.price * item.quantity}" for item in items]
     return "\n".join(items_list)
 
 
@@ -116,25 +117,30 @@ def format_order_items(items: list) -> str:
 # Order notification functions
 # ---------------------------------------------------------------------------
 
+
 async def notify_order_confirmed(order: Order, items: list, delivery_time: datetime) -> bool:
     """Send order confirmation notification to customer."""
     delivery_time_str = delivery_time.strftime("%Y-%m-%d %H:%M")
     items_formatted = format_order_items(items)
 
-    message = localize("order.status.notify_order_confirmed",
-                       order_code=order.order_code,
-                       delivery_time=delivery_time_str,
-                       items=items_formatted,
-                       total=f"{order.total_price} {EnvKeys.PAY_CURRENCY}")
+    message = localize(
+        "order.status.notify_order_confirmed",
+        order_code=order.order_code,
+        delivery_time=delivery_time_str,
+        items=items_formatted,
+        total=f"{order.total_price} {EnvKeys.PAY_CURRENCY}",
+    )
 
     return await send_order_notification(order.buyer_id, message)
 
 
 async def notify_order_delivered(order: Order) -> bool:
     """Send order delivery confirmation to customer."""
-    message = localize("order.status.notify_order_delivered",
-                       order_code=order.order_code,
-                       total=f"{EnvKeys.PAY_CURRENCY}{order.total_price}")
+    message = localize(
+        "order.status.notify_order_delivered",
+        order_code=order.order_code,
+        total=f"{EnvKeys.PAY_CURRENCY}{order.total_price}",
+    )
 
     return await send_order_notification(order.buyer_id, message)
 
@@ -154,8 +160,7 @@ async def send_delivery_photo_to_customer(order: Order) -> bool:
 
     try:
         bot = get_shared_bot()
-        caption = localize("delivery.photo.customer_notification",
-                           order_code=order.order_code)
+        caption = localize("delivery.photo.customer_notification", order_code=order.order_code)
         await bot.send_photo(
             chat_id=order.buyer_id,
             photo=order.delivery_photo,
@@ -169,10 +174,12 @@ async def send_delivery_photo_to_customer(order: Order) -> bool:
 
 async def notify_order_modified(order: Order, changes_description: str) -> bool:
     """Send order modification notification to customer."""
-    message = localize("order.status.notify_order_modified",
-                       order_code=order.order_code,
-                       changes=changes_description,
-                       total=f"{EnvKeys.PAY_CURRENCY}{order.total_price}")
+    message = localize(
+        "order.status.notify_order_modified",
+        order_code=order.order_code,
+        changes=changes_description,
+        total=f"{EnvKeys.PAY_CURRENCY}{order.total_price}",
+    )
 
     return await send_order_notification(order.buyer_id, message)
 
@@ -180,6 +187,7 @@ async def notify_order_modified(order: Order, changes_description: str) -> bool:
 # ---------------------------------------------------------------------------
 # Group notifications
 # ---------------------------------------------------------------------------
+
 
 async def notify_kitchen_group(bot: Bot, order: Order, items: list) -> int | None:
     """

@@ -1,4 +1,5 @@
 """Tests for Thai slip verification services (SlipOK, EasySlip, RDCW)."""
+
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -8,13 +9,12 @@ from bot.payments.slip_verify import (
     SlipProvider,
     SlipVerifyResult,
     VerifyStatus,
-    _verify_slipok,
+    _parse_datetime,
     _verify_easyslip,
     _verify_rdcw,
+    _verify_slipok,
     verify_slip,
-    _parse_datetime,
 )
-
 
 FAKE_SLIP_IMAGE = b"\x89PNG\r\n\x1a\nfake_slip_bytes"
 
@@ -28,10 +28,12 @@ def _mock_aiohttp_response(status, json_data):
     mock_session = AsyncMock()
     mock_session.__aenter__ = AsyncMock(return_value=mock_session)
     mock_session.__aexit__ = AsyncMock(return_value=False)
-    mock_session.post = MagicMock(return_value=AsyncMock(
-        __aenter__=AsyncMock(return_value=mock_response),
-        __aexit__=AsyncMock(return_value=False),
-    ))
+    mock_session.post = MagicMock(
+        return_value=AsyncMock(
+            __aenter__=AsyncMock(return_value=mock_response),
+            __aexit__=AsyncMock(return_value=False),
+        )
+    )
     return mock_session
 
 
@@ -71,22 +73,25 @@ class TestParseDatetime:
 class TestVerifySlipOK:
     @pytest.mark.asyncio
     async def test_slipok_verified(self):
-        mock_session = _mock_aiohttp_response(200, {
-            "success": True,
-            "data": {
-                "transRef": "SLIPOK20260322001",
-                "amount": 450.00,
-                "date": "2026-03-22",
-                "sender": {
-                    "bank": {"short": "KBANK"},
-                    "account": {"name": {"th": "สมชาย", "en": "Somchai"}},
-                },
-                "receiver": {
-                    "bank": {"short": "SCB"},
-                    "account": {"name": {"th": "ร้านอาหาร", "en": "Restaurant"}},
+        mock_session = _mock_aiohttp_response(
+            200,
+            {
+                "success": True,
+                "data": {
+                    "transRef": "SLIPOK20260322001",
+                    "amount": 450.00,
+                    "date": "2026-03-22",
+                    "sender": {
+                        "bank": {"short": "KBANK"},
+                        "account": {"name": {"th": "สมชาย", "en": "Somchai"}},
+                    },
+                    "receiver": {
+                        "bank": {"short": "SCB"},
+                        "account": {"name": {"th": "ร้านอาหาร", "en": "Restaurant"}},
+                    },
                 },
             },
-        })
+        )
 
         with patch("aiohttp.ClientSession", return_value=mock_session):
             result = await _verify_slipok(FAKE_SLIP_IMAGE, "api_key", "branch_123")
@@ -101,11 +106,14 @@ class TestVerifySlipOK:
 
     @pytest.mark.asyncio
     async def test_slipok_quota_exceeded(self):
-        mock_session = _mock_aiohttp_response(403, {
-            "success": False,
-            "code": 1007,
-            "message": "Quota exceeded",
-        })
+        mock_session = _mock_aiohttp_response(
+            403,
+            {
+                "success": False,
+                "code": 1007,
+                "message": "Quota exceeded",
+            },
+        )
 
         with patch("aiohttp.ClientSession", return_value=mock_session):
             result = await _verify_slipok(FAKE_SLIP_IMAGE, "key", "branch")
@@ -114,10 +122,13 @@ class TestVerifySlipOK:
 
     @pytest.mark.asyncio
     async def test_slipok_not_found(self):
-        mock_session = _mock_aiohttp_response(404, {
-            "success": False,
-            "message": "Transaction not found",
-        })
+        mock_session = _mock_aiohttp_response(
+            404,
+            {
+                "success": False,
+                "message": "Transaction not found",
+            },
+        )
 
         with patch("aiohttp.ClientSession", return_value=mock_session):
             result = await _verify_slipok(FAKE_SLIP_IMAGE, "key", "branch")
@@ -131,28 +142,31 @@ class TestVerifySlipOK:
 class TestVerifyEasySlip:
     @pytest.mark.asyncio
     async def test_easyslip_verified(self):
-        mock_session = _mock_aiohttp_response(200, {
-            "success": True,
-            "data": {
-                "isDuplicate": False,
-                "isAmountMatched": True,
-                "amountInSlip": 300,
-                "amountInOrder": 300,
-                "rawSlip": {
-                    "transRef": "ES20260322002",
-                    "date": "2026-03-22T12:00:00+07:00",
-                    "amount": {"amount": 300, "local": {"amount": 300, "currency": "THB"}},
-                    "sender": {
-                        "bank": {"short": "BBL"},
-                        "account": {"name": {"en": "John Doe"}},
-                    },
-                    "receiver": {
-                        "bank": {"short": "KBANK"},
-                        "account": {"name": {"en": "My Shop"}},
+        mock_session = _mock_aiohttp_response(
+            200,
+            {
+                "success": True,
+                "data": {
+                    "isDuplicate": False,
+                    "isAmountMatched": True,
+                    "amountInSlip": 300,
+                    "amountInOrder": 300,
+                    "rawSlip": {
+                        "transRef": "ES20260322002",
+                        "date": "2026-03-22T12:00:00+07:00",
+                        "amount": {"amount": 300, "local": {"amount": 300, "currency": "THB"}},
+                        "sender": {
+                            "bank": {"short": "BBL"},
+                            "account": {"name": {"en": "John Doe"}},
+                        },
+                        "receiver": {
+                            "bank": {"short": "KBANK"},
+                            "account": {"name": {"en": "My Shop"}},
+                        },
                     },
                 },
             },
-        })
+        )
 
         with patch("aiohttp.ClientSession", return_value=mock_session):
             result = await _verify_easyslip(FAKE_SLIP_IMAGE, "bearer_key", "", Decimal("300"))
@@ -165,15 +179,18 @@ class TestVerifyEasySlip:
 
     @pytest.mark.asyncio
     async def test_easyslip_duplicate(self):
-        mock_session = _mock_aiohttp_response(200, {
-            "success": True,
-            "data": {
-                "isDuplicate": True,
-                "rawSlip": {
-                    "transRef": "ES_DUP001",
+        mock_session = _mock_aiohttp_response(
+            200,
+            {
+                "success": True,
+                "data": {
+                    "isDuplicate": True,
+                    "rawSlip": {
+                        "transRef": "ES_DUP001",
+                    },
                 },
             },
-        })
+        )
 
         with patch("aiohttp.ClientSession", return_value=mock_session):
             result = await _verify_easyslip(FAKE_SLIP_IMAGE, "key")
@@ -183,21 +200,24 @@ class TestVerifyEasySlip:
 
     @pytest.mark.asyncio
     async def test_easyslip_amount_mismatch(self):
-        mock_session = _mock_aiohttp_response(200, {
-            "success": True,
-            "data": {
-                "isDuplicate": False,
-                "isAmountMatched": False,
-                "amountInSlip": 500,
-                "amountInOrder": 300,
-                "rawSlip": {
-                    "transRef": "ES003",
-                    "amount": {"amount": 500},
-                    "sender": {"bank": {}, "account": {"name": {}}},
-                    "receiver": {"bank": {}, "account": {"name": {}}},
+        mock_session = _mock_aiohttp_response(
+            200,
+            {
+                "success": True,
+                "data": {
+                    "isDuplicate": False,
+                    "isAmountMatched": False,
+                    "amountInSlip": 500,
+                    "amountInOrder": 300,
+                    "rawSlip": {
+                        "transRef": "ES003",
+                        "amount": {"amount": 500},
+                        "sender": {"bank": {}, "account": {"name": {}}},
+                        "receiver": {"bank": {}, "account": {"name": {}}},
+                    },
                 },
             },
-        })
+        )
 
         with patch("aiohttp.ClientSession", return_value=mock_session):
             result = await _verify_easyslip(FAKE_SLIP_IMAGE, "key", "", Decimal("300"))
@@ -206,10 +226,13 @@ class TestVerifyEasySlip:
 
     @pytest.mark.asyncio
     async def test_easyslip_not_found(self):
-        mock_session = _mock_aiohttp_response(404, {
-            "success": False,
-            "error": {"code": "SLIP_NOT_FOUND", "message": "Slip not found"},
-        })
+        mock_session = _mock_aiohttp_response(
+            404,
+            {
+                "success": False,
+                "error": {"code": "SLIP_NOT_FOUND", "message": "Slip not found"},
+            },
+        )
 
         with patch("aiohttp.ClientSession", return_value=mock_session):
             result = await _verify_easyslip(FAKE_SLIP_IMAGE, "key")
@@ -223,20 +246,23 @@ class TestVerifyEasySlip:
 class TestVerifyRDCW:
     @pytest.mark.asyncio
     async def test_rdcw_verified(self):
-        mock_session = _mock_aiohttp_response(200, {
-            "success": True,
-            "data": {
+        mock_session = _mock_aiohttp_response(
+            200,
+            {
+                "success": True,
                 "data": {
-                    "amount": 45000,  # satang (= 450.00 THB)
-                    "transDate": "20260322",
-                    "transTime": "14:30:00",
-                    "sendingBank": "004",
-                    "sender": {"name": "Somchai"},
-                    "receiver": {"name": "Restaurant"},
+                    "data": {
+                        "amount": 45000,  # satang (= 450.00 THB)
+                        "transDate": "20260322",
+                        "transTime": "14:30:00",
+                        "sendingBank": "004",
+                        "sender": {"name": "Somchai"},
+                        "receiver": {"name": "Restaurant"},
+                    },
                 },
+                "quota": {"limit": 500, "usage": 42},
             },
-            "quota": {"limit": 500, "usage": 42},
-        })
+        )
 
         with patch("aiohttp.ClientSession", return_value=mock_session):
             result = await _verify_rdcw(FAKE_SLIP_IMAGE, "client_id", "client_secret")
@@ -249,11 +275,14 @@ class TestVerifyRDCW:
 
     @pytest.mark.asyncio
     async def test_rdcw_quota_exceeded(self):
-        mock_session = _mock_aiohttp_response(403, {
-            "success": False,
-            "code": 1007,
-            "message": "Usage exceeded",
-        })
+        mock_session = _mock_aiohttp_response(
+            403,
+            {
+                "success": False,
+                "code": 1007,
+                "message": "Usage exceeded",
+            },
+        )
 
         with patch("aiohttp.ClientSession", return_value=mock_session):
             result = await _verify_rdcw(FAKE_SLIP_IMAGE, "id", "secret")
@@ -283,10 +312,10 @@ class TestVerifySlip:
         )
         mock_verifier = AsyncMock(return_value=verified_result)
 
-        with patch("bot.payments.slip_verify._get_configured_providers",
-                    return_value=[(SlipProvider.SLIPOK, "k", "b")]), \
-             patch.dict("bot.payments.slip_verify._PROVIDER_VERIFIERS",
-                        {SlipProvider.SLIPOK: mock_verifier}):
+        with (
+            patch("bot.payments.slip_verify._get_configured_providers", return_value=[(SlipProvider.SLIPOK, "k", "b")]),
+            patch.dict("bot.payments.slip_verify._PROVIDER_VERIFIERS", {SlipProvider.SLIPOK: mock_verifier}),
+        ):
             result = await verify_slip(FAKE_SLIP_IMAGE, expected_amount=Decimal("450.00"))
 
         assert result.status == VerifyStatus.AMOUNT_MISMATCH
@@ -302,10 +331,12 @@ class TestVerifySlip:
         )
         mock_verifier = AsyncMock(return_value=verified_result)
 
-        with patch("bot.payments.slip_verify._get_configured_providers",
-                    return_value=[(SlipProvider.EASYSLIP, "k", "")]), \
-             patch.dict("bot.payments.slip_verify._PROVIDER_VERIFIERS",
-                        {SlipProvider.EASYSLIP: mock_verifier}):
+        with (
+            patch(
+                "bot.payments.slip_verify._get_configured_providers", return_value=[(SlipProvider.EASYSLIP, "k", "")]
+            ),
+            patch.dict("bot.payments.slip_verify._PROVIDER_VERIFIERS", {SlipProvider.EASYSLIP: mock_verifier}),
+        ):
             result = await verify_slip(
                 FAKE_SLIP_IMAGE,
                 expected_amount=Decimal("450.00"),
@@ -325,15 +356,22 @@ class TestVerifySlip:
             amount=Decimal("100.00"),
         )
 
-        with patch("bot.payments.slip_verify._get_configured_providers",
-                    return_value=[
-                        (SlipProvider.SLIPOK, "k1", "b1"),
-                        (SlipProvider.RDCW, "id", "secret"),
-                    ]), \
-             patch.dict("bot.payments.slip_verify._PROVIDER_VERIFIERS", {
-                 SlipProvider.SLIPOK: AsyncMock(return_value=not_found),
-                 SlipProvider.RDCW: AsyncMock(return_value=verified),
-             }):
+        with (
+            patch(
+                "bot.payments.slip_verify._get_configured_providers",
+                return_value=[
+                    (SlipProvider.SLIPOK, "k1", "b1"),
+                    (SlipProvider.RDCW, "id", "secret"),
+                ],
+            ),
+            patch.dict(
+                "bot.payments.slip_verify._PROVIDER_VERIFIERS",
+                {
+                    SlipProvider.SLIPOK: AsyncMock(return_value=not_found),
+                    SlipProvider.RDCW: AsyncMock(return_value=verified),
+                },
+            ),
+        ):
             result = await verify_slip(FAKE_SLIP_IMAGE)
 
         assert result.status == VerifyStatus.VERIFIED
@@ -349,15 +387,22 @@ class TestVerifySlip:
             amount=Decimal("200.00"),
         )
 
-        with patch("bot.payments.slip_verify._get_configured_providers",
-                    return_value=[
-                        (SlipProvider.SLIPOK, "k", "b"),
-                        (SlipProvider.EASYSLIP, "k2", ""),
-                    ]), \
-             patch.dict("bot.payments.slip_verify._PROVIDER_VERIFIERS", {
-                 SlipProvider.SLIPOK: AsyncMock(return_value=quota_err),
-                 SlipProvider.EASYSLIP: AsyncMock(return_value=verified),
-             }):
+        with (
+            patch(
+                "bot.payments.slip_verify._get_configured_providers",
+                return_value=[
+                    (SlipProvider.SLIPOK, "k", "b"),
+                    (SlipProvider.EASYSLIP, "k2", ""),
+                ],
+            ),
+            patch.dict(
+                "bot.payments.slip_verify._PROVIDER_VERIFIERS",
+                {
+                    SlipProvider.SLIPOK: AsyncMock(return_value=quota_err),
+                    SlipProvider.EASYSLIP: AsyncMock(return_value=verified),
+                },
+            ),
+        ):
             result = await verify_slip(FAKE_SLIP_IMAGE)
 
         assert result.status == VerifyStatus.VERIFIED
@@ -372,15 +417,22 @@ class TestVerifySlip:
         )
         second_mock = AsyncMock()
 
-        with patch("bot.payments.slip_verify._get_configured_providers",
-                    return_value=[
-                        (SlipProvider.EASYSLIP, "k", ""),
-                        (SlipProvider.RDCW, "id", "secret"),
-                    ]), \
-             patch.dict("bot.payments.slip_verify._PROVIDER_VERIFIERS", {
-                 SlipProvider.EASYSLIP: AsyncMock(return_value=duplicate),
-                 SlipProvider.RDCW: second_mock,
-             }):
+        with (
+            patch(
+                "bot.payments.slip_verify._get_configured_providers",
+                return_value=[
+                    (SlipProvider.EASYSLIP, "k", ""),
+                    (SlipProvider.RDCW, "id", "secret"),
+                ],
+            ),
+            patch.dict(
+                "bot.payments.slip_verify._PROVIDER_VERIFIERS",
+                {
+                    SlipProvider.EASYSLIP: AsyncMock(return_value=duplicate),
+                    SlipProvider.RDCW: second_mock,
+                },
+            ),
+        ):
             result = await verify_slip(FAKE_SLIP_IMAGE)
 
         assert result.status == VerifyStatus.DUPLICATE
@@ -396,10 +448,10 @@ class TestVerifySlip:
         )
         mock_verifier = AsyncMock(return_value=verified_result)
 
-        with patch("bot.payments.slip_verify._get_configured_providers",
-                    return_value=[(SlipProvider.SLIPOK, "k", "b")]), \
-             patch.dict("bot.payments.slip_verify._PROVIDER_VERIFIERS",
-                        {SlipProvider.SLIPOK: mock_verifier}):
+        with (
+            patch("bot.payments.slip_verify._get_configured_providers", return_value=[(SlipProvider.SLIPOK, "k", "b")]),
+            patch.dict("bot.payments.slip_verify._PROVIDER_VERIFIERS", {SlipProvider.SLIPOK: mock_verifier}),
+        ):
             result = await verify_slip(FAKE_SLIP_IMAGE, expected_amount=Decimal("250.00"))
 
         assert result.status == VerifyStatus.VERIFIED

@@ -11,7 +11,7 @@ def generate_order_code() -> str:
     """
     # Use secrets for cryptographically strong random generation
     characters = string.ascii_uppercase
-    code = ''.join(secrets.choice(characters) for _ in range(6))
+    code = "".join(secrets.choice(characters) for _ in range(6))
     return code
 
 
@@ -49,19 +49,19 @@ def generate_unique_order_code(session=None) -> str:
 
         # If we couldn't generate a unique code after 100 attempts, something is wrong
         raise RuntimeError("Failed to generate unique order code after 100 attempts")
-    else:
-        # Create our own session (lazy import to avoid circular dependency)
-        from bot.database.main import Database
-        with Database().session() as db_session:
-            while attempts < max_attempts:
-                code = generate_order_code()
+    # Create our own session (lazy import to avoid circular dependency)
+    from bot.database.main import Database
 
-                # Check if code already exists
-                existing = db_session.query(Order).filter_by(order_code=code).first()
-                if not existing:
-                    return code
+    with Database().session() as db_session:
+        while attempts < max_attempts:
+            code = generate_order_code()
 
-                attempts += 1
+            # Check if code already exists
+            existing = db_session.query(Order).filter_by(order_code=code).first()
+            if not existing:
+                return code
 
-            # If we couldn't generate a unique code after 100 attempts, something is wrong
-            raise RuntimeError("Failed to generate unique order code after 100 attempts")
+            attempts += 1
+
+        # If we couldn't generate a unique code after 100 attempts, something is wrong
+        raise RuntimeError("Failed to generate unique order code after 100 attempts")

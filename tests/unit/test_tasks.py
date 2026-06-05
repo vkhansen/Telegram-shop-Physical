@@ -2,17 +2,18 @@
 Tests for background tasks:
   - bot.tasks.reservation_cleaner
 """
+
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch, call
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 
 # ===========================================================================
 # reservation_cleaner
 # ===========================================================================
+
 
 @pytest.mark.unit
 class TestStartReservationCleaner:
@@ -28,7 +29,6 @@ class TestStartReservationCleaner:
     def test_task_is_run_reservation_cleaner_coroutine(self):
         from bot.tasks.reservation_cleaner import (
             start_reservation_cleaner,
-            run_reservation_cleaner,
         )
 
         captured = []
@@ -53,8 +53,8 @@ class TestResetDailyCounters:
 
     @pytest.mark.asyncio
     async def test_resets_all_goods(self, db_session):
+        from bot.database.models.main import Categories, Goods
         from bot.tasks.reservation_cleaner import reset_daily_counters
-        from bot.database.models.main import Goods, Categories
 
         # Create a category and item
         cat = Categories(name="Cat", sort_order=1)
@@ -85,6 +85,7 @@ class TestResetDailyCounters:
     async def test_no_items_does_not_raise(self):
         """reset_daily_counters runs cleanly even with no Goods rows."""
         from bot.tasks.reservation_cleaner import reset_daily_counters
+
         # Should complete without error
         await reset_daily_counters()
 
@@ -106,12 +107,15 @@ class TestRunReservationCleaner:
                 return 2, ["ORD001", "ORD002"]
             raise asyncio.CancelledError
 
-        with patch(
-            "bot.tasks.reservation_cleaner.cleanup_expired_reservations",
-            side_effect=fake_cleanup,
-        ), patch("bot.tasks.reservation_cleaner.asyncio.sleep", new_callable=AsyncMock):
-            with pytest.raises(asyncio.CancelledError):
-                await run_reservation_cleaner()
+        with (
+            patch(
+                "bot.tasks.reservation_cleaner.cleanup_expired_reservations",
+                side_effect=fake_cleanup,
+            ),
+            patch("bot.tasks.reservation_cleaner.asyncio.sleep", new_callable=AsyncMock),
+            pytest.raises(asyncio.CancelledError),
+        ):
+            await run_reservation_cleaner()
 
         assert len(cleanup_calls) >= 1
 
@@ -129,12 +133,15 @@ class TestRunReservationCleaner:
                 raise RuntimeError("db down")
             raise asyncio.CancelledError
 
-        with patch(
-            "bot.tasks.reservation_cleaner.cleanup_expired_reservations",
-            side_effect=boom,
-        ), patch("bot.tasks.reservation_cleaner.asyncio.sleep", new_callable=AsyncMock):
-            with pytest.raises(asyncio.CancelledError):
-                await run_reservation_cleaner()
+        with (
+            patch(
+                "bot.tasks.reservation_cleaner.cleanup_expired_reservations",
+                side_effect=boom,
+            ),
+            patch("bot.tasks.reservation_cleaner.asyncio.sleep", new_callable=AsyncMock),
+            pytest.raises(asyncio.CancelledError),
+        ):
+            await run_reservation_cleaner()
 
         assert call_count >= 2  # Loop continued past the error
 
@@ -152,11 +159,14 @@ class TestRunReservationCleaner:
                 return 0, []
             raise asyncio.CancelledError
 
-        with patch(
-            "bot.tasks.reservation_cleaner.cleanup_expired_reservations",
-            side_effect=no_work,
-        ), patch("bot.tasks.reservation_cleaner.asyncio.sleep", new_callable=AsyncMock):
-            with pytest.raises(asyncio.CancelledError):
-                await run_reservation_cleaner()
+        with (
+            patch(
+                "bot.tasks.reservation_cleaner.cleanup_expired_reservations",
+                side_effect=no_work,
+            ),
+            patch("bot.tasks.reservation_cleaner.asyncio.sleep", new_callable=AsyncMock),
+            pytest.raises(asyncio.CancelledError),
+        ):
+            await run_reservation_cleaner()
 
         assert iterations >= 1

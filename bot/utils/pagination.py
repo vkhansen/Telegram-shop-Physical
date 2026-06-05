@@ -1,5 +1,6 @@
-from typing import Callable, List, Optional, Dict, Any
+from collections.abc import Callable
 from datetime import datetime
+from typing import Any
 
 
 class LazyPaginator:
@@ -7,13 +8,7 @@ class LazyPaginator:
     Paginator with lazy loading of data from database
     """
 
-    def __init__(
-            self,
-            query_func: Callable,
-            per_page: int = 10,
-            cache_pages: int = 3,
-            state: Optional[Dict] = None
-    ):
+    def __init__(self, query_func: Callable, per_page: int = 10, cache_pages: int = 3, state: dict | None = None):
         """
         Args:
             query_func: Function to query data (offset, limit) -> List
@@ -29,8 +24,8 @@ class LazyPaginator:
         if state and isinstance(state, dict):
             # Don't restore cache from state - it contains non-serializable objects
             self._cache = {}
-            self._total_count = state.get('total_count')
-            self.current_page = state.get('current_page', 0)
+            self._total_count = state.get("total_count")
+            self.current_page = state.get("current_page", 0)
         else:
             self._cache = {}
             self._total_count = None
@@ -42,7 +37,7 @@ class LazyPaginator:
             self._total_count = await self.query_func(count_only=True)
         return self._total_count
 
-    async def get_page(self, page: int) -> List:
+    async def get_page(self, page: int) -> list:
         """
         Get the data for the page
 
@@ -60,10 +55,7 @@ class LazyPaginator:
 
         # Load data
         offset = page * self.per_page
-        items = await self.query_func(
-            offset=offset,
-            limit=self.per_page
-        )
+        items = await self.query_func(offset=offset, limit=self.per_page)
 
         # Save to cache
         self._cache[page] = items
@@ -88,23 +80,23 @@ class LazyPaginator:
         total = await self.get_total_count()
         return max(1, (total + self.per_page - 1) // self.per_page)
 
-    def _serialize_item(self, item: Any) -> Dict:
+    def _serialize_item(self, item: Any) -> dict:
         """Convert item to serializable format"""
-        if hasattr(item, '__dict__'):
+        if hasattr(item, "__dict__"):
             # SQLAlchemy object
             result = {}
             for key, value in item.__dict__.items():
-                if key.startswith('_'):
+                if key.startswith("_"):
                     continue
                 if isinstance(value, datetime):
                     result[key] = value.isoformat()
-                elif hasattr(value, '__dict__'):
+                elif hasattr(value, "__dict__"):
                     # Skip nested objects
                     continue
                 else:
                     result[key] = value
             return result
-        elif isinstance(item, dict):
+        if isinstance(item, dict):
             # Already a dict
             result = {}
             for key, value in item.items():
@@ -113,15 +105,14 @@ class LazyPaginator:
                 else:
                     result[key] = value
             return result
-        else:
-            # Simple type
-            return {'value': item}
+        # Simple type
+        return {"value": item}
 
-    def get_state(self) -> Dict:
+    def get_state(self) -> dict:
         """Get current state for FSM storage - without cache to avoid serialization issues"""
         return {
-            'total_count': self._total_count,
-            'current_page': self.current_page
+            "total_count": self._total_count,
+            "current_page": self.current_page,
             # Don't include cache - it contains non-serializable SQLAlchemy objects
         }
 

@@ -17,9 +17,10 @@ def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     R = 6371
     d_lat = math.radians(lat2 - lat1)
     d_lng = math.radians(lng2 - lng1)
-    a = (math.sin(d_lat / 2) ** 2 +
-         math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) *
-         math.sin(d_lng / 2) ** 2)
+    a = (
+        math.sin(d_lat / 2) ** 2
+        + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(d_lng / 2) ** 2
+    )
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
@@ -33,8 +34,9 @@ def _serves_zone(driver: dict, zone: str | None) -> bool:
     return zone in zones
 
 
-def rank_drivers(drivers: list[dict], lat: float, lng: float,
-                 zone: str | None = None, radius_km: float | None = None) -> list[dict]:
+def rank_drivers(
+    drivers: list[dict], lat: float, lng: float, zone: str | None = None, radius_km: float | None = None
+) -> list[dict]:
     """Filter by zone + radius and rank nearest-first (load-balanced on ties).
 
     Each returned dict is the input driver dict plus a ``distance_km`` key.
@@ -59,9 +61,9 @@ def rank_drivers(drivers: list[dict], lat: float, lng: float,
     return ranked
 
 
-def get_available_drivers(lat: float, lng: float, zone: str | None = None,
-                          brand_id: int | None = None,
-                          radius_km: float | None = None) -> list[dict]:
+def get_available_drivers(
+    lat: float, lng: float, zone: str | None = None, brand_id: int | None = None, radius_km: float | None = None
+) -> list[dict]:
     """Query the dispatchable pool and return it ranked nearest-first."""
     pool = list_dispatchable_drivers(brand_id=brand_id)
     return rank_drivers(pool, lat, lng, zone=zone, radius_km=radius_km)

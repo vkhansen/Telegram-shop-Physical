@@ -4,7 +4,6 @@ Tests that validated Pydantic actions execute correctly against the database.
 Uses the SQLite test database from conftest.py.
 """
 
-from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -28,12 +27,8 @@ from bot.ai.schemas import (
 from bot.database.models.main import (
     Categories,
     DeliveryChatMessage,
-    Goods,
     Order,
-    OrderItem,
-    User,
 )
-
 
 # ── Query Executor Tests ────────────────────────────────────────────
 
@@ -349,19 +344,23 @@ class TestDeleteItem:
 class TestBulkPriceUpdate:
     @pytest.mark.asyncio
     async def test_bulk_update(self, multiple_products):
-        action = BulkPriceUpdateAction(updates=[
-            {"item_name": "Product 1", "new_price": Decimal("99")},
-            {"item_name": "Product 2", "new_price": Decimal("199")},
-        ])
+        action = BulkPriceUpdateAction(
+            updates=[
+                {"item_name": "Product 1", "new_price": Decimal("99")},
+                {"item_name": "Product 2", "new_price": Decimal("199")},
+            ]
+        )
         result = await execute_mutation(action, admin_id=1)
         assert result["success"] is True
         assert len(result["updated"]) == 2
 
     @pytest.mark.asyncio
     async def test_bulk_update_nonexistent_item(self, test_goods):
-        action = BulkPriceUpdateAction(updates=[
-            {"item_name": "Ghost", "new_price": Decimal("100")},
-        ])
+        action = BulkPriceUpdateAction(
+            updates=[
+                {"item_name": "Ghost", "new_price": Decimal("100")},
+            ]
+        )
         result = await execute_mutation(action, admin_id=1)
         assert len(result["errors"]) == 1
 
@@ -462,12 +461,23 @@ class TestImportMenu:
     @pytest.mark.asyncio
     async def test_import_new_items(self, test_user, test_category):
         from bot.ai.schemas import MenuImportAction
-        action = MenuImportAction(items=[
-            {"item_name": "Import A", "price": Decimal("100"),
-             "category_name": test_category.name, "description": "Imported"},
-            {"item_name": "Import B", "price": Decimal("200"),
-             "category_name": test_category.name, "description": "Imported"},
-        ])
+
+        action = MenuImportAction(
+            items=[
+                {
+                    "item_name": "Import A",
+                    "price": Decimal("100"),
+                    "category_name": test_category.name,
+                    "description": "Imported",
+                },
+                {
+                    "item_name": "Import B",
+                    "price": Decimal("200"),
+                    "category_name": test_category.name,
+                    "description": "Imported",
+                },
+            ]
+        )
         result = await execute_mutation(action, admin_id=test_user.telegram_id)
         assert result["success"] is True
         assert result["created"] == 2
@@ -476,10 +486,18 @@ class TestImportMenu:
     @pytest.mark.asyncio
     async def test_import_skip_existing(self, test_goods):
         from bot.ai.schemas import MenuImportAction
-        action = MenuImportAction(items=[
-            {"item_name": test_goods.name, "price": Decimal("50"),
-             "category_name": test_goods.category_name, "description": "dup"},
-        ], skip_existing=True)
+
+        action = MenuImportAction(
+            items=[
+                {
+                    "item_name": test_goods.name,
+                    "price": Decimal("50"),
+                    "category_name": test_goods.category_name,
+                    "description": "dup",
+                },
+            ],
+            skip_existing=True,
+        )
         result = await execute_mutation(action, admin_id=1)
         assert result["skipped"] == 1
         assert result["created"] == 0
@@ -487,10 +505,10 @@ class TestImportMenu:
     @pytest.mark.asyncio
     async def test_import_creates_missing_categories(self, test_user):
         from bot.ai.schemas import MenuImportAction
+
         action = MenuImportAction(
             items=[
-                {"item_name": "Brand New",  "price": Decimal("50"),
-                 "category_name": "AutoCreated", "description": "d"},
+                {"item_name": "Brand New", "price": Decimal("50"), "category_name": "AutoCreated", "description": "d"},
             ],
             create_missing_categories=True,
         )
@@ -503,15 +521,19 @@ class TestUnknownAction:
     @pytest.mark.asyncio
     async def test_unknown_query(self):
         from pydantic import BaseModel
+
         class FakeAction(BaseModel):
             action: str = "nonexistent"
+
         result = await execute_query(FakeAction())
         assert "error" in result
 
     @pytest.mark.asyncio
     async def test_unknown_mutation(self):
         from pydantic import BaseModel
+
         class FakeAction(BaseModel):
             action: str = "nonexistent"
+
         result = await execute_mutation(FakeAction(), admin_id=1)
         assert "error" in result

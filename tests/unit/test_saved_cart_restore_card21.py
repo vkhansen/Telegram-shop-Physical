@@ -10,6 +10,7 @@ Pins:
 - restore of a missing snapshot returns not_found.
 - delete_saved_cart removes the row (and returns False when absent).
 """
+
 from __future__ import annotations
 
 from decimal import Decimal
@@ -21,10 +22,10 @@ from bot.database.methods.delete import delete_saved_cart
 from bot.database.methods.read import get_cart_items, get_saved_carts
 from bot.database.models.main import Categories, Goods
 
-
 # ---------------------------------------------------------------------------
 # Fixtures (local copies — mirror test_brand_switch_card21.py)
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def seeded_prepared_item(db_session, test_brand):
@@ -32,9 +33,14 @@ def seeded_prepared_item(db_session, test_brand):
     db_session.add(Categories(name="Hot Food", brand_id=test_brand.id))
     db_session.commit()
     item = Goods(
-        name="Pad Thai", price=Decimal("120.00"), description="Classic",
-        category_name="Hot Food", stock_quantity=0, item_type="prepared",
-        brand_id=test_brand.id, is_active=True,
+        name="Pad Thai",
+        price=Decimal("120.00"),
+        description="Classic",
+        category_name="Hot Food",
+        stock_quantity=0,
+        item_type="prepared",
+        brand_id=test_brand.id,
+        is_active=True,
     )
     db_session.add(item)
     db_session.commit()
@@ -47,9 +53,14 @@ def seeded_product_item(db_session, test_brand):
     db_session.add(Categories(name="Drinks", brand_id=test_brand.id))
     db_session.commit()
     item = Goods(
-        name="Bottled Water", price=Decimal("20.00"), description="Still",
-        category_name="Drinks", stock_quantity=50, item_type="product",
-        brand_id=test_brand.id, is_active=True,
+        name="Bottled Water",
+        price=Decimal("20.00"),
+        description="Still",
+        category_name="Drinks",
+        stock_quantity=50,
+        item_type="product",
+        brand_id=test_brand.id,
+        is_active=True,
     )
     db_session.add(item)
     db_session.commit()
@@ -58,8 +69,11 @@ def seeded_product_item(db_session, test_brand):
 
 def _save(test_user, test_brand, test_store, items, total):
     return save_cart_snapshot(
-        user_id=test_user.telegram_id, brand_id=test_brand.id,
-        store_id=test_store.id, items_json=items, original_total=Decimal(total),
+        user_id=test_user.telegram_id,
+        brand_id=test_brand.id,
+        store_id=test_store.id,
+        items_json=items,
+        original_total=Decimal(total),
     )
 
 
@@ -67,16 +81,19 @@ def _save(test_user, test_brand, test_store, items, total):
 # get_saved_carts
 # ---------------------------------------------------------------------------
 
+
 class TestGetSavedCarts:
     def test_empty_when_none(self, db_session, test_user):
         assert get_saved_carts(test_user.telegram_id) == []
 
-    def test_returns_names_count_and_total(
-        self, db_session, test_user, test_brand, test_store, seeded_prepared_item
-    ):
-        _save(test_user, test_brand, test_store,
-              [{"name": "Pad Thai", "quantity": 3, "modifiers": None, "unit_price": "120.00"}],
-              "360.00")
+    def test_returns_names_count_and_total(self, db_session, test_user, test_brand, test_store, seeded_prepared_item):
+        _save(
+            test_user,
+            test_brand,
+            test_store,
+            [{"name": "Pad Thai", "quantity": 3, "modifiers": None, "unit_price": "120.00"}],
+            "360.00",
+        )
         carts = get_saved_carts(test_user.telegram_id)
         assert len(carts) == 1
         c = carts[0]
@@ -90,13 +107,18 @@ class TestGetSavedCarts:
 # restore_saved_cart
 # ---------------------------------------------------------------------------
 
+
 class TestRestoreSavedCart:
     async def test_recreates_cart_and_consumes_snapshot(
         self, db_session, test_user, test_brand, test_store, seeded_prepared_item
     ):
-        _save(test_user, test_brand, test_store,
-              [{"name": "Pad Thai", "quantity": 2, "modifiers": None, "unit_price": "120.00"}],
-              "240.00")
+        _save(
+            test_user,
+            test_brand,
+            test_store,
+            [{"name": "Pad Thai", "quantity": 2, "modifiers": None, "unit_price": "120.00"}],
+            "240.00",
+        )
         sc_id = get_saved_carts(test_user.telegram_id)[0]["id"]
 
         result = await restore_saved_cart(test_user.telegram_id, sc_id)
@@ -111,14 +133,16 @@ class TestRestoreSavedCart:
         assert get_saved_carts(test_user.telegram_id) == []
 
     async def test_replaces_existing_active_cart(
-        self, db_session, test_user, test_brand, test_store,
-        seeded_prepared_item, seeded_product_item
+        self, db_session, test_user, test_brand, test_store, seeded_prepared_item, seeded_product_item
     ):
-        await add_to_cart(test_user.telegram_id, "Bottled Water", 1,
-                          brand_id=test_brand.id, store_id=test_store.id)
-        _save(test_user, test_brand, test_store,
-              [{"name": "Pad Thai", "quantity": 1, "modifiers": None, "unit_price": "120.00"}],
-              "120.00")
+        await add_to_cart(test_user.telegram_id, "Bottled Water", 1, brand_id=test_brand.id, store_id=test_store.id)
+        _save(
+            test_user,
+            test_brand,
+            test_store,
+            [{"name": "Pad Thai", "quantity": 1, "modifiers": None, "unit_price": "120.00"}],
+            "120.00",
+        )
         sc_id = get_saved_carts(test_user.telegram_id)[0]["id"]
 
         await restore_saved_cart(test_user.telegram_id, sc_id)
@@ -126,13 +150,17 @@ class TestRestoreSavedCart:
         items = await get_cart_items(test_user.telegram_id)
         assert {i["item_name"] for i in items} == {"Pad Thai"}  # water replaced
 
-    async def test_skips_unavailable_items(
-        self, db_session, test_user, test_brand, test_store, seeded_prepared_item
-    ):
-        _save(test_user, test_brand, test_store,
-              [{"name": "Pad Thai", "quantity": 1, "modifiers": None, "unit_price": "120.00"},
-               {"name": "Ghost Item", "quantity": 1, "modifiers": None, "unit_price": "50.00"}],
-              "170.00")
+    async def test_skips_unavailable_items(self, db_session, test_user, test_brand, test_store, seeded_prepared_item):
+        _save(
+            test_user,
+            test_brand,
+            test_store,
+            [
+                {"name": "Pad Thai", "quantity": 1, "modifiers": None, "unit_price": "120.00"},
+                {"name": "Ghost Item", "quantity": 1, "modifiers": None, "unit_price": "50.00"},
+            ],
+            "170.00",
+        )
         sc_id = get_saved_carts(test_user.telegram_id)[0]["id"]
 
         result = await restore_saved_cart(test_user.telegram_id, sc_id)
@@ -142,13 +170,15 @@ class TestRestoreSavedCart:
         items = await get_cart_items(test_user.telegram_id)
         assert {i["item_name"] for i in items} == {"Pad Thai"}
 
-    async def test_preserves_modifiers(
-        self, db_session, test_user, test_brand, test_store, seeded_prepared_item
-    ):
+    async def test_preserves_modifiers(self, db_session, test_user, test_brand, test_store, seeded_prepared_item):
         mods = {"spice_level": "thai_hot"}
-        _save(test_user, test_brand, test_store,
-              [{"name": "Pad Thai", "quantity": 1, "modifiers": mods, "unit_price": "120.00"}],
-              "120.00")
+        _save(
+            test_user,
+            test_brand,
+            test_store,
+            [{"name": "Pad Thai", "quantity": 1, "modifiers": mods, "unit_price": "120.00"}],
+            "120.00",
+        )
         sc_id = get_saved_carts(test_user.telegram_id)[0]["id"]
 
         await restore_saved_cart(test_user.telegram_id, sc_id)
@@ -168,13 +198,18 @@ class TestRestoreSavedCart:
 # delete_saved_cart
 # ---------------------------------------------------------------------------
 
+
 class TestDeleteSavedCart:
     def test_removes_row_then_false_when_absent(
         self, db_session, test_user, test_brand, test_store, seeded_prepared_item
     ):
-        _save(test_user, test_brand, test_store,
-              [{"name": "Pad Thai", "quantity": 1, "modifiers": None, "unit_price": "120.00"}],
-              "120.00")
+        _save(
+            test_user,
+            test_brand,
+            test_store,
+            [{"name": "Pad Thai", "quantity": 1, "modifiers": None, "unit_price": "120.00"}],
+            "120.00",
+        )
         sc_id = get_saved_carts(test_user.telegram_id)[0]["id"]
 
         assert delete_saved_cart(test_user.telegram_id, sc_id) is True

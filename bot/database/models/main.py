@@ -36,12 +36,12 @@ class Permission:
 
 
 class Role(Database.BASE):
-    __tablename__ = 'roles'
+    __tablename__ = "roles"
     id = Column(Integer, primary_key=True)
     name = Column(String(64), unique=True)
     default = Column(Boolean, default=False, index=True)
     permissions = Column(Integer)
-    users = relationship('User', backref='role', lazy='dynamic')
+    users = relationship("User", backref="role", lazy="dynamic")
 
     def __init__(self, name: str, permissions=None, **kwargs):
         super().__init__(**kwargs)
@@ -53,17 +53,35 @@ class Role(Database.BASE):
     @staticmethod
     def insert_roles():
         roles = {
-            'USER': [Permission.USE],
-            'ADMIN': [Permission.USE, Permission.BROADCAST,
-                      Permission.SETTINGS_MANAGE, Permission.USERS_MANAGE, Permission.SHOP_MANAGE],
-            'OWNER': [Permission.USE, Permission.BROADCAST,
-                      Permission.SETTINGS_MANAGE, Permission.USERS_MANAGE, Permission.SHOP_MANAGE,
-                      Permission.ADMINS_MANAGE, Permission.OWN],
-            'SUPERADMIN': [Permission.USE, Permission.BROADCAST,
-                           Permission.SETTINGS_MANAGE, Permission.USERS_MANAGE, Permission.SHOP_MANAGE,
-                           Permission.ADMINS_MANAGE, Permission.OWN, Permission.SUPER],
+            "USER": [Permission.USE],
+            "ADMIN": [
+                Permission.USE,
+                Permission.BROADCAST,
+                Permission.SETTINGS_MANAGE,
+                Permission.USERS_MANAGE,
+                Permission.SHOP_MANAGE,
+            ],
+            "OWNER": [
+                Permission.USE,
+                Permission.BROADCAST,
+                Permission.SETTINGS_MANAGE,
+                Permission.USERS_MANAGE,
+                Permission.SHOP_MANAGE,
+                Permission.ADMINS_MANAGE,
+                Permission.OWN,
+            ],
+            "SUPERADMIN": [
+                Permission.USE,
+                Permission.BROADCAST,
+                Permission.SETTINGS_MANAGE,
+                Permission.USERS_MANAGE,
+                Permission.SHOP_MANAGE,
+                Permission.ADMINS_MANAGE,
+                Permission.OWN,
+                Permission.SUPER,
+            ],
         }
-        default_role = 'USER'
+        default_role = "USER"
         with Database().session() as s:
             for r, perms in roles.items():
                 role = s.query(Role).filter_by(name=r).first()
@@ -73,7 +91,7 @@ class Role(Database.BASE):
                 role.reset_permissions()
                 for perm in perms:
                     role.add_permission(perm)
-                role.default = (role.name == default_role)
+                role.default = role.name == default_role
 
     def add_permission(self, perm):
         if not self.has_permission(perm):
@@ -90,37 +108,44 @@ class Role(Database.BASE):
         return self.permissions & perm == perm
 
     def __repr__(self):
-        return '<Role %r>' % self.name
+        return f"<Role {self.name!r}>"
 
 
 class User(Database.BASE):
-    __tablename__ = 'users'
+    __tablename__ = "users"
     telegram_id = Column(BigInteger, primary_key=True)
-    role_id = Column(Integer, ForeignKey('roles.id', ondelete="RESTRICT"), default=1, index=True)
-    referral_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="SET NULL"), nullable=True, index=True)
+    role_id = Column(Integer, ForeignKey("roles.id", ondelete="RESTRICT"), default=1, index=True)
+    referral_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="SET NULL"), nullable=True, index=True)
     locale = Column(String(5), nullable=True)  # Per-user language: th, en, ru, ar, fa, ps, fr (Card 14)
     registration_date = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     is_banned = Column(Boolean, nullable=False, default=False, index=True)
     banned_at = Column(DateTime(timezone=True), nullable=True)
-    banned_by = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="SET NULL"), nullable=True)
+    banned_by = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="SET NULL"), nullable=True)
     ban_reason = Column(Text, nullable=True)
     privacy_accepted_at = Column(DateTime(timezone=True), nullable=True)  # PDPA privacy notice acceptance timestamp
     user_goods = relationship("BoughtGoods", back_populates="user_telegram_id")
 
     referral_earnings_received = relationship(
-        "ReferralEarnings",
-        foreign_keys=lambda: [ReferralEarnings.referrer_id],
-        back_populates="referrer"
+        "ReferralEarnings", foreign_keys=lambda: [ReferralEarnings.referrer_id], back_populates="referrer"
     )
     referral_earnings_generated = relationship(
-        "ReferralEarnings",
-        foreign_keys=lambda: [ReferralEarnings.referral_id],
-        back_populates="referral"
+        "ReferralEarnings", foreign_keys=lambda: [ReferralEarnings.referral_id], back_populates="referral"
     )
 
-    def __init__(self, telegram_id: int, registration_date: datetime.datetime, referral_id=None,
-                 role_id: int = 1, is_banned: bool = False, banned_at=None, banned_by=None,
-                 ban_reason: str = None, locale: str = None, privacy_accepted_at=None, **kw: Any):
+    def __init__(
+        self,
+        telegram_id: int,
+        registration_date: datetime.datetime,
+        referral_id=None,
+        role_id: int = 1,
+        is_banned: bool = False,
+        banned_at=None,
+        banned_by=None,
+        ban_reason: str | None = None,
+        locale: str | None = None,
+        privacy_accepted_at=None,
+        **kw: Any,
+    ):
         super().__init__(**kw)
         self.telegram_id = telegram_id
         self.role_id = role_id
@@ -136,7 +161,8 @@ class User(Database.BASE):
 
 class Brand(Database.BASE):
     """Brand / restaurant entity. Each brand is an independent business."""
-    __tablename__ = 'brands'
+
+    __tablename__ = "brands"
 
     id = Column(Integer, primary_key=True)
     name = Column(String(200), unique=True, nullable=False)
@@ -155,9 +181,17 @@ class Brand(Database.BASE):
     categories = relationship("Categories", back_populates="brand")
     goods = relationship("Goods", back_populates="brand")
 
-    def __init__(self, name: str, slug: str, description: str = None,
-                 logo_file_id: str = None, promptpay_id: str = None,
-                 promptpay_name: str = None, timezone: str = None, **kw: Any):
+    def __init__(
+        self,
+        name: str,
+        slug: str,
+        description: str | None = None,
+        logo_file_id: str | None = None,
+        promptpay_id: str | None = None,
+        promptpay_name: str | None = None,
+        timezone: str | None = None,
+        **kw: Any,
+    ):
         super().__init__(**kw)
         self.name = name
         self.slug = slug
@@ -170,13 +204,14 @@ class Brand(Database.BASE):
 
 class BrandStaff(Database.BASE):
     """Staff assignment per brand/branch."""
-    __tablename__ = 'brand_staff'
+
+    __tablename__ = "brand_staff"
 
     id = Column(Integer, primary_key=True)
-    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), nullable=False, index=True)
+    brand_id = Column(Integer, ForeignKey("brands.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False, index=True)
     role = Column(String(20), nullable=False)  # 'owner', 'admin', 'kitchen', 'rider'
-    store_id = Column(Integer, ForeignKey('stores.id', ondelete="SET NULL"), nullable=True)  # null = all branches
+    store_id = Column(Integer, ForeignKey("stores.id", ondelete="SET NULL"), nullable=True)  # null = all branches
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     brand = relationship("Brand", back_populates="staff")
@@ -184,11 +219,11 @@ class BrandStaff(Database.BASE):
     store = relationship("Store", foreign_keys=lambda: [BrandStaff.store_id])
 
     __table_args__ = (
-        UniqueConstraint('brand_id', 'user_id', 'store_id', name='uq_brand_user_store'),
-        Index('ix_brand_staff_brand_role', 'brand_id', 'role'),
+        UniqueConstraint("brand_id", "user_id", "store_id", name="uq_brand_user_store"),
+        Index("ix_brand_staff_brand_role", "brand_id", "role"),
     )
 
-    def __init__(self, brand_id: int, user_id: int, role: str, store_id: int = None, **kw: Any):
+    def __init__(self, brand_id: int, user_id: int, role: str, store_id: int | None = None, **kw: Any):
         super().__init__(**kw)
         self.brand_id = brand_id
         self.user_id = user_id
@@ -197,9 +232,9 @@ class BrandStaff(Database.BASE):
 
 
 class Categories(Database.BASE):
-    __tablename__ = 'categories'
+    __tablename__ = "categories"
     name = Column(String(100), primary_key=True)
-    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="CASCADE"), nullable=True, index=True)
+    brand_id = Column(Integer, ForeignKey("brands.id", ondelete="CASCADE"), nullable=True, index=True)
     sort_order = Column(Integer, nullable=False, default=0)  # Menu ordering (Card 8)
     description = Column(Text, nullable=True)  # Category description
     image_file_id = Column(String(255), nullable=True)  # Telegram file_id for category cover
@@ -208,9 +243,17 @@ class Categories(Database.BASE):
     item = relationship("Goods", back_populates="category")
     brand = relationship("Brand", back_populates="categories")
 
-    def __init__(self, name: str, sort_order: int = 0, description: str = None,
-                 image_file_id: str = None, available_from: str = None,
-                 available_until: str = None, brand_id: int = None, **kw: Any):
+    def __init__(
+        self,
+        name: str,
+        sort_order: int = 0,
+        description: str | None = None,
+        image_file_id: str | None = None,
+        available_from: str | None = None,
+        available_until: str | None = None,
+        brand_id: int | None = None,
+        **kw: Any,
+    ):
         super().__init__(**kw)
         self.name = name
         self.sort_order = sort_order
@@ -222,17 +265,18 @@ class Categories(Database.BASE):
 
 
 class Goods(Database.BASE):
-    __tablename__ = 'goods'
+    __tablename__ = "goods"
     name = Column(String(100), primary_key=True)
-    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="CASCADE"), nullable=True, index=True)
+    brand_id = Column(Integer, ForeignKey("brands.id", ondelete="CASCADE"), nullable=True, index=True)
     price = Column(Numeric(12, 2), nullable=False)
     description = Column(Text, nullable=False)
-    category_name = Column(String(100), ForeignKey('categories.name', ondelete="CASCADE", onupdate="CASCADE"),
-                           nullable=False, index=True)
+    category_name = Column(
+        String(100), ForeignKey("categories.name", ondelete="CASCADE", onupdate="CASCADE"), nullable=False, index=True
+    )
     # Item type: distinguishes packaged goods from prepared food
     # 'product' = shelf-stable / pre-packaged (e.g., bottled water, snacks) — tracked by inventory count
     # 'prepared' = made-to-order / perishable (e.g., pad thai, coffee) — tracked by daily limit & prep time
-    item_type = Column(String(20), nullable=False, default='prepared', index=True)
+    item_type = Column(String(20), nullable=False, default="prepared", index=True)
 
     stock_quantity = Column(Integer, nullable=False, default=0)  # Total stock (fallback for single-branch)
     reserved_quantity = Column(Integer, nullable=False, default=0)  # Reserved (fallback for single-branch)
@@ -240,7 +284,9 @@ class Goods(Database.BASE):
 
     # Restaurant-specific fields (primarily for item_type='prepared')
     image_file_id = Column(String(255), nullable=True)  # Telegram file_id for menu photo
-    media = Column(JSON, nullable=True)  # Multiple media: [{"id": str, "file_id": str, "type": "photo"|"video", "is_ai_generated": bool, "caption": str}]
+    media = Column(
+        JSON, nullable=True
+    )  # Multiple media: [{"id": str, "file_id": str, "type": "photo"|"video", "is_ai_generated": bool, "caption": str}]
     prep_time_minutes = Column(Integer, nullable=True)  # Kitchen prep time in minutes
     allergens = Column(String(500), nullable=True)  # Comma-separated: "gluten,dairy,nuts"
     is_active = Column(Boolean, nullable=False, default=True, index=True)  # Permanent on/off
@@ -269,12 +315,12 @@ class Goods(Database.BASE):
     @property
     def is_product(self) -> bool:
         """True if this is a packaged/shelf-stable item (e.g., bottled water)."""
-        return self.item_type == 'product'
+        return self.item_type == "product"
 
     @property
     def is_prepared(self) -> bool:
         """True if this is a made-to-order/perishable item (e.g., pad thai)."""
-        return self.item_type == 'prepared'
+        return self.item_type == "prepared"
 
     @property
     def is_currently_available(self) -> bool:
@@ -284,17 +330,27 @@ class Goods(Database.BASE):
         if self.daily_limit is not None and self.daily_sold_count >= self.daily_limit:
             return False
         # Products require inventory; prepared items may have unlimited stock (stock_quantity=0 means unlimited for prepared)
-        if self.is_product and self.available_quantity <= 0:
-            return False
-        return True
+        return not (self.is_product and self.available_quantity <= 0)
 
-    def __init__(self, name: str, price, description: str, category_name: str,
-                 stock_quantity: int = 0, image_file_id: str = None,
-                 media: list = None, prep_time_minutes: int = None,
-                 allergens: str = None, daily_limit: int = None,
-                 available_from: str = None, available_until: str = None,
-                 calories: int = None, brand_id: int = None,
-                 item_type: str = 'prepared', **kw: Any):
+    def __init__(
+        self,
+        name: str,
+        price,
+        description: str,
+        category_name: str,
+        stock_quantity: int = 0,
+        image_file_id: str | None = None,
+        media: list | None = None,
+        prep_time_minutes: int | None = None,
+        allergens: str | None = None,
+        daily_limit: int | None = None,
+        available_from: str | None = None,
+        available_until: str | None = None,
+        calories: int | None = None,
+        brand_id: int | None = None,
+        item_type: str = "prepared",
+        **kw: Any,
+    ):
         super().__init__(**kw)
         self.name = name
         self.brand_id = brand_id
@@ -314,12 +370,12 @@ class Goods(Database.BASE):
 
 
 class BoughtGoods(Database.BASE):
-    __tablename__ = 'bought_goods'
+    __tablename__ = "bought_goods"
     id = Column(Integer, primary_key=True)
     item_name = Column(String(100), nullable=False, index=True)
     value = Column(Text, nullable=False)
     price = Column(Numeric(12, 2), nullable=False)
-    buyer_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="SET NULL"), nullable=True, index=True)
+    buyer_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="SET NULL"), nullable=True, index=True)
     bought_datetime = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     unique_id = Column(BigInteger, nullable=False, unique=True)
     user_telegram_id = relationship("User", back_populates="user_goods")
@@ -335,9 +391,9 @@ class BoughtGoods(Database.BASE):
 
 
 class Operations(Database.BASE):
-    __tablename__ = 'operations'
+    __tablename__ = "operations"
     id = Column(Integer, primary_key=True)
-    user_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False, index=True)
     operation_value = Column(Numeric(12, 2), nullable=False)
     operation_time = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     user_telegram_id = relationship("User")
@@ -350,30 +406,27 @@ class Operations(Database.BASE):
 
 
 class ReferralEarnings(Database.BASE):
-    __tablename__ = 'referral_earnings'
+    __tablename__ = "referral_earnings"
 
     id = Column(Integer, primary_key=True)
-    referrer_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), nullable=False)
-    referral_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"),
-                         nullable=True)  # NULL for admin bonuses
+    referrer_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False)
+    referral_id = Column(
+        BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=True
+    )  # NULL for admin bonuses
     amount = Column(Numeric(12, 2), nullable=False)
     original_amount = Column(Numeric(12, 2), nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     referrer = relationship(
-        "User",
-        foreign_keys=lambda: [ReferralEarnings.referrer_id],
-        back_populates="referral_earnings_received"
+        "User", foreign_keys=lambda: [ReferralEarnings.referrer_id], back_populates="referral_earnings_received"
     )
     referral = relationship(
-        "User",
-        foreign_keys=lambda: [ReferralEarnings.referral_id],
-        back_populates="referral_earnings_generated"
+        "User", foreign_keys=lambda: [ReferralEarnings.referral_id], back_populates="referral_earnings_generated"
     )
 
     __table_args__ = (
-        Index('ix_referral_earnings_referrer_created', 'referrer_id', 'created_at'),
-        Index('ix_referral_earnings_referral_created', 'referral_id', 'created_at'),
+        Index("ix_referral_earnings_referrer_created", "referrer_id", "created_at"),
+        Index("ix_referral_earnings_referral_created", "referral_id", "created_at"),
     )
 
     def __init__(self, referrer_id: int, referral_id: int | None, amount, original_amount, **kw: Any):
@@ -385,10 +438,10 @@ class ReferralEarnings(Database.BASE):
 
 
 class ReferenceCode(Database.BASE):
-    __tablename__ = 'reference_codes'
+    __tablename__ = "reference_codes"
 
     code = Column(String(8), primary_key=True)
-    created_by = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), nullable=False, index=True)
+    created_by = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     expires_at = Column(DateTime(timezone=True), nullable=True)
     max_uses = Column(Integer, nullable=True)  # None means unlimited
@@ -400,12 +453,11 @@ class ReferenceCode(Database.BASE):
     creator = relationship("User", foreign_keys=lambda: [ReferenceCode.created_by])
     usages = relationship("ReferenceCodeUsage", back_populates="reference_code", cascade="all, delete-orphan")
 
-    __table_args__ = (
-        Index('ix_reference_codes_active_expires', 'is_active', 'expires_at'),
-    )
+    __table_args__ = (Index("ix_reference_codes_active_expires", "is_active", "expires_at"),)
 
-    def __init__(self, code: str, created_by: int, expires_at=None, max_uses=None, note=None,
-                 is_admin_code=False, **kw: Any):
+    def __init__(
+        self, code: str, created_by: int, expires_at=None, max_uses=None, note=None, is_admin_code=False, **kw: Any
+    ):
         super().__init__(**kw)
         self.code = code
         self.created_by = created_by
@@ -416,19 +468,19 @@ class ReferenceCode(Database.BASE):
 
 
 class ReferenceCodeUsage(Database.BASE):
-    __tablename__ = 'reference_code_usages'
+    __tablename__ = "reference_code_usages"
 
     id = Column(Integer, primary_key=True)
-    code = Column(String(8), ForeignKey('reference_codes.code', ondelete="CASCADE"), nullable=False, index=True)
-    used_by = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), nullable=False, index=True)
+    code = Column(String(8), ForeignKey("reference_codes.code", ondelete="CASCADE"), nullable=False, index=True)
+    used_by = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False, index=True)
     used_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     reference_code = relationship("ReferenceCode", back_populates="usages")
     user = relationship("User", foreign_keys=lambda: [ReferenceCodeUsage.used_by])
 
     __table_args__ = (
-        UniqueConstraint('code', 'used_by', name='uq_code_user'),
-        Index('ix_reference_code_usages_used_at', 'used_at'),
+        UniqueConstraint("code", "used_by", name="uq_code_user"),
+        Index("ix_reference_code_usages_used_at", "used_at"),
     )
 
     def __init__(self, code: str, used_by: int, **kw: Any):
@@ -438,24 +490,28 @@ class ReferenceCodeUsage(Database.BASE):
 
 
 class Order(Database.BASE):
-    __tablename__ = 'orders'
+    __tablename__ = "orders"
 
     id = Column(Integer, primary_key=True)
     order_code = Column(String(6), unique=True, nullable=True)  # Unique 6-char code (e.g., ECBDJI)
-    buyer_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="SET NULL"), nullable=True, index=True)
+    buyer_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="SET NULL"), nullable=True, index=True)
     total_price = Column(Numeric(12, 2), nullable=False)
     bonus_applied = Column(Numeric(12, 2), nullable=True, default=0)  # Referral bonus applied to this order
-    payment_method = Column(String(20), nullable=False)  # 'bitcoin', 'litecoin', 'solana', 'usdt_sol', 'cash', 'promptpay'
+    payment_method = Column(
+        String(20), nullable=False
+    )  # 'bitcoin', 'litecoin', 'solana', 'usdt_sol', 'cash', 'promptpay'
     delivery_address = Column(Text, nullable=False)
     phone_number = Column(String(50), nullable=False)
     delivery_note = Column(Text, nullable=True)
     bitcoin_address = Column(String(100), nullable=True)  # Legacy — use crypto_address for new coins
-    crypto_address = Column(String(200), nullable=True)   # Generic crypto receive address (Card 18)
-    payment_coin = Column(String(10), nullable=True)      # 'btc', 'ltc', 'sol', 'usdt_sol' (Card 18)
-    order_status = Column(String(20), nullable=False,
-                          default='pending')  # pending, reserved, confirmed, preparing, ready, out_for_delivery, delivered, cancelled, expired
-    reserved_until = Column(DateTime(timezone=True),
-                            nullable=True)  # Reservation expiration time (configurable timeout)
+    crypto_address = Column(String(200), nullable=True)  # Generic crypto receive address (Card 18)
+    payment_coin = Column(String(10), nullable=True)  # 'btc', 'ltc', 'sol', 'usdt_sol' (Card 18)
+    order_status = Column(
+        String(20), nullable=False, default="pending"
+    )  # pending, reserved, confirmed, preparing, ready, out_for_delivery, delivered, cancelled, expired
+    reserved_until = Column(
+        DateTime(timezone=True), nullable=True
+    )  # Reservation expiration time (configurable timeout)
     delivery_time = Column(DateTime(timezone=True), nullable=True)  # Planned delivery time set by admin
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
@@ -507,7 +563,7 @@ class Order(Database.BASE):
     delivery_type = Column(String(20), nullable=False, default="door")  # door | dead_drop | pickup
     drop_instructions = Column(Text, nullable=True)
     drop_location_photo = Column(String(255), nullable=True)  # Telegram file_id (legacy single photo)
-    drop_latitude = Column(Float, nullable=True)   # Dead drop GPS lat
+    drop_latitude = Column(Float, nullable=True)  # Dead drop GPS lat
     drop_longitude = Column(Float, nullable=True)  # Dead drop GPS lng
     drop_media = Column(JSON, nullable=True)  # List of {"file_id": str, "type": "photo"|"video"}
 
@@ -526,8 +582,8 @@ class Order(Database.BASE):
     refund_status = Column(String(20), nullable=True)
 
     # Multi-brand / multi-store
-    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="SET NULL"), nullable=True, index=True)
-    store_id = Column(Integer, ForeignKey('stores.id', ondelete="SET NULL"), nullable=True)
+    brand_id = Column(Integer, ForeignKey("brands.id", ondelete="SET NULL"), nullable=True, index=True)
+    store_id = Column(Integer, ForeignKey("stores.id", ondelete="SET NULL"), nullable=True)
 
     buyer = relationship("User", foreign_keys=lambda: [Order.buyer_id])
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
@@ -536,40 +592,54 @@ class Order(Database.BASE):
 
     # PERF-13 fix: Add CheckConstraints on status/type columns
     __table_args__ = (
-        Index('ix_orders_buyer_status', 'buyer_id', 'order_status'),
-        Index('ix_orders_created_at', 'created_at'),
-        Index('ix_orders_order_code', 'order_code'),
-        Index('ix_orders_reserved_until', 'reserved_until'),  # For cleanup task
+        Index("ix_orders_buyer_status", "buyer_id", "order_status"),
+        Index("ix_orders_created_at", "created_at"),
+        Index("ix_orders_order_code", "order_code"),
+        Index("ix_orders_reserved_until", "reserved_until"),  # For cleanup task
         CheckConstraint(
             "order_status IN ('pending', 'reserved', 'confirmed', 'preparing', 'ready', "
             "'out_for_delivery', 'delivered', 'cancelled', 'expired')",
-            name='ck_orders_order_status'
+            name="ck_orders_order_status",
         ),
         CheckConstraint(
             "payment_method IN ('bitcoin', 'litecoin', 'solana', 'usdt_sol', 'cash', 'promptpay')",
-            name='ck_orders_payment_method'
+            name="ck_orders_payment_method",
         ),
-        CheckConstraint(
-            "delivery_type IN ('door', 'dead_drop', 'pickup')",
-            name='ck_orders_delivery_type'
-        ),
+        CheckConstraint("delivery_type IN ('door', 'dead_drop', 'pickup')", name="ck_orders_delivery_type"),
         # A verified bank slip can pay for exactly one order. NULLs are distinct
         # in both Postgres and SQLite, so unpaid/unverified orders are unaffected.
-        UniqueConstraint('slip_transaction_id', name='uq_orders_slip_transaction_id'),
+        UniqueConstraint("slip_transaction_id", name="uq_orders_slip_transaction_id"),
     )
 
-    def __init__(self, buyer_id: int, total_price, payment_method: str,
-                 delivery_address: str, phone_number: str, delivery_note: str = None,
-                 bitcoin_address: str = None, order_status: str = 'pending',
-                 order_code: str = None, reserved_until=None, delivery_time=None,
-                 bonus_applied=0, latitude: float = None, longitude: float = None,
-                 google_maps_link: str = None, delivery_type: str = 'door',
-                 drop_instructions: str = None, drop_location_photo: str = None,
-                 drop_latitude: float = None, drop_longitude: float = None,
-                 drop_media: list = None,
-                 crypto_address: str = None, payment_coin: str = None,
-                 brand_id: int = None, store_id: int = None,
-                 **kw: Any):
+    def __init__(
+        self,
+        buyer_id: int,
+        total_price,
+        payment_method: str,
+        delivery_address: str,
+        phone_number: str,
+        delivery_note: str | None = None,
+        bitcoin_address: str | None = None,
+        order_status: str = "pending",
+        order_code: str | None = None,
+        reserved_until=None,
+        delivery_time=None,
+        bonus_applied=0,
+        latitude: float | None = None,
+        longitude: float | None = None,
+        google_maps_link: str | None = None,
+        delivery_type: str = "door",
+        drop_instructions: str | None = None,
+        drop_location_photo: str | None = None,
+        drop_latitude: float | None = None,
+        drop_longitude: float | None = None,
+        drop_media: list | None = None,
+        crypto_address: str | None = None,
+        payment_coin: str | None = None,
+        brand_id: int | None = None,
+        store_id: int | None = None,
+        **kw: Any,
+    ):
         super().__init__(**kw)
         self.buyer_id = buyer_id
         self.order_code = order_code
@@ -599,10 +669,10 @@ class Order(Database.BASE):
 
 
 class OrderItem(Database.BASE):
-    __tablename__ = 'order_items'
+    __tablename__ = "order_items"
 
     id = Column(Integer, primary_key=True)
-    order_id = Column(Integer, ForeignKey('orders.id', ondelete="CASCADE"), nullable=False)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
     item_name = Column(String(100), nullable=False)
     price = Column(Numeric(12, 2), nullable=False)  # Price per unit
     quantity = Column(Integer, nullable=False, default=1)
@@ -610,12 +680,11 @@ class OrderItem(Database.BASE):
 
     order = relationship("Order", back_populates="items")
 
-    __table_args__ = (
-        Index('ix_order_items_order_id', 'order_id'),
-    )
+    __table_args__ = (Index("ix_order_items_order_id", "order_id"),)
 
-    def __init__(self, order_id: int, item_name: str, price, quantity: int = 1,
-                 selected_modifiers: dict = None, **kw: Any):
+    def __init__(
+        self, order_id: int, item_name: str, price, quantity: int = 1, selected_modifiers: dict | None = None, **kw: Any
+    ):
         super().__init__(**kw)
         self.order_id = order_id
         self.item_name = item_name
@@ -625,9 +694,9 @@ class OrderItem(Database.BASE):
 
 
 class CustomerInfo(Database.BASE):
-    __tablename__ = 'customer_info'
+    __tablename__ = "customer_info"
 
-    telegram_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), primary_key=True)
+    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), primary_key=True)
     phone_number = Column(String(50), nullable=True)
     delivery_address = Column(Text, nullable=True)
     delivery_note = Column(Text, nullable=True)
@@ -645,30 +714,36 @@ class CustomerInfo(Database.BASE):
 
     user = relationship("User", foreign_keys=lambda: [CustomerInfo.telegram_id])
 
-    def __init__(self, telegram_id: int, phone_number: str = None, delivery_address: str = None,
-                 delivery_note: str = None, **kw: Any):
+    def __init__(
+        self,
+        telegram_id: int,
+        phone_number: str | None = None,
+        delivery_address: str | None = None,
+        delivery_note: str | None = None,
+        **kw: Any,
+    ):
         super().__init__(**kw)
         self.telegram_id = telegram_id
         self.phone_number = phone_number
         self.delivery_address = delivery_address
         self.delivery_note = delivery_note
         # Explicitly initialize numeric fields to prevent None values
-        if not hasattr(self, 'total_spendings') or self.total_spendings is None:
-            self.total_spendings = Decimal('0')
-        if not hasattr(self, 'completed_orders_count') or self.completed_orders_count is None:
+        if not hasattr(self, "total_spendings") or self.total_spendings is None:
+            self.total_spendings = Decimal("0")
+        if not hasattr(self, "completed_orders_count") or self.completed_orders_count is None:
             self.completed_orders_count = 0
-        if not hasattr(self, 'bonus_balance') or self.bonus_balance is None:
-            self.bonus_balance = Decimal('0')
+        if not hasattr(self, "bonus_balance") or self.bonus_balance is None:
+            self.bonus_balance = Decimal("0")
 
 
 class BitcoinAddress(Database.BASE):
-    __tablename__ = 'bitcoin_addresses'
+    __tablename__ = "bitcoin_addresses"
 
     address = Column(String(100), primary_key=True)
     is_used = Column(Boolean, nullable=False, default=False, index=True)
-    used_by = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="SET NULL"), nullable=True)
+    used_by = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="SET NULL"), nullable=True)
     used_at = Column(DateTime(timezone=True), nullable=True)
-    order_id = Column(Integer, ForeignKey('orders.id', ondelete="SET NULL"), nullable=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="SET NULL"), nullable=True)
 
     user = relationship("User", foreign_keys=lambda: [BitcoinAddress.used_by])
     order = relationship("Order", foreign_keys=lambda: [BitcoinAddress.order_id])
@@ -680,34 +755,36 @@ class BitcoinAddress(Database.BASE):
 
 class CryptoAddress(Database.BASE):
     """Multi-coin address pool (Card 18). Generalises BitcoinAddress."""
-    __tablename__ = 'crypto_addresses'
+
+    __tablename__ = "crypto_addresses"
 
     id = Column(Integer, primary_key=True)
-    coin = Column(String(10), nullable=False, index=True)   # 'btc', 'ltc', 'sol', 'usdt_sol'
+    coin = Column(String(10), nullable=False, index=True)  # 'btc', 'ltc', 'sol', 'usdt_sol'
     address = Column(String(200), nullable=False)
     is_used = Column(Boolean, nullable=False, default=False, index=True)
-    used_by = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="SET NULL"), nullable=True)
+    used_by = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="SET NULL"), nullable=True)
     used_at = Column(DateTime(timezone=True), nullable=True)
-    order_id = Column(Integer, ForeignKey('orders.id', ondelete="SET NULL"), nullable=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="SET NULL"), nullable=True)
 
     user = relationship("User", foreign_keys=lambda: [CryptoAddress.used_by])
     order = relationship("Order", foreign_keys=lambda: [CryptoAddress.order_id])
 
     __table_args__ = (
-        UniqueConstraint('coin', 'address', name='uq_coin_address'),
-        Index('ix_crypto_coin_unused', 'coin', 'is_used'),
+        UniqueConstraint("coin", "address", name="uq_coin_address"),
+        Index("ix_crypto_coin_unused", "coin", "is_used"),
     )
 
 
 class CryptoPayment(Database.BASE):
     """Tracks on-chain verification state for crypto payments (Card 18)."""
-    __tablename__ = 'crypto_payments'
+
+    __tablename__ = "crypto_payments"
 
     id = Column(Integer, primary_key=True)
-    order_id = Column(Integer, ForeignKey('orders.id', ondelete="CASCADE"), nullable=False, unique=True)
-    coin = Column(String(10), nullable=False)               # 'btc', 'ltc', 'sol', 'usdt_sol'
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, unique=True)
+    coin = Column(String(10), nullable=False)  # 'btc', 'ltc', 'sol', 'usdt_sol'
     receive_address = Column(String(200), nullable=False)
-    expected_amount = Column(Numeric(20, 8), nullable=False) # In native coin units
+    expected_amount = Column(Numeric(20, 8), nullable=False)  # In native coin units
     expected_amount_usd = Column(Numeric(12, 2), nullable=True)
     tx_hash = Column(String(200), nullable=True)
     received_amount = Column(Numeric(20, 8), nullable=True)
@@ -715,7 +792,7 @@ class CryptoPayment(Database.BASE):
     overpaid_amount = Column(Numeric(20, 8), nullable=True, default=0)
     confirmations = Column(Integer, nullable=False, default=0)
     required_confirmations = Column(Integer, nullable=False)
-    status = Column(String(20), nullable=False, default='awaiting')  # awaiting → detected → confirmed → expired
+    status = Column(String(20), nullable=False, default="awaiting")  # awaiting → detected → confirmed → expired
     detected_at = Column(DateTime(timezone=True), nullable=True)
     confirmed_at = Column(DateTime(timezone=True), nullable=True)
     expires_at = Column(DateTime(timezone=True), nullable=False)
@@ -725,10 +802,7 @@ class CryptoPayment(Database.BASE):
     order = relationship("Order", foreign_keys=lambda: [CryptoPayment.order_id])
 
     __table_args__ = (
-        CheckConstraint(
-            "status IN ('awaiting', 'detected', 'confirmed', 'expired')",
-            name='ck_crypto_payments_status'
-        ),
+        CheckConstraint("status IN ('awaiting', 'detected', 'confirmed', 'expired')", name="ck_crypto_payments_status"),
     )
 
 
@@ -742,45 +816,38 @@ class Refund(Database.BASE):
     external action (bonus-only), or ``pending_manual`` when an admin still has
     to return real funds.
     """
-    __tablename__ = 'refunds'
+
+    __tablename__ = "refunds"
 
     id = Column(Integer, primary_key=True)
-    order_id = Column(Integer, ForeignKey('orders.id', ondelete='CASCADE'),
-                      nullable=False, index=True)
-    method = Column(String(20), nullable=False)   # original payment method being reversed
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    method = Column(String(20), nullable=False)  # original payment method being reversed
     bonus_restored = Column(Numeric(12, 2), nullable=False, default=0)  # THB returned to bonus_balance
     amount = Column(Numeric(12, 2), nullable=False, default=0)  # external (cash) amount needing manual refund
-    status = Column(String(20), nullable=False, default='completed')  # 'completed' | 'pending_manual'
+    status = Column(String(20), nullable=False, default="completed")  # 'completed' | 'pending_manual'
     reason = Column(Text, nullable=True)
     created_by = Column(BigInteger, nullable=True)  # admin telegram id; 0/None = system/auto
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     order = relationship("Order", foreign_keys=lambda: [Refund.order_id])
 
-    __table_args__ = (
-        CheckConstraint(
-            "status IN ('completed', 'pending_manual')",
-            name='ck_refunds_status'
-        ),
-    )
+    __table_args__ = (CheckConstraint("status IN ('completed', 'pending_manual')", name="ck_refunds_status"),)
 
 
 class BotSettings(Database.BASE):
-    __tablename__ = 'bot_settings'
+    __tablename__ = "bot_settings"
 
     id = Column(Integer, primary_key=True)
     setting_key = Column(String(100), nullable=False, index=True)
     setting_value = Column(Text, nullable=True)
-    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="CASCADE"), nullable=True, index=True)
+    brand_id = Column(Integer, ForeignKey("brands.id", ondelete="CASCADE"), nullable=True, index=True)
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
     brand = relationship("Brand", foreign_keys=lambda: [BotSettings.brand_id])
 
-    __table_args__ = (
-        UniqueConstraint('setting_key', 'brand_id', name='uq_setting_key_brand'),
-    )
+    __table_args__ = (UniqueConstraint("setting_key", "brand_id", name="uq_setting_key_brand"),)
 
-    def __init__(self, setting_key: str, setting_value: str = None, brand_id: int = None, **kw: Any):
+    def __init__(self, setting_key: str, setting_value: str | None = None, brand_id: int | None = None, **kw: Any):
         super().__init__(**kw)
         self.setting_key = setting_key
         self.setting_value = setting_value
@@ -788,15 +855,15 @@ class BotSettings(Database.BASE):
 
 
 class ShoppingCart(Database.BASE):
-    __tablename__ = 'shopping_cart'
+    __tablename__ = "shopping_cart"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), nullable=False)
-    item_name = Column(String(100), ForeignKey('goods.name', ondelete="CASCADE"), nullable=False)
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False)
+    item_name = Column(String(100), ForeignKey("goods.name", ondelete="CASCADE"), nullable=False)
     quantity = Column(Integer, nullable=False, default=1)
     selected_modifiers = Column(JSON, nullable=True)  # Selected modifier choices (Card 8)
-    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="CASCADE"), nullable=True, index=True)
-    store_id = Column(Integer, ForeignKey('stores.id', ondelete="SET NULL"), nullable=True, index=True)
+    brand_id = Column(Integer, ForeignKey("brands.id", ondelete="CASCADE"), nullable=True, index=True)
+    store_id = Column(Integer, ForeignKey("stores.id", ondelete="SET NULL"), nullable=True, index=True)
     added_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     expires_at = Column(DateTime(timezone=True), nullable=True, index=True)  # Card 21: cart staleness timeout
 
@@ -806,14 +873,22 @@ class ShoppingCart(Database.BASE):
     store = relationship("Store", foreign_keys=lambda: [ShoppingCart.store_id])
 
     __table_args__ = (
-        UniqueConstraint('user_id', 'item_name', 'brand_id', name='uq_cart_user_item_brand'),
-        Index('ix_shopping_cart_user_added', 'user_id', 'added_at'),
-        Index('ix_shopping_cart_user_brand', 'user_id', 'brand_id'),
+        UniqueConstraint("user_id", "item_name", "brand_id", name="uq_cart_user_item_brand"),
+        Index("ix_shopping_cart_user_added", "user_id", "added_at"),
+        Index("ix_shopping_cart_user_brand", "user_id", "brand_id"),
     )
 
-    def __init__(self, user_id: int, item_name: str, quantity: int = 1,
-                 selected_modifiers: dict = None, brand_id: int = None,
-                 store_id: int = None, expires_at=None, **kw: Any):
+    def __init__(
+        self,
+        user_id: int,
+        item_name: str,
+        quantity: int = 1,
+        selected_modifiers: dict | None = None,
+        brand_id: int | None = None,
+        store_id: int | None = None,
+        expires_at=None,
+        **kw: Any,
+    ):
         super().__init__(**kw)
         self.user_id = user_id
         self.item_name = item_name
@@ -826,10 +901,11 @@ class ShoppingCart(Database.BASE):
 
 class DeliveryChatMessage(Database.BASE):
     """Recorded messages between driver and customer during delivery (Card 13)."""
-    __tablename__ = 'delivery_chat_messages'
+
+    __tablename__ = "delivery_chat_messages"
 
     id = Column(Integer, primary_key=True)
-    order_id = Column(Integer, ForeignKey('orders.id', ondelete="CASCADE"), nullable=False)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
     sender_id = Column(BigInteger, nullable=False)  # Telegram ID of sender
     sender_role = Column(String(20), nullable=False)  # 'driver' or 'customer'
     message_text = Column(Text, nullable=True)
@@ -843,15 +919,22 @@ class DeliveryChatMessage(Database.BASE):
 
     order = relationship("Order", foreign_keys=lambda: [DeliveryChatMessage.order_id])
 
-    __table_args__ = (
-        Index('ix_delivery_chat_order_created', 'order_id', 'created_at'),
-    )
+    __table_args__ = (Index("ix_delivery_chat_order_created", "order_id", "created_at"),)
 
-    def __init__(self, order_id: int, sender_id: int, sender_role: str,
-                 message_text: str = None, photo_file_id: str = None,
-                 location_lat: float = None, location_lng: float = None,
-                 is_live_location: bool = False, live_location_update_count: int = None,
-                 telegram_message_id: int = None, **kw: Any):
+    def __init__(
+        self,
+        order_id: int,
+        sender_id: int,
+        sender_role: str,
+        message_text: str | None = None,
+        photo_file_id: str | None = None,
+        location_lat: float | None = None,
+        location_lng: float | None = None,
+        is_live_location: bool = False,
+        live_location_update_count: int | None = None,
+        telegram_message_id: int | None = None,
+        **kw: Any,
+    ):
         super().__init__(**kw)
         self.order_id = order_id
         self.sender_id = sender_id
@@ -866,15 +949,15 @@ class DeliveryChatMessage(Database.BASE):
 
 
 class InventoryLog(Database.BASE):
-    __tablename__ = 'inventory_log'
+    __tablename__ = "inventory_log"
 
     id = Column(Integer, primary_key=True)
     # LOGIC-13 fix: SET NULL on delete to preserve audit trail when items/categories are deleted
-    item_name = Column(String(100), ForeignKey('goods.name', ondelete="SET NULL"), nullable=True)
+    item_name = Column(String(100), ForeignKey("goods.name", ondelete="SET NULL"), nullable=True)
     change_type = Column(String(20), nullable=False)  # reserve, release, deduct, add, manual, expired
     quantity_change = Column(Integer, nullable=False)  # Can be negative or positive
-    order_id = Column(Integer, ForeignKey('orders.id', ondelete="SET NULL"), nullable=True, index=True)
-    admin_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="SET NULL"), nullable=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="SET NULL"), nullable=True, index=True)
+    admin_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="SET NULL"), nullable=True)
     timestamp = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), index=True)
     comment = Column(Text, nullable=True)
 
@@ -883,12 +966,20 @@ class InventoryLog(Database.BASE):
     admin = relationship("User", foreign_keys=lambda: [InventoryLog.admin_id])
 
     __table_args__ = (
-        Index('ix_inventory_log_item_timestamp', 'item_name', 'timestamp'),
-        Index('ix_inventory_log_type_timestamp', 'change_type', 'timestamp'),
+        Index("ix_inventory_log_item_timestamp", "item_name", "timestamp"),
+        Index("ix_inventory_log_type_timestamp", "change_type", "timestamp"),
     )
 
-    def __init__(self, item_name: str, change_type: str, quantity_change: int,
-                 order_id: int = None, admin_id: int = None, comment: str = None, **kw: Any):
+    def __init__(
+        self,
+        item_name: str,
+        change_type: str,
+        quantity_change: int,
+        order_id: int | None = None,
+        admin_id: int | None = None,
+        comment: str | None = None,
+        **kw: Any,
+    ):
         super().__init__(**kw)
         self.item_name = item_name
         self.change_type = change_type
@@ -900,7 +991,8 @@ class InventoryLog(Database.BASE):
 
 class Coupon(Database.BASE):
     """Coupon / promo code for discounts."""
-    __tablename__ = 'coupons'
+
+    __tablename__ = "coupons"
 
     id = Column(Integer, primary_key=True)
     code = Column(String(32), unique=True, nullable=False, index=True)
@@ -914,19 +1006,29 @@ class Coupon(Database.BASE):
     current_uses = Column(Integer, nullable=False, default=0)
     max_uses_per_user = Column(Integer, nullable=False, default=1)
     is_active = Column(Boolean, nullable=False, default=True, index=True)
-    created_by = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="SET NULL"), nullable=True)
+    created_by = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     note = Column(Text, nullable=True)
 
     usages = relationship("CouponUsage", back_populates="coupon", cascade="all, delete-orphan")
 
-    __table_args__ = (
-        Index('ix_coupons_active_valid', 'is_active', 'valid_until'),
-    )
+    __table_args__ = (Index("ix_coupons_active_valid", "is_active", "valid_until"),)
 
-    def __init__(self, code: str, discount_type: str, discount_value, created_by: int = None,
-                 min_order=0, max_discount=None, valid_from=None, valid_until=None,
-                 max_uses=None, max_uses_per_user=1, note=None, **kw: Any):
+    def __init__(
+        self,
+        code: str,
+        discount_type: str,
+        discount_value,
+        created_by: int | None = None,
+        min_order=0,
+        max_discount=None,
+        valid_from=None,
+        valid_until=None,
+        max_uses=None,
+        max_uses_per_user=1,
+        note=None,
+        **kw: Any,
+    ):
         super().__init__(**kw)
         self.code = code.upper()
         self.discount_type = discount_type
@@ -942,22 +1044,20 @@ class Coupon(Database.BASE):
 
 
 class CouponUsage(Database.BASE):
-    __tablename__ = 'coupon_usages'
+    __tablename__ = "coupon_usages"
 
     id = Column(Integer, primary_key=True)
-    coupon_id = Column(Integer, ForeignKey('coupons.id', ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), nullable=False, index=True)
-    order_id = Column(Integer, ForeignKey('orders.id', ondelete="SET NULL"), nullable=True)
+    coupon_id = Column(Integer, ForeignKey("coupons.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="SET NULL"), nullable=True)
     discount_applied = Column(Numeric(12, 2), nullable=False)
     used_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     coupon = relationship("Coupon", back_populates="usages")
 
-    __table_args__ = (
-        Index('ix_coupon_usages_user_coupon', 'user_id', 'coupon_id'),
-    )
+    __table_args__ = (Index("ix_coupon_usages_user_coupon", "user_id", "coupon_id"),)
 
-    def __init__(self, coupon_id: int, user_id: int, discount_applied, order_id: int = None, **kw: Any):
+    def __init__(self, coupon_id: int, user_id: int, discount_applied, order_id: int | None = None, **kw: Any):
         super().__init__(**kw)
         self.coupon_id = coupon_id
         self.user_id = user_id
@@ -967,14 +1067,15 @@ class CouponUsage(Database.BASE):
 
 class Review(Database.BASE):
     """Product / order review with rating."""
-    __tablename__ = 'reviews'
+
+    __tablename__ = "reviews"
 
     id = Column(Integer, primary_key=True)
-    order_id = Column(Integer, ForeignKey('orders.id', ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), nullable=False, index=True)
-    item_name = Column(String(100), ForeignKey('goods.name', ondelete="CASCADE"), nullable=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False, index=True)
+    item_name = Column(String(100), ForeignKey("goods.name", ondelete="CASCADE"), nullable=True)
     # PERF-12 fix: Add CheckConstraint to enforce 1-5 range
-    rating = Column(Integer, CheckConstraint('rating >= 1 AND rating <= 5'), nullable=False)  # 1-5
+    rating = Column(Integer, CheckConstraint("rating >= 1 AND rating <= 5"), nullable=False)  # 1-5
     comment = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
@@ -982,12 +1083,19 @@ class Review(Database.BASE):
     user = relationship("User", foreign_keys=lambda: [Review.user_id])
 
     __table_args__ = (
-        UniqueConstraint('order_id', 'user_id', name='uq_review_order_user'),
-        Index('ix_reviews_item_rating', 'item_name', 'rating'),
+        UniqueConstraint("order_id", "user_id", name="uq_review_order_user"),
+        Index("ix_reviews_item_rating", "item_name", "rating"),
     )
 
-    def __init__(self, order_id: int, user_id: int, rating: int, comment: str = None,
-                 item_name: str = None, **kw: Any):
+    def __init__(
+        self,
+        order_id: int,
+        user_id: int,
+        rating: int,
+        comment: str | None = None,
+        item_name: str | None = None,
+        **kw: Any,
+    ):
         super().__init__(**kw)
         self.order_id = order_id
         self.user_id = user_id
@@ -998,16 +1106,17 @@ class Review(Database.BASE):
 
 class SupportTicket(Database.BASE):
     """Support ticket for customer issues."""
-    __tablename__ = 'support_tickets'
+
+    __tablename__ = "support_tickets"
 
     id = Column(Integer, primary_key=True)
     ticket_code = Column(String(8), unique=True, nullable=False, index=True)
-    user_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False, index=True)
     subject = Column(String(200), nullable=False)
-    status = Column(String(20), nullable=False, default='open')  # open, in_progress, resolved, closed
-    priority = Column(String(10), nullable=False, default='normal')  # low, normal, high, urgent
-    order_id = Column(Integer, ForeignKey('orders.id', ondelete="SET NULL"), nullable=True)
-    assigned_to = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="SET NULL"), nullable=True)
+    status = Column(String(20), nullable=False, default="open")  # open, in_progress, resolved, closed
+    priority = Column(String(10), nullable=False, default="normal")  # low, normal, high, urgent
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="SET NULL"), nullable=True)
+    assigned_to = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
     resolved_at = Column(DateTime(timezone=True), nullable=True)
@@ -1016,12 +1125,20 @@ class SupportTicket(Database.BASE):
     messages = relationship("TicketMessage", back_populates="ticket", cascade="all, delete-orphan")
 
     __table_args__ = (
-        Index('ix_support_tickets_user_status', 'user_id', 'status'),
-        Index('ix_support_tickets_status', 'status'),
+        Index("ix_support_tickets_user_status", "user_id", "status"),
+        Index("ix_support_tickets_status", "status"),
     )
 
-    def __init__(self, ticket_code: str, user_id: int, subject: str, status: str = 'open',
-                 priority: str = 'normal', order_id: int = None, **kw: Any):
+    def __init__(
+        self,
+        ticket_code: str,
+        user_id: int,
+        subject: str,
+        status: str = "open",
+        priority: str = "normal",
+        order_id: int | None = None,
+        **kw: Any,
+    ):
         super().__init__(**kw)
         self.ticket_code = ticket_code
         self.user_id = user_id
@@ -1032,10 +1149,10 @@ class SupportTicket(Database.BASE):
 
 
 class TicketMessage(Database.BASE):
-    __tablename__ = 'ticket_messages'
+    __tablename__ = "ticket_messages"
 
     id = Column(Integer, primary_key=True)
-    ticket_id = Column(Integer, ForeignKey('support_tickets.id', ondelete="CASCADE"), nullable=False, index=True)
+    ticket_id = Column(Integer, ForeignKey("support_tickets.id", ondelete="CASCADE"), nullable=False, index=True)
     sender_id = Column(BigInteger, nullable=False)
     sender_role = Column(String(10), nullable=False)  # 'user' or 'admin'
     message_text = Column(Text, nullable=False)
@@ -1053,10 +1170,11 @@ class TicketMessage(Database.BASE):
 
 class Store(Database.BASE):
     """Store / branch location for multi-location support."""
-    __tablename__ = 'stores'
+
+    __tablename__ = "stores"
 
     id = Column(Integer, primary_key=True)
-    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="CASCADE"), nullable=True, index=True)
+    brand_id = Column(Integer, ForeignKey("brands.id", ondelete="CASCADE"), nullable=True, index=True)
     name = Column(String(200), nullable=False)
     address = Column(Text, nullable=True)
     latitude = Column(Float, nullable=True)
@@ -1068,26 +1186,39 @@ class Store(Database.BASE):
     rider_group_id = Column(BigInteger, nullable=True)  # Per-branch rider Telegram group
 
     # Per-store storefront & payment (Card 28)
-    menu_image_file_id = Column(String(255), nullable=True)  # Telegram file_id of the branch menu board, sent on store select
-    promptpay_id = Column(String(20), nullable=True)         # Branch PromptPay phone/national-id; overrides brand/global
-    promptpay_name = Column(String(200), nullable=True)      # Branch PromptPay account name (for slip receiver match)
-    payment_qr_file_id = Column(String(255), nullable=True)  # Telegram file_id of a static branch QR (fallback if no dynamic id)
+    menu_image_file_id = Column(
+        String(255), nullable=True
+    )  # Telegram file_id of the branch menu board, sent on store select
+    promptpay_id = Column(String(20), nullable=True)  # Branch PromptPay phone/national-id; overrides brand/global
+    promptpay_name = Column(String(200), nullable=True)  # Branch PromptPay account name (for slip receiver match)
+    payment_qr_file_id = Column(
+        String(255), nullable=True
+    )  # Telegram file_id of a static branch QR (fallback if no dynamic id)
 
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     brand = relationship("Brand", back_populates="stores")
     inventory = relationship("BranchInventory", back_populates="store", cascade="all, delete-orphan")
 
-    __table_args__ = (
-        UniqueConstraint('brand_id', 'name', name='uq_store_brand_name'),
-    )
+    __table_args__ = (UniqueConstraint("brand_id", "name", name="uq_store_brand_name"),)
 
-    def __init__(self, name: str, address: str = None, latitude: float = None,
-                 longitude: float = None, phone: str = None, is_default: bool = False,
-                 brand_id: int = None, kitchen_group_id: int = None,
-                 rider_group_id: int = None, menu_image_file_id: str = None,
-                 promptpay_id: str = None, promptpay_name: str = None,
-                 payment_qr_file_id: str = None, **kw: Any):
+    def __init__(
+        self,
+        name: str,
+        address: str | None = None,
+        latitude: float | None = None,
+        longitude: float | None = None,
+        phone: str | None = None,
+        is_default: bool = False,
+        brand_id: int | None = None,
+        kitchen_group_id: int | None = None,
+        rider_group_id: int | None = None,
+        menu_image_file_id: str | None = None,
+        promptpay_id: str | None = None,
+        promptpay_name: str | None = None,
+        payment_qr_file_id: str | None = None,
+        **kw: Any,
+    ):
         super().__init__(**kw)
         self.name = name
         self.brand_id = brand_id
@@ -1106,11 +1237,12 @@ class Store(Database.BASE):
 
 class BranchInventory(Database.BASE):
     """Per-branch inventory tracking. Overrides Goods.stock_quantity for multi-branch brands."""
-    __tablename__ = 'branch_inventory'
+
+    __tablename__ = "branch_inventory"
 
     id = Column(Integer, primary_key=True)
-    store_id = Column(Integer, ForeignKey('stores.id', ondelete="CASCADE"), nullable=False, index=True)
-    item_name = Column(String(100), ForeignKey('goods.name', ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    store_id = Column(Integer, ForeignKey("stores.id", ondelete="CASCADE"), nullable=False, index=True)
+    item_name = Column(String(100), ForeignKey("goods.name", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     stock_quantity = Column(Integer, nullable=False, default=0)
     reserved_quantity = Column(Integer, nullable=False, default=0)
 
@@ -1118,16 +1250,15 @@ class BranchInventory(Database.BASE):
     item = relationship("Goods", foreign_keys=lambda: [BranchInventory.item_name])
 
     __table_args__ = (
-        UniqueConstraint('store_id', 'item_name', name='uq_branch_inventory_store_item'),
-        Index('ix_branch_inventory_item', 'item_name'),
+        UniqueConstraint("store_id", "item_name", name="uq_branch_inventory_store_item"),
+        Index("ix_branch_inventory_item", "item_name"),
     )
 
     @property
     def available_quantity(self) -> int:
         return max(0, self.stock_quantity - self.reserved_quantity)
 
-    def __init__(self, store_id: int, item_name: str, stock_quantity: int = 0,
-                 reserved_quantity: int = 0, **kw: Any):
+    def __init__(self, store_id: int, item_name: str, stock_quantity: int = 0, reserved_quantity: int = 0, **kw: Any):
         super().__init__(**kw)
         self.store_id = store_id
         self.item_name = item_name
@@ -1137,38 +1268,49 @@ class BranchInventory(Database.BASE):
 
 class BotConfig(Database.BASE):
     """Maps a Telegram bot token to a Brand. One brand = one bot. (Card 19)"""
-    __tablename__ = 'bot_configs'
+
+    __tablename__ = "bot_configs"
 
     id = Column(Integer, primary_key=True)
-    brand_id = Column(Integer, ForeignKey('brands.id', ondelete='CASCADE'), nullable=False, unique=True)
+    brand_id = Column(Integer, ForeignKey("brands.id", ondelete="CASCADE"), nullable=False, unique=True)
     bot_token = Column(String(100), nullable=False, unique=True)
-    bot_username = Column(String(64), nullable=True)       # cached from getMe()
+    bot_username = Column(String(64), nullable=True)  # cached from getMe()
     bot_display_name = Column(String(128), nullable=True)  # cached from getMe()
 
     is_active = Column(Boolean, nullable=False, default=True, index=True)
-    webhook_url = Column(String(500), nullable=True)       # NULL = use polling
+    webhook_url = Column(String(500), nullable=True)  # NULL = use polling
     webhook_secret = Column(String(128), nullable=True)
 
     # Per-bot feature flags
-    payments_enabled = Column(JSON, nullable=True)         # ["promptpay", "bitcoin", "cash"]
-    default_language = Column(String(5), nullable=True)    # "th", "en"
-    default_currency = Column(String(5), nullable=True)    # "THB", "USD"
+    payments_enabled = Column(JSON, nullable=True)  # ["promptpay", "bitcoin", "cash"]
+    default_language = Column(String(5), nullable=True)  # "th", "en"
+    default_currency = Column(String(5), nullable=True)  # "THB", "USD"
 
     # Customisation
-    welcome_message = Column(Text, nullable=True)          # Override default welcome
-    menu_style = Column(String(20), nullable=True)         # 'grid', 'list', 'category_first'
+    welcome_message = Column(Text, nullable=True)  # Override default welcome
+    menu_style = Column(String(20), nullable=True)  # 'grid', 'list', 'category_first'
 
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=True, onupdate=func.now())
 
-    brand = relationship('Brand', backref='bot_config', foreign_keys=lambda: [BotConfig.brand_id])
+    brand = relationship("Brand", backref="bot_config", foreign_keys=lambda: [BotConfig.brand_id])
 
-    def __init__(self, brand_id: int, bot_token: str, bot_username: str = None,
-                 bot_display_name: str = None, is_active: bool = True,
-                 webhook_url: str = None, webhook_secret: str = None,
-                 payments_enabled: list = None, default_language: str = None,
-                 default_currency: str = None, welcome_message: str = None,
-                 menu_style: str = None, **kw: Any):
+    def __init__(
+        self,
+        brand_id: int,
+        bot_token: str,
+        bot_username: str | None = None,
+        bot_display_name: str | None = None,
+        is_active: bool = True,
+        webhook_url: str | None = None,
+        webhook_secret: str | None = None,
+        payments_enabled: list | None = None,
+        default_language: str | None = None,
+        default_currency: str | None = None,
+        welcome_message: str | None = None,
+        menu_style: str | None = None,
+        **kw: Any,
+    ):
         super().__init__(**kw)
         self.brand_id = brand_id
         self.bot_token = bot_token
@@ -1186,12 +1328,13 @@ class BotConfig(Database.BASE):
 
 class SavedCart(Database.BASE):
     """Saved cart snapshot when user switches brands (Card 21)."""
-    __tablename__ = 'saved_carts'
+
+    __tablename__ = "saved_carts"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"), nullable=False, index=True)
-    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="CASCADE"), nullable=False)
-    store_id = Column(Integer, ForeignKey('stores.id', ondelete="SET NULL"), nullable=True)
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False, index=True)
+    brand_id = Column(Integer, ForeignKey("brands.id", ondelete="CASCADE"), nullable=False)
+    store_id = Column(Integer, ForeignKey("stores.id", ondelete="SET NULL"), nullable=True)
     items_json = Column(JSON, nullable=False)
     original_total = Column(Numeric(12, 2), nullable=False)
     saved_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
@@ -1200,8 +1343,9 @@ class SavedCart(Database.BASE):
     brand = relationship("Brand", foreign_keys=lambda: [SavedCart.brand_id])
     store = relationship("Store", foreign_keys=lambda: [SavedCart.store_id])
 
-    def __init__(self, user_id: int, brand_id: int, items_json: list,
-                 original_total, store_id: int = None, **kw: Any):
+    def __init__(
+        self, user_id: int, brand_id: int, items_json: list, original_total, store_id: int | None = None, **kw: Any
+    ):
         super().__init__(**kw)
         self.user_id = user_id
         self.brand_id = brand_id
@@ -1219,19 +1363,21 @@ class Driver(Database.BASE):
     rider-group flow). A NULL ``brand_id`` means a platform-wide driver eligible
     for any brand's orders.
     """
-    __tablename__ = 'drivers'
+
+    __tablename__ = "drivers"
 
     id = Column(Integer, primary_key=True)
-    telegram_id = Column(BigInteger, ForeignKey('users.telegram_id', ondelete="CASCADE"),
-                         nullable=False, unique=True, index=True)
-    brand_id = Column(Integer, ForeignKey('brands.id', ondelete="CASCADE"), nullable=True, index=True)
+    telegram_id = Column(
+        BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False, unique=True, index=True
+    )
+    brand_id = Column(Integer, ForeignKey("brands.id", ondelete="CASCADE"), nullable=True, index=True)
     name = Column(String(120), nullable=False)
     phone = Column(String(50), nullable=True)
     vehicle_type = Column(String(30), nullable=True)  # 'motorbike', 'car', 'bicycle', 'foot'
     service_zones = Column(JSON, nullable=True)  # list[str] of delivery_zone names; null = all zones
 
     # Approval lifecycle: pending → approved (admin invite/approval flow)
-    status = Column(String(20), nullable=False, default='pending')  # pending, approved, rejected, suspended
+    status = Column(String(20), nullable=False, default="pending")  # pending, approved, rejected, suspended
     approved_by = Column(BigInteger, nullable=True)
     approved_at = Column(DateTime(timezone=True), nullable=True)
 
@@ -1239,7 +1385,7 @@ class Driver(Database.BASE):
     is_online = Column(Boolean, nullable=False, default=False)
     is_available = Column(Boolean, nullable=False, default=True)
     active_order_count = Column(Integer, nullable=False, default=0)
-    rating = Column(Numeric(3, 2), nullable=True)  # 0.00–5.00
+    rating = Column(Numeric(3, 2), nullable=True)  # 0.00-5.00
     last_latitude = Column(Float, nullable=True)
     last_longitude = Column(Float, nullable=True)
     last_location_at = Column(DateTime(timezone=True), nullable=True)
@@ -1250,16 +1396,24 @@ class Driver(Database.BASE):
     brand = relationship("Brand", foreign_keys=lambda: [Driver.brand_id])
 
     __table_args__ = (
-        Index('ix_drivers_dispatch', 'status', 'is_online', 'is_available'),
+        Index("ix_drivers_dispatch", "status", "is_online", "is_available"),
         CheckConstraint(
             "status IN ('pending', 'approved', 'rejected', 'suspended')",
-            name='ck_drivers_status',
+            name="ck_drivers_status",
         ),
     )
 
-    def __init__(self, telegram_id: int, name: str, brand_id: int = None,
-                 phone: str = None, vehicle_type: str = None, service_zones: list = None,
-                 status: str = 'pending', **kw: Any):
+    def __init__(
+        self,
+        telegram_id: int,
+        name: str,
+        brand_id: int | None = None,
+        phone: str | None = None,
+        vehicle_type: str | None = None,
+        service_zones: list | None = None,
+        status: str = "pending",
+        **kw: Any,
+    ):
         super().__init__(**kw)
         self.telegram_id = telegram_id
         self.name = name
@@ -1276,19 +1430,18 @@ class DriverLocationTrail(Database.BASE):
     Populated from Telegram ``edited_message`` live-location updates so dispatch
     can rank by real distance and push live ETAs to customers.
     """
-    __tablename__ = 'driver_location_trail'
+
+    __tablename__ = "driver_location_trail"
 
     id = Column(Integer, primary_key=True)
-    driver_id = Column(Integer, ForeignKey('drivers.id', ondelete="CASCADE"), nullable=False, index=True)
+    driver_id = Column(Integer, ForeignKey("drivers.id", ondelete="CASCADE"), nullable=False, index=True)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     driver = relationship("Driver", foreign_keys=lambda: [DriverLocationTrail.driver_id])
 
-    __table_args__ = (
-        Index('ix_driver_trail_driver_created', 'driver_id', 'created_at'),
-    )
+    __table_args__ = (Index("ix_driver_trail_driver_created", "driver_id", "created_at"),)
 
     def __init__(self, driver_id: int, latitude: float, longitude: float, **kw: Any):
         super().__init__(**kw)
@@ -1315,6 +1468,7 @@ def register_models():
 
             # Verify tables were created
             from sqlalchemy import inspect
+
             inspector = inspect(db.engine)
             tables = inspector.get_table_names()
             logging.info(f"Tables created successfully: {tables}")
@@ -1345,7 +1499,7 @@ def register_models():
                     logging.error(
                         f"Failed to connect to database after {max_retries} attempts. "
                         f"Please check if PostgreSQL container is running and network is configured correctly.",
-                        exc_info=True
+                        exc_info=True,
                     )
                     raise
             else:
@@ -1386,19 +1540,13 @@ def _ensure_default_brand(db):
         )
 
         # Assign all unbranded goods to the default brand
-        s.query(Goods).filter(Goods.brand_id.is_(None)).update(
-            {Goods.brand_id: brand_id}, synchronize_session=False
-        )
+        s.query(Goods).filter(Goods.brand_id.is_(None)).update({Goods.brand_id: brand_id}, synchronize_session=False)
 
         # Assign all unbranded stores to the default brand
-        s.query(Store).filter(Store.brand_id.is_(None)).update(
-            {Store.brand_id: brand_id}, synchronize_session=False
-        )
+        s.query(Store).filter(Store.brand_id.is_(None)).update({Store.brand_id: brand_id}, synchronize_session=False)
 
         # Assign all unbranded orders to the default brand
-        s.query(Order).filter(Order.brand_id.is_(None)).update(
-            {Order.brand_id: brand_id}, synchronize_session=False
-        )
+        s.query(Order).filter(Order.brand_id.is_(None)).update({Order.brand_id: brand_id}, synchronize_session=False)
 
         # Assign all unbranded bot settings to the default brand (leave global ones as null)
         # Don't auto-assign settings — they should remain global unless explicitly scoped
@@ -1412,7 +1560,7 @@ def _assign_superadmin_role(db):
     import logging
     import os
 
-    owner_id = os.environ.get('OWNER_ID')
+    owner_id = os.environ.get("OWNER_ID")
     if not owner_id:
         return
 
@@ -1423,7 +1571,7 @@ def _assign_superadmin_role(db):
 
     with db.session() as s:
         # Get SUPERADMIN role id
-        superadmin_role = s.query(Role).filter_by(name='SUPERADMIN').first()
+        superadmin_role = s.query(Role).filter_by(name="SUPERADMIN").first()
         if not superadmin_role:
             return
 

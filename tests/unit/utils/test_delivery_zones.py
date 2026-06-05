@@ -1,10 +1,15 @@
 """Tests for delivery zone pricing and time slots (Card 10)"""
-import pytest
+
+from datetime import UTC
 from decimal import Decimal
 
+import pytest
+
 from bot.config.delivery_zones import (
-    calculate_distance, get_delivery_zone, get_available_time_slots,
-    DEFAULT_TIME_SLOTS
+    DEFAULT_TIME_SLOTS,
+    calculate_distance,
+    get_available_time_slots,
+    get_delivery_zone,
 )
 
 
@@ -89,17 +94,20 @@ class TestDeliveryZoneOrderFields:
 
     def test_order_zone_and_fee_fields(self, db_with_roles, db_session):
         """Order stores zone, fee, and time slot"""
-        from bot.database.models.main import Order, User
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        user = User(telegram_id=300001, registration_date=datetime.now(timezone.utc))
+        from bot.database.models.main import Order, User
+
+        user = User(telegram_id=300001, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
         order = Order(
-            buyer_id=300001, total_price=Decimal("200.00"),
-            payment_method="cash", delivery_address="Test",
-            phone_number="0812345678"
+            buyer_id=300001,
+            total_price=Decimal("200.00"),
+            payment_method="cash",
+            delivery_address="Test",
+            phone_number="0812345678",
         )
         order.delivery_zone = "Zone 2 - Inner"
         order.delivery_fee = Decimal("30.00")
@@ -114,17 +122,20 @@ class TestDeliveryZoneOrderFields:
 
     def test_order_zone_fields_nullable(self, db_with_roles, db_session):
         """Zone fields default to None"""
-        from bot.database.models.main import Order, User
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        user = User(telegram_id=300002, registration_date=datetime.now(timezone.utc))
+        from bot.database.models.main import Order, User
+
+        user = User(telegram_id=300002, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
         order = Order(
-            buyer_id=300002, total_price=Decimal("100.00"),
-            payment_method="cash", delivery_address="Test",
-            phone_number="0812345678"
+            buyer_id=300002,
+            total_price=Decimal("100.00"),
+            payment_method="cash",
+            delivery_address="Test",
+            phone_number="0812345678",
         )
         db_session.add(order)
         db_session.commit()

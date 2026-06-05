@@ -6,12 +6,20 @@ Provides functions for:
 - Calculating discount amounts (percent or fixed)
 - Recording coupon usage after order placement
 """
+
 import logging
+from datetime import UTC, datetime
 from decimal import Decimal
-from datetime import datetime, timezone
 
 from bot.database import Database
 from bot.database.models.main import Coupon, CouponUsage
+
+
+def _as_utc(dt: datetime | None) -> datetime | None:
+    """Normalize a possibly-naive datetime to UTC-aware (None passes through)."""
+    if dt is not None and dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt
 
 
 def validate_coupon(code: str, user_id: int, order_total: Decimal) -> tuple[bool, str, Coupon | None]:
@@ -32,11 +40,15 @@ def validate_coupon(code: str, user_id: int, order_total: Decimal) -> tuple[bool
         if not coupon.is_active:
             return False, "coupon.error.inactive", None
 
-        # Check expiry
-        now = datetime.now(timezone.utc)
-        if coupon.valid_from and now < coupon.valid_from:
+        # Check expiry. Some DB drivers (e.g. SQLite) return naive datetimes even
+        # for timezone-aware columns; treat any naive value as UTC so the
+        # comparison never raises "can't compare offset-naive and offset-aware".
+        now = datetime.now(UTC)
+        valid_from = _as_utc(coupon.valid_from)
+        valid_until = _as_utc(coupon.valid_until)
+        if valid_from and now < valid_from:
             return False, "coupon.error.not_yet_valid", None
-        if coupon.valid_until and now > coupon.valid_until:
+        if valid_until and now > valid_until:
             return False, "coupon.error.expired", None
 
         # Check global usage limit

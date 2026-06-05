@@ -12,21 +12,23 @@ Provides:
 - Reply to existing tickets (text + photo)
 - Close own tickets
 """
+
+import contextlib
 import logging
 import random
 import string
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from aiogram import Router, F
+from aiogram import F, Router
 from aiogram.enums.chat_type import ChatType
 from aiogram.filters import Command
-from aiogram.filters.state import StatesGroup, State
+from aiogram.filters.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from bot.config.env import EnvKeys
 from bot.database import Database
-from bot.database.models.main import SupportTicket, TicketMessage, Order
+from bot.database.models.main import SupportTicket, TicketMessage
 from bot.i18n import localize
 from bot.keyboards.inline import back, simple_buttons
 
@@ -38,12 +40,12 @@ class TicketStates(StatesGroup):
     waiting_message = State()
     waiting_reply = State()
     waiting_screenshot = State()  # Optional screenshot attachment
-    live_chatting = State()       # Active live chat with maintainer
+    live_chatting = State()  # Active live chat with maintainer
 
 
 def _generate_ticket_code() -> str:
     """Generate a unique 8-character ticket code."""
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    return "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
 
 def _get_maintainer_ids() -> list[int]:
@@ -55,14 +57,12 @@ def _get_maintainer_ids() -> list[int]:
         if part.isdigit():
             ids.append(int(part))
     if not ids and EnvKeys.OWNER_ID:
-        try:
+        with contextlib.suppress(ValueError, TypeError):
             ids.append(int(EnvKeys.OWNER_ID))
-        except (ValueError, TypeError):
-            pass
     return ids
 
 
-async def _notify_maintainers(bot, text: str, photo_id: str = None):
+async def _notify_maintainers(bot, text: str, photo_id: str | None = None):
     """Send notification to all maintainers and support group."""
     for mid in _get_maintainer_ids():
         try:
@@ -84,6 +84,7 @@ async def _notify_maintainers(bot, text: str, photo_id: str = None):
 
 
 # -- /support command ---------------------------------------------------------
+
 
 @router.message(Command("support"))
 async def support_command(message: Message, state: FSMContext):
@@ -117,6 +118,7 @@ async def _show_support_menu(message: Message, edit: bool = False):
 
 # -- Bug report / feedback shortcuts ------------------------------------------
 
+
 @router.callback_query(F.data == "support_bug_report")
 async def start_bug_report(call: CallbackQuery, state: FSMContext):
     """Start bug report flow — high priority, prompts for screenshot."""
@@ -143,6 +145,7 @@ async def start_feedback(call: CallbackQuery, state: FSMContext):
 
 # -- Live chat ----------------------------------------------------------------
 
+
 @router.callback_query(F.data == "support_live_chat")
 async def start_live_chat(call: CallbackQuery, state: FSMContext):
     """Start a live chat session with maintainers."""
@@ -157,15 +160,21 @@ async def start_live_chat(call: CallbackQuery, state: FSMContext):
 
     with Database().session() as session:
         ticket = SupportTicket(
-            ticket_code=ticket_code, user_id=user_id,
-            subject="[LIVE_CHAT] Live support session", priority="high",
+            ticket_code=ticket_code,
+            user_id=user_id,
+            subject="[LIVE_CHAT] Live support session",
+            priority="high",
         )
         session.add(ticket)
         session.flush()
-        session.add(TicketMessage(
-            ticket_id=ticket.id, sender_id=user_id, sender_role="user",
-            message_text="Live chat session started",
-        ))
+        session.add(
+            TicketMessage(
+                ticket_id=ticket.id,
+                sender_id=user_id,
+                sender_role="user",
+                message_text="Live chat session started",
+            )
+        )
         session.commit()
         ticket_id = ticket.id
 
@@ -180,9 +189,11 @@ async def start_live_chat(call: CallbackQuery, state: FSMContext):
 
     await call.message.edit_text(
         localize("support.live_chat.started", ticket_code=ticket_code),
-        reply_markup=simple_buttons([
-            (localize("support.btn.end_chat"), "support_end_live_chat"),
-        ]),
+        reply_markup=simple_buttons(
+            [
+                (localize("support.btn.end_chat"), "support_end_live_chat"),
+            ]
+        ),
     )
 
 
@@ -201,10 +212,14 @@ async def live_chat_message(message: Message, state: FSMContext):
     photo_id = message.photo[-1].file_id if message.photo else None
 
     with Database().session() as session:
-        session.add(TicketMessage(
-            ticket_id=ticket_id, sender_id=user_id, sender_role="user",
-            message_text=msg_text,
-        ))
+        session.add(
+            TicketMessage(
+                ticket_id=ticket_id,
+                sender_id=user_id,
+                sender_role="user",
+                message_text=msg_text,
+            )
+        )
         session.commit()
 
     relay_text = f"💬 [{ticket_code}] <b>User {user_id}:</b>\n{msg_text}"
@@ -223,10 +238,14 @@ async def end_live_chat(call: CallbackQuery, state: FSMContext):
         with Database().session() as session:
             ticket = session.query(SupportTicket).filter_by(id=ticket_id).first()
             if ticket:
-                session.add(TicketMessage(
-                    ticket_id=ticket.id, sender_id=call.from_user.id, sender_role="user",
-                    message_text="Live chat session ended by user",
-                ))
+                session.add(
+                    TicketMessage(
+                        ticket_id=ticket.id,
+                        sender_id=call.from_user.id,
+                        sender_role="user",
+                        message_text="Live chat session ended by user",
+                    )
+                )
                 session.commit()
         await _notify_maintainers(call.bot, f"💬 [{ticket_code}] Live chat ended by user.")
 
@@ -239,6 +258,7 @@ async def end_live_chat(call: CallbackQuery, state: FSMContext):
 
 # -- Ticket list ---------------------------------------------------------------
 
+
 @router.callback_query(F.data == "support_tickets")
 async def support_tickets(call: CallbackQuery, state: FSMContext):
     """Show the user's tickets (open and resolved) with a create button."""
@@ -247,10 +267,7 @@ async def support_tickets(call: CallbackQuery, state: FSMContext):
 
     with Database().session() as session:
         tickets = (
-            session.query(SupportTicket)
-            .filter_by(user_id=user_id)
-            .order_by(SupportTicket.created_at.desc())
-            .all()
+            session.query(SupportTicket).filter_by(user_id=user_id).order_by(SupportTicket.created_at.desc()).all()
         )
 
     if not tickets:
@@ -266,9 +283,7 @@ async def support_tickets(call: CallbackQuery, state: FSMContext):
 
     buttons = []
     for ticket in tickets:
-        status_icon = {"open": "🟢", "in_progress": "🔵", "resolved": "✅", "closed": "⚫"}.get(
-            ticket.status, ""
-        )
+        status_icon = {"open": "🟢", "in_progress": "🔵", "resolved": "✅", "closed": "⚫"}.get(ticket.status, "")
         label = f"{status_icon} [{ticket.ticket_code}] {ticket.subject}"
         buttons.append((label, f"view_ticket_{ticket.id}"))
 
@@ -282,6 +297,7 @@ async def support_tickets(call: CallbackQuery, state: FSMContext):
 
 
 # -- Create ticket -------------------------------------------------------------
+
 
 @router.callback_query(F.data == "create_ticket")
 async def create_ticket(call: CallbackQuery, state: FSMContext):
@@ -406,12 +422,14 @@ async def _finalize_ticket(message: Message, state: FSMContext, from_callback: b
         session.add(ticket)
         session.flush()
 
-        session.add(TicketMessage(
-            ticket_id=ticket.id,
-            sender_id=user_id,
-            sender_role="user",
-            message_text=msg_text,
-        ))
+        session.add(
+            TicketMessage(
+                ticket_id=ticket.id,
+                sender_id=user_id,
+                sender_role="user",
+                message_text=msg_text,
+            )
+        )
         session.commit()
 
     # Notify maintainers
@@ -436,6 +454,7 @@ async def _finalize_ticket(message: Message, state: FSMContext, from_callback: b
 
 # -- View ticket ---------------------------------------------------------------
 
+
 @router.callback_query(F.data.startswith("view_ticket_"))
 async def view_ticket(call: CallbackQuery, state: FSMContext):
     """View ticket details and message history."""
@@ -448,10 +467,7 @@ async def view_ticket(call: CallbackQuery, state: FSMContext):
             return
 
         messages = (
-            session.query(TicketMessage)
-            .filter_by(ticket_id=ticket.id)
-            .order_by(TicketMessage.created_at.asc())
-            .all()
+            session.query(TicketMessage).filter_by(ticket_id=ticket.id).order_by(TicketMessage.created_at.asc()).all()
         )
 
         text = (
@@ -467,10 +483,7 @@ async def view_ticket(call: CallbackQuery, state: FSMContext):
         text += "\n--- Messages ---\n\n"
         for msg in messages:
             role_label = "You" if msg.sender_role == "user" else "Support"
-            text += (
-                f"<b>[{role_label}]</b> {msg.created_at.strftime('%Y-%m-%d %H:%M')}\n"
-                f"{msg.message_text}\n\n"
-            )
+            text += f"<b>[{role_label}]</b> {msg.created_at.strftime('%Y-%m-%d %H:%M')}\n{msg.message_text}\n\n"
 
     buttons = []
     if ticket.status in ("open", "in_progress"):
@@ -485,6 +498,7 @@ async def view_ticket(call: CallbackQuery, state: FSMContext):
 
 
 # -- Reply to ticket -----------------------------------------------------------
+
 
 @router.callback_query(F.data.startswith("reply_ticket_"))
 async def reply_ticket(call: CallbackQuery, state: FSMContext):
@@ -522,10 +536,10 @@ async def process_ticket_reply(message: Message, state: FSMContext):
             sender_id=user_id,
             sender_role="user",
             message_text=msg_text,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         session.add(ticket_message)
-        ticket.updated_at = datetime.now(timezone.utc)
+        ticket.updated_at = datetime.now(UTC)
         session.commit()
 
     await state.clear()
@@ -536,6 +550,7 @@ async def process_ticket_reply(message: Message, state: FSMContext):
 
 
 # -- Close ticket --------------------------------------------------------------
+
 
 @router.callback_query(F.data.startswith("close_ticket_"))
 async def close_ticket(call: CallbackQuery, state: FSMContext):
@@ -549,8 +564,8 @@ async def close_ticket(call: CallbackQuery, state: FSMContext):
             return
 
         ticket.status = "closed"
-        ticket.updated_at = datetime.now(timezone.utc)
-        ticket.resolved_at = datetime.now(timezone.utc)
+        ticket.updated_at = datetime.now(UTC)
+        ticket.resolved_at = datetime.now(UTC)
         session.commit()
 
     await call.message.edit_text(

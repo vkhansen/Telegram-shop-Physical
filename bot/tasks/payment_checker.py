@@ -13,12 +13,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from bot.config.env import EnvKeys
 from bot.database import Database
 from bot.database.models.main import CryptoPayment, Order
-from bot.utils.constants import STATUS_PENDING, STATUS_RESERVED, STATUS_CONFIRMED, STATUS_EXPIRED
+from bot.utils.constants import STATUS_CONFIRMED, STATUS_EXPIRED, STATUS_PENDING, STATUS_RESERVED
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,7 @@ POLL_INTERVAL: int = EnvKeys.CRYPTO_POLL_INTERVAL  # seconds
 # ---------------------------------------------------------------------------
 # Public entry-point — started from bot.main on startup
 # ---------------------------------------------------------------------------
+
 
 async def payment_checker_loop(bot):
     """Infinite loop: check pending crypto payments every *POLL_INTERVAL* seconds."""
@@ -44,12 +45,13 @@ async def payment_checker_loop(bot):
 # Core checking logic
 # ---------------------------------------------------------------------------
 
+
 async def check_pending_payments(bot):
     """Check all ``CryptoPayment`` rows with status *awaiting* or *detected*."""
     # Late import to avoid circular deps at module load time
     from bot.payments.chain_verify import get_verifier
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     with Database().session() as session:
         pending = (
@@ -65,7 +67,8 @@ async def check_pending_payments(bot):
             try:
                 verifier = get_verifier(payment.coin)
                 result = await verifier.check_payment(
-                    payment.receive_address, payment.expected_amount,
+                    payment.receive_address,
+                    payment.expected_amount,
                 )
 
                 payment.last_checked_at = now
@@ -81,8 +84,11 @@ async def check_pending_payments(bot):
                         payment.overpaid_amount = result.amount - payment.expected_amount
                         logger.info(
                             "Overpayment recorded: order=%s coin=%s expected=%s received=%s overpaid=%s",
-                            payment.order_id, payment.coin, payment.expected_amount,
-                            result.amount, payment.overpaid_amount,
+                            payment.order_id,
+                            payment.coin,
+                            payment.expected_amount,
+                            result.amount,
+                            payment.overpaid_amount,
                         )
 
                     if payment.status == "awaiting":
@@ -90,8 +96,10 @@ async def check_pending_payments(bot):
                         payment.detected_at = now
                         logger.info(
                             "Payment detected: order=%s coin=%s tx=%s amount=%s",
-                            payment.order_id, payment.coin,
-                            result.tx_hash, result.amount,
+                            payment.order_id,
+                            payment.coin,
+                            result.tx_hash,
+                            result.amount,
                         )
                         await _notify_payment_detected(bot, payment)
 
@@ -101,14 +109,17 @@ async def check_pending_payments(bot):
                         _auto_confirm_order(session, payment.order_id)
                         logger.info(
                             "Payment confirmed: order=%s coin=%s confirmations=%s",
-                            payment.order_id, payment.coin, result.confirmations,
+                            payment.order_id,
+                            payment.coin,
+                            result.confirmations,
                         )
                         await _notify_payment_confirmed(bot, payment)
 
             except Exception:
                 logger.exception(
                     "Error checking payment id=%s order=%s",
-                    payment.id, payment.order_id,
+                    payment.id,
+                    payment.order_id,
                 )
 
         # --- Expire stale payments ---
@@ -133,6 +144,7 @@ async def check_pending_payments(bot):
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _auto_confirm_order(session, order_id: int):
     """Transition order from pending/reserved → confirmed once payment is verified."""
     order = session.query(Order).get(order_id)
@@ -153,6 +165,7 @@ async def _notify_payment_detected(bot, payment: CryptoPayment):
         order = payment.order
         if order and order.buyer_id:
             from bot.i18n import localize
+
             text = localize(
                 "crypto.payment_detected",
                 tx_hash=payment.tx_hash or "",
@@ -172,6 +185,7 @@ async def _notify_payment_confirmed(bot, payment: CryptoPayment):
         order = payment.order
         if order and order.buyer_id:
             from bot.i18n import localize
+
             text = localize(
                 "crypto.payment_confirmed",
                 tx_hash=payment.tx_hash or "",
@@ -191,6 +205,7 @@ async def _notify_payment_expired(bot, payment: CryptoPayment):
         order = payment.order
         if order and order.buyer_id:
             from bot.i18n import localize
+
             text = localize(
                 "crypto.payment_expired",
                 coin=payment.coin.upper(),

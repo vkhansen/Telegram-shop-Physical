@@ -1,11 +1,12 @@
 import asyncio
-from typing import List, Optional, Callable, Awaitable, Union
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Union
 
 from aiogram import Bot
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramRetryAfter
 from aiogram.types import InlineKeyboardMarkup
-from aiogram.exceptions import TelegramRetryAfter, TelegramForbiddenError, TelegramBadRequest
 
 from bot.logger_mesh import logger
 
@@ -13,12 +14,13 @@ from bot.logger_mesh import logger
 @dataclass
 class BroadcastStats:
     """Broadcast statistics"""
+
     total: int = 0
     sent: int = 0
     failed: int = 0
     blocked: int = 0
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
 
     @property
     def success_rate(self) -> float:
@@ -27,7 +29,7 @@ class BroadcastStats:
         return (self.sent / self.total) * 100
 
     @property
-    def duration(self) -> Optional[float]:
+    def duration(self) -> float | None:
         if not self.start_time or not self.end_time:
             return None
         return (self.end_time - self.start_time).total_seconds()
@@ -36,13 +38,7 @@ class BroadcastStats:
 class BroadcastManager:
     """Manager for mass mailing with optimization"""
 
-    def __init__(
-            self,
-            bot: Bot,
-            batch_size: int = 30,
-            batch_delay: float = 1.0,
-            retry_count: int = 3
-    ):
+    def __init__(self, bot: Bot, batch_size: int = 30, batch_delay: float = 1.0, retry_count: int = 3):
         """
         Args:
             bot: Bot instance
@@ -57,11 +53,7 @@ class BroadcastManager:
         self._cancelled = False
 
     async def _send_message_safe(
-            self,
-            user_id: int,
-            text: str,
-            reply_markup: Optional[InlineKeyboardMarkup] = None,
-            parse_mode: str = "HTML"
+        self, user_id: int, text: str, reply_markup: InlineKeyboardMarkup | None = None, parse_mode: str = "HTML"
     ) -> str:
         """
         Securely sending a message with error handling.
@@ -76,7 +68,7 @@ class BroadcastManager:
                     text=text,
                     reply_markup=reply_markup,
                     parse_mode=parse_mode,
-                    disable_notification=True # Don't spam notifications
+                    disable_notification=True,  # Don't spam notifications
                 )
                 return "sent"
 
@@ -105,15 +97,13 @@ class BroadcastManager:
         return "failed"
 
     async def broadcast(
-            self,
-            user_ids: List[int],
-            text: str,
-            reply_markup: Optional[InlineKeyboardMarkup] = None,
-            parse_mode: str = "HTML",
-            progress_callback: Optional[Union[
-                Callable[[BroadcastStats], None],
-                Callable[[BroadcastStats], Awaitable[None]]
-            ]] = None
+        self,
+        user_ids: list[int],
+        text: str,
+        reply_markup: InlineKeyboardMarkup | None = None,
+        parse_mode: str = "HTML",
+        progress_callback: Union[Callable[[BroadcastStats], None], Callable[[BroadcastStats], Awaitable[None]]]
+        | None = None,
     ) -> BroadcastStats:
         """
         Perform broadcast to a list of users
@@ -128,10 +118,7 @@ class BroadcastManager:
         Returns:
             Broadcast statistics
         """
-        stats = BroadcastStats(
-            total=len(user_ids),
-            start_time=datetime.now()
-        )
+        stats = BroadcastStats(total=len(user_ids), start_time=datetime.now())
 
         self._cancelled = False
 
@@ -141,13 +128,10 @@ class BroadcastManager:
                 logger.info("Broadcast cancelled")
                 break
 
-            batch = user_ids[i:i + self.batch_size]
+            batch = user_ids[i : i + self.batch_size]
 
             # Create tasks for the batch
-            tasks = [
-                self._send_message_safe(user_id, text, reply_markup, parse_mode)
-                for user_id in batch
-            ]
+            tasks = [self._send_message_safe(user_id, text, reply_markup, parse_mode) for user_id in batch]
 
             # Execute the patch in parallel
             results = await asyncio.gather(*tasks, return_exceptions=True)

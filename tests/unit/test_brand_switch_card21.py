@@ -13,6 +13,7 @@ Pins:
 - Same-brand select_brand skips the prompt (no FSM transition).
 - Empty cart + brand switch skips the prompt.
 """
+
 from __future__ import annotations
 
 from decimal import Decimal
@@ -37,15 +38,16 @@ from bot.handlers.user.store_selection import (
     _serialize_cart_items,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def second_brand(db_session, test_user):
     """A second brand for brand-switch tests."""
     from bot.database.models.main import Brand
+
     brand = Brand(name="Second Brand", slug="second-brand")
     db_session.add(brand)
     db_session.commit()
@@ -109,6 +111,7 @@ def seeded_product_item(db_session, test_brand):
 # DB helpers: save_cart_snapshot
 # ---------------------------------------------------------------------------
 
+
 class TestSaveCartSnapshot:
     def test_creates_saved_cart_row(self, db_session, test_user, test_brand, test_store):
         items = [{"name": "Pad Thai", "quantity": 2, "modifiers": None, "unit_price": "120.00"}]
@@ -162,6 +165,7 @@ class TestSaveCartSnapshot:
 # DB helpers: remove_items_from_cart
 # ---------------------------------------------------------------------------
 
+
 class TestRemoveItemsFromCart:
     @pytest.mark.asyncio
     async def test_removes_only_named_items(
@@ -173,7 +177,7 @@ class TestRemoveItemsFromCart:
         remove_items_from_cart(test_user.telegram_id, ["Bottled Water"])
 
         items = await get_cart_items(test_user.telegram_id)
-        names = [i['item_name'] for i in items]
+        names = [i["item_name"] for i in items]
         assert "Pad Thai" in names
         assert "Bottled Water" not in names
 
@@ -181,9 +185,7 @@ class TestRemoveItemsFromCart:
         remove_items_from_cart(test_user.telegram_id, [])  # must not raise
 
     @pytest.mark.asyncio
-    async def test_delete_cart_clears_all(
-        self, db_session, test_user, test_brand, seeded_prepared_item
-    ):
+    async def test_delete_cart_clears_all(self, db_session, test_user, test_brand, seeded_prepared_item):
         await add_to_cart(test_user.telegram_id, "Pad Thai", brand_id=test_brand.id)
         ok, _ = await clear_cart(test_user.telegram_id)
         assert ok
@@ -195,15 +197,13 @@ class TestRemoveItemsFromCart:
 # DB helpers: bulk_update_cart_store
 # ---------------------------------------------------------------------------
 
+
 class TestBulkUpdateCartStore:
     @pytest.mark.asyncio
     async def test_updates_all_cart_rows(
-        self, db_session, test_user, test_brand, test_store, second_store,
-        seeded_prepared_item
+        self, db_session, test_user, test_brand, test_store, second_store, seeded_prepared_item
     ):
-        await add_to_cart(
-            test_user.telegram_id, "Pad Thai", brand_id=test_brand.id, store_id=test_store.id
-        )
+        await add_to_cart(test_user.telegram_id, "Pad Thai", brand_id=test_brand.id, store_id=test_store.id)
         bulk_update_cart_store(test_user.telegram_id, second_store.id)
 
         with Database().session() as s:
@@ -215,11 +215,10 @@ class TestBulkUpdateCartStore:
 # _serialize_cart_items
 # ---------------------------------------------------------------------------
 
+
 class TestSerializeCartItems:
     @pytest.mark.asyncio
-    async def test_produces_correct_json_shape(
-        self, db_session, test_user, test_brand, seeded_prepared_item
-    ):
+    async def test_produces_correct_json_shape(self, db_session, test_user, test_brand, seeded_prepared_item):
         await add_to_cart(test_user.telegram_id, "Pad Thai", quantity=3, brand_id=test_brand.id)
         cart_items = await get_cart_items(test_user.telegram_id)
 
@@ -233,13 +232,10 @@ class TestSerializeCartItems:
         assert total == Decimal("120.00") * 3
 
     @pytest.mark.asyncio
-    async def test_modifier_cart_serializes_modifiers(
-        self, db_session, test_user, test_brand, seeded_prepared_item
-    ):
+    async def test_modifier_cart_serializes_modifiers(self, db_session, test_user, test_brand, seeded_prepared_item):
         mods = {"spice": "hot"}
         await add_to_cart(
-            test_user.telegram_id, "Pad Thai", quantity=1,
-            selected_modifiers=mods, brand_id=test_brand.id
+            test_user.telegram_id, "Pad Thai", quantity=1, selected_modifiers=mods, brand_id=test_brand.id
         )
         cart_items = await get_cart_items(test_user.telegram_id)
         items_json, _ = _serialize_cart_items(cart_items)
@@ -250,6 +246,7 @@ class TestSerializeCartItems:
 # _check_unavailable_items
 # ---------------------------------------------------------------------------
 
+
 class TestCheckUnavailableItems:
     def _make_cart_items(self, items: list[tuple[str, int]]) -> list[dict]:
         """Build minimal get_cart_items-style dicts."""
@@ -258,25 +255,19 @@ class TestCheckUnavailableItems:
             for name, qty in items
         ]
 
-    def test_prepared_items_never_flagged(
-        self, db_session, test_user, test_brand, test_store, seeded_prepared_item
-    ):
+    def test_prepared_items_never_flagged(self, db_session, test_user, test_brand, test_store, seeded_prepared_item):
         cart = self._make_cart_items([("Pad Thai", 5)])
         # No BranchInventory row at all — prepared should still not be flagged
         result = _check_unavailable_items(cart, test_store.id)
         assert result == []
 
-    def test_product_missing_from_inventory_flagged(
-        self, db_session, test_brand, test_store, seeded_product_item
-    ):
+    def test_product_missing_from_inventory_flagged(self, db_session, test_brand, test_store, seeded_product_item):
         cart = self._make_cart_items([("Bottled Water", 1)])
         # No BranchInventory entry for this store
         result = _check_unavailable_items(cart, test_store.id)
         assert "Bottled Water" in result
 
-    def test_product_with_sufficient_stock_not_flagged(
-        self, db_session, test_brand, test_store, seeded_product_item
-    ):
+    def test_product_with_sufficient_stock_not_flagged(self, db_session, test_brand, test_store, seeded_product_item):
         inv = BranchInventory(
             store_id=test_store.id,
             item_name="Bottled Water",
@@ -289,9 +280,7 @@ class TestCheckUnavailableItems:
         result = _check_unavailable_items(cart, test_store.id)
         assert result == []
 
-    def test_product_with_insufficient_stock_flagged(
-        self, db_session, test_brand, test_store, seeded_product_item
-    ):
+    def test_product_with_insufficient_stock_flagged(self, db_session, test_brand, test_store, seeded_product_item):
         inv = BranchInventory(
             store_id=test_store.id,
             item_name="Bottled Water",
@@ -305,8 +294,7 @@ class TestCheckUnavailableItems:
         assert "Bottled Water" in result
 
     def test_mixed_prepared_and_product(
-        self, db_session, test_brand, test_store,
-        seeded_prepared_item, seeded_product_item
+        self, db_session, test_brand, test_store, seeded_prepared_item, seeded_product_item
     ):
         # Bottled Water has no BranchInventory → should be flagged
         # Pad Thai is prepared → never flagged

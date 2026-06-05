@@ -9,6 +9,7 @@ Usage:
     python -m tests.e2e.run_e2e          # from project root
     python tests/e2e/run_e2e.py          # direct invocation
 """
+
 import os
 import sys
 import time
@@ -35,9 +36,10 @@ if PROJECT_ROOT not in sys.path:
 def _pre_flight_check():
     """Quick sanity check that core imports work."""
     print("[run_e2e] Pre-flight: importing core modules ...")
-    from bot.database.main import Database          # noqa: F401
-    from bot.database.models.main import Role       # noqa: F401
+    from bot.database.main import Database  # noqa: F401
+    from bot.database.models.main import Role  # noqa: F401
     from tests.e2e.menu_loader import load_menu_from_file  # noqa: F401
+
     print("[run_e2e] Pre-flight: OK")
 
 
@@ -51,7 +53,7 @@ def _setup_database():
     from sqlalchemy.pool import StaticPool
 
     from bot.database.main import Database
-    from bot.database.models.main import Role, Categories, Goods
+    from bot.database.models.main import Role
 
     engine = create_engine(
         "sqlite:///:memory:",
@@ -78,8 +80,9 @@ def _setup_database():
     session.commit()
 
     # Load sample menu
-    from tests.e2e.menu_loader import load_menu_from_file
     from pathlib import Path
+
+    from tests.e2e.menu_loader import load_menu_from_file
 
     menu_path = Path(__file__).parent / "sample_menu.json"
     summary = load_menu_from_file(menu_path, session)
@@ -108,12 +111,12 @@ def main():
     # Build pytest arguments
     test_dir = os.path.dirname(os.path.abspath(__file__))
     args = [
-        test_dir,           # test directory
-        "-v",               # verbose
-        "--tb=short",       # short tracebacks
-        "-x",               # stop on first failure
-        "--no-header",      # cleaner output
-        "-q",               # quieter (combined with -v gives balanced output)
+        test_dir,  # test directory
+        "-v",  # verbose
+        "--tb=short",  # short tracebacks
+        "-x",  # stop on first failure
+        "--no-header",  # cleaner output
+        "-q",  # quieter (combined with -v gives balanced output)
     ]
 
     # Allow extra args from CLI (e.g., -k "TestMenuLoading")

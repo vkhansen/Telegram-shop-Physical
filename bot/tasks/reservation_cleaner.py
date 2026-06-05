@@ -19,9 +19,7 @@ async def run_reservation_cleaner():
             count, order_codes = await cleanup_expired_reservations()
 
             if count > 0:
-                logger.info(
-                    f"Released {count} expired reservation(s): {', '.join(order_codes)}"
-                )
+                logger.info(f"Released {count} expired reservation(s): {', '.join(order_codes)}")
 
             # Wait 60 seconds before next check
             await asyncio.sleep(60)
@@ -38,10 +36,7 @@ async def reset_daily_counters():
     from bot.database.models.main import Goods
 
     with Database().session() as session:
-        session.query(Goods).update({
-            Goods.daily_sold_count: 0,
-            Goods.sold_out_today: False
-        }, synchronize_session=False)
+        session.query(Goods).update({Goods.daily_sold_count: 0, Goods.sold_out_today: False}, synchronize_session=False)
         session.commit()
     logger.info("Daily counters reset for all items")
 
@@ -51,5 +46,7 @@ def start_reservation_cleaner():
     Start the reservation cleaner task in the background.
     Call this function when the bot starts.
     """
-    asyncio.create_task(run_reservation_cleaner())
+    from bot.utils.background import track_task
+
+    track_task(asyncio.create_task(run_reservation_cleaner()))
     logger.info("Reservation cleaner task scheduled")

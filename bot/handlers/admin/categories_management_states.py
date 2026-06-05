@@ -13,7 +13,7 @@ from bot.utils import CategoryRequest
 router = Router()
 
 
-@router.callback_query(F.data == 'categories_management', HasPermissionFilter(permission=Permission.SHOP_MANAGE))
+@router.callback_query(F.data == "categories_management", HasPermissionFilter(permission=Permission.SHOP_MANAGE))
 async def categories_callback_handler(call: CallbackQuery):
     """
     Opens the categories management submenu.
@@ -30,7 +30,7 @@ async def categories_callback_handler(call: CallbackQuery):
     )
 
 
-@router.callback_query(F.data == 'add_category', HasPermissionFilter(permission=Permission.SHOP_MANAGE))
+@router.callback_query(F.data == "add_category", HasPermissionFilter(permission=Permission.SHOP_MANAGE))
 async def add_category_callback_handler(call: CallbackQuery, state):
     """
     Asks admin for a new category name.
@@ -57,7 +57,7 @@ async def process_category_for_add(message: Message, state):
             )
         else:
             data = await state.get_data()
-            create_category(category_name, brand_id=data.get('current_brand_id'))
+            create_category(category_name, brand_id=data.get("current_brand_id"))
             await message.answer(
                 localize("admin.categories.add.success"),
                 reply_markup=back("categories_management"),
@@ -78,7 +78,7 @@ async def process_category_for_add(message: Message, state):
     await state.clear()
 
 
-@router.callback_query(F.data == 'delete_category', HasPermissionFilter(permission=Permission.SHOP_MANAGE))
+@router.callback_query(F.data == "delete_category", HasPermissionFilter(permission=Permission.SHOP_MANAGE))
 async def delete_category_callback_handler(call: CallbackQuery, state):
     """
     Asks admin for a category name to delete.
@@ -110,14 +110,12 @@ async def process_category_for_delete(message: Message, state):
             reply_markup=back("categories_management"),
         )
         admin_info = await message.bot.get_chat(message.from_user.id)
-        audit_logger.info(
-            f'Admin {message.from_user.id} ({admin_info.first_name}) deleted category "{category_name}"'
-        )
+        audit_logger.info(f'Admin {message.from_user.id} ({admin_info.first_name}) deleted category "{category_name}"')
 
     await state.clear()
 
 
-@router.callback_query(F.data == 'update_category', HasPermissionFilter(permission=Permission.SHOP_MANAGE))
+@router.callback_query(F.data == "update_category", HasPermissionFilter(permission=Permission.SHOP_MANAGE))
 async def update_category_callback_handler(call: CallbackQuery, state):
     """
     Asks admin for current category name before renaming.

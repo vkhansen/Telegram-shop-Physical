@@ -1,10 +1,11 @@
 """Tests for menu modifier utilities (Card 8)"""
-import pytest
+
+from datetime import UTC, datetime
 from decimal import Decimal
-from datetime import datetime, timezone
+
+import pytest
 
 from bot.utils.modifiers import calculate_item_price, validate_modifier_selection
-
 
 SAMPLE_MODIFIERS = {
     "spice_level": {
@@ -16,7 +17,7 @@ SAMPLE_MODIFIERS = {
             {"id": "medium", "label": "Medium", "price": 0},
             {"id": "hot", "label": "Hot", "price": 0},
             {"id": "thai_hot", "label": "Thai Hot", "price": 10},
-        ]
+        ],
     },
     "extras": {
         "label": "Extras",
@@ -26,7 +27,7 @@ SAMPLE_MODIFIERS = {
             {"id": "extra_rice", "label": "Extra Rice", "price": 20},
             {"id": "egg", "label": "Fried Egg", "price": 15},
             {"id": "extra_meat", "label": "Extra Meat", "price": 40},
-        ]
+        ],
     },
     "removals": {
         "label": "Remove",
@@ -35,8 +36,8 @@ SAMPLE_MODIFIERS = {
         "options": [
             {"id": "no_onion", "label": "No Onion", "price": 0},
             {"id": "no_cilantro", "label": "No Cilantro", "price": 0},
-        ]
-    }
+        ],
+    },
 }
 
 
@@ -56,45 +57,34 @@ class TestCalculateItemPrice:
 
     def test_single_choice_free(self):
         """Single choice with price=0 doesn't change total"""
-        result = calculate_item_price(
-            Decimal("100"), SAMPLE_MODIFIERS,
-            {"spice_level": "mild"}
-        )
+        result = calculate_item_price(Decimal("100"), SAMPLE_MODIFIERS, {"spice_level": "mild"})
         assert result == Decimal("100")
 
     def test_single_choice_with_price(self):
         """Single choice with price adds to total"""
-        result = calculate_item_price(
-            Decimal("100"), SAMPLE_MODIFIERS,
-            {"spice_level": "thai_hot"}
-        )
+        result = calculate_item_price(Decimal("100"), SAMPLE_MODIFIERS, {"spice_level": "thai_hot"})
         assert result == Decimal("110")
 
     def test_multi_extras_sum(self):
         """Multiple extras prices sum correctly"""
-        result = calculate_item_price(
-            Decimal("100"), SAMPLE_MODIFIERS,
-            {"extras": ["extra_rice", "egg"]}
-        )
+        result = calculate_item_price(Decimal("100"), SAMPLE_MODIFIERS, {"extras": ["extra_rice", "egg"]})
         assert result == Decimal("135")  # 100 + 20 + 15
 
     def test_free_removals(self):
         """Removals with price=0 don't change total"""
-        result = calculate_item_price(
-            Decimal("100"), SAMPLE_MODIFIERS,
-            {"removals": ["no_onion", "no_cilantro"]}
-        )
+        result = calculate_item_price(Decimal("100"), SAMPLE_MODIFIERS, {"removals": ["no_onion", "no_cilantro"]})
         assert result == Decimal("100")
 
     def test_combined_modifiers(self):
         """All modifier types combined"""
         result = calculate_item_price(
-            Decimal("100"), SAMPLE_MODIFIERS,
+            Decimal("100"),
+            SAMPLE_MODIFIERS,
             {
-                "spice_level": "thai_hot",     # +10
+                "spice_level": "thai_hot",  # +10
                 "extras": ["extra_rice", "egg"],  # +20 +15
-                "removals": ["no_onion"]        # +0
-            }
+                "removals": ["no_onion"],  # +0
+            },
         )
         assert result == Decimal("145")  # 100 + 10 + 20 + 15
 
@@ -110,10 +100,7 @@ class TestValidateModifierSelection:
 
     def test_valid_selection(self):
         """Valid selection passes"""
-        is_valid, err = validate_modifier_selection(
-            SAMPLE_MODIFIERS,
-            {"spice_level": "hot", "extras": ["egg"]}
-        )
+        is_valid, err = validate_modifier_selection(SAMPLE_MODIFIERS, {"spice_level": "hot", "extras": ["egg"]})
         assert is_valid is True
         assert err == ""
 
@@ -121,7 +108,7 @@ class TestValidateModifierSelection:
         """Missing required modifier fails"""
         is_valid, err = validate_modifier_selection(
             SAMPLE_MODIFIERS,
-            {"extras": ["egg"]}  # spice_level is required but missing
+            {"extras": ["egg"]},  # spice_level is required but missing
         )
         assert is_valid is False
         assert "required" in err.lower() or "Spice" in err
@@ -130,7 +117,7 @@ class TestValidateModifierSelection:
         """Invalid option ID fails"""
         is_valid, err = validate_modifier_selection(
             SAMPLE_MODIFIERS,
-            {"spice_level": "nuclear"}  # not a valid option
+            {"spice_level": "nuclear"},  # not a valid option
         )
         assert is_valid is False
         assert "Invalid" in err
@@ -147,7 +134,7 @@ class TestValidateModifierSelection:
                 "label": "Extras",
                 "type": "multi",
                 "required": False,
-                "options": [{"id": "egg", "label": "Egg", "price": 15}]
+                "options": [{"id": "egg", "label": "Egg", "price": 15}],
             }
         }
         is_valid, _ = validate_modifier_selection(schema, {})
@@ -161,7 +148,7 @@ class TestModifierModelFields:
 
     def test_goods_modifiers_json(self, db_with_roles, db_session):
         """Goods stores modifier schema as JSON"""
-        from bot.database.models.main import Goods, Categories
+        from bot.database.models.main import Categories, Goods
 
         cat = Categories(name="Mains")
         db_session.add(cat)
@@ -172,7 +159,7 @@ class TestModifierModelFields:
             price=Decimal("120.00"),
             description="Classic Thai noodles",
             category_name="Mains",
-            stock_quantity=50
+            stock_quantity=50,
         )
         goods.modifiers = SAMPLE_MODIFIERS
         db_session.add(goods)
@@ -187,22 +174,23 @@ class TestModifierModelFields:
         """OrderItem stores selected modifier choices"""
         from bot.database.models.main import Order, OrderItem, User
 
-        user = User(telegram_id=500001, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=500001, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
         order = Order(
-            buyer_id=500001, total_price=Decimal("145.00"),
-            payment_method="cash", delivery_address="Test", phone_number="0812345678"
+            buyer_id=500001,
+            total_price=Decimal("145.00"),
+            payment_method="cash",
+            delivery_address="Test",
+            phone_number="0812345678",
         )
         db_session.add(order)
         db_session.flush()
 
         selected = {"spice_level": "thai_hot", "extras": ["egg"], "removals": ["no_onion"]}
         item = OrderItem(
-            order_id=order.id, item_name="Pad Thai",
-            price=Decimal("145.00"), quantity=1,
-            selected_modifiers=selected
+            order_id=order.id, item_name="Pad Thai", price=Decimal("145.00"), quantity=1, selected_modifiers=selected
         )
         db_session.add(item)
         db_session.commit()
@@ -213,22 +201,20 @@ class TestModifierModelFields:
 
     def test_cart_item_selected_modifiers(self, db_with_roles, db_session):
         """ShoppingCart stores selected modifiers"""
-        from bot.database.models.main import ShoppingCart, User, Goods, Categories
+        from bot.database.models.main import Categories, Goods, ShoppingCart, User
 
-        user = User(telegram_id=500002, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=500002, registration_date=datetime.now(UTC))
         cat = Categories(name="TestCat")
         db_session.add_all([user, cat])
         db_session.commit()
 
-        goods = Goods(name="Som Tam", price=Decimal("80"), description="Papaya salad",
-                      category_name="TestCat", stock_quantity=20)
+        goods = Goods(
+            name="Som Tam", price=Decimal("80"), description="Papaya salad", category_name="TestCat", stock_quantity=20
+        )
         db_session.add(goods)
         db_session.commit()
 
-        cart = ShoppingCart(
-            user_id=500002, item_name="Som Tam", quantity=1,
-            selected_modifiers={"spice_level": "hot"}
-        )
+        cart = ShoppingCart(user_id=500002, item_name="Som Tam", quantity=1, selected_modifiers={"spice_level": "hot"})
         db_session.add(cart)
         db_session.commit()
         db_session.refresh(cart)
@@ -273,10 +259,7 @@ class TestCalculateItemPriceEdgeCases:
 
     def test_unknown_group_key_ignored(self):
         """Selection with a group key not in schema is ignored, returns base price"""
-        result = calculate_item_price(
-            Decimal("100"), SAMPLE_MODIFIERS,
-            {"nonexistent_group": "some_option"}
-        )
+        result = calculate_item_price(Decimal("100"), SAMPLE_MODIFIERS, {"nonexistent_group": "some_option"})
         assert result == Decimal("100")
 
     def test_option_missing_price_key(self):
@@ -288,13 +271,10 @@ class TestCalculateItemPriceEdgeCases:
                 "required": False,
                 "options": [
                     {"id": "cheese", "label": "Cheese"},  # no "price" key
-                ]
+                ],
             }
         }
-        result = calculate_item_price(
-            Decimal("50"), schema,
-            {"toppings": "cheese"}
-        )
+        result = calculate_item_price(Decimal("50"), schema, {"toppings": "cheese"})
         assert result == Decimal("50")
 
     def test_option_missing_price_key_multi(self):
@@ -307,13 +287,10 @@ class TestCalculateItemPriceEdgeCases:
                 "options": [
                     {"id": "cheese", "label": "Cheese"},
                     {"id": "bacon", "label": "Bacon", "price": 25},
-                ]
+                ],
             }
         }
-        result = calculate_item_price(
-            Decimal("50"), schema,
-            {"toppings": ["cheese", "bacon"]}
-        )
+        result = calculate_item_price(Decimal("50"), schema, {"toppings": ["cheese", "bacon"]})
         assert result == Decimal("75")  # 50 + 0 + 25
 
     def test_very_large_modifier_price(self):
@@ -325,79 +302,58 @@ class TestCalculateItemPriceEdgeCases:
                 "required": False,
                 "options": [
                     {"id": "gold", "label": "Gold Leaf", "price": 9999},
-                ]
+                ],
             }
         }
-        result = calculate_item_price(
-            Decimal("100"), schema,
-            {"premium": "gold"}
-        )
+        result = calculate_item_price(Decimal("100"), schema, {"premium": "gold"})
         assert result == Decimal("10099")
 
     def test_multiple_multi_choice_selections(self):
         """Three or more extras in multi-choice sum correctly"""
-        result = calculate_item_price(
-            Decimal("100"), SAMPLE_MODIFIERS,
-            {"extras": ["extra_rice", "egg", "extra_meat"]}
-        )
+        result = calculate_item_price(Decimal("100"), SAMPLE_MODIFIERS, {"extras": ["extra_rice", "egg", "extra_meat"]})
         # 100 + 20 + 15 + 40 = 175
         assert result == Decimal("175")
 
     def test_base_price_zero_with_modifiers(self):
         """Base price of zero still adds modifier prices"""
-        result = calculate_item_price(
-            Decimal("0"), SAMPLE_MODIFIERS,
-            {"spice_level": "thai_hot", "extras": ["egg"]}
-        )
+        result = calculate_item_price(Decimal("0"), SAMPLE_MODIFIERS, {"spice_level": "thai_hot", "extras": ["egg"]})
         # 0 + 10 + 15 = 25
         assert result == Decimal("25")
 
     def test_string_base_price(self):
         """String base price '100' works via Decimal(str())"""
-        result = calculate_item_price(
-            "100", SAMPLE_MODIFIERS,
-            {"spice_level": "thai_hot"}
-        )
+        result = calculate_item_price("100", SAMPLE_MODIFIERS, {"spice_level": "thai_hot"})
         assert result == Decimal("110")
 
     def test_float_base_price(self):
         """Float base price 100.5 works via Decimal(str())"""
-        result = calculate_item_price(
-            100.5, SAMPLE_MODIFIERS,
-            {"spice_level": "thai_hot"}
-        )
+        result = calculate_item_price(100.5, SAMPLE_MODIFIERS, {"spice_level": "thai_hot"})
         assert result == Decimal("110.5")
 
     def test_integer_base_price(self):
         """Integer base price works via Decimal(str())"""
-        result = calculate_item_price(
-            100, SAMPLE_MODIFIERS,
-            {"extras": ["egg"]}
-        )
+        result = calculate_item_price(100, SAMPLE_MODIFIERS, {"extras": ["egg"]})
         assert result == Decimal("115")
 
     def test_mixed_known_and_unknown_groups(self):
         """Known groups are priced, unknown groups are silently ignored"""
         result = calculate_item_price(
-            Decimal("100"), SAMPLE_MODIFIERS,
-            {"spice_level": "thai_hot", "unknown_group": "whatever"}
+            Decimal("100"), SAMPLE_MODIFIERS, {"spice_level": "thai_hot", "unknown_group": "whatever"}
         )
         assert result == Decimal("110")
 
     def test_single_choice_option_not_found(self):
         """Single choice with option ID not in options list is ignored"""
         result = calculate_item_price(
-            Decimal("100"), SAMPLE_MODIFIERS,
-            {"spice_level": "nuclear"}  # not in options
+            Decimal("100"),
+            SAMPLE_MODIFIERS,
+            {"spice_level": "nuclear"},  # not in options
         )
         assert result == Decimal("100")
 
     def test_multi_choice_some_options_not_found(self):
         """Multi-choice with some invalid option IDs: only valid ones are priced"""
-        result = calculate_item_price(
-            Decimal("100"), SAMPLE_MODIFIERS,
-            {"extras": ["egg", "nonexistent_item"]}
-        )
+        result = calculate_item_price(Decimal("100"), SAMPLE_MODIFIERS, {"extras": ["egg", "nonexistent_item"]})
         assert result == Decimal("115")  # 100 + 15 (egg only)
 
 
@@ -418,7 +374,7 @@ class TestValidateModifierSelectionEdgeCases:
                 "label": "Extras",
                 "type": "multi",
                 "required": False,
-                "options": [{"id": "egg", "label": "Egg", "price": 15}]
+                "options": [{"id": "egg", "label": "Egg", "price": 15}],
             }
         }
         is_valid, err = validate_modifier_selection(schema, {})
@@ -432,10 +388,10 @@ class TestValidateModifierSelectionEdgeCases:
                 "label": "Extras",
                 "type": "multi",
                 "required": False,
-                "options": [{"id": "egg", "label": "Egg", "price": 15}]
+                "options": [{"id": "egg", "label": "Egg", "price": 15}],
             }
         }
-        is_valid, err = validate_modifier_selection(schema, {"extras": []})
+        is_valid, _err = validate_modifier_selection(schema, {"extras": []})
         assert is_valid is True
 
     def test_empty_list_multi_choice_required(self):
@@ -445,7 +401,7 @@ class TestValidateModifierSelectionEdgeCases:
                 "label": "Extras",
                 "type": "multi",
                 "required": True,
-                "options": [{"id": "egg", "label": "Egg", "price": 15}]
+                "options": [{"id": "egg", "label": "Egg", "price": 15}],
             }
         }
         is_valid, err = validate_modifier_selection(schema, {"extras": []})
@@ -456,28 +412,19 @@ class TestValidateModifierSelectionEdgeCases:
         """Multiple selections passed as list for single-choice: validated as list"""
         # The function checks isinstance(selection, list), so a list is treated
         # as multi-choice regardless of the schema type. Both options are validated.
-        is_valid, err = validate_modifier_selection(
-            SAMPLE_MODIFIERS,
-            {"spice_level": ["mild", "hot"]}
-        )
+        is_valid, _err = validate_modifier_selection(SAMPLE_MODIFIERS, {"spice_level": ["mild", "hot"]})
         # Both "mild" and "hot" are valid option IDs, so validation passes
         assert is_valid is True
 
     def test_multiple_selections_single_choice_invalid_option(self):
         """List with invalid option in single-choice group fails validation"""
-        is_valid, err = validate_modifier_selection(
-            SAMPLE_MODIFIERS,
-            {"spice_level": ["mild", "nuclear"]}
-        )
+        is_valid, err = validate_modifier_selection(SAMPLE_MODIFIERS, {"spice_level": ["mild", "nuclear"]})
         assert is_valid is False
         assert "Invalid" in err
 
     def test_selection_with_none_value(self):
         """Selection with None value is treated as falsy (no selection)"""
-        is_valid, err = validate_modifier_selection(
-            SAMPLE_MODIFIERS,
-            {"spice_level": None}
-        )
+        is_valid, _err = validate_modifier_selection(SAMPLE_MODIFIERS, {"spice_level": None})
         # spice_level is required, None is falsy → fails
         assert is_valid is False
 
@@ -488,10 +435,10 @@ class TestValidateModifierSelectionEdgeCases:
                 "label": "Extras",
                 "type": "multi",
                 "required": False,
-                "options": [{"id": "egg", "label": "Egg", "price": 15}]
+                "options": [{"id": "egg", "label": "Egg", "price": 15}],
             }
         }
-        is_valid, err = validate_modifier_selection(schema, {"extras": None})
+        is_valid, _err = validate_modifier_selection(schema, {"extras": None})
         assert is_valid is True
 
     def test_very_long_option_id_string(self):
@@ -502,10 +449,10 @@ class TestValidateModifierSelectionEdgeCases:
                 "label": "Group",
                 "type": "single",
                 "required": False,
-                "options": [{"id": long_id, "label": "Long", "price": 0}]
+                "options": [{"id": long_id, "label": "Long", "price": 0}],
             }
         }
-        is_valid, err = validate_modifier_selection(schema, {"group": long_id})
+        is_valid, _err = validate_modifier_selection(schema, {"group": long_id})
         assert is_valid is True
 
     def test_very_long_option_id_invalid(self):
@@ -516,7 +463,7 @@ class TestValidateModifierSelectionEdgeCases:
                 "label": "Group",
                 "type": "single",
                 "required": False,
-                "options": [{"id": "short", "label": "Short", "price": 0}]
+                "options": [{"id": "short", "label": "Short", "price": 0}],
             }
         }
         is_valid, err = validate_modifier_selection(schema, {"group": long_id})
@@ -530,11 +477,8 @@ class TestValidateModifierSelectionEdgeCases:
                 "label": "Extras",
                 "type": "multi",
                 "required": False,
-                "options": [{"id": "egg", "label": "Egg", "price": 15}]
+                "options": [{"id": "egg", "label": "Egg", "price": 15}],
             }
         }
-        is_valid, err = validate_modifier_selection(
-            schema,
-            {"extras": ["egg"], "phantom_group": "phantom_option"}
-        )
+        is_valid, _err = validate_modifier_selection(schema, {"extras": ["egg"], "phantom_group": "phantom_option"})
         assert is_valid is True

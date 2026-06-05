@@ -2,11 +2,11 @@
 """Insert the three translation sections into strings.py."""
 
 # Read the current file
-with open('C:/github/Telegram-shop-Physical/bot/i18n/strings.py', 'r', encoding='utf-8') as f:
+with open("C:/github/Telegram-shop-Physical/bot/i18n/strings.py", encoding="utf-8") as f:
     content = f.read()
 
 # Read the translation sections
-with open('C:/github/Telegram-shop-Physical/translation_sections.txt', 'r', encoding='utf-8') as f:
+with open("C:/github/Telegram-shop-Physical/translation_sections.txt", encoding="utf-8") as f:
     new_sections = f.read()
 
 # The file ends with:
@@ -18,7 +18,7 @@ with open('C:/github/Telegram-shop-Physical/translation_sections.txt', 'r', enco
 
 # Find the insertion point: right before the final "}\n" at end of file
 # The file should end with "    },\n}\n"
-rindex = content.rstrip().rfind('}')
+rindex = content.rstrip().rfind("}")
 # This should be the final } of TRANSLATIONS
 # The one before it should be the closing }, of ar section
 
@@ -35,7 +35,7 @@ insert_pos = pos + len("    },")
 new_content = content[:insert_pos] + "\n" + new_sections + content[insert_pos:]
 
 # Write the modified file
-with open('C:/github/Telegram-shop-Physical/bot/i18n/strings.py', 'w', encoding='utf-8') as f:
+with open("C:/github/Telegram-shop-Physical/bot/i18n/strings.py", "w", encoding="utf-8") as f:
     f.write(new_content)
 
 print("Insertion complete!")

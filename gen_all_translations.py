@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Generate fa, ps, fr translation sections for strings.py and write output files."""
-import json
-import ast
 
-with open('C:/github/Telegram-shop-Physical/en_keys.json', 'r', encoding='utf-8') as f:
+import json
+
+with open("C:/github/Telegram-shop-Physical/en_keys.json", encoding="utf-8") as f:
     en = json.load(f)
 
 # ============================================================
@@ -827,7 +827,7 @@ for name, d in [("ps", ps), ("fr", fr)]:
     extra = keys - set(en.keys())
     print(f"{name}: {len(d)} keys, missing={len(missing)}, extra={len(extra)}")
     for k in sorted(missing):
-        print(f"  MISSING: {k} = {repr(en[k])}")
+        print(f"  MISSING: {k} = {en[k]!r}")
     for k in sorted(extra):
         print(f"  EXTRA: {k}")
 

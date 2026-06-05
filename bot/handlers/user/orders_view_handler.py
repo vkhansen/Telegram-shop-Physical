@@ -1,15 +1,15 @@
-from aiogram import Router, F
-from aiogram.types import CallbackQuery
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery
 
-from bot.database import Database
-from bot.database.models.main import Order, OrderItem, Goods, ShoppingCart, Review
-from bot.database.methods import query_user_orders, count_user_orders
-from bot.keyboards import back, simple_buttons
-from bot.i18n import localize
 from bot.config import EnvKeys
-from bot.utils.invoice import generate_invoice_text
+from bot.database import Database
+from bot.database.methods import count_user_orders, query_user_orders
+from bot.database.models.main import Goods, Order, OrderItem, Review, ShoppingCart
+from bot.i18n import localize
+from bot.keyboards import back, simple_buttons
 from bot.utils.constants import STATUS_EMOJI
+from bot.utils.invoice import generate_invoice_text
 
 router = Router()
 
@@ -24,25 +24,31 @@ async def my_orders_menu(call: CallbackQuery, state: FSMContext):
     # Count orders by status
     with Database().session() as session:
         # Count active orders (pending through out_for_delivery)
-        active_count = session.query(Order).filter(
-            Order.buyer_id == user_id,
-            Order.order_status.in_(['pending', 'reserved', 'confirmed', 'preparing', 'ready', 'out_for_delivery'])
-        ).count()
+        active_count = (
+            session.query(Order)
+            .filter(
+                Order.buyer_id == user_id,
+                Order.order_status.in_(["pending", "reserved", "confirmed", "preparing", "ready", "out_for_delivery"]),
+            )
+            .count()
+        )
 
         # Count delivered orders
-        delivered_count = session.query(Order).filter(
-            Order.buyer_id == user_id,
-            Order.order_status == 'delivered'
-        ).count()
+        delivered_count = (
+            session.query(Order).filter(Order.buyer_id == user_id, Order.order_status == "delivered").count()
+        )
 
         total_count = await count_user_orders(user_id)
 
     text = (
-            localize("myorders.title") +
-            localize("myorders.total", count=total_count) + "\n" +
-            localize("myorders.active", count=active_count) + "\n" +
-            localize("myorders.delivered", count=delivered_count) + "\n\n" +
-            localize("myorders.select_category")
+        localize("myorders.title")
+        + localize("myorders.total", count=total_count)
+        + "\n"
+        + localize("myorders.active", count=active_count)
+        + "\n"
+        + localize("myorders.delivered", count=delivered_count)
+        + "\n\n"
+        + localize("myorders.select_category")
     )
 
     buttons = []
@@ -57,10 +63,7 @@ async def my_orders_menu(call: CallbackQuery, state: FSMContext):
         buttons.append((localize("myorders.all_orders"), "view_orders_all"))
 
     if not buttons:
-        text = (
-                localize("myorders.title") +
-                localize("myorders.no_orders_yet")
-        )
+        text = localize("myorders.title") + localize("myorders.no_orders_yet")
         buttons.append((localize("myorders.browse_shop"), "shop"))
 
     buttons.append((localize("myorders.back"), "profile"))
@@ -70,7 +73,7 @@ async def my_orders_menu(call: CallbackQuery, state: FSMContext):
     await call.message.edit_text(text, reply_markup=markup)
 
 
-@router.callback_query(F.data.startswith('view_orders_'))
+@router.callback_query(F.data.startswith("view_orders_"))
 async def view_orders_list(call: CallbackQuery, state: FSMContext):
     """
     Show paginated list of orders
@@ -78,50 +81,57 @@ async def view_orders_list(call: CallbackQuery, state: FSMContext):
     user_id = call.from_user.id
 
     # Extract status filter from callback data
-    status_filter = call.data.replace('view_orders_', '')
+    status_filter = call.data.replace("view_orders_", "")
 
-    if status_filter == 'all':
+    if status_filter == "all":
         status = None
         title = localize("myorders.all_title")
         # Get all orders
         orders = await query_user_orders(user_id, status=None, limit=10, offset=0)
-    elif status_filter == 'active':
+    elif status_filter == "active":
         # Active orders: pending, reserved, confirmed
         title = localize("myorders.active_title")
         with Database().session() as session:
-            query = session.query(Order).filter(
-                Order.buyer_id == user_id,
-                Order.order_status.in_(['pending', 'reserved', 'confirmed', 'preparing', 'ready', 'out_for_delivery'])
-            ).order_by(Order.created_at.desc())
+            query = (
+                session.query(Order)
+                .filter(
+                    Order.buyer_id == user_id,
+                    Order.order_status.in_(
+                        ["pending", "reserved", "confirmed", "preparing", "ready", "out_for_delivery"]
+                    ),
+                )
+                .order_by(Order.created_at.desc())
+            )
 
             active_orders = query.limit(10).offset(0).all()
             orders = []
             for order in active_orders:
                 order_items = session.query(OrderItem).filter(OrderItem.order_id == order.id).all()
-                items_data = [{
-                    'item_name': item.item_name,
-                    'price': float(item.price),
-                    'quantity': item.quantity
-                } for item in order_items]
+                items_data = [
+                    {"item_name": item.item_name, "price": float(item.price), "quantity": item.quantity}
+                    for item in order_items
+                ]
 
-                orders.append({
-                    'id': order.id,
-                    'order_code': order.order_code,
-                    'total_price': float(order.total_price) if order.total_price else 0,
-                    'bonus_applied': float(order.bonus_applied) if order.bonus_applied else 0,
-                    'payment_method': order.payment_method,
-                    'delivery_address': order.delivery_address,
-                    'phone_number': order.phone_number,
-                    'delivery_note': order.delivery_note,
-                    'bitcoin_address': order.bitcoin_address,
-                    'order_status': order.order_status,
-                    'created_at': order.created_at,
-                    'completed_at': order.completed_at,
-                    'delivery_time': order.delivery_time,
-                    'items': items_data
-                })
-    elif status_filter == 'delivered':
-        status = 'delivered'
+                orders.append(
+                    {
+                        "id": order.id,
+                        "order_code": order.order_code,
+                        "total_price": float(order.total_price) if order.total_price else 0,
+                        "bonus_applied": float(order.bonus_applied) if order.bonus_applied else 0,
+                        "payment_method": order.payment_method,
+                        "delivery_address": order.delivery_address,
+                        "phone_number": order.phone_number,
+                        "delivery_note": order.delivery_note,
+                        "bitcoin_address": order.bitcoin_address,
+                        "order_status": order.order_status,
+                        "created_at": order.created_at,
+                        "completed_at": order.completed_at,
+                        "delivery_time": order.delivery_time,
+                        "items": items_data,
+                    }
+                )
+    elif status_filter == "delivered":
+        status = "delivered"
         title = localize("myorders.delivered_title")
         orders = await query_user_orders(user_id, status=status, limit=10, offset=0)
     else:
@@ -129,10 +139,7 @@ async def view_orders_list(call: CallbackQuery, state: FSMContext):
         return
 
     if not orders:
-        await call.message.edit_text(
-            f"{title}\n\n" + localize("myorders.not_found"),
-            reply_markup=back("my_orders")
-        )
+        await call.message.edit_text(f"{title}\n\n" + localize("myorders.not_found"), reply_markup=back("my_orders"))
         return
 
     # Build order list
@@ -141,17 +148,23 @@ async def view_orders_list(call: CallbackQuery, state: FSMContext):
     buttons = []
     for order in orders:
         # Format order summary
-        status_emoji = STATUS_EMOJI.get(order['order_status'], '❓')
+        status_emoji = STATUS_EMOJI.get(order["order_status"], "❓")
 
-        date_str = order['created_at'].strftime('%Y-%m-%d %H:%M')
+        order["created_at"].strftime("%Y-%m-%d %H:%M")
 
         # Build items summary
-        items_count = sum(item['quantity'] for item in order['items'])
-        items_names = ', '.join(set(item['item_name'] for item in order['items']))
+        items_count = sum(item["quantity"] for item in order["items"])
+        ", ".join({item["item_name"] for item in order["items"]})
 
-        order_code_display = order['order_code'] if order.get('order_code') else f"#{order['id']}"
-        order_text = localize("myorders.order_summary_format", status_emoji=status_emoji, code=order_code_display,
-                              items_count=items_count, total=order['total_price'], currency=EnvKeys.PAY_CURRENCY)
+        order_code_display = order["order_code"] if order.get("order_code") else f"#{order['id']}"
+        order_text = localize(
+            "myorders.order_summary_format",
+            status_emoji=status_emoji,
+            code=order_code_display,
+            items_count=items_count,
+            total=order["total_price"],
+            currency=EnvKeys.PAY_CURRENCY,
+        )
         buttons.append((order_text, f"view_order_{order['id']}"))
 
     buttons.append((localize("myorders.back_to_menu"), "my_orders"))
@@ -161,20 +174,17 @@ async def view_orders_list(call: CallbackQuery, state: FSMContext):
     await call.message.edit_text(text + localize("myorders.select_details"), reply_markup=markup)
 
 
-@router.callback_query(F.data.startswith('view_order_'))
+@router.callback_query(F.data.startswith("view_order_"))
 async def view_order_details(call: CallbackQuery, state: FSMContext):
     """
     Show detailed information about a specific order
     """
     user_id = call.from_user.id
-    order_id = int(call.data.replace('view_order_', ''))
+    order_id = int(call.data.replace("view_order_", ""))
 
     # Get order details
     with Database().session() as session:
-        order = session.query(Order).filter(
-            Order.id == order_id,
-            Order.buyer_id == user_id
-        ).first()
+        order = session.query(Order).filter(Order.id == order_id, Order.buyer_id == user_id).first()
 
         if not order:
             await call.answer(localize("myorders.order_not_found"), show_alert=True)
@@ -185,22 +195,21 @@ async def view_order_details(call: CallbackQuery, state: FSMContext):
 
         # Build order details text
         status_display = {
-            'pending': '⏳ Pending',
-            'reserved': '🔒 Reserved',
-            'confirmed': '✅ Confirmed',
-            'preparing': '👨‍🍳 Preparing',
-            'ready': '✅ Ready',
-            'out_for_delivery': '🛵 Out for Delivery',
-            'delivered': '📦 Delivered',
-            'cancelled': '❌ Cancelled',
-            'canceled': '❌ Canceled',
-            'expired': '⏱️ Expired'
-        }.get(order.order_status, '❓ Unknown')
+            "pending": "⏳ Pending",
+            "reserved": "🔒 Reserved",
+            "confirmed": "✅ Confirmed",
+            "preparing": "👨‍🍳 Preparing",
+            "ready": "✅ Ready",
+            "out_for_delivery": "🛵 Out for Delivery",
+            "delivered": "📦 Delivered",
+            "cancelled": "❌ Cancelled",
+            "canceled": "❌ Canceled",
+            "expired": "⏱️ Expired",
+        }.get(order.order_status, "❓ Unknown")
 
         order_code_display = order.order_code if order.order_code else f"#{order.id}"
-        text = (
-                localize("myorders.detail.title", order_code=order_code_display) +
-                localize("myorders.detail.status", status=status_display)
+        text = localize("myorders.detail.title", order_code=order_code_display) + localize(
+            "myorders.detail.status", status=status_display
         )
 
         # Show bonus if applied
@@ -213,14 +222,14 @@ async def view_order_details(call: CallbackQuery, state: FSMContext):
             text += localize("myorders.detail.total_price", total=order.total_price)
 
         text += localize("myorders.detail.payment_method", method=order.payment_method.upper())
-        text += localize("myorders.detail.ordered", date=order.created_at.strftime('%Y-%m-%d %H:%M'))
+        text += localize("myorders.detail.ordered", date=order.created_at.strftime("%Y-%m-%d %H:%M"))
 
         # Show delivery time if set
         if order.delivery_time:
-            text += localize("myorders.detail.delivery_time", time=order.delivery_time.strftime('%Y-%m-%d %H:%M'))
+            text += localize("myorders.detail.delivery_time", time=order.delivery_time.strftime("%Y-%m-%d %H:%M"))
 
         if order.completed_at:
-            text += localize("myorders.detail.completed", date=order.completed_at.strftime('%Y-%m-%d %H:%M'))
+            text += localize("myorders.detail.completed", date=order.completed_at.strftime("%Y-%m-%d %H:%M"))
 
         # Show items
         items_text = ""
@@ -229,73 +238,85 @@ async def view_order_details(call: CallbackQuery, state: FSMContext):
 
         text += localize("myorders.detail.items", items=items_text)
 
-        delivery_info = (
-                f"📍 Address: {order.delivery_address}\n" +
-                f"📞 Phone: {order.phone_number}\n"
-        )
+        delivery_info = f"📍 Address: {order.delivery_address}\n" + f"📞 Phone: {order.phone_number}\n"
         if order.delivery_note:
             delivery_info += f"📝 Note: {order.delivery_note}\n"
 
-        text += localize("myorders.detail.delivery_info", address=f"📍 Address: {order.delivery_address}",
-                         phone=f"📞 Phone: {order.phone_number}",
-                         note=f"📝 Note: {order.delivery_note}" if order.delivery_note else "")
+        text += localize(
+            "myorders.detail.delivery_info",
+            address=f"📍 Address: {order.delivery_address}",
+            phone=f"📞 Phone: {order.phone_number}",
+            note=f"📝 Note: {order.delivery_note}" if order.delivery_note else "",
+        )
 
         # Show payment info based on payment method and status
-        if order.order_status in ('reserved', 'pending'):
-            if order.payment_method == 'bitcoin' and order.bitcoin_address:
+        if order.order_status in ("reserved", "pending"):
+            if order.payment_method == "bitcoin" and order.bitcoin_address:
                 # Bitcoin payment instructions
                 final_price = order.total_price - (order.bonus_applied if order.bonus_applied else 0)
                 text += (
-                        "\n" + localize("myorders.detail.payment_info_title") + "\n" +
-                        localize("myorders.detail.bitcoin_address_label") + ":\n"
-                                                                            f"<code>{order.bitcoin_address}</code>\n\n" +
-                        localize("myorders.detail.bitcoin_send_instruction", amount=final_price,
-                                 currency=EnvKeys.PAY_CURRENCY) + "\n" +
-                        localize("myorders.detail.bitcoin_admin_confirm")
+                    "\n"
+                    + localize("myorders.detail.payment_info_title")
+                    + "\n"
+                    + localize("myorders.detail.bitcoin_address_label")
+                    + ":\n"
+                    f"<code>{order.bitcoin_address}</code>\n\n"
+                    + localize(
+                        "myorders.detail.bitcoin_send_instruction", amount=final_price, currency=EnvKeys.PAY_CURRENCY
+                    )
+                    + "\n"
+                    + localize("myorders.detail.bitcoin_admin_confirm")
                 )
-            elif order.payment_method == 'cash':
+            elif order.payment_method == "cash":
                 # Cash on delivery instructions
                 text += (
-                        "\n" + localize("myorders.detail.cash_title") + "\n" +
-                        localize("myorders.detail.cash_awaiting_confirm") + "\n" +
-                        localize("myorders.detail.cash_will_notify") + "\n" +
-                        localize("myorders.detail.cash_payment_courier")
+                    "\n"
+                    + localize("myorders.detail.cash_title")
+                    + "\n"
+                    + localize("myorders.detail.cash_awaiting_confirm")
+                    + "\n"
+                    + localize("myorders.detail.cash_will_notify")
+                    + "\n"
+                    + localize("myorders.detail.cash_payment_courier")
                 )
 
         # Show confirmation status
-        if order.order_status == 'confirmed':
+        if order.order_status == "confirmed":
             text += "\n" + localize("myorders.detail.confirmed_title") + "\n"
             if order.delivery_time:
-                text += localize("myorders.detail.scheduled_delivery_label",
-                                 time=order.delivery_time.strftime('%Y-%m-%d %H:%M')) + "\n"
+                text += (
+                    localize(
+                        "myorders.detail.scheduled_delivery_label", time=order.delivery_time.strftime("%Y-%m-%d %H:%M")
+                    )
+                    + "\n"
+                )
             text += localize("myorders.detail.preparing_message") + "\n"
 
         # Show delivery confirmation
-        if order.order_status == 'delivered':
+        if order.order_status == "delivered":
             text += "\n" + localize("myorders.detail.delivered_title") + "\n"
             text += localize("myorders.detail.delivered_thanks_message") + "\n"
 
         # Map order status to view filter
-        if order.order_status in ('reserved', 'pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery'):
-            view_filter = 'active'
-        elif order.order_status == 'delivered':
-            view_filter = 'delivered'
+        if order.order_status in ("reserved", "pending", "confirmed", "preparing", "ready", "out_for_delivery"):
+            view_filter = "active"
+        elif order.order_status == "delivered":
+            view_filter = "delivered"
         else:
             # For expired, canceled, cancelled, etc. - go to all orders
-            view_filter = 'all'
+            view_filter = "all"
 
         buttons = []
 
         # Reorder button for delivered orders
-        if order.order_status == 'delivered':
+        if order.order_status == "delivered":
             buttons.append((localize("btn.reorder"), f"reorder_{order.id}"))
 
         # Review button for delivered orders (if not yet reviewed)
-        if order.order_status == 'delivered':
-            existing_review = session.query(Review).filter(
-                Review.order_id == order.id,
-                Review.user_id == user_id
-            ).first()
+        if order.order_status == "delivered":
+            existing_review = (
+                session.query(Review).filter(Review.order_id == order.id, Review.user_id == user_id).first()
+            )
             if not existing_review:
                 buttons.append((localize("btn.review_order"), f"review_prompt_{order.id}"))
 
@@ -303,11 +324,11 @@ async def view_order_details(call: CallbackQuery, state: FSMContext):
         buttons.append((localize("btn.invoice"), f"invoice_{order.id}"))
 
         # Add help button for pending orders
-        if order.order_status in ('reserved', 'pending') and order.payment_method == 'bitcoin':
+        if order.order_status in ("reserved", "pending") and order.payment_method == "bitcoin":
             buttons.append((localize("btn.need_help"), "help_pending_order"))
 
         # Add Chat with Driver button for out_for_delivery orders (Card 13)
-        if order.order_status == 'out_for_delivery':
+        if order.order_status == "out_for_delivery":
             buttons.append((localize("btn.chat_with_driver"), f"chat_with_driver_{order.id}"))
 
         # Support ticket button
@@ -326,34 +347,36 @@ async def help_pending_order(call: CallbackQuery):
     Show help message for pending orders
     """
     text = (
-            localize("help.pending_order.title") + "\n\n" +
-            localize("help.pending_order.status") + "\n\n" +
-            localize("help.pending_order.what_to_do_title") + "\n" +
-            localize("help.pending_order.step1") + "\n" +
-            localize("help.pending_order.step2") + "\n" +
-            localize("help.pending_order.step3") + "\n" +
-            localize("help.pending_order.step4") + "\n\n" +
-            localize("help.pending_order.issues_title") + "\n" +
-            localize("help.pending_order.contact_support")
+        localize("help.pending_order.title")
+        + "\n\n"
+        + localize("help.pending_order.status")
+        + "\n\n"
+        + localize("help.pending_order.what_to_do_title")
+        + "\n"
+        + localize("help.pending_order.step1")
+        + "\n"
+        + localize("help.pending_order.step2")
+        + "\n"
+        + localize("help.pending_order.step3")
+        + "\n"
+        + localize("help.pending_order.step4")
+        + "\n\n"
+        + localize("help.pending_order.issues_title")
+        + "\n"
+        + localize("help.pending_order.contact_support")
     )
 
-    await call.message.edit_text(
-        text,
-        reply_markup=back("my_orders")
-    )
+    await call.message.edit_text(text, reply_markup=back("my_orders"))
 
 
-@router.callback_query(F.data.startswith('reorder_'))
+@router.callback_query(F.data.startswith("reorder_"))
 async def reorder_handler(call: CallbackQuery):
     """Copy items from a previous order into the shopping cart."""
     user_id = call.from_user.id
-    order_id = int(call.data.replace('reorder_', ''))
+    order_id = int(call.data.replace("reorder_", ""))
 
     with Database().session() as session:
-        order = session.query(Order).filter(
-            Order.id == order_id,
-            Order.buyer_id == user_id
-        ).first()
+        order = session.query(Order).filter(Order.id == order_id, Order.buyer_id == user_id).first()
 
         if not order:
             await call.answer(localize("myorders.order_not_found"), show_alert=True)
@@ -371,9 +394,7 @@ async def reorder_handler(call: CallbackQuery):
                 continue
 
             # Add to cart or update quantity
-            cart_item = session.query(ShoppingCart).filter_by(
-                user_id=user_id, item_name=item.item_name
-            ).first()
+            cart_item = session.query(ShoppingCart).filter_by(user_id=user_id, item_name=item.item_name).first()
 
             if cart_item:
                 cart_item.quantity += item.quantity
@@ -384,7 +405,7 @@ async def reorder_handler(call: CallbackQuery):
                     user_id=user_id,
                     item_name=item.item_name,
                     quantity=item.quantity,
-                    selected_modifiers=item.selected_modifiers
+                    selected_modifiers=item.selected_modifiers,
                 )
                 session.add(cart_item)
             added += 1
@@ -392,25 +413,19 @@ async def reorder_handler(call: CallbackQuery):
         session.commit()
 
     text = localize("reorder.success", added=added, skipped=skipped)
-    buttons = [
-        (localize("btn.cart"), "view_cart"),
-        (localize("btn.back_to_orders"), f"view_order_{order_id}")
-    ]
+    buttons = [(localize("btn.cart"), "view_cart"), (localize("btn.back_to_orders"), f"view_order_{order_id}")]
     await call.message.edit_text(text, reply_markup=simple_buttons(buttons, per_row=1))
 
 
-@router.callback_query(F.data.startswith('invoice_'))
+@router.callback_query(F.data.startswith("invoice_"))
 async def invoice_handler(call: CallbackQuery):
     """Generate and show invoice/receipt for an order."""
     user_id = call.from_user.id
-    order_id = int(call.data.replace('invoice_', ''))
+    order_id = int(call.data.replace("invoice_", ""))
 
     # Verify ownership
     with Database().session() as session:
-        order = session.query(Order).filter(
-            Order.id == order_id,
-            Order.buyer_id == user_id
-        ).first()
+        order = session.query(Order).filter(Order.id == order_id, Order.buyer_id == user_id).first()
         if not order:
             await call.answer(localize("myorders.order_not_found"), show_alert=True)
             return
@@ -420,7 +435,4 @@ async def invoice_handler(call: CallbackQuery):
         await call.answer(localize("invoice.not_available"), show_alert=True)
         return
 
-    await call.message.edit_text(
-        f"<pre>{invoice_text}</pre>",
-        reply_markup=back(f"view_order_{order_id}")
-    )
+    await call.message.edit_text(f"<pre>{invoice_text}</pre>", reply_markup=back(f"view_order_{order_id}"))

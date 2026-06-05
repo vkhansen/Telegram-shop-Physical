@@ -7,9 +7,8 @@ to work with any supported cryptocurrency via the CryptoAddress model.
 
 import logging
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 from bot.database.main import Database
 from bot.database.models.main import CryptoAddress
@@ -18,10 +17,10 @@ logger = logging.getLogger(__name__)
 
 # Mapping of coin identifiers to their address files
 COIN_ADDRESS_FILES = {
-    'btc': 'crypto_addresses/btc_addresses.txt',
-    'ltc': 'crypto_addresses/ltc_addresses.txt',
-    'sol': 'crypto_addresses/sol_addresses.txt',
-    'usdt_sol': 'crypto_addresses/usdt_sol_addresses.txt',
+    "btc": "crypto_addresses/btc_addresses.txt",
+    "ltc": "crypto_addresses/ltc_addresses.txt",
+    "sol": "crypto_addresses/sol_addresses.txt",
+    "usdt_sol": "crypto_addresses/usdt_sol_addresses.txt",
 }
 
 # Lock for thread-safe file operations
@@ -54,12 +53,8 @@ def load_addresses_for_coin(coin: str) -> int:
         address_file.touch()
         return 0
 
-    with _file_lock:
-        with open(address_file, 'r') as f:
-            addresses = [
-                line.strip() for line in f
-                if line.strip() and not line.strip().startswith('#')
-            ]
+    with _file_lock, open(address_file) as f:
+        addresses = [line.strip() for line in f if line.strip() and not line.strip().startswith("#")]
 
     if not addresses:
         logger.info("No addresses found in file for %s", coin)
@@ -68,11 +63,7 @@ def load_addresses_for_coin(coin: str) -> int:
     loaded_count = 0
     with Database().session() as session:
         for address in addresses:
-            existing = (
-                session.query(CryptoAddress)
-                .filter_by(coin=coin, address=address)
-                .first()
-            )
+            existing = session.query(CryptoAddress).filter_by(coin=coin, address=address).first()
             if not existing:
                 crypto_addr = CryptoAddress(coin=coin, address=address)
                 session.add(crypto_addr)
@@ -84,7 +75,7 @@ def load_addresses_for_coin(coin: str) -> int:
     return loaded_count
 
 
-def get_available_address(coin: str, user_id: int = None, order_id: int = None) -> Optional[str]:
+def get_available_address(coin: str, user_id: int | None = None, order_id: int | None = None) -> str | None:
     """
     Atomically claim an unused address for the given coin.
 
@@ -101,10 +92,7 @@ def get_available_address(coin: str, user_id: int = None, order_id: int = None) 
     """
     with Database().session() as session:
         crypto_addr = (
-            session.query(CryptoAddress)
-            .filter_by(coin=coin, is_used=False)
-            .with_for_update(skip_locked=True)
-            .first()
+            session.query(CryptoAddress).filter_by(coin=coin, is_used=False).with_for_update(skip_locked=True).first()
         )
 
         if crypto_addr:
@@ -113,11 +101,14 @@ def get_available_address(coin: str, user_id: int = None, order_id: int = None) 
                 crypto_addr.used_by = user_id
             if order_id is not None:
                 crypto_addr.order_id = order_id
-            crypto_addr.used_at = datetime.now(timezone.utc)
+            crypto_addr.used_at = datetime.now(UTC)
             session.commit()
             logger.info(
                 "Claimed %s address %s for user=%s order=%s",
-                coin, crypto_addr.address, user_id, order_id,
+                coin,
+                crypto_addr.address,
+                user_id,
+                order_id,
             )
             return crypto_addr.address
 
@@ -125,8 +116,7 @@ def get_available_address(coin: str, user_id: int = None, order_id: int = None) 
     return None
 
 
-def mark_address_used(coin: str, address: str, user_id: int, order_id: int,
-                      session=None) -> bool:
+def mark_address_used(coin: str, address: str, user_id: int, order_id: int, session=None) -> bool:
     """
     Mark a specific address as used in the database and remove it from file.
 
@@ -142,34 +132,26 @@ def mark_address_used(coin: str, address: str, user_id: int, order_id: int,
         True if the address was found and marked, False otherwise.
     """
     if session:
-        crypto_addr = (
-            session.query(CryptoAddress)
-            .filter_by(coin=coin, address=address)
-            .first()
-        )
+        crypto_addr = session.query(CryptoAddress).filter_by(coin=coin, address=address).first()
         if not crypto_addr:
             logger.warning("Address not found in DB: coin=%s address=%s", coin, address)
             return False
 
         crypto_addr.is_used = True
         crypto_addr.used_by = user_id
-        crypto_addr.used_at = datetime.now(timezone.utc)
+        crypto_addr.used_at = datetime.now(UTC)
         crypto_addr.order_id = order_id
         # Don't commit — caller will handle it
     else:
         with Database().session() as db_session:
-            crypto_addr = (
-                db_session.query(CryptoAddress)
-                .filter_by(coin=coin, address=address)
-                .first()
-            )
+            crypto_addr = db_session.query(CryptoAddress).filter_by(coin=coin, address=address).first()
             if not crypto_addr:
                 logger.warning("Address not found in DB: coin=%s address=%s", coin, address)
                 return False
 
             crypto_addr.is_used = True
             crypto_addr.used_by = user_id
-            crypto_addr.used_at = datetime.now(timezone.utc)
+            crypto_addr.used_at = datetime.now(UTC)
             crypto_addr.order_id = order_id
             db_session.commit()
 
@@ -198,12 +180,9 @@ def release_address(coin: str, address: str, *, session=None) -> bool:
     Returns:
         True if the address was found and released, False otherwise.
     """
+
     def _release(s) -> bool:
-        crypto_addr = (
-            s.query(CryptoAddress)
-            .filter_by(coin=coin, address=address)
-            .first()
-        )
+        crypto_addr = s.query(CryptoAddress).filter_by(coin=coin, address=address).first()
         if not crypto_addr:
             logger.warning("release_address: not found coin=%s address=%s", coin, address)
             return False
@@ -239,11 +218,11 @@ def readd_address_to_file(coin: str, address: str) -> None:
         address_file.parent.mkdir(parents=True, exist_ok=True)
         existing = set()
         if address_file.exists():
-            with open(address_file, 'r') as f:
+            with open(address_file) as f:
                 existing = {line.strip() for line in f if line.strip()}
         if address in existing:
             return
-        with open(address_file, 'a') as f:
+        with open(address_file, "a") as f:
             f.write(f"{address}\n")
 
 
@@ -259,22 +238,22 @@ def remove_address_from_file(coin: str, address: str) -> None:
         return
 
     with _file_lock:
-        with open(address_file, 'r') as f:
-            lines = [line.rstrip('\n') for line in f]
+        with open(address_file) as f:
+            lines = [line.rstrip("\n") for line in f]
 
         filtered_lines = []
         for line in lines:
             stripped = line.strip()
             # Keep comments, empty lines, and any line that doesn't match
-            if not stripped or stripped.startswith('#') or stripped != address:
+            if not stripped or stripped.startswith("#") or stripped != address:
                 filtered_lines.append(line)
 
-        with open(address_file, 'w') as f:
+        with open(address_file, "w") as f:
             for line in filtered_lines:
                 f.write(f"{line}\n")
 
 
-def get_address_stats(coin: str = None) -> dict:
+def get_address_stats(coin: str | None = None) -> dict:
     """
     Return address pool statistics.
 
@@ -290,13 +269,13 @@ def get_address_stats(coin: str = None) -> dict:
             base_query = base_query.filter_by(coin=coin)
 
         total = base_query.count()
-        used = base_query.filter(CryptoAddress.is_used == True).count()
+        used = base_query.filter(CryptoAddress.is_used).count()
         available = total - used
 
         return {
-            'total': total,
-            'used': used,
-            'available': available,
+            "total": total,
+            "used": used,
+            "available": available,
         }
 
 

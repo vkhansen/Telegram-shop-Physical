@@ -1,11 +1,12 @@
-import hmac
 import hashlib
-import time
+import hmac
 import secrets
-from typing import Dict, Any, Callable, Awaitable
-from collections import defaultdict
+import time
+from collections.abc import Awaitable, Callable
+from typing import Any
+
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject, CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, TelegramObject
 
 from bot.i18n import localize
 from bot.logger_mesh import audit_logger
@@ -34,11 +35,8 @@ def check_suspicious_patterns(text: str) -> bool:
         return True
 
     import re
-    for pattern in suspicious:
-        if re.search(pattern, text, re.IGNORECASE):
-            return True
 
-    return False
+    return any(re.search(pattern, text, re.IGNORECASE) for pattern in suspicious)
 
 
 class SecurityMiddleware(BaseMiddleware):
@@ -49,12 +47,9 @@ class SecurityMiddleware(BaseMiddleware):
     - Suspicious activity logging
     """
 
-    def __init__(self, secret_key: str = None):
+    def __init__(self, secret_key: str | None = None):
         self.secret_key = secret_key or secrets.token_urlsafe(32)
-        self.critical_actions = {
-            'buy_', 'pay_', 'delete_', 'admin', 'remove-admin',
-            'fill-user-balance', 'set-admin'
-        }
+        self.critical_actions = {"buy_", "pay_", "delete_", "admin", "remove-admin", "fill-user-balance", "set-admin"}
 
     def generate_token(self, user_id: int, action: str) -> str:
         """CSRF token generation.
@@ -64,18 +59,14 @@ class SecurityMiddleware(BaseMiddleware):
         timestamp = str(int(time.time()))
         data = f"{user_id}:{action}:{timestamp}"
 
-        signature = hmac.new(
-            self.secret_key.encode(),
-            data.encode(),
-            hashlib.sha256
-        ).hexdigest()
+        signature = hmac.new(self.secret_key.encode(), data.encode(), hashlib.sha256).hexdigest()
 
         return f"{data}:{signature}"
 
     def verify_token(self, token: str, user_id: int, action: str, max_age: int = 3600) -> bool:
         """CSRF token validation"""
         try:
-            parts = token.split(':')
+            parts = token.split(":")
             if len(parts) != 4:
                 return False
 
@@ -91,11 +82,7 @@ class SecurityMiddleware(BaseMiddleware):
 
             # Signature verification
             data = f"{token_user_id}:{token_action}:{timestamp}"
-            expected_signature = hmac.new(
-                self.secret_key.encode(),
-                data.encode(),
-                hashlib.sha256
-            ).hexdigest()
+            expected_signature = hmac.new(self.secret_key.encode(), data.encode(), hashlib.sha256).hexdigest()
 
             return hmac.compare_digest(signature, expected_signature)
 
@@ -107,16 +94,13 @@ class SecurityMiddleware(BaseMiddleware):
         if not callback_data:
             return False
 
-        return any(
-            callback_data.startswith(action)
-            for action in self.critical_actions
-        )
+        return any(callback_data.startswith(action) for action in self.critical_actions)
 
     async def __call__(
-            self,
-            handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
-            event: TelegramObject,
-            data: Dict[str, Any]
+        self,
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
+        event: TelegramObject,
+        data: dict[str, Any],
     ) -> Any:
         """Basic middleware logic"""
 
@@ -130,50 +114,41 @@ class SecurityMiddleware(BaseMiddleware):
             # Checking critical actions
             if self.is_critical_action(event.data):
                 # SEC-07 fix: Log critical action with audit trail
-                audit_logger.info(
-                    f"Critical action: user={user.id}, action={event.data[:50]}"
-                )
+                audit_logger.info(f"Critical action: user={user.id}, action={event.data[:50]}")
                 # Inject CSRF helper into handler data for opt-in verification
-                data['csrf_manager'] = self
+                data["csrf_manager"] = self
 
                 # Check that the callback is not too old (protection against replay attacks)
-                if hasattr(event.message, 'date'):
+                if hasattr(event.message, "date"):
                     message_age = time.time() - event.message.date.timestamp()
                     if message_age > 3600:  # 1 hour
-                        await event.answer(
-                            localize("middleware.security.session_outdated"),
-                            show_alert=True
-                        )
+                        await event.answer(localize("middleware.security.session_outdated"), show_alert=True)
                         return None
 
         # Check for suspicious patterns in the data
-        if isinstance(event, CallbackQuery) and event.data:
-            if check_suspicious_patterns(event.data):
-                audit_logger.warning(
-                    f"Suspicious callback data from user {user.id}: {event.data[:100]}"
+        if isinstance(event, CallbackQuery) and event.data and check_suspicious_patterns(event.data):
+            audit_logger.warning(f"Suspicious callback data from user {user.id}: {event.data[:100]}")
+            # Track suspicious pattern detection
+            metrics = get_metrics()
+            if metrics:
+                metrics.track_event(
+                    "security_suspicious_callback",
+                    user.id,
+                    {"data_preview": event.data[:50], "data_length": len(event.data)},
                 )
-                # Track suspicious pattern detection
-                metrics = get_metrics()
-                if metrics:
-                    metrics.track_event("security_suspicious_callback", user.id, {
-                        "data_preview": event.data[:50],
-                        "data_length": len(event.data)
-                    })
-                await event.answer(localize("middleware.security.invalid_data"), show_alert=True)
-                return None
+            await event.answer(localize("middleware.security.invalid_data"), show_alert=True)
+            return None
 
-        if isinstance(event, Message) and event.text:
-            if check_suspicious_patterns(event.text):
-                audit_logger.warning(
-                    f"Suspicious message from user {user.id}: {event.text[:100]}"
+        if isinstance(event, Message) and event.text and check_suspicious_patterns(event.text):
+            audit_logger.warning(f"Suspicious message from user {user.id}: {event.text[:100]}")
+            # Track suspicious pattern detection
+            metrics = get_metrics()
+            if metrics:
+                metrics.track_event(
+                    "security_suspicious_message",
+                    user.id,
+                    {"text_preview": event.text[:50], "text_length": len(event.text)},
                 )
-                # Track suspicious pattern detection
-                metrics = get_metrics()
-                if metrics:
-                    metrics.track_event("security_suspicious_message", user.id, {
-                        "text_preview": event.text[:50],
-                        "text_length": len(event.text)
-                    })
                 # We don't block messages, we just log them
 
         # Pass it on
@@ -187,14 +162,14 @@ class AuthenticationMiddleware(BaseMiddleware):
 
     def __init__(self):
         self.blocked_users: set[int] = set()
-        self.admin_cache: Dict[int, tuple[int, float]] = {}  # user_id: (role, timestamp)
+        self.admin_cache: dict[int, tuple[int, float]] = {}  # user_id: (role, timestamp)
         self.cache_ttl = 300  # 5 minutes
 
     async def __call__(
-            self,
-            handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
-            event: TelegramObject,
-            data: Dict[str, Any]
+        self,
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
+        event: TelegramObject,
+        data: dict[str, Any],
     ) -> Any:
         """Authentication Check"""
 
@@ -213,23 +188,30 @@ class AuthenticationMiddleware(BaseMiddleware):
 
         # Check if user is banned in database
         from bot.database.methods import check_user_cached
+
         db_user = await check_user_cached(user.id)
-        if db_user and db_user.get('is_banned', False):
-            ban_reason = db_user.get('ban_reason', '')
+        if db_user and db_user.get("is_banned", False):
+            ban_reason = db_user.get("ban_reason", "")
             if isinstance(event, CallbackQuery):
-                msg = localize("middleware.security.banned", reason=ban_reason) if ban_reason else localize("middleware.security.banned_no_reason")
+                msg = (
+                    localize("middleware.security.banned", reason=ban_reason)
+                    if ban_reason
+                    else localize("middleware.security.banned_no_reason")
+                )
                 await event.answer(msg, show_alert=True)
             elif isinstance(event, Message):
-                msg = localize("middleware.security.banned", reason=ban_reason) if ban_reason else localize("middleware.security.banned_no_reason")
+                msg = (
+                    localize("middleware.security.banned", reason=ban_reason)
+                    if ban_reason
+                    else localize("middleware.security.banned_no_reason")
+                )
                 await event.answer(msg)
 
             audit_logger.warning(f"Banned user {user.id} attempted to interact")
             # Track banned user access attempt
             metrics = get_metrics()
             if metrics:
-                metrics.track_event("security_banned_user_access", user.id, {
-                    "ban_reason": ban_reason
-                })
+                metrics.track_event("security_banned_user_access", user.id, {"ban_reason": ban_reason})
             return None
 
         # Check bot
@@ -238,24 +220,27 @@ class AuthenticationMiddleware(BaseMiddleware):
             return None
 
         # Add user information to the context
-        data['user_id'] = user.id
-        data['user_name'] = user.first_name
+        data["user_id"] = user.id
+        data["user_name"] = user.first_name
 
         # Role validation and caching for admin actions
-        if isinstance(event, CallbackQuery):
-            if event.data and any(event.data.startswith(x) for x in ['admin', 'console', 'broadcast']):
-                role = await self.get_user_role_cached(user.id)
-                if role <= 1:  # Not admin
-                    await event.answer(localize("middleware.security.not_admin"), show_alert=True)
-                    audit_logger.warning(f"Unauthorized admin access attempt by user {user.id}")
-                    # Track unauthorized access attempt
-                    metrics = get_metrics()
-                    if metrics:
-                        metrics.track_event("security_unauthorized_admin_access", user.id, {
-                            "attempted_action": event.data[:50]
-                        })
-                    return None
-                data['user_role'] = role
+        if (
+            isinstance(event, CallbackQuery)
+            and event.data
+            and any(event.data.startswith(x) for x in ["admin", "console", "broadcast"])
+        ):
+            role = await self.get_user_role_cached(user.id)
+            if role <= 1:  # Not admin
+                await event.answer(localize("middleware.security.not_admin"), show_alert=True)
+                audit_logger.warning(f"Unauthorized admin access attempt by user {user.id}")
+                # Track unauthorized access attempt
+                metrics = get_metrics()
+                if metrics:
+                    metrics.track_event(
+                        "security_unauthorized_admin_access", user.id, {"attempted_action": event.data[:50]}
+                    )
+                return None
+                data["user_role"] = role
 
         return await handler(event, data)
 
@@ -269,6 +254,7 @@ class AuthenticationMiddleware(BaseMiddleware):
 
         # Download from DB
         from bot.database.methods import check_role
+
         role = check_role(user_id) or 0
 
         # Refresh cache
@@ -285,5 +271,3 @@ class AuthenticationMiddleware(BaseMiddleware):
         """Unblock a user"""
         self.blocked_users.discard(user_id)
         audit_logger.info(f"User {user_id} has been unblocked")
-
-

@@ -1,12 +1,13 @@
 """
 Tests for shopping cart functionality
 """
-import pytest
-from decimal import Decimal
+
 from unittest.mock import patch
 
-from bot.database.methods.read import get_cart_items, calculate_cart_total
+import pytest
+
 from bot.database.methods.create import add_to_cart
+from bot.database.methods.read import calculate_cart_total, get_cart_items
 from bot.database.models.main import ShoppingCart
 
 
@@ -22,8 +23,8 @@ class TestShoppingCart:
         items = await get_cart_items(test_shopping_cart.user_id)
 
         assert len(items) >= 1
-        assert items[0]['item_name'] == test_goods.name
-        assert items[0]['quantity'] == 2
+        assert items[0]["item_name"] == test_goods.name
+        assert items[0]["quantity"] == 2
 
     @pytest.mark.asyncio
     async def test_get_cart_items_empty(self, db_session, test_user):
@@ -42,63 +43,56 @@ class TestShoppingCart:
     @pytest.mark.asyncio
     async def test_add_to_cart_new_item(self, db_session, test_user, test_goods):
         """Test adding new item to cart"""
-        with patch('bot.database.methods.read.check_value', return_value=False):
-            with patch('bot.database.methods.read.select_item_values_amount_cached', return_value=100):
-                success, message = await add_to_cart(test_user.telegram_id, test_goods.name, 3)
+        with (
+            patch("bot.database.methods.read.check_value", return_value=False),
+            patch("bot.database.methods.read.select_item_values_amount_cached", return_value=100),
+        ):
+            success, _message = await add_to_cart(test_user.telegram_id, test_goods.name, 3)
 
-                assert success == True
+            assert success
 
-                cart_item = db_session.query(ShoppingCart).filter_by(
-                    user_id=test_user.telegram_id,
-                    item_name=test_goods.name
-                ).first()
+            cart_item = (
+                db_session.query(ShoppingCart)
+                .filter_by(user_id=test_user.telegram_id, item_name=test_goods.name)
+                .first()
+            )
 
-                assert cart_item is not None
-                assert cart_item.quantity == 3
+            assert cart_item is not None
+            assert cart_item.quantity == 3
 
     @pytest.mark.asyncio
     async def test_add_to_cart_update_quantity(self, db_session, test_shopping_cart):
         """Test updating quantity for existing cart item"""
-        with patch('bot.database.methods.read.check_value', return_value=False):
-            with patch('bot.database.methods.read.select_item_values_amount_cached', return_value=100):
-                initial_quantity = test_shopping_cart.quantity
+        with (
+            patch("bot.database.methods.read.check_value", return_value=False),
+            patch("bot.database.methods.read.select_item_values_amount_cached", return_value=100),
+        ):
+            initial_quantity = test_shopping_cart.quantity
 
-                success, message = await add_to_cart(
-                    test_shopping_cart.user_id,
-                    test_shopping_cart.item_name,
-                    2
-                )
+            success, _message = await add_to_cart(test_shopping_cart.user_id, test_shopping_cart.item_name, 2)
 
-                assert success == True
+            assert success
 
-                db_session.refresh(test_shopping_cart)
-                assert test_shopping_cart.quantity == initial_quantity + 2
+            db_session.refresh(test_shopping_cart)
+            assert test_shopping_cart.quantity == initial_quantity + 2
 
     @pytest.mark.asyncio
     async def test_add_to_cart_exceeds_stock(self, db_session, test_user, test_goods_low_stock):
         """Test adding more items than available stock.
         LOGIC-01: add_to_cart now uses locked row data directly for stock check."""
-        with patch('bot.database.methods.read.check_value', return_value=False):
+        with patch("bot.database.methods.read.check_value", return_value=False):
             # test_goods_low_stock has stock=5, reserved=0, so available=5
             # Requesting 10 should exceed stock
-            success, message = await add_to_cart(
-                test_user.telegram_id,
-                test_goods_low_stock.name,
-                10
-            )
+            success, message = await add_to_cart(test_user.telegram_id, test_goods_low_stock.name, 10)
 
-            assert success == False
+            assert not success
             assert "available" in message.lower()
 
     @pytest.mark.asyncio
     async def test_add_to_cart_nonexistent_item(self, db_session, test_user):
         """Test adding non-existent item to cart"""
-        with patch('bot.database.methods.read.check_value', return_value=False):
-            success, message = await add_to_cart(
-                test_user.telegram_id,
-                "Non-Existent Product",
-                1
-            )
+        with patch("bot.database.methods.read.check_value", return_value=False):
+            success, message = await add_to_cart(test_user.telegram_id, "Non-Existent Product", 1)
 
-            assert success == False
+            assert not success
             assert "not found" in message.lower()

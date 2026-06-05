@@ -15,8 +15,8 @@ Two kinds of guard:
    insufficient bonus, reservation failure, and a post-commit Telegram failure
    (the order must survive a failed outbound send).
 """
+
 import ast
-import os
 from decimal import Decimal
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -26,9 +26,7 @@ import pytest
 from bot.database.main import Database
 from bot.database.models.main import Order, ShoppingCart
 
-ORDER_HANDLER_PATH = (
-    Path(__file__).resolve().parents[2] / "bot" / "handlers" / "user" / "order_handler.py"
-)
+ORDER_HANDLER_PATH = Path(__file__).resolve().parents[2] / "bot" / "handlers" / "user" / "order_handler.py"
 
 # Handlers refactored under CARD-23 (and its whole-class extension).
 REFACTORED_HANDLERS = {
@@ -49,22 +47,14 @@ def _is_db_session_with(node: ast.With) -> bool:
     for item in node.items:
         expr = item.context_expr
         # match `Database().session()` → Call(func=Attribute(attr="session", ...))
-        if (
-            isinstance(expr, ast.Call)
-            and isinstance(expr.func, ast.Attribute)
-            and expr.func.attr == "session"
-        ):
+        if isinstance(expr, ast.Call) and isinstance(expr.func, ast.Attribute) and expr.func.attr == "session":
             return True
     return False
 
 
 def _awaits_inside(node: ast.With) -> list[int]:
     """Line numbers of any ``await`` expression nested in this ``with`` block."""
-    return [
-        child.lineno
-        for child in ast.walk(node)
-        if isinstance(child, ast.Await)
-    ]
+    return [child.lineno for child in ast.walk(node) if isinstance(child, ast.Await)]
 
 
 def _function_defs(tree: ast.Module):
@@ -90,10 +80,7 @@ def test_no_await_inside_db_session_blocks():
                 if awaits:
                     offenders.setdefault(fn.name, []).extend(awaits)
 
-    assert not offenders, (
-        "await found inside a Database().session() block (pool-exhaustion risk): "
-        f"{offenders}"
-    )
+    assert not offenders, f"await found inside a Database().session() block (pool-exhaustion risk): {offenders}"
     # Guard against the handlers being renamed out from under this test.
     missing = REFACTORED_HANDLERS - seen
     assert not missing, f"expected handlers not found in order_handler.py: {missing}"
@@ -229,6 +216,7 @@ async def test_cash_insufficient_bonus_creates_no_order_and_keeps_balance(test_c
     # Bonus balance untouched.
     with Database().session() as session:
         from bot.database.models.main import CustomerInfo
+
         ci = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
         assert ci.bonus_balance == Decimal("0")
 

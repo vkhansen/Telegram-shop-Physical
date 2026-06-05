@@ -1,12 +1,13 @@
 """The fuzz seeder must always produce integrity-clean data, and its chaos
 mode must produce data the validator catches."""
+
 import random
 
 import pytest
 
-from bot.database.integrity import check_integrity, Severity
-from scripts.fuzz_seed import generate_fuzz_data, inject_chaos, clean_fuzz_data
+from bot.database.integrity import Severity, check_integrity
 from bot.database.models.main import Brand, Goods, Store
+from scripts.fuzz_seed import clean_fuzz_data, generate_fuzz_data, inject_chaos
 
 pytestmark = pytest.mark.database
 

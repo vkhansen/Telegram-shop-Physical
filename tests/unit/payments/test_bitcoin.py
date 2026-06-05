@@ -1,21 +1,22 @@
 """
 Tests for Bitcoin address management
 """
-import pytest
+
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
+import pytest
+
+from bot.database.models.main import BitcoinAddress
 from bot.payments.bitcoin import (
-    load_bitcoin_addresses_from_file,
-    get_available_bitcoin_address,
-    mark_bitcoin_address_used,
     add_bitcoin_address,
     add_bitcoin_addresses_bulk,
+    get_available_bitcoin_address,
     get_bitcoin_address_stats,
-    BTC_ADDRESSES_FILE
+    load_bitcoin_addresses_from_file,
+    mark_bitcoin_address_used,
 )
-from bot.database.models.main import BitcoinAddress
 
 
 @pytest.mark.unit
@@ -27,7 +28,7 @@ class TestBitcoinAddressLoading:
     def test_load_bitcoin_addresses_from_file(self, db_session):
         """Test loading addresses from file"""
         # Create temporary file with test addresses
-        with NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
+        with NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as f:
             f.write("bc1qtest1234567890abcdefghijklmnopqrstuvwxyz\n")
             f.write("bc1qtest2345678901bcdefghijklmnopqrstuvwxyza\n")
             f.write("# This is a comment\n")
@@ -36,7 +37,7 @@ class TestBitcoinAddressLoading:
             temp_path = Path(f.name)
 
         # Patch BTC_ADDRESSES_FILE to point to our temp file
-        with patch('bot.payments.bitcoin.BTC_ADDRESSES_FILE', temp_path):
+        with patch("bot.payments.bitcoin.BTC_ADDRESSES_FILE", temp_path):
             count = load_bitcoin_addresses_from_file()
 
         # Should load 3 addresses (skipping comment and empty line)
@@ -53,13 +54,13 @@ class TestBitcoinAddressLoading:
         db_session.commit()
 
         # Create file with same address
-        with NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
+        with NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as f:
             f.write("bc1qtest1234567890\n")
             f.write("bc1qtest2345678901\n")
             temp_path = Path(f.name)
 
         # Patch BTC_ADDRESSES_FILE to point to our temp file
-        with patch('bot.payments.bitcoin.BTC_ADDRESSES_FILE', temp_path):
+        with patch("bot.payments.bitcoin.BTC_ADDRESSES_FILE", temp_path):
             count = load_bitcoin_addresses_from_file()
 
         # Should only load 1 new address
@@ -97,9 +98,11 @@ class TestBitcoinAddressRetrieval:
 class TestBitcoinAddressUsage:
     """Tests for marking Bitcoin addresses as used"""
 
-    @patch('bot.payments.bitcoin.remove_bitcoin_address_from_file')
-    @patch('bot.payments.bitcoin.log_bitcoin_address_assigned')
-    def test_mark_bitcoin_address_used(self, mock_log, mock_remove, db_session, test_bitcoin_address, test_user, test_order):
+    @patch("bot.payments.bitcoin.remove_bitcoin_address_from_file")
+    @patch("bot.payments.bitcoin.log_bitcoin_address_assigned")
+    def test_mark_bitcoin_address_used(
+        self, mock_log, mock_remove, db_session, test_bitcoin_address, test_user, test_order
+    ):
         """Test marking an address as used"""
         success = mark_bitcoin_address_used(
             address=test_bitcoin_address.address,
@@ -107,21 +110,21 @@ class TestBitcoinAddressUsage:
             user_username="test_user",
             order_id=test_order.id,
             session=db_session,
-            order_code=test_order.order_code
+            order_code=test_order.order_code,
         )
         db_session.commit()  # Function doesn't commit when session is passed
 
-        assert success == True
+        assert success
 
         db_session.refresh(test_bitcoin_address)
-        assert test_bitcoin_address.is_used == True
+        assert test_bitcoin_address.is_used
         assert test_bitcoin_address.used_by == test_user.telegram_id
         assert test_bitcoin_address.order_id == test_order.id
 
         mock_remove.assert_called_once_with(test_bitcoin_address.address)
         mock_log.assert_called_once()
 
-    @patch('bot.payments.bitcoin.remove_bitcoin_address_from_file')
+    @patch("bot.payments.bitcoin.remove_bitcoin_address_from_file")
     def test_mark_nonexistent_address_used(self, mock_remove, db_session, test_user, test_order):
         """Test marking non-existent address as used"""
         success = mark_bitcoin_address_used(
@@ -129,10 +132,10 @@ class TestBitcoinAddressUsage:
             user_id=test_user.telegram_id,
             user_username="test_user",
             order_id=test_order.id,
-            session=db_session
+            session=db_session,
         )
 
-        assert success == False
+        assert not success
 
 
 @pytest.mark.unit
@@ -141,8 +144,8 @@ class TestBitcoinAddressUsage:
 class TestBitcoinAddressAddition:
     """Tests for adding Bitcoin addresses"""
 
-    @patch('bot.payments.bitcoin._file_lock')
-    @patch('builtins.open', create=True)
+    @patch("bot.payments.bitcoin._file_lock")
+    @patch("builtins.open", create=True)
     def test_add_bitcoin_address(self, mock_open, mock_lock, db_session):
         """Test adding a single Bitcoin address"""
         mock_file = MagicMock()
@@ -150,33 +153,27 @@ class TestBitcoinAddressAddition:
 
         success = add_bitcoin_address("bc1qnewaddress123")
 
-        assert success == True
+        assert success
 
         # Check it was added to database
-        btc_addr = db_session.query(BitcoinAddress).filter_by(
-            address="bc1qnewaddress123"
-        ).first()
+        btc_addr = db_session.query(BitcoinAddress).filter_by(address="bc1qnewaddress123").first()
         assert btc_addr is not None
 
     def test_add_duplicate_bitcoin_address(self, db_session, test_bitcoin_address):
         """Test adding duplicate address"""
-        with patch('builtins.open', create=True):
+        with patch("builtins.open", create=True):
             success = add_bitcoin_address(test_bitcoin_address.address)
 
-        assert success == False
+        assert not success
 
-    @patch('bot.payments.bitcoin._file_lock')
-    @patch('builtins.open', create=True)
+    @patch("bot.payments.bitcoin._file_lock")
+    @patch("builtins.open", create=True)
     def test_add_bitcoin_addresses_bulk(self, mock_open, mock_lock, db_session):
         """Test adding multiple addresses"""
         mock_file = MagicMock()
         mock_open.return_value.__enter__.return_value = mock_file
 
-        addresses = [
-            "bc1qbulk1234567890",
-            "bc1qbulk2345678901",
-            "bc1qbulk3456789012"
-        ]
+        addresses = ["bc1qbulk1234567890", "bc1qbulk2345678901", "bc1qbulk3456789012"]
 
         count = add_bitcoin_addresses_bulk(addresses)
 
@@ -201,9 +198,9 @@ class TestBitcoinAddressStats:
 
         stats = get_bitcoin_address_stats()
 
-        assert stats['total'] >= 5
-        assert stats['used'] >= 2
-        assert stats['available'] >= 3
+        assert stats["total"] >= 5
+        assert stats["used"] >= 2
+        assert stats["available"] >= 3
 
     def test_get_bitcoin_address_stats_empty(self, db_session):
         """Test stats with no addresses"""
@@ -213,6 +210,6 @@ class TestBitcoinAddressStats:
 
         stats = get_bitcoin_address_stats()
 
-        assert stats['total'] == 0
-        assert stats['used'] == 0
-        assert stats['available'] == 0
+        assert stats["total"] == 0
+        assert stats["used"] == 0
+        assert stats["available"] == 0

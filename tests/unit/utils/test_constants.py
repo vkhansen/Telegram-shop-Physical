@@ -1,13 +1,14 @@
 """Tests for application-wide constants"""
+
 import pytest
 
 from bot.utils.constants import (
+    DELIVERY_DEAD_DROP,
+    DELIVERY_DOOR,
+    DELIVERY_PICKUP,
     PAYMENT_BITCOIN,
     PAYMENT_CASH,
     PAYMENT_PROMPTPAY,
-    DELIVERY_DOOR,
-    DELIVERY_DEAD_DROP,
-    DELIVERY_PICKUP,
 )
 
 

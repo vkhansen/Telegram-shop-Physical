@@ -1,16 +1,18 @@
 import logging
-from pathlib import Path
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
-from typing import Optional
+from pathlib import Path
 
 # Import timezone manager for timezone-aware logging
 from bot.config.timezone import get_localized_time
 
+
 # Lazy import to avoid circular dependency
 def get_metrics_lazy():
     from bot.monitoring.metrics import get_metrics
+
     return get_metrics()
+
 
 # Create logs directory if it doesn't exist
 LOGS_DIR = Path("logs")
@@ -58,10 +60,7 @@ def _setup_logger(name: str, log_file: str, level=logging.INFO) -> logging.Logge
         return logger
 
     # Create formatter with timezone-aware timestamp using TimezoneFormatter
-    tz_formatter = TimezoneFormatter(
-        '%(asctime)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S %Z'
-    )
+    tz_formatter = TimezoneFormatter("%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S %Z")
 
     # Try to create rotating file handler, fallback to StreamHandler if permission denied
     try:
@@ -69,35 +68,33 @@ def _setup_logger(name: str, log_file: str, level=logging.INFO) -> logging.Logge
             LOGS_DIR / log_file,
             maxBytes=10 * 1024 * 1024,  # 10MB
             backupCount=5,
-            encoding='utf-8'
+            encoding="utf-8",
         )
         handler.setFormatter(tz_formatter)
         logger.addHandler(handler)
     except (PermissionError, OSError) as e:
         # Fallback to stdout if file creation fails (e.g., permission issues)
         import sys
+
         handler = logging.StreamHandler(sys.stdout)
         handler.setFormatter(tz_formatter)
         logger.addHandler(handler)
-        logger.warning(
-            f"Could not create log file '{log_file}': {e}. "
-            f"Logging to stdout instead."
-        )
+        logger.warning(f"Could not create log file '{log_file}': {e}. Logging to stdout instead.")
 
     return logger
 
 
 # Lazy-initialized loggers (created on first use to avoid database access during import)
-_reference_code_logger: Optional[logging.Logger] = None
-_orders_logger: Optional[logging.Logger] = None
-_changes_logger: Optional[logging.Logger] = None
+_reference_code_logger: logging.Logger | None = None
+_orders_logger: logging.Logger | None = None
+_changes_logger: logging.Logger | None = None
 
 
 def _get_reference_code_logger() -> logging.Logger:
     """Get or create reference code logger"""
     global _reference_code_logger
     if _reference_code_logger is None:
-        _reference_code_logger = _setup_logger('reference_code', 'reference_code.log')
+        _reference_code_logger = _setup_logger("reference_code", "reference_code.log")
     return _reference_code_logger
 
 
@@ -105,7 +102,7 @@ def _get_orders_logger() -> logging.Logger:
     """Get or create orders logger"""
     global _orders_logger
     if _orders_logger is None:
-        _orders_logger = _setup_logger('orders', 'orders.log')
+        _orders_logger = _setup_logger("orders", "orders.log")
     return _orders_logger
 
 
@@ -113,7 +110,7 @@ def _get_changes_logger() -> logging.Logger:
     """Get or create changes logger"""
     global _changes_logger
     if _changes_logger is None:
-        _changes_logger = _setup_logger('changes', 'changes.log')
+        _changes_logger = _setup_logger("changes", "changes.log")
     return _changes_logger
 
 
@@ -127,9 +124,15 @@ def initialize_export_loggers() -> None:
     _get_changes_logger()
 
 
-def log_reference_code_creation(code: str, created_by: int, created_by_username: str,
-                                 expires_at: Optional[datetime], max_uses: Optional[int],
-                                 note: Optional[str], is_admin: bool):
+def log_reference_code_creation(
+    code: str,
+    created_by: int,
+    created_by_username: str,
+    expires_at: datetime | None,
+    max_uses: int | None,
+    note: str | None,
+    is_admin: bool,
+):
     """
     Log reference code creation
 
@@ -143,7 +146,7 @@ def log_reference_code_creation(code: str, created_by: int, created_by_username:
         is_admin: Whether this is an admin code
     """
     code_type = "ADMIN" if is_admin else "USER"
-    expiry = expires_at.strftime('%Y-%m-%d %H:%M:%S') if expires_at else "NO_EXPIRY"
+    expiry = expires_at.strftime("%Y-%m-%d %H:%M:%S") if expires_at else "NO_EXPIRY"
     uses = str(max_uses) if max_uses else "UNLIMITED"
     note_text = note if note else "NO_NOTE"
 
@@ -154,8 +157,9 @@ def log_reference_code_creation(code: str, created_by: int, created_by_username:
     )
 
 
-def log_reference_code_usage(code: str, used_by: int, used_by_username: str,
-                             referred_by: int, referred_by_username: str):
+def log_reference_code_usage(
+    code: str, used_by: int, used_by_username: str, referred_by: int, referred_by_username: str
+):
     """
     Log reference code usage
 
@@ -173,8 +177,7 @@ def log_reference_code_usage(code: str, used_by: int, used_by_username: str,
     )
 
 
-def log_reference_code_deactivation(code: str, deactivated_by: int,
-                                    deactivated_by_username: str, reason: str):
+def log_reference_code_deactivation(code: str, deactivated_by: int, deactivated_by_username: str, reason: str):
     """
     Log reference code deactivation
 
@@ -191,10 +194,18 @@ def log_reference_code_deactivation(code: str, deactivated_by: int,
     )
 
 
-def log_order_creation(order_id: int, buyer_id: int, buyer_username: str,
-                       items_summary: str, total_price: float, payment_method: str,
-                       delivery_address: str, phone_number: str,
-                       bitcoin_address: Optional[str] = None, order_code: Optional[str] = None):
+def log_order_creation(
+    order_id: int,
+    buyer_id: int,
+    buyer_username: str,
+    items_summary: str,
+    total_price: float,
+    payment_method: str,
+    delivery_address: str,
+    phone_number: str,
+    bitcoin_address: str | None = None,
+    order_code: str | None = None,
+):
     """
     Log order creation
 
@@ -224,9 +235,16 @@ def log_order_creation(order_id: int, buyer_id: int, buyer_username: str,
     )
 
 
-def log_order_completion(order_id: int, buyer_id: int, buyer_username: str,
-                        items_summary: str, total: float, completed_by: Optional[int] = None,
-                        completed_by_username: Optional[str] = None, order_code: Optional[str] = None):
+def log_order_completion(
+    order_id: int,
+    buyer_id: int,
+    buyer_username: str,
+    items_summary: str,
+    total: float,
+    completed_by: int | None = None,
+    completed_by_username: str | None = None,
+    order_code: str | None = None,
+):
     """
     Log order completion
 
@@ -254,11 +272,17 @@ def log_order_completion(order_id: int, buyer_id: int, buyer_username: str,
     )
 
 
-def log_order_cancellation(order_id: int, buyer_id: int, buyer_username: str,
-                           items_summary: str, total: float, reason: str,
-                           canceled_by: Optional[int] = None,
-                           canceled_by_username: Optional[str] = None,
-                           order_code: Optional[str] = None):
+def log_order_cancellation(
+    order_id: int,
+    buyer_id: int,
+    buyer_username: str,
+    items_summary: str,
+    total: float,
+    reason: str,
+    canceled_by: int | None = None,
+    canceled_by_username: str | None = None,
+    order_code: str | None = None,
+):
     """
     Log order cancellation
 
@@ -288,10 +312,17 @@ def log_order_cancellation(order_id: int, buyer_id: int, buyer_username: str,
     )
 
 
-def log_order_refund(order_id: int, buyer_id: int, method: str,
-                     bonus_restored: float, amount: float, status: str,
-                     reason: str, order_code: Optional[str] = None,
-                     created_by: Optional[int] = None):
+def log_order_refund(
+    order_id: int,
+    buyer_id: int,
+    method: str,
+    bonus_restored: float,
+    amount: float,
+    status: str,
+    reason: str,
+    order_code: str | None = None,
+    created_by: int | None = None,
+):
     """
     Log a payment reversal / refund (Card 24).
 
@@ -316,8 +347,7 @@ def log_order_refund(order_id: int, buyer_id: int, method: str,
     )
 
 
-def log_customer_info_change(user_id: int, username: str, attribute: str,
-                             old_value: str, new_value: str):
+def log_customer_info_change(user_id: int, username: str, attribute: str, old_value: str, new_value: str):
     """
     Log customer information changes
 
@@ -328,10 +358,7 @@ def log_customer_info_change(user_id: int, username: str, attribute: str,
         old_value: Old value
         new_value: New value
     """
-    _get_changes_logger().info(
-        f"@{username} (ID: {user_id}) CHANGED {attribute} | "
-        f"Old: {old_value} | New: {new_value}"
-    )
+    _get_changes_logger().info(f"@{username} (ID: {user_id}) CHANGED {attribute} | Old: {old_value} | New: {new_value}")
 
 
 def log_bonus_payment(user_id: int, username: str, amount: float, total_bonus: float):
@@ -345,22 +372,19 @@ def log_bonus_payment(user_id: int, username: str, amount: float, total_bonus: f
         total_bonus: Total bonus balance
     """
     _get_reference_code_logger().info(
-        f"BONUS_PAID | User: @{username} (ID: {user_id}) | "
-        f"Amount: {amount} | Total Bonus: {total_bonus}"
+        f"BONUS_PAID | User: @{username} (ID: {user_id}) | Amount: {amount} | Total Bonus: {total_bonus}"
     )
 
     # Track referral bonus payment metrics
     metrics = get_metrics_lazy()
     if metrics:
-        metrics.track_event("referral_bonus_paid", user_id, {
-            "amount": amount,
-            "total_bonus": total_bonus
-        })
+        metrics.track_event("referral_bonus_paid", user_id, {"amount": amount, "total_bonus": total_bonus})
         metrics.track_conversion("referral_program", "bonus_paid", user_id)
 
 
-def log_bitcoin_address_assigned(address: str, order_id: int, buyer_id: int,
-                                 buyer_username: str, order_code: Optional[str] = None):
+def log_bitcoin_address_assigned(
+    address: str, order_id: int, buyer_id: int, buyer_username: str, order_code: str | None = None
+):
     """
     Log Bitcoin address assignment
 
@@ -375,13 +399,13 @@ def log_bitcoin_address_assigned(address: str, order_id: int, buyer_id: int,
     identifier = f"Code: {order_code}" if order_code else f"ID: {order_id}"
 
     _get_orders_logger().info(
-        f"BTC_ADDRESS_ASSIGNED | Address: {address} | "
-        f"Order {identifier} | Buyer: @{buyer_username} (ID: {buyer_id})"
+        f"BTC_ADDRESS_ASSIGNED | Address: {address} | Order {identifier} | Buyer: @{buyer_username} (ID: {buyer_id})"
     )
 
 
-def log_inventory_update(item_name: str, old_stock: int, new_stock: int,
-                         updated_by: int, updated_by_username: str, method: str):
+def log_inventory_update(
+    item_name: str, old_stock: int, new_stock: int, updated_by: int, updated_by_username: str, method: str
+):
     """
     Log inventory updates
 

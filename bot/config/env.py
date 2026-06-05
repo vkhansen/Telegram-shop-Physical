@@ -1,14 +1,13 @@
 import os
-from abc import ABC
 from typing import Final
 
 
-class EnvKeys(ABC):
+class EnvKeys:
     """Secure environment configuration with validation"""
 
     # Telegram
-    TOKEN: Final = os.environ.get('TOKEN')
-    OWNER_ID: Final = os.environ.get('OWNER_ID')
+    TOKEN: Final = os.environ.get("TOKEN")
+    OWNER_ID: Final = os.environ.get("OWNER_ID")
 
     PAY_CURRENCY: Final = os.getenv("PAY_CURRENCY", "THB")
     MIN_AMOUNT: Final = int(os.getenv("MIN_AMOUNT", 20))
@@ -108,7 +107,7 @@ class EnvKeys(ABC):
     # Multi-bot runtime (Card 19)
     MULTI_BOT_ENABLED: Final = os.getenv("MULTI_BOT_ENABLED", "false").lower() in ("1", "true", "yes")
     WEBHOOK_MODE: Final = os.getenv("WEBHOOK_MODE", "false").lower() in ("1", "true", "yes")
-    WEBHOOK_BASE_URL: Final = os.getenv("WEBHOOK_BASE_URL", "")   # Public URL for webhook callbacks
+    WEBHOOK_BASE_URL: Final = os.getenv("WEBHOOK_BASE_URL", "")  # Public URL for webhook callbacks
     WEBHOOK_PORT: Final = int(os.getenv("WEBHOOK_PORT", 8443))
     BOT_TOKEN_ENCRYPTION_KEY: Final = os.getenv("BOT_TOKEN_ENCRYPTION_KEY", "")  # Fernet key (future)
 

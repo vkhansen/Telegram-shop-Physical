@@ -1,9 +1,11 @@
 """Tests for GPS live tracking + delivery chat session (Card 15)"""
-import pytest
-from datetime import datetime, timedelta, timezone
+
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from bot.database.models.main import Order, User, DeliveryChatMessage
+import pytest
+
+from bot.database.models.main import DeliveryChatMessage, Order, User
 
 
 @pytest.mark.unit
@@ -12,14 +14,17 @@ class TestOrderCard15Fields:
     """Test Card 15 fields on the Order model"""
 
     def _create_order(self, db_session, buyer_id, **kwargs):
-        user = User(telegram_id=buyer_id, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=buyer_id, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
         order = Order(
-            buyer_id=buyer_id, total_price=Decimal("100.00"),
-            payment_method="cash", delivery_address="Test",
-            phone_number="0812345678", **kwargs
+            buyer_id=buyer_id,
+            total_price=Decimal("100.00"),
+            payment_method="cash",
+            delivery_address="Test",
+            phone_number="0812345678",
+            **kwargs,
         )
         db_session.add(order)
         db_session.commit()
@@ -48,7 +53,7 @@ class TestOrderCard15Fields:
         """Can set chat session open/close timestamps"""
         order = self._create_order(db_session, 400003, order_status="out_for_delivery")
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         order.chat_opened_at = now
         order.chat_closed_at = now + timedelta(hours=1)
         order.chat_post_delivery_until = now + timedelta(minutes=30)
@@ -67,13 +72,16 @@ class TestDeliveryChatMessageCard15Fields:
     """Test Card 15 GPS metadata fields on DeliveryChatMessage"""
 
     def _create_order(self, db_session, buyer_id):
-        user = User(telegram_id=buyer_id, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=buyer_id, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
         order = Order(
-            buyer_id=buyer_id, total_price=Decimal("100.00"),
-            payment_method="cash", delivery_address="Test",
-            phone_number="0812345678", order_status="out_for_delivery"
+            buyer_id=buyer_id,
+            total_price=Decimal("100.00"),
+            payment_method="cash",
+            delivery_address="Test",
+            phone_number="0812345678",
+            order_status="out_for_delivery",
         )
         db_session.add(order)
         db_session.flush()
@@ -153,9 +161,12 @@ class TestDeliveryChatMessageCard15Fields:
             db_session.add(msg)
         db_session.commit()
 
-        updates = db_session.query(DeliveryChatMessage).filter_by(
-            order_id=order.id, is_live_location=True
-        ).order_by(DeliveryChatMessage.live_location_update_count).all()
+        updates = (
+            db_session.query(DeliveryChatMessage)
+            .filter_by(order_id=order.id, is_live_location=True)
+            .order_by(DeliveryChatMessage.live_location_update_count)
+            .all()
+        )
 
         assert len(updates) == 5
         assert updates[0].live_location_update_count == 0
@@ -189,32 +200,48 @@ class TestDeliveryChatMessageCard15Fields:
 
         msgs = [
             DeliveryChatMessage(
-                order_id=order.id, sender_id=400015, sender_role="customer",
+                order_id=order.id,
+                sender_id=400015,
+                sender_role="customer",
                 message_text="Hello driver",
             ),
             DeliveryChatMessage(
-                order_id=order.id, sender_id=400015, sender_role="customer",
-                location_lat=13.75, location_lng=100.50,
+                order_id=order.id,
+                sender_id=400015,
+                sender_role="customer",
+                location_lat=13.75,
+                location_lng=100.50,
                 is_live_location=False,
             ),
             DeliveryChatMessage(
-                order_id=order.id, sender_id=999999, sender_role="driver",
-                location_lat=13.76, location_lng=100.51,
-                is_live_location=True, live_location_update_count=0,
+                order_id=order.id,
+                sender_id=999999,
+                sender_role="driver",
+                location_lat=13.76,
+                location_lng=100.51,
+                is_live_location=True,
+                live_location_update_count=0,
             ),
             DeliveryChatMessage(
-                order_id=order.id, sender_id=999999, sender_role="driver",
-                location_lat=13.77, location_lng=100.52,
-                is_live_location=True, live_location_update_count=1,
+                order_id=order.id,
+                sender_id=999999,
+                sender_role="driver",
+                location_lat=13.77,
+                location_lng=100.52,
+                is_live_location=True,
+                live_location_update_count=1,
             ),
         ]
         for m in msgs:
             db_session.add(m)
         db_session.commit()
 
-        history = db_session.query(DeliveryChatMessage).filter_by(
-            order_id=order.id
-        ).order_by(DeliveryChatMessage.created_at).all()
+        history = (
+            db_session.query(DeliveryChatMessage)
+            .filter_by(order_id=order.id)
+            .order_by(DeliveryChatMessage.created_at)
+            .all()
+        )
 
         assert len(history) == 4
         # Text message — no GPS
@@ -234,42 +261,70 @@ class TestDeliveryChatMessageCard15Fields:
         order = self._create_order(db_session, 400016)
 
         # Mix of text and location messages
-        db_session.add(DeliveryChatMessage(
-            order_id=order.id, sender_id=400016, sender_role="customer",
-            message_text="text only",
-        ))
-        db_session.add(DeliveryChatMessage(
-            order_id=order.id, sender_id=400016, sender_role="customer",
-            location_lat=13.75, location_lng=100.50, is_live_location=True,
-        ))
-        db_session.add(DeliveryChatMessage(
-            order_id=order.id, sender_id=999999, sender_role="driver",
-            location_lat=13.76, location_lng=100.51, is_live_location=True,
-        ))
+        db_session.add(
+            DeliveryChatMessage(
+                order_id=order.id,
+                sender_id=400016,
+                sender_role="customer",
+                message_text="text only",
+            )
+        )
+        db_session.add(
+            DeliveryChatMessage(
+                order_id=order.id,
+                sender_id=400016,
+                sender_role="customer",
+                location_lat=13.75,
+                location_lng=100.50,
+                is_live_location=True,
+            )
+        )
+        db_session.add(
+            DeliveryChatMessage(
+                order_id=order.id,
+                sender_id=999999,
+                sender_role="driver",
+                location_lat=13.76,
+                location_lng=100.51,
+                is_live_location=True,
+            )
+        )
         db_session.commit()
 
         # All locations
-        all_locs = db_session.query(DeliveryChatMessage).filter(
-            DeliveryChatMessage.order_id == order.id,
-            DeliveryChatMessage.location_lat.isnot(None),
-        ).all()
+        all_locs = (
+            db_session.query(DeliveryChatMessage)
+            .filter(
+                DeliveryChatMessage.order_id == order.id,
+                DeliveryChatMessage.location_lat.isnot(None),
+            )
+            .all()
+        )
         assert len(all_locs) == 2
 
         # Customer locations only
-        customer_locs = db_session.query(DeliveryChatMessage).filter(
-            DeliveryChatMessage.order_id == order.id,
-            DeliveryChatMessage.location_lat.isnot(None),
-            DeliveryChatMessage.sender_role == "customer",
-        ).all()
+        customer_locs = (
+            db_session.query(DeliveryChatMessage)
+            .filter(
+                DeliveryChatMessage.order_id == order.id,
+                DeliveryChatMessage.location_lat.isnot(None),
+                DeliveryChatMessage.sender_role == "customer",
+            )
+            .all()
+        )
         assert len(customer_locs) == 1
         assert customer_locs[0].sender_role == "customer"
 
         # Driver locations only
-        driver_locs = db_session.query(DeliveryChatMessage).filter(
-            DeliveryChatMessage.order_id == order.id,
-            DeliveryChatMessage.location_lat.isnot(None),
-            DeliveryChatMessage.sender_role == "driver",
-        ).all()
+        driver_locs = (
+            db_session.query(DeliveryChatMessage)
+            .filter(
+                DeliveryChatMessage.order_id == order.id,
+                DeliveryChatMessage.location_lat.isnot(None),
+                DeliveryChatMessage.sender_role == "driver",
+            )
+            .all()
+        )
         assert len(driver_locs) == 1
         assert driver_locs[0].sender_role == "driver"
 
@@ -280,13 +335,16 @@ class TestChatSessionLifecycle:
     """Test the is_chat_active logic (Card 15)"""
 
     def _create_order(self, db_session, buyer_id, **kwargs):
-        user = User(telegram_id=buyer_id, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=buyer_id, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
         order = Order(
-            buyer_id=buyer_id, total_price=Decimal("100.00"),
-            payment_method="cash", delivery_address="Test",
-            phone_number="0812345678", **kwargs
+            buyer_id=buyer_id,
+            total_price=Decimal("100.00"),
+            payment_method="cash",
+            delivery_address="Test",
+            phone_number="0812345678",
+            **kwargs,
         )
         db_session.add(order)
         db_session.commit()
@@ -295,26 +353,30 @@ class TestChatSessionLifecycle:
     def test_chat_active_during_confirmed(self, db_with_roles, db_session):
         """Chat is active when order is confirmed"""
         from bot.handlers.user.delivery_chat_handler import is_chat_active
+
         order = self._create_order(db_session, 400020, order_status="confirmed")
         assert is_chat_active(order) is True
 
     def test_chat_active_during_preparing(self, db_with_roles, db_session):
         """Chat is active when order is preparing"""
         from bot.handlers.user.delivery_chat_handler import is_chat_active
+
         order = self._create_order(db_session, 400021, order_status="preparing")
         assert is_chat_active(order) is True
 
     def test_chat_active_during_out_for_delivery(self, db_with_roles, db_session):
         """Chat is active when order is out for delivery"""
         from bot.handlers.user.delivery_chat_handler import is_chat_active
+
         order = self._create_order(db_session, 400022, order_status="out_for_delivery")
         assert is_chat_active(order) is True
 
     def test_chat_active_post_delivery_within_window(self, db_with_roles, db_session):
         """Chat is active within post-delivery window"""
         from bot.handlers.user.delivery_chat_handler import is_chat_active
+
         order = self._create_order(db_session, 400023, order_status="delivered")
-        order.chat_post_delivery_until = datetime.now(timezone.utc) + timedelta(minutes=15)
+        order.chat_post_delivery_until = datetime.now(UTC) + timedelta(minutes=15)
         db_session.commit()
 
         assert is_chat_active(order) is True
@@ -322,8 +384,9 @@ class TestChatSessionLifecycle:
     def test_chat_inactive_post_delivery_after_window(self, db_with_roles, db_session):
         """Chat is inactive after post-delivery window expires"""
         from bot.handlers.user.delivery_chat_handler import is_chat_active
+
         order = self._create_order(db_session, 400024, order_status="delivered")
-        order.chat_post_delivery_until = datetime.now(timezone.utc) - timedelta(minutes=5)
+        order.chat_post_delivery_until = datetime.now(UTC) - timedelta(minutes=5)
         db_session.commit()
 
         assert is_chat_active(order) is False
@@ -331,23 +394,27 @@ class TestChatSessionLifecycle:
     def test_chat_inactive_delivered_no_window(self, db_with_roles, db_session):
         """Chat is inactive for delivered orders with no post-delivery window set"""
         from bot.handlers.user.delivery_chat_handler import is_chat_active
+
         order = self._create_order(db_session, 400025, order_status="delivered")
         assert is_chat_active(order) is False
 
     def test_chat_inactive_cancelled(self, db_with_roles, db_session):
         """Chat is inactive for cancelled orders"""
         from bot.handlers.user.delivery_chat_handler import is_chat_active
+
         order = self._create_order(db_session, 400026, order_status="cancelled")
         assert is_chat_active(order) is False
 
     def test_chat_inactive_pending(self, db_with_roles, db_session):
         """Chat is inactive for pending orders (not yet confirmed)"""
         from bot.handlers.user.delivery_chat_handler import is_chat_active
+
         order = self._create_order(db_session, 400027, order_status="pending")
         assert is_chat_active(order) is False
 
     def test_chat_active_ready(self, db_with_roles, db_session):
         """Chat is active when order is ready for pickup/delivery"""
         from bot.handlers.user.delivery_chat_handler import is_chat_active
+
         order = self._create_order(db_session, 400028, order_status="ready")
         assert is_chat_active(order) is True

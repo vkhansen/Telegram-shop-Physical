@@ -1,21 +1,23 @@
 """
 Tests for reference code system
 """
-import pytest
-from datetime import datetime, timedelta, timezone
-from unittest.mock import patch, MagicMock
 
+from datetime import UTC, datetime, timedelta
+from unittest.mock import patch
+
+import pytest
+
+from bot.database.models.main import ReferenceCode, ReferenceCodeUsage
 from bot.referrals.codes import (
+    create_reference_code,
+    deactivate_reference_code,
     generate_reference_code,
     generate_unique_reference_code,
-    create_reference_code,
-    validate_reference_code,
-    use_reference_code,
-    deactivate_reference_code,
+    get_reference_code_stats,
     get_user_reference_codes,
-    get_reference_code_stats
+    use_reference_code,
+    validate_reference_code,
 )
-from bot.database.models.main import ReferenceCode, ReferenceCodeUsage
 
 
 @pytest.mark.unit
@@ -45,11 +47,7 @@ class TestReferenceCodeGeneration:
         """Test handling code collision"""
         # Pre-create some codes
         for i in range(5):
-            ref_code = ReferenceCode(
-                code=f"TESTCD{i:02d}",
-                created_by=test_user.telegram_id,
-                is_admin_code=True
-            )
+            ref_code = ReferenceCode(code=f"TESTCD{i:02d}", created_by=test_user.telegram_id, is_admin_code=True)
             db_session.add(ref_code)
         db_session.commit()
 
@@ -64,7 +62,7 @@ class TestReferenceCodeGeneration:
 class TestReferenceCodeCreation:
     """Tests for creating reference codes"""
 
-    @patch('bot.referrals.codes.log_reference_code_creation')
+    @patch("bot.referrals.codes.log_reference_code_creation")
     def test_create_admin_reference_code(self, mock_log, db_session, test_admin):
         """Test creating an admin reference code"""
         code = create_reference_code(
@@ -73,34 +71,32 @@ class TestReferenceCodeCreation:
             is_admin_code=True,
             expires_in_hours=48,
             max_uses=10,
-            note="Test code"
+            note="Test code",
         )
 
         assert len(code) == 8
 
         ref_code = db_session.query(ReferenceCode).filter_by(code=code).first()
         assert ref_code is not None
-        assert ref_code.is_admin_code == True
+        assert ref_code.is_admin_code
         assert ref_code.max_uses == 10
-        assert ref_code.is_active == True
+        assert ref_code.is_active
 
         mock_log.assert_called_once()
 
-    @patch('bot.referrals.codes.log_reference_code_creation')
+    @patch("bot.referrals.codes.log_reference_code_creation")
     def test_create_user_reference_code(self, mock_log, db_session, test_user):
         """Test creating a user reference code (limited)"""
         code = create_reference_code(
-            created_by=test_user.telegram_id,
-            created_by_username="test_user",
-            is_admin_code=False
+            created_by=test_user.telegram_id, created_by_username="test_user", is_admin_code=False
         )
 
         ref_code = db_session.query(ReferenceCode).filter_by(code=code).first()
         assert ref_code is not None
-        assert ref_code.is_admin_code == False
+        assert not ref_code.is_admin_code
         assert ref_code.max_uses == 1  # User codes limited to 1 use
 
-    @patch('bot.referrals.codes.log_reference_code_creation')
+    @patch("bot.referrals.codes.log_reference_code_creation")
     def test_create_unlimited_reference_code(self, mock_log, db_session, test_admin):
         """Test creating unlimited reference code"""
         code = create_reference_code(
@@ -109,7 +105,7 @@ class TestReferenceCodeCreation:
             is_admin_code=True,
             expires_in_hours=None,
             max_uses=None,
-            note="Unlimited code"
+            note="Unlimited code",
         )
 
         ref_code = db_session.query(ReferenceCode).filter_by(code=code).first()
@@ -125,23 +121,17 @@ class TestReferenceCodeValidation:
 
     def test_validate_valid_code(self, db_session, test_reference_code, test_user):
         """Test validating a valid reference code"""
-        is_valid, error_msg, creator_id = validate_reference_code(
-            test_reference_code.code,
-            test_user.telegram_id
-        )
+        is_valid, error_msg, creator_id = validate_reference_code(test_reference_code.code, test_user.telegram_id)
 
-        assert is_valid == True
+        assert is_valid
         assert error_msg == ""
         assert creator_id == test_reference_code.created_by
 
     def test_validate_nonexistent_code(self, db_session, test_user):
         """Test validating non-existent code"""
-        is_valid, error_msg, creator_id = validate_reference_code(
-            "INVALID1",
-            test_user.telegram_id
-        )
+        is_valid, error_msg, creator_id = validate_reference_code("INVALID1", test_user.telegram_id)
 
-        assert is_valid == False
+        assert not is_valid
         assert "invalid" in error_msg.lower()
         assert creator_id is None
 
@@ -150,12 +140,9 @@ class TestReferenceCodeValidation:
         test_reference_code.is_active = False
         db_session.commit()
 
-        is_valid, error_msg, creator_id = validate_reference_code(
-            test_reference_code.code,
-            test_user.telegram_id
-        )
+        is_valid, error_msg, _creator_id = validate_reference_code(test_reference_code.code, test_user.telegram_id)
 
-        assert is_valid == False
+        assert not is_valid
         assert "deactivated" in error_msg.lower()
 
     def test_validate_expired_code(self, db_session, test_admin, test_user):
@@ -163,66 +150,49 @@ class TestReferenceCodeValidation:
         expired_code = ReferenceCode(
             code="EXPIRED1",
             created_by=test_admin.telegram_id,
-            expires_at=datetime.now(timezone.utc) - timedelta(days=1),
-            is_admin_code=True
+            expires_at=datetime.now(UTC) - timedelta(days=1),
+            is_admin_code=True,
         )
         db_session.add(expired_code)
         db_session.commit()
 
-        is_valid, error_msg, creator_id = validate_reference_code(
-            expired_code.code,
-            test_user.telegram_id
-        )
+        is_valid, error_msg, _creator_id = validate_reference_code(expired_code.code, test_user.telegram_id)
 
-        assert is_valid == False
+        assert not is_valid
         assert "expired" in error_msg.lower()
 
     def test_validate_own_code(self, db_session, test_reference_code):
         """Test user cannot use their own code"""
-        is_valid, error_msg, creator_id = validate_reference_code(
-            test_reference_code.code,
-            test_reference_code.created_by
+        is_valid, error_msg, _creator_id = validate_reference_code(
+            test_reference_code.code, test_reference_code.created_by
         )
 
-        assert is_valid == False
+        assert not is_valid
         assert "own" in error_msg.lower()
 
     def test_validate_already_used_code(self, db_session, test_reference_code, test_user):
         """Test code already used by this user"""
         # Create usage record
-        usage = ReferenceCodeUsage(
-            code=test_reference_code.code,
-            used_by=test_user.telegram_id
-        )
+        usage = ReferenceCodeUsage(code=test_reference_code.code, used_by=test_user.telegram_id)
         db_session.add(usage)
         db_session.commit()
 
-        is_valid, error_msg, creator_id = validate_reference_code(
-            test_reference_code.code,
-            test_user.telegram_id
-        )
+        is_valid, error_msg, _creator_id = validate_reference_code(test_reference_code.code, test_user.telegram_id)
 
-        assert is_valid == False
+        assert not is_valid
         assert "already" in error_msg.lower()
 
     def test_validate_max_uses_reached(self, db_session, test_admin):
         """Test code with max uses reached"""
         ref_code = ReferenceCode(
-            code="MAXED001",
-            created_by=test_admin.telegram_id,
-            max_uses=2,
-            current_uses=2,
-            is_admin_code=True
+            code="MAXED001", created_by=test_admin.telegram_id, max_uses=2, current_uses=2, is_admin_code=True
         )
         db_session.add(ref_code)
         db_session.commit()
 
-        is_valid, error_msg, creator_id = validate_reference_code(
-            ref_code.code,
-            999999999
-        )
+        is_valid, error_msg, _creator_id = validate_reference_code(ref_code.code, 999999999)
 
-        assert is_valid == False
+        assert not is_valid
         assert "maximum" in error_msg.lower()
 
 
@@ -232,23 +202,22 @@ class TestReferenceCodeValidation:
 class TestReferenceCodeUsage:
     """Tests for using reference codes"""
 
-    @patch('bot.referrals.codes.log_reference_code_usage')
+    @patch("bot.referrals.codes.log_reference_code_usage")
     def test_use_reference_code(self, mock_log, db_session, test_reference_code, test_user):
         """Test using a valid reference code"""
-        success, error_msg, referrer_id = use_reference_code(
-            test_reference_code.code,
-            test_user.telegram_id,
-            "test_user"
+        success, _error_msg, referrer_id = use_reference_code(
+            test_reference_code.code, test_user.telegram_id, "test_user"
         )
 
-        assert success == True
+        assert success
         assert referrer_id == test_reference_code.created_by
 
         # Check usage was recorded
-        usage = db_session.query(ReferenceCodeUsage).filter_by(
-            code=test_reference_code.code,
-            used_by=test_user.telegram_id
-        ).first()
+        usage = (
+            db_session.query(ReferenceCodeUsage)
+            .filter_by(code=test_reference_code.code, used_by=test_user.telegram_id)
+            .first()
+        )
 
         assert usage is not None
 
@@ -256,16 +225,12 @@ class TestReferenceCodeUsage:
         db_session.refresh(test_reference_code)
         assert test_reference_code.current_uses == 1
 
-    @patch('bot.referrals.codes.log_reference_code_usage')
+    @patch("bot.referrals.codes.log_reference_code_usage")
     def test_use_invalid_code(self, mock_log, db_session, test_user):
         """Test using invalid code"""
-        success, error_msg, referrer_id = use_reference_code(
-            "INVALID1",
-            test_user.telegram_id,
-            "test_user"
-        )
+        success, _error_msg, referrer_id = use_reference_code("INVALID1", test_user.telegram_id, "test_user")
 
-        assert success == False
+        assert not success
         assert referrer_id is None
 
 
@@ -275,31 +240,23 @@ class TestReferenceCodeUsage:
 class TestReferenceCodeDeactivation:
     """Tests for deactivating reference codes"""
 
-    @patch('bot.referrals.codes.log_reference_code_deactivation')
+    @patch("bot.referrals.codes.log_reference_code_deactivation")
     def test_deactivate_code(self, mock_log, db_session, test_reference_code, test_admin):
         """Test deactivating a reference code"""
         result = deactivate_reference_code(
-            test_reference_code.code,
-            test_admin.telegram_id,
-            "test_admin",
-            "Test deactivation"
+            test_reference_code.code, test_admin.telegram_id, "test_admin", "Test deactivation"
         )
 
-        assert result == True
+        assert result
 
         db_session.refresh(test_reference_code)
-        assert test_reference_code.is_active == False
+        assert not test_reference_code.is_active
 
     def test_deactivate_nonexistent_code(self, db_session, test_admin):
         """Test deactivating non-existent code"""
-        result = deactivate_reference_code(
-            "INVALID1",
-            test_admin.telegram_id,
-            "test_admin",
-            "Test"
-        )
+        result = deactivate_reference_code("INVALID1", test_admin.telegram_id, "test_admin", "Test")
 
-        assert result == False
+        assert not result
 
 
 @pytest.mark.unit
@@ -313,15 +270,12 @@ class TestReferenceCodeQueries:
         codes = get_user_reference_codes(test_admin.telegram_id)
 
         assert len(codes) >= 1
-        assert any(code['code'] == test_reference_code.code for code in codes)
+        assert any(code["code"] == test_reference_code.code for code in codes)
 
     def test_get_reference_code_stats(self, db_session, test_reference_code, test_user):
         """Test getting code statistics"""
         # Add some usages
-        usage = ReferenceCodeUsage(
-            code=test_reference_code.code,
-            used_by=test_user.telegram_id
-        )
+        usage = ReferenceCodeUsage(code=test_reference_code.code, used_by=test_user.telegram_id)
         db_session.add(usage)
         test_reference_code.current_uses += 1
         db_session.commit()
@@ -329,9 +283,9 @@ class TestReferenceCodeQueries:
         stats = get_reference_code_stats(test_reference_code.code)
 
         assert stats is not None
-        assert stats['code'] == test_reference_code.code
-        assert stats['current_uses'] == 1
-        assert len(stats['users']) == 1
+        assert stats["code"] == test_reference_code.code
+        assert stats["current_uses"] == 1
+        assert len(stats["users"]) == 1
 
     def test_get_reference_code_stats_nonexistent(self, db_session):
         """Test getting stats for non-existent code"""

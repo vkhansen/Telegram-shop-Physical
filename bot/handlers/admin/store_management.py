@@ -1,12 +1,12 @@
 import logging
 
-from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message
+from aiogram import F, Router
+from aiogram.filters.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
-from aiogram.filters.state import StatesGroup, State
+from aiogram.types import CallbackQuery, Message
 
 from bot.database.main import Database
-from bot.database.models.main import Store, Permission
+from bot.database.models.main import Permission, Store
 from bot.filters import HasPermissionFilter
 from bot.i18n import localize
 from bot.keyboards.inline import back, simple_buttons
@@ -54,6 +54,7 @@ async def store_management(call: CallbackQuery, state: FSMContext):
 # ---------------------------------------------------------------------------
 # Store creation FSM
 # ---------------------------------------------------------------------------
+
 
 @router.callback_query(F.data == "add_store", HasPermissionFilter(permission=Permission.SETTINGS_MANAGE))
 async def add_store_start(call: CallbackQuery, state: FSMContext):
@@ -178,6 +179,7 @@ async def _save_store(message: Message, state: FSMContext):
 # View / toggle / set default
 # ---------------------------------------------------------------------------
 
+
 @router.callback_query(
     F.data.regexp(r"^view_store_\d+$"),
     HasPermissionFilter(permission=Permission.SETTINGS_MANAGE),
@@ -195,10 +197,7 @@ async def view_store(call: CallbackQuery):
         status = localize("admin.store.active") if store.is_active else localize("admin.store.inactive")
         default_label = localize("admin.store.is_default") if store.is_default else ""
 
-        details = (
-            f"<b>{store.name}</b>{default_label}\n\n"
-            f"<b>{localize('admin.store.status')}:</b> {status}\n"
-        )
+        details = f"<b>{store.name}</b>{default_label}\n\n<b>{localize('admin.store.status')}:</b> {status}\n"
         if store.address:
             details += f"<b>{localize('admin.store.address')}:</b> {store.address}\n"
         if store.latitude and store.longitude:
@@ -266,7 +265,7 @@ async def set_default_store(call: CallbackQuery):
 
     with Database().session() as session:
         # Unset current defaults
-        session.query(Store).filter(Store.is_default == True).update({"is_default": False})
+        session.query(Store).filter(Store.is_default).update({"is_default": False})
 
         store = session.query(Store).filter_by(id=store_id).first()
         if not store:
@@ -287,6 +286,7 @@ async def set_default_store(call: CallbackQuery):
 # Per-store menu image + PromptPay assets (Card 28)
 # ---------------------------------------------------------------------------
 
+
 def _clear_token(text: str | None) -> bool:
     """A lone '-' means "clear this field"."""
     return (text or "").strip() == "-"
@@ -301,13 +301,13 @@ async def _set_store_field(store_id: int, **fields) -> None:
             session.commit()
 
 
-@router.callback_query(F.data.regexp(r"^store_set_menuimg_\d+$"),
-                       HasPermissionFilter(permission=Permission.SETTINGS_MANAGE))
+@router.callback_query(
+    F.data.regexp(r"^store_set_menuimg_\d+$"), HasPermissionFilter(permission=Permission.SETTINGS_MANAGE)
+)
 async def set_menu_image_start(call: CallbackQuery, state: FSMContext):
     store_id = int(call.data.split("_")[-1])
     await state.update_data(asset_store_id=store_id)
-    await call.message.edit_text(localize("admin.store.prompt_menu_image"),
-                                 reply_markup=back(f"view_store_{store_id}"))
+    await call.message.edit_text(localize("admin.store.prompt_menu_image"), reply_markup=back(f"view_store_{store_id}"))
     await state.set_state(StoreStates.waiting_menu_image)
 
 
@@ -330,13 +330,11 @@ async def set_menu_image_other(message: Message, state: FSMContext):
         await message.answer(localize("admin.store.expected_photo"))
 
 
-@router.callback_query(F.data.regexp(r"^store_set_qr_\d+$"),
-                       HasPermissionFilter(permission=Permission.SETTINGS_MANAGE))
+@router.callback_query(F.data.regexp(r"^store_set_qr_\d+$"), HasPermissionFilter(permission=Permission.SETTINGS_MANAGE))
 async def set_static_qr_start(call: CallbackQuery, state: FSMContext):
     store_id = int(call.data.split("_")[-1])
     await state.update_data(asset_store_id=store_id)
-    await call.message.edit_text(localize("admin.store.prompt_static_qr"),
-                                 reply_markup=back(f"view_store_{store_id}"))
+    await call.message.edit_text(localize("admin.store.prompt_static_qr"), reply_markup=back(f"view_store_{store_id}"))
     await state.set_state(StoreStates.waiting_static_qr)
 
 
@@ -359,13 +357,13 @@ async def set_static_qr_other(message: Message, state: FSMContext):
         await message.answer(localize("admin.store.expected_photo"))
 
 
-@router.callback_query(F.data.regexp(r"^store_set_pp_\d+$"),
-                       HasPermissionFilter(permission=Permission.SETTINGS_MANAGE))
+@router.callback_query(F.data.regexp(r"^store_set_pp_\d+$"), HasPermissionFilter(permission=Permission.SETTINGS_MANAGE))
 async def set_promptpay_start(call: CallbackQuery, state: FSMContext):
     store_id = int(call.data.split("_")[-1])
     await state.update_data(asset_store_id=store_id)
-    await call.message.edit_text(localize("admin.store.prompt_promptpay_id"),
-                                 reply_markup=back(f"view_store_{store_id}"))
+    await call.message.edit_text(
+        localize("admin.store.prompt_promptpay_id"), reply_markup=back(f"view_store_{store_id}")
+    )
     await state.set_state(StoreStates.waiting_promptpay_id)
 
 
@@ -384,8 +382,7 @@ async def set_promptpay_id_save(message: Message, state: FSMContext):
         await message.answer(localize("admin.store.invalid_promptpay"))
         return
     await _set_store_field(store_id, promptpay_id=text)
-    await message.answer(localize("admin.store.prompt_promptpay_name"),
-                         reply_markup=back(f"view_store_{store_id}"))
+    await message.answer(localize("admin.store.prompt_promptpay_name"), reply_markup=back(f"view_store_{store_id}"))
     await state.set_state(StoreStates.waiting_promptpay_name)
 
 

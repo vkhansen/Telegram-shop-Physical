@@ -6,9 +6,11 @@ Handlers receive brand_id via data["brand_id"].
 In single-bot mode (MULTI_BOT_ENABLED=false), the middleware is also registered
 with brand_id=1 so that all handlers have a consistent data["brand_id"] key.
 """
+
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject

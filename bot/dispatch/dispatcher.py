@@ -12,6 +12,7 @@ dispatch loop through it.
 """
 
 import asyncio
+import contextlib
 import logging
 
 from bot.config import EnvKeys
@@ -20,6 +21,7 @@ from bot.database.methods.driver import adjust_active_orders
 from bot.database.models.main import Order
 from bot.dispatch.matching import get_available_drivers
 from bot.i18n import localize
+from bot.utils.background import track_task
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +31,8 @@ class DispatchSession:
 
     def __init__(self, order_id: int):
         self.order_id = order_id
-        self.offered: set[int] = set()       # every driver ever offered this order
-        self.declined: set[int] = set()      # drivers who declined/timed out
+        self.offered: set[int] = set()  # every driver ever offered this order
+        self.declined: set[int] = set()  # drivers who declined/timed out
         self.current_batch: set[int] = set()  # drivers awaiting a reply this round
         self.event = asyncio.Event()
         self.accepted_by: int | None = None
@@ -104,27 +106,33 @@ def _offer_text(order: dict) -> str:
 
 def _offer_keyboard(order_id: int, driver_tg: int):
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-    return InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(
-            text=localize("driver.offer.accept_btn"),
-            callback_data=f"dispatch_accept_{order_id}_{driver_tg}",
-        ),
-        InlineKeyboardButton(
-            text=localize("driver.offer.decline_btn"),
-            callback_data=f"dispatch_decline_{order_id}_{driver_tg}",
-        ),
-    ]])
+
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=localize("driver.offer.accept_btn"),
+                    callback_data=f"dispatch_accept_{order_id}_{driver_tg}",
+                ),
+                InlineKeyboardButton(
+                    text=localize("driver.offer.decline_btn"),
+                    callback_data=f"dispatch_decline_{order_id}_{driver_tg}",
+                ),
+            ]
+        ]
+    )
 
 
 def _driver_action_keyboard(order_id: int):
     """The pickup/delivered buttons the assigned driver uses to drive the order."""
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=localize("rider.btn.picked_up"),
-                              callback_data=f"rider_picked_{order_id}")],
-        [InlineKeyboardButton(text=localize("rider.btn.delivered"),
-                              callback_data=f"rider_delivered_{order_id}")],
-    ])
+
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=localize("rider.btn.picked_up"), callback_data=f"rider_picked_{order_id}")],
+            [InlineKeyboardButton(text=localize("rider.btn.delivered"), callback_data=f"rider_delivered_{order_id}")],
+        ]
+    )
 
 
 async def _assign(bot, order: dict, driver_tg: int) -> bool:
@@ -141,8 +149,7 @@ async def _assign(bot, order: dict, driver_tg: int) -> bool:
     try:
         await bot.send_message(
             driver_tg,
-            localize("driver.offer.accepted", order_code=order["order_code"],
-                     address=order["delivery_address"]),
+            localize("driver.offer.accepted", order_code=order["order_code"], address=order["delivery_address"]),
             reply_markup=_driver_action_keyboard(order["id"]),
         )
         if order.get("google_maps_link"):
@@ -171,13 +178,11 @@ async def _notify_customer_assigned(bot, order: dict) -> None:
 
 async def _expire_offer(bot, driver_tg: int, order: dict) -> None:
     """Tell a driver an offer they didn't take is gone (best-effort)."""
-    try:
+    with contextlib.suppress(Exception):
         await bot.send_message(
             driver_tg,
             localize("driver.offer.expired", order_code=order["order_code"]),
         )
-    except Exception:
-        pass
 
 
 async def _manual_fallback(bot, order_id: int) -> None:
@@ -185,6 +190,7 @@ async def _manual_fallback(bot, order_id: int) -> None:
     logger.info("Auto-dispatch exhausted for order %s; falling back to rider group", order_id)
     try:
         from bot.handlers.admin.order_management import _send_rider_notification
+
         with Database().session() as s:
             o = s.query(Order).filter(Order.id == order_id).one_or_none()
             if o and o.order_status == "ready" and o.driver_id is None:
@@ -212,12 +218,16 @@ async def auto_dispatch(bot, order_id: int) -> None:
         for _round in range(EnvKeys.AUTO_DISPATCH_MAX_ROUNDS):
             # Re-query each round so freshly-online drivers can be matched.
             ranked = get_available_drivers(
-                order["latitude"], order["longitude"],
-                zone=order["delivery_zone"], brand_id=order["brand_id"],
+                order["latitude"],
+                order["longitude"],
+                zone=order["delivery_zone"],
+                brand_id=order["brand_id"],
             )
-            candidates = [d for d in ranked
-                          if d["telegram_id"] not in session.offered
-                          and d["telegram_id"] not in session.declined]
+            candidates = [
+                d
+                for d in ranked
+                if d["telegram_id"] not in session.offered and d["telegram_id"] not in session.declined
+            ]
             if not candidates:
                 break
 
@@ -229,17 +239,16 @@ async def auto_dispatch(bot, order_id: int) -> None:
             for d in batch:
                 try:
                     await bot.send_message(
-                        d["telegram_id"], _offer_text(order),
+                        d["telegram_id"],
+                        _offer_text(order),
                         reply_markup=_offer_keyboard(order_id, d["telegram_id"]),
                     )
                 except Exception:
                     logger.warning("Failed to send offer to driver %s", d["telegram_id"])
                     session.declined.add(d["telegram_id"])
 
-            try:
+            with contextlib.suppress(TimeoutError):
                 await asyncio.wait_for(session.event.wait(), timeout=timeout)
-            except asyncio.TimeoutError:
-                pass
 
             if session.accepted_by is not None:
                 if await _assign(bot, order, session.accepted_by):
@@ -261,7 +270,7 @@ async def auto_dispatch(bot, order_id: int) -> None:
 
 def start_auto_dispatch(bot, order_id: int) -> None:
     """Fire-and-forget the dispatch loop so the caller (a button handler) returns fast."""
-    asyncio.create_task(auto_dispatch(bot, order_id))
+    track_task(asyncio.create_task(auto_dispatch(bot, order_id)))
 
 
 async def on_order_ready(bot, order_id: int, session=None) -> None:
@@ -275,6 +284,7 @@ async def on_order_ready(bot, order_id: int, session=None) -> None:
         start_auto_dispatch(bot, order_id)
         return
     from bot.handlers.admin.order_management import _send_rider_notification
+
     if session is not None:
         o = session.query(Order).filter(Order.id == order_id).one_or_none()
         if o:

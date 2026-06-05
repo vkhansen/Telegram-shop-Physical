@@ -3,16 +3,23 @@
 import pytest
 
 from bot.utils.constants import (
-    PAYMENT_BITCOIN, PAYMENT_LITECOIN, PAYMENT_SOLANA, PAYMENT_USDT_SOL,
-    PAYMENT_CASH, PAYMENT_PROMPTPAY,
-    COIN_BTC, COIN_LTC, COIN_SOL, COIN_USDT_SOL,
-    PAYMENT_METHOD_TO_COIN, CRYPTO_PAYMENT_METHODS,
+    COIN_BTC,
+    COIN_LTC,
+    COIN_SOL,
+    COIN_USDT_SOL,
+    CRYPTO_PAYMENT_METHODS,
+    PAYMENT_BITCOIN,
+    PAYMENT_CASH,
+    PAYMENT_LITECOIN,
+    PAYMENT_METHOD_TO_COIN,
+    PAYMENT_PROMPTPAY,
+    PAYMENT_SOLANA,
+    PAYMENT_USDT_SOL,
 )
 
 
 @pytest.mark.unit
 class TestCryptoConstants:
-
     def test_payment_method_strings(self):
         assert PAYMENT_BITCOIN == "bitcoin"
         assert PAYMENT_LITECOIN == "litecoin"

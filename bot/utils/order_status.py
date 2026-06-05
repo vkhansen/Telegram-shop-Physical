@@ -17,7 +17,7 @@ VALID_TRANSITIONS = {
     "out_for_delivery": {"delivered", "cancelled"},
     "delivered": set(),  # Terminal state
     "cancelled": set(),  # Terminal state
-    "expired": set(),    # Terminal state
+    "expired": set(),  # Terminal state
 }
 
 ALL_STATUSES = set(VALID_TRANSITIONS.keys())

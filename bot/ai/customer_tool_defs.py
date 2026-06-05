@@ -3,7 +3,6 @@
 Re-uses the schema_to_tool() helper from the admin tool_defs module.
 """
 
-from bot.ai.tool_defs import schema_to_tool
 from bot.ai.customer_schemas import (
     BrowseMenuAction,
     CheckCouponAction,
@@ -16,6 +15,7 @@ from bot.ai.customer_schemas import (
     StartAppLiveChatAction,
     StartStoreLiveChatAction,
 )
+from bot.ai.tool_defs import schema_to_tool
 
 CUSTOMER_TOOLS = [
     # Catalog (read-only)

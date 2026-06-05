@@ -1,8 +1,10 @@
 """
 Tests for bot/utils/user_utils.py - get_telegram_username() function.
 """
+
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from bot.utils.user_utils import get_telegram_username
 

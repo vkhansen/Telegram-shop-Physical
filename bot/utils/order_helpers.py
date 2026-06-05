@@ -7,10 +7,28 @@ Extracts common patterns from order_handler.py:
 - Item summary formatting
 - Google Maps link generation
 """
+
 from decimal import Decimal
+from typing import Protocol
+
+from sqlalchemy.orm import Session
 
 from bot.config.env import EnvKeys
 from bot.database.models.main import Order, OrderItem
+
+
+class CustomerInfoLike(Protocol):
+    """Structural type for the customer fields needed to build an order.
+
+    The DB ``CustomerInfo`` model satisfies this; using a Protocol keeps this
+    module strictly typed without coupling to SQLAlchemy ``Column`` types.
+    """
+
+    phone_number: str | None
+    delivery_address: str | None
+    delivery_note: str | None
+    latitude: float | None
+    longitude: float | None
 
 
 def build_google_maps_link(latitude: float | None, longitude: float | None) -> str | None:
@@ -21,9 +39,9 @@ def build_google_maps_link(latitude: float | None, longitude: float | None) -> s
 
 
 def create_order_from_customer(
-    session,
+    session: Session,
     user_id: int,
-    customer_info,
+    customer_info: CustomerInfoLike,
     payment_method: str,
     total_amount: Decimal,
     bonus_applied: Decimal = Decimal("0"),
@@ -45,6 +63,7 @@ def create_order_from_customer(
 
     order = Order(
         buyer_id=user_id,
+        order_code=generate_unique_order_code(session),
         total_price=Decimal(str(total_amount)),
         bonus_applied=bonus_applied,
         payment_method=payment_method,
@@ -67,7 +86,6 @@ def create_order_from_customer(
     session.add(order)
     session.flush()
 
-    order.order_code = generate_unique_order_code(session)
     return order
 
 
@@ -78,6 +96,7 @@ def extract_delivery_fields(data: dict) -> dict:
     drop_longitude, drop_media.
     """
     from bot.utils.constants import DELIVERY_DOOR
+
     return {
         "delivery_type": data.get("delivery_type", DELIVERY_DOOR),
         "drop_instructions": data.get("drop_instructions"),
@@ -87,7 +106,7 @@ def extract_delivery_fields(data: dict) -> dict:
     }
 
 
-def create_order_items(session, order_id: int, cart_items: list) -> tuple[list[str], list[dict]]:
+def create_order_items(session: Session, order_id: int, cart_items: list) -> tuple[list[str], list[dict]]:
     """
     Create OrderItem records from cart items.
 
@@ -98,28 +117,25 @@ def create_order_items(session, order_id: int, cart_items: list) -> tuple[list[s
     items_to_reserve = []
 
     for cart_item in cart_items:
-        item_name = cart_item['item_name']
-        quantity = cart_item['quantity']
-        price = cart_item['price']
+        item_name = cart_item["item_name"]
+        quantity = cart_item["quantity"]
+        price = cart_item["price"]
 
         order_item = OrderItem(
             order_id=order_id,
             item_name=item_name,
             price=Decimal(str(price)),
             quantity=quantity,
-            selected_modifiers=cart_item.get('selected_modifiers'),
+            selected_modifiers=cart_item.get("selected_modifiers"),
         )
         session.add(order_item)
 
         items_summary.append(f"{item_name} x{quantity} = {cart_item['total']} {EnvKeys.PAY_CURRENCY}")
-        items_to_reserve.append({'item_name': item_name, 'quantity': quantity})
+        items_to_reserve.append({"item_name": item_name, "quantity": quantity})
 
     return items_summary, items_to_reserve
 
 
 def format_items_summary(cart_items: list) -> list[str]:
     """Format cart items as display strings."""
-    return [
-        f"{item['item_name']} x{item['quantity']} = {item['total']} {EnvKeys.PAY_CURRENCY}"
-        for item in cart_items
-    ]
+    return [f"{item['item_name']} x{item['quantity']} = {item['total']} {EnvKeys.PAY_CURRENCY}" for item in cart_items]

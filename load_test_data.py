@@ -25,6 +25,7 @@ Datasets:
     stress      – High-volume data (200 users, 500 orders) for perf testing
     all         – Everything above (default)
 """
+
 import argparse
 import os
 import random
@@ -39,14 +40,12 @@ from bot.database.models import register_models
 
 register_models()
 
-from bot.database import Database
-from bot.database.models.main import (
-    BitcoinAddress,
+from bot.database import Database  # noqa: E402
+from bot.database.models.main import (  # noqa: E402
     BotSettings,
+    BranchInventory,
     Brand,
     BrandStaff,
-    BranchInventory,
-    BoughtGoods,
     Categories,
     Coupon,
     CouponUsage,
@@ -182,13 +181,16 @@ THAI_ADDRESSES = [
     "999 Rama 4 Rd, Phra Khanong",
 ]
 
+
 # ---------------------------------------------------------------------------
 # Dataset: Thai restaurant
 # ---------------------------------------------------------------------------
 def load_thai(s):
     print("[thai] Loading Thai restaurant brand...")
     brand = _get_or_create_brand(
-        s, "Siam Kitchen", "siam-kitchen",
+        s,
+        "Siam Kitchen",
+        "siam-kitchen",
         description="Authentic Thai cuisine — street food to fine dining",
         promptpay_id="0891234567",
         promptpay_name="Siam Kitchen Co Ltd",
@@ -196,100 +198,271 @@ def load_thai(s):
     )
 
     # --- Categories ---
-    appetizers = _get_or_create_category(s, "Appetizers", brand.id, sort_order=1,
-                                         description="Start your meal right")
-    mains = _get_or_create_category(s, "Main Dishes", brand.id, sort_order=2,
-                                     description="Rice & noodle favourites")
-    curries = _get_or_create_category(s, "Curries", brand.id, sort_order=3,
-                                       description="Thai curries with steamed rice")
-    salads = _get_or_create_category(s, "Salads & Som Tam", brand.id, sort_order=4)
-    breakfast = _get_or_create_category(s, "Breakfast Set", brand.id, sort_order=0,
-                                         description="Served 06:00–11:00",
-                                         available_from="06:00", available_until="11:00")
-    drinks_cat = _get_or_create_category(s, "Thai Drinks", brand.id, sort_order=5)
-    desserts_cat = _get_or_create_category(s, "Thai Desserts", brand.id, sort_order=6)
+    _get_or_create_category(s, "Appetizers", brand.id, sort_order=1, description="Start your meal right")
+    _get_or_create_category(s, "Main Dishes", brand.id, sort_order=2, description="Rice & noodle favourites")
+    _get_or_create_category(s, "Curries", brand.id, sort_order=3, description="Thai curries with steamed rice")
+    _get_or_create_category(s, "Salads & Som Tam", brand.id, sort_order=4)
+    _get_or_create_category(
+        s,
+        "Breakfast Set",
+        brand.id,
+        sort_order=0,
+        description="Served 06:00–11:00",
+        available_from="06:00",
+        available_until="11:00",
+    )
+    _get_or_create_category(s, "Thai Drinks", brand.id, sort_order=5)
+    _get_or_create_category(s, "Thai Desserts", brand.id, sort_order=6)
 
     # --- Items ---
     items = [
         # Appetizers
-        dict(name="Spring Rolls (4 pcs)", price=65, description="Crispy vegetable spring rolls with sweet chili",
-             category_name="Appetizers", brand_id=brand.id, prep_time_minutes=8, calories=280,
-             allergens="gluten"),
-        dict(name="Satay Chicken (4 skewers)", price=89, description="Grilled chicken skewers with peanut sauce",
-             category_name="Appetizers", brand_id=brand.id, prep_time_minutes=12, calories=340,
-             allergens="peanuts"),
-        dict(name="Tod Mun Pla", price=79, description="Thai fish cakes with cucumber relish",
-             category_name="Appetizers", brand_id=brand.id, prep_time_minutes=10, calories=260,
-             allergens="fish,gluten"),
-
+        {
+            "name": "Spring Rolls (4 pcs)",
+            "price": 65,
+            "description": "Crispy vegetable spring rolls with sweet chili",
+            "category_name": "Appetizers",
+            "brand_id": brand.id,
+            "prep_time_minutes": 8,
+            "calories": 280,
+            "allergens": "gluten",
+        },
+        {
+            "name": "Satay Chicken (4 skewers)",
+            "price": 89,
+            "description": "Grilled chicken skewers with peanut sauce",
+            "category_name": "Appetizers",
+            "brand_id": brand.id,
+            "prep_time_minutes": 12,
+            "calories": 340,
+            "allergens": "peanuts",
+        },
+        {
+            "name": "Tod Mun Pla",
+            "price": 79,
+            "description": "Thai fish cakes with cucumber relish",
+            "category_name": "Appetizers",
+            "brand_id": brand.id,
+            "prep_time_minutes": 10,
+            "calories": 260,
+            "allergens": "fish,gluten",
+        },
         # Mains
-        dict(name="Pad Thai Goong", price=120, description="Stir-fried rice noodles with prawns, tamarind sauce, peanuts",
-             category_name="Main Dishes", brand_id=brand.id, prep_time_minutes=12, calories=520,
-             allergens="peanuts,shellfish",
-             modifiers={"Spice Level": {"options": ["Mild", "Medium", "Hot", "Thai Hot"], "required": True},
-                        "Extra Protein": {"options": ["None", "Egg +15", "Tofu +20", "Extra Prawn +40"], "required": False}}),
-        dict(name="Khao Pad Gai", price=89, description="Thai fried rice with chicken and egg",
-             category_name="Main Dishes", brand_id=brand.id, prep_time_minutes=10, calories=480),
-        dict(name="Pad See Ew", price=95, description="Wide rice noodles stir-fried with Chinese broccoli and soy",
-             category_name="Main Dishes", brand_id=brand.id, prep_time_minutes=10, calories=510,
-             allergens="soy,gluten"),
-        dict(name="Pad Kra Pao Moo", price=85, description="Holy basil stir-fry with minced pork and fried egg",
-             category_name="Main Dishes", brand_id=brand.id, prep_time_minutes=8, calories=460,
-             modifiers={"Spice Level": {"options": ["Mild", "Medium", "Hot"], "required": True}}),
-        dict(name="Rad Na", price=99, description="Wide noodles in thick gravy with pork and broccoli",
-             category_name="Main Dishes", brand_id=brand.id, prep_time_minutes=12, calories=490),
-
+        {
+            "name": "Pad Thai Goong",
+            "price": 120,
+            "description": "Stir-fried rice noodles with prawns, tamarind sauce, peanuts",
+            "category_name": "Main Dishes",
+            "brand_id": brand.id,
+            "prep_time_minutes": 12,
+            "calories": 520,
+            "allergens": "peanuts,shellfish",
+            "modifiers": {
+                "Spice Level": {"options": ["Mild", "Medium", "Hot", "Thai Hot"], "required": True},
+                "Extra Protein": {"options": ["None", "Egg +15", "Tofu +20", "Extra Prawn +40"], "required": False},
+            },
+        },
+        {
+            "name": "Khao Pad Gai",
+            "price": 89,
+            "description": "Thai fried rice with chicken and egg",
+            "category_name": "Main Dishes",
+            "brand_id": brand.id,
+            "prep_time_minutes": 10,
+            "calories": 480,
+        },
+        {
+            "name": "Pad See Ew",
+            "price": 95,
+            "description": "Wide rice noodles stir-fried with Chinese broccoli and soy",
+            "category_name": "Main Dishes",
+            "brand_id": brand.id,
+            "prep_time_minutes": 10,
+            "calories": 510,
+            "allergens": "soy,gluten",
+        },
+        {
+            "name": "Pad Kra Pao Moo",
+            "price": 85,
+            "description": "Holy basil stir-fry with minced pork and fried egg",
+            "category_name": "Main Dishes",
+            "brand_id": brand.id,
+            "prep_time_minutes": 8,
+            "calories": 460,
+            "modifiers": {"Spice Level": {"options": ["Mild", "Medium", "Hot"], "required": True}},
+        },
+        {
+            "name": "Rad Na",
+            "price": 99,
+            "description": "Wide noodles in thick gravy with pork and broccoli",
+            "category_name": "Main Dishes",
+            "brand_id": brand.id,
+            "prep_time_minutes": 12,
+            "calories": 490,
+        },
         # Curries
-        dict(name="Green Curry Chicken", price=110, description="Coconut green curry with bamboo shoots and Thai basil",
-             category_name="Curries", brand_id=brand.id, prep_time_minutes=15, calories=450,
-             allergens="dairy"),
-        dict(name="Massaman Beef", price=140, description="Rich peanut curry with potato and slow-cooked beef",
-             category_name="Curries", brand_id=brand.id, prep_time_minutes=20, calories=580,
-             allergens="peanuts,dairy"),
-        dict(name="Panang Curry Pork", price=115, description="Thick panang curry with kaffir lime and pork",
-             category_name="Curries", brand_id=brand.id, prep_time_minutes=15, calories=470),
-        dict(name="Tom Yum Goong", price=130, description="Hot & sour prawn soup with lemongrass and galangal",
-             category_name="Curries", brand_id=brand.id, prep_time_minutes=12, calories=210,
-             allergens="shellfish"),
-
+        {
+            "name": "Green Curry Chicken",
+            "price": 110,
+            "description": "Coconut green curry with bamboo shoots and Thai basil",
+            "category_name": "Curries",
+            "brand_id": brand.id,
+            "prep_time_minutes": 15,
+            "calories": 450,
+            "allergens": "dairy",
+        },
+        {
+            "name": "Massaman Beef",
+            "price": 140,
+            "description": "Rich peanut curry with potato and slow-cooked beef",
+            "category_name": "Curries",
+            "brand_id": brand.id,
+            "prep_time_minutes": 20,
+            "calories": 580,
+            "allergens": "peanuts,dairy",
+        },
+        {
+            "name": "Panang Curry Pork",
+            "price": 115,
+            "description": "Thick panang curry with kaffir lime and pork",
+            "category_name": "Curries",
+            "brand_id": brand.id,
+            "prep_time_minutes": 15,
+            "calories": 470,
+        },
+        {
+            "name": "Tom Yum Goong",
+            "price": 130,
+            "description": "Hot & sour prawn soup with lemongrass and galangal",
+            "category_name": "Curries",
+            "brand_id": brand.id,
+            "prep_time_minutes": 12,
+            "calories": 210,
+            "allergens": "shellfish",
+        },
         # Salads
-        dict(name="Som Tam Thai", price=75, description="Green papaya salad with peanuts and dried shrimp",
-             category_name="Salads & Som Tam", brand_id=brand.id, prep_time_minutes=5, calories=180,
-             allergens="peanuts,shellfish",
-             modifiers={"Spice Level": {"options": ["Mild", "Medium", "Hot", "Fire"], "required": True}}),
-        dict(name="Yum Woon Sen", price=95, description="Glass noodle salad with seafood and lime dressing",
-             category_name="Salads & Som Tam", brand_id=brand.id, prep_time_minutes=8, calories=230),
-        dict(name="Larb Moo", price=85, description="Spicy minced pork salad with herbs and roasted rice",
-             category_name="Salads & Som Tam", brand_id=brand.id, prep_time_minutes=7, calories=200),
-
+        {
+            "name": "Som Tam Thai",
+            "price": 75,
+            "description": "Green papaya salad with peanuts and dried shrimp",
+            "category_name": "Salads & Som Tam",
+            "brand_id": brand.id,
+            "prep_time_minutes": 5,
+            "calories": 180,
+            "allergens": "peanuts,shellfish",
+            "modifiers": {"Spice Level": {"options": ["Mild", "Medium", "Hot", "Fire"], "required": True}},
+        },
+        {
+            "name": "Yum Woon Sen",
+            "price": 95,
+            "description": "Glass noodle salad with seafood and lime dressing",
+            "category_name": "Salads & Som Tam",
+            "brand_id": brand.id,
+            "prep_time_minutes": 8,
+            "calories": 230,
+        },
+        {
+            "name": "Larb Moo",
+            "price": 85,
+            "description": "Spicy minced pork salad with herbs and roasted rice",
+            "category_name": "Salads & Som Tam",
+            "brand_id": brand.id,
+            "prep_time_minutes": 7,
+            "calories": 200,
+        },
         # Breakfast (time-limited)
-        dict(name="Jok Moo (Rice Porridge)", price=55, description="Breakfast rice porridge with pork and soft egg",
-             category_name="Breakfast Set", brand_id=brand.id, prep_time_minutes=8, calories=320,
-             available_from="06:00", available_until="11:00"),
-        dict(name="Pa Tong Go + Coffee Set", price=49, description="Thai donuts with sweet condensed milk coffee",
-             category_name="Breakfast Set", brand_id=brand.id, prep_time_minutes=5, calories=410,
-             available_from="06:00", available_until="11:00", allergens="gluten,dairy"),
-
+        {
+            "name": "Jok Moo (Rice Porridge)",
+            "price": 55,
+            "description": "Breakfast rice porridge with pork and soft egg",
+            "category_name": "Breakfast Set",
+            "brand_id": brand.id,
+            "prep_time_minutes": 8,
+            "calories": 320,
+            "available_from": "06:00",
+            "available_until": "11:00",
+        },
+        {
+            "name": "Pa Tong Go + Coffee Set",
+            "price": 49,
+            "description": "Thai donuts with sweet condensed milk coffee",
+            "category_name": "Breakfast Set",
+            "brand_id": brand.id,
+            "prep_time_minutes": 5,
+            "calories": 410,
+            "available_from": "06:00",
+            "available_until": "11:00",
+            "allergens": "gluten,dairy",
+        },
         # Drinks
-        dict(name="Thai Iced Tea", price=45, description="Classic orange Thai tea with condensed milk",
-             category_name="Thai Drinks", brand_id=brand.id, prep_time_minutes=3, calories=180,
-             allergens="dairy"),
-        dict(name="Coconut Water", price=40, description="Fresh young coconut water",
-             category_name="Thai Drinks", brand_id=brand.id, item_type="product", stock_quantity=50),
-        dict(name="Singha Beer", price=70, description="Thai lager 330ml",
-             category_name="Thai Drinks", brand_id=brand.id, item_type="product", stock_quantity=100),
-        dict(name="Butterfly Pea Lemonade", price=55, description="Color-changing herbal lemonade",
-             category_name="Thai Drinks", brand_id=brand.id, prep_time_minutes=3, calories=90),
-
+        {
+            "name": "Thai Iced Tea",
+            "price": 45,
+            "description": "Classic orange Thai tea with condensed milk",
+            "category_name": "Thai Drinks",
+            "brand_id": brand.id,
+            "prep_time_minutes": 3,
+            "calories": 180,
+            "allergens": "dairy",
+        },
+        {
+            "name": "Coconut Water",
+            "price": 40,
+            "description": "Fresh young coconut water",
+            "category_name": "Thai Drinks",
+            "brand_id": brand.id,
+            "item_type": "product",
+            "stock_quantity": 50,
+        },
+        {
+            "name": "Singha Beer",
+            "price": 70,
+            "description": "Thai lager 330ml",
+            "category_name": "Thai Drinks",
+            "brand_id": brand.id,
+            "item_type": "product",
+            "stock_quantity": 100,
+        },
+        {
+            "name": "Butterfly Pea Lemonade",
+            "price": 55,
+            "description": "Color-changing herbal lemonade",
+            "category_name": "Thai Drinks",
+            "brand_id": brand.id,
+            "prep_time_minutes": 3,
+            "calories": 90,
+        },
         # Desserts
-        dict(name="Mango Sticky Rice", price=85, description="Sweet sticky rice with fresh mango and coconut cream",
-             category_name="Thai Desserts", brand_id=brand.id, prep_time_minutes=5, calories=380,
-             daily_limit=30, allergens="dairy"),
-        dict(name="Roti with Banana", price=55, description="Crispy roti with banana, egg and condensed milk",
-             category_name="Thai Desserts", brand_id=brand.id, prep_time_minutes=7, calories=450,
-             allergens="gluten,dairy,egg"),
-        dict(name="Tub Tim Grob", price=60, description="Red rubies (water chestnuts in coconut milk on ice)",
-             category_name="Thai Desserts", brand_id=brand.id, prep_time_minutes=3, calories=200),
+        {
+            "name": "Mango Sticky Rice",
+            "price": 85,
+            "description": "Sweet sticky rice with fresh mango and coconut cream",
+            "category_name": "Thai Desserts",
+            "brand_id": brand.id,
+            "prep_time_minutes": 5,
+            "calories": 380,
+            "daily_limit": 30,
+            "allergens": "dairy",
+        },
+        {
+            "name": "Roti with Banana",
+            "price": 55,
+            "description": "Crispy roti with banana, egg and condensed milk",
+            "category_name": "Thai Desserts",
+            "brand_id": brand.id,
+            "prep_time_minutes": 7,
+            "calories": 450,
+            "allergens": "gluten,dairy,egg",
+        },
+        {
+            "name": "Tub Tim Grob",
+            "price": 60,
+            "description": "Red rubies (water chestnuts in coconut milk on ice)",
+            "category_name": "Thai Desserts",
+            "brand_id": brand.id,
+            "prep_time_minutes": 3,
+            "calories": 200,
+        },
     ]
 
     for spec in items:
@@ -316,7 +489,9 @@ def load_thai(s):
 def load_afghan(s):
     print("[afghan] Loading Afghan restaurant brand...")
     brand = _get_or_create_brand(
-        s, "Kabul Grill", "kabul-grill",
+        s,
+        "Kabul Grill",
+        "kabul-grill",
         description="Traditional Afghan & Middle-Eastern cuisine",
         timezone="Asia/Bangkok",
     )
@@ -327,37 +502,118 @@ def load_afghan(s):
     _get_or_create_category(s, "Afghan Drinks", brand.id, sort_order=4)
 
     items = [
-        dict(name="Chapli Kebab", price=110, description="Spiced minced beef patties with herbs",
-             category_name="Kebabs", brand_id=brand.id, prep_time_minutes=15, calories=420),
-        dict(name="Seekh Kebab (6 pcs)", price=130, description="Minced lamb skewers from the tandoor",
-             category_name="Kebabs", brand_id=brand.id, prep_time_minutes=18, calories=480),
-        dict(name="Chicken Tikka", price=120, description="Marinated chicken grilled in tandoor",
-             category_name="Kebabs", brand_id=brand.id, prep_time_minutes=20, calories=350),
-        dict(name="Lamb Chops (4 pcs)", price=220, description="Premium lamb chops with Afghan spices",
-             category_name="Kebabs", brand_id=brand.id, prep_time_minutes=25, calories=550),
-
-        dict(name="Kabuli Pulao", price=150, description="Signature Afghan rice with lamb, raisins & carrots",
-             category_name="Rice Dishes", brand_id=brand.id, prep_time_minutes=30, calories=620),
-        dict(name="Qabili Palau (Chicken)", price=130, description="Fragrant rice with chicken and nuts",
-             category_name="Rice Dishes", brand_id=brand.id, prep_time_minutes=25, calories=560),
-        dict(name="Mantu (Dumplings)", price=99, description="Steamed dumplings with spiced lamb and yogurt sauce",
-             category_name="Rice Dishes", brand_id=brand.id, prep_time_minutes=20, calories=380,
-             allergens="gluten,dairy"),
-
-        dict(name="Afghan Naan", price=25, description="Freshly baked flatbread from the tandoor",
-             category_name="Breads & Sides", brand_id=brand.id, prep_time_minutes=8, calories=220,
-             allergens="gluten"),
-        dict(name="Bolani (Potato)", price=45, description="Stuffed flatbread with spiced potato filling",
-             category_name="Breads & Sides", brand_id=brand.id, prep_time_minutes=10, calories=310,
-             allergens="gluten"),
-        dict(name="Salata (Afghan Salad)", price=40, description="Fresh tomato, cucumber, onion with lemon dressing",
-             category_name="Breads & Sides", brand_id=brand.id, prep_time_minutes=3, calories=80),
-
-        dict(name="Doogh", price=35, description="Traditional yogurt drink with mint",
-             category_name="Afghan Drinks", brand_id=brand.id, prep_time_minutes=2, calories=120,
-             allergens="dairy"),
-        dict(name="Afghan Green Tea", price=30, description="Cardamom green tea",
-             category_name="Afghan Drinks", brand_id=brand.id, prep_time_minutes=5, calories=5),
+        {
+            "name": "Chapli Kebab",
+            "price": 110,
+            "description": "Spiced minced beef patties with herbs",
+            "category_name": "Kebabs",
+            "brand_id": brand.id,
+            "prep_time_minutes": 15,
+            "calories": 420,
+        },
+        {
+            "name": "Seekh Kebab (6 pcs)",
+            "price": 130,
+            "description": "Minced lamb skewers from the tandoor",
+            "category_name": "Kebabs",
+            "brand_id": brand.id,
+            "prep_time_minutes": 18,
+            "calories": 480,
+        },
+        {
+            "name": "Chicken Tikka",
+            "price": 120,
+            "description": "Marinated chicken grilled in tandoor",
+            "category_name": "Kebabs",
+            "brand_id": brand.id,
+            "prep_time_minutes": 20,
+            "calories": 350,
+        },
+        {
+            "name": "Lamb Chops (4 pcs)",
+            "price": 220,
+            "description": "Premium lamb chops with Afghan spices",
+            "category_name": "Kebabs",
+            "brand_id": brand.id,
+            "prep_time_minutes": 25,
+            "calories": 550,
+        },
+        {
+            "name": "Kabuli Pulao",
+            "price": 150,
+            "description": "Signature Afghan rice with lamb, raisins & carrots",
+            "category_name": "Rice Dishes",
+            "brand_id": brand.id,
+            "prep_time_minutes": 30,
+            "calories": 620,
+        },
+        {
+            "name": "Qabili Palau (Chicken)",
+            "price": 130,
+            "description": "Fragrant rice with chicken and nuts",
+            "category_name": "Rice Dishes",
+            "brand_id": brand.id,
+            "prep_time_minutes": 25,
+            "calories": 560,
+        },
+        {
+            "name": "Mantu (Dumplings)",
+            "price": 99,
+            "description": "Steamed dumplings with spiced lamb and yogurt sauce",
+            "category_name": "Rice Dishes",
+            "brand_id": brand.id,
+            "prep_time_minutes": 20,
+            "calories": 380,
+            "allergens": "gluten,dairy",
+        },
+        {
+            "name": "Afghan Naan",
+            "price": 25,
+            "description": "Freshly baked flatbread from the tandoor",
+            "category_name": "Breads & Sides",
+            "brand_id": brand.id,
+            "prep_time_minutes": 8,
+            "calories": 220,
+            "allergens": "gluten",
+        },
+        {
+            "name": "Bolani (Potato)",
+            "price": 45,
+            "description": "Stuffed flatbread with spiced potato filling",
+            "category_name": "Breads & Sides",
+            "brand_id": brand.id,
+            "prep_time_minutes": 10,
+            "calories": 310,
+            "allergens": "gluten",
+        },
+        {
+            "name": "Salata (Afghan Salad)",
+            "price": 40,
+            "description": "Fresh tomato, cucumber, onion with lemon dressing",
+            "category_name": "Breads & Sides",
+            "brand_id": brand.id,
+            "prep_time_minutes": 3,
+            "calories": 80,
+        },
+        {
+            "name": "Doogh",
+            "price": 35,
+            "description": "Traditional yogurt drink with mint",
+            "category_name": "Afghan Drinks",
+            "brand_id": brand.id,
+            "prep_time_minutes": 2,
+            "calories": 120,
+            "allergens": "dairy",
+        },
+        {
+            "name": "Afghan Green Tea",
+            "price": 30,
+            "description": "Cardamom green tea",
+            "category_name": "Afghan Drinks",
+            "brand_id": brand.id,
+            "prep_time_minutes": 5,
+            "calories": 5,
+        },
     ]
 
     for spec in items:
@@ -374,7 +630,9 @@ def load_afghan(s):
 def load_cafe(s):
     print("[cafe] Loading cafe & bakery brand...")
     brand = _get_or_create_brand(
-        s, "Bean & Crumb", "bean-crumb",
+        s,
+        "Bean & Crumb",
+        "bean-crumb",
         description="Specialty coffee and fresh-baked goods",
         timezone="Asia/Bangkok",
     )
@@ -386,50 +644,144 @@ def load_cafe(s):
 
     items = [
         # Hot coffee
-        dict(name="Espresso", price=50, description="Double shot espresso",
-             category_name="Hot Coffee", brand_id=brand.id, prep_time_minutes=3, calories=10),
-        dict(name="Cappuccino", price=75, description="Espresso with steamed milk and foam",
-             category_name="Hot Coffee", brand_id=brand.id, prep_time_minutes=4, calories=120,
-             allergens="dairy",
-             modifiers={"Milk": {"options": ["Regular", "Oat +20", "Soy +15", "Almond +20"], "required": True},
-                        "Size": {"options": ["Regular", "Large +25"], "required": True}}),
-        dict(name="Latte", price=80, description="Espresso with steamed milk",
-             category_name="Hot Coffee", brand_id=brand.id, prep_time_minutes=4, calories=150,
-             allergens="dairy",
-             modifiers={"Milk": {"options": ["Regular", "Oat +20", "Soy +15", "Almond +20"], "required": True}}),
-        dict(name="Matcha Latte", price=90, description="Ceremonial grade matcha with milk",
-             category_name="Hot Coffee", brand_id=brand.id, prep_time_minutes=4, calories=170,
-             allergens="dairy"),
-
+        {
+            "name": "Espresso",
+            "price": 50,
+            "description": "Double shot espresso",
+            "category_name": "Hot Coffee",
+            "brand_id": brand.id,
+            "prep_time_minutes": 3,
+            "calories": 10,
+        },
+        {
+            "name": "Cappuccino",
+            "price": 75,
+            "description": "Espresso with steamed milk and foam",
+            "category_name": "Hot Coffee",
+            "brand_id": brand.id,
+            "prep_time_minutes": 4,
+            "calories": 120,
+            "allergens": "dairy",
+            "modifiers": {
+                "Milk": {"options": ["Regular", "Oat +20", "Soy +15", "Almond +20"], "required": True},
+                "Size": {"options": ["Regular", "Large +25"], "required": True},
+            },
+        },
+        {
+            "name": "Latte",
+            "price": 80,
+            "description": "Espresso with steamed milk",
+            "category_name": "Hot Coffee",
+            "brand_id": brand.id,
+            "prep_time_minutes": 4,
+            "calories": 150,
+            "allergens": "dairy",
+            "modifiers": {"Milk": {"options": ["Regular", "Oat +20", "Soy +15", "Almond +20"], "required": True}},
+        },
+        {
+            "name": "Matcha Latte",
+            "price": 90,
+            "description": "Ceremonial grade matcha with milk",
+            "category_name": "Hot Coffee",
+            "brand_id": brand.id,
+            "prep_time_minutes": 4,
+            "calories": 170,
+            "allergens": "dairy",
+        },
         # Cold coffee
-        dict(name="Iced Americano", price=65, description="Double espresso over ice",
-             category_name="Cold Coffee", brand_id=brand.id, prep_time_minutes=2, calories=15),
-        dict(name="Cold Brew", price=85, description="16-hour cold brew concentrate",
-             category_name="Cold Coffee", brand_id=brand.id, prep_time_minutes=1, calories=10),
-        dict(name="Iced Mocha", price=95, description="Espresso, chocolate, milk and ice",
-             category_name="Cold Coffee", brand_id=brand.id, prep_time_minutes=4, calories=280,
-             allergens="dairy"),
-
+        {
+            "name": "Iced Americano",
+            "price": 65,
+            "description": "Double espresso over ice",
+            "category_name": "Cold Coffee",
+            "brand_id": brand.id,
+            "prep_time_minutes": 2,
+            "calories": 15,
+        },
+        {
+            "name": "Cold Brew",
+            "price": 85,
+            "description": "16-hour cold brew concentrate",
+            "category_name": "Cold Coffee",
+            "brand_id": brand.id,
+            "prep_time_minutes": 1,
+            "calories": 10,
+        },
+        {
+            "name": "Iced Mocha",
+            "price": 95,
+            "description": "Espresso, chocolate, milk and ice",
+            "category_name": "Cold Coffee",
+            "brand_id": brand.id,
+            "prep_time_minutes": 4,
+            "calories": 280,
+            "allergens": "dairy",
+        },
         # Bakery (products — inventory tracked)
-        dict(name="Croissant", price=55, description="Butter croissant, baked fresh daily",
-             category_name="Bakery", brand_id=brand.id, item_type="product",
-             stock_quantity=40, calories=310, allergens="gluten,dairy"),
-        dict(name="Banana Bread Slice", price=65, description="Moist banana bread with walnuts",
-             category_name="Bakery", brand_id=brand.id, item_type="product",
-             stock_quantity=20, calories=350, allergens="gluten,nuts,egg"),
-        dict(name="Chocolate Muffin", price=60, description="Double chocolate chip muffin",
-             category_name="Bakery", brand_id=brand.id, item_type="product",
-             stock_quantity=25, calories=410, allergens="gluten,dairy,egg"),
-        dict(name="Almond Cookie (3 pcs)", price=45, description="Chewy almond cookies",
-             category_name="Bakery", brand_id=brand.id, item_type="product",
-             stock_quantity=30, calories=280, allergens="nuts,gluten"),
-
+        {
+            "name": "Croissant",
+            "price": 55,
+            "description": "Butter croissant, baked fresh daily",
+            "category_name": "Bakery",
+            "brand_id": brand.id,
+            "item_type": "product",
+            "stock_quantity": 40,
+            "calories": 310,
+            "allergens": "gluten,dairy",
+        },
+        {
+            "name": "Banana Bread Slice",
+            "price": 65,
+            "description": "Moist banana bread with walnuts",
+            "category_name": "Bakery",
+            "brand_id": brand.id,
+            "item_type": "product",
+            "stock_quantity": 20,
+            "calories": 350,
+            "allergens": "gluten,nuts,egg",
+        },
+        {
+            "name": "Chocolate Muffin",
+            "price": 60,
+            "description": "Double chocolate chip muffin",
+            "category_name": "Bakery",
+            "brand_id": brand.id,
+            "item_type": "product",
+            "stock_quantity": 25,
+            "calories": 410,
+            "allergens": "gluten,dairy,egg",
+        },
+        {
+            "name": "Almond Cookie (3 pcs)",
+            "price": 45,
+            "description": "Chewy almond cookies",
+            "category_name": "Bakery",
+            "brand_id": brand.id,
+            "item_type": "product",
+            "stock_quantity": 30,
+            "calories": 280,
+            "allergens": "nuts,gluten",
+        },
         # Bottled (products)
-        dict(name="Sparkling Water 500ml", price=30, description="Imported sparkling water",
-             category_name="Bottled Drinks", brand_id=brand.id, item_type="product", stock_quantity=60),
-        dict(name="Fresh OJ Bottle", price=55, description="Cold-pressed orange juice 300ml",
-             category_name="Bottled Drinks", brand_id=brand.id, item_type="product",
-             stock_quantity=15, calories=130),
+        {
+            "name": "Sparkling Water 500ml",
+            "price": 30,
+            "description": "Imported sparkling water",
+            "category_name": "Bottled Drinks",
+            "brand_id": brand.id,
+            "item_type": "product",
+            "stock_quantity": 60,
+        },
+        {
+            "name": "Fresh OJ Bottle",
+            "price": 55,
+            "description": "Cold-pressed orange juice 300ml",
+            "category_name": "Bottled Drinks",
+            "brand_id": brand.id,
+            "item_type": "product",
+            "stock_quantity": 15,
+            "calories": 130,
+        },
     ]
 
     for spec in items:
@@ -459,12 +811,28 @@ def load_multi(s):
 
     # Stores for Siam Kitchen
     stores_thai = [
-        dict(name="Siam Kitchen - Siam Square", address="123 Siam Square Soi 5, Pathumwan",
-             latitude=13.7450, longitude=100.5340, phone="021234567", is_default=True),
-        dict(name="Siam Kitchen - Thonglor", address="55 Thonglor Soi 13, Watthana",
-             latitude=13.7320, longitude=100.5780, phone="021234568"),
-        dict(name="Siam Kitchen - Chatuchak", address="88 Phahonyothin Rd, Chatuchak",
-             latitude=13.7999, longitude=100.5530, phone="021234569"),
+        {
+            "name": "Siam Kitchen - Siam Square",
+            "address": "123 Siam Square Soi 5, Pathumwan",
+            "latitude": 13.7450,
+            "longitude": 100.5340,
+            "phone": "021234567",
+            "is_default": True,
+        },
+        {
+            "name": "Siam Kitchen - Thonglor",
+            "address": "55 Thonglor Soi 13, Watthana",
+            "latitude": 13.7320,
+            "longitude": 100.5780,
+            "phone": "021234568",
+        },
+        {
+            "name": "Siam Kitchen - Chatuchak",
+            "address": "88 Phahonyothin Rd, Chatuchak",
+            "latitude": 13.7999,
+            "longitude": 100.5530,
+            "phone": "021234569",
+        },
     ]
     created_stores = []
     for spec in stores_thai:
@@ -474,10 +842,21 @@ def load_multi(s):
 
     # Stores for Bean & Crumb
     stores_cafe = [
-        dict(name="Bean & Crumb - Ari", address="15 Soi Ari 1, Phaya Thai",
-             latitude=13.7795, longitude=100.5445, phone="029876543", is_default=True),
-        dict(name="Bean & Crumb - Ekkamai", address="10 Ekkamai Soi 2, Phra Khanong",
-             latitude=13.7261, longitude=100.5604, phone="029876544"),
+        {
+            "name": "Bean & Crumb - Ari",
+            "address": "15 Soi Ari 1, Phaya Thai",
+            "latitude": 13.7795,
+            "longitude": 100.5445,
+            "phone": "029876543",
+            "is_default": True,
+        },
+        {
+            "name": "Bean & Crumb - Ekkamai",
+            "address": "10 Ekkamai Soi 2, Phra Khanong",
+            "latitude": 13.7261,
+            "longitude": 100.5604,
+            "phone": "029876544",
+        },
     ]
     for spec in stores_cafe:
         _get_or_create_store(s, cafe_brand.id, **spec)
@@ -486,16 +865,12 @@ def load_multi(s):
     # Branch inventory (different stock per store)
     for store in created_stores:
         # Each store has different Singha Beer stock
-        existing = s.query(BranchInventory).filter_by(
-            store_id=store.id, item_name="Singha Beer").first()
+        existing = s.query(BranchInventory).filter_by(store_id=store.id, item_name="Singha Beer").first()
         if not existing:
-            s.add(BranchInventory(store_id=store.id, item_name="Singha Beer",
-                                  stock_quantity=random.randint(20, 80)))
-        existing2 = s.query(BranchInventory).filter_by(
-            store_id=store.id, item_name="Coconut Water").first()
+            s.add(BranchInventory(store_id=store.id, item_name="Singha Beer", stock_quantity=random.randint(20, 80)))
+        existing2 = s.query(BranchInventory).filter_by(store_id=store.id, item_name="Coconut Water").first()
         if not existing2:
-            s.add(BranchInventory(store_id=store.id, item_name="Coconut Water",
-                                  stock_quantity=random.randint(10, 40)))
+            s.add(BranchInventory(store_id=store.id, item_name="Coconut Water", stock_quantity=random.randint(10, 40)))
 
     s.commit()
     print("  Branch-level inventory set for product items")
@@ -526,10 +901,11 @@ def load_users(s, count=50):
         elif i == 3:
             role_id = role_ids["OWNER"]
 
-        is_banned = (i >= count - 2)  # Last 2 users are banned
+        is_banned = i >= count - 2  # Last 2 users are banned
 
-        user = _get_or_create_user(
-            s, tid,
+        _get_or_create_user(
+            s,
+            tid,
             registration_date=reg_date,
             role_id=role_id,
             locale=locale,
@@ -588,8 +964,17 @@ def load_orders(s, user_ids=None, count=80):
         print("  WARN: No brands found — load a menu dataset first")
         return
 
-    statuses = ["pending", "reserved", "confirmed", "preparing", "ready",
-                "out_for_delivery", "delivered", "cancelled", "expired"]
+    statuses = [
+        "pending",
+        "reserved",
+        "confirmed",
+        "preparing",
+        "ready",
+        "out_for_delivery",
+        "delivered",
+        "cancelled",
+        "expired",
+    ]
     payment_methods = ["promptpay", "cash", "bitcoin"]
     delivery_types = ["door", "dead_drop", "pickup"]
 
@@ -603,7 +988,7 @@ def load_orders(s, user_ids=None, count=80):
         items_by_brand.setdefault(item.brand_id, []).append(item)
 
     created = 0
-    for i in range(count):
+    for _i in range(count):
         brand = random.choice(brands)
         brand_items = items_by_brand.get(brand.id, [])
         if not brand_items:
@@ -672,18 +1057,22 @@ def load_orders(s, user_ids=None, count=80):
         # Order items
         for item in chosen_items:
             qty = random.randint(1, 3)
-            s.add(OrderItem(
-                order_id=order.id,
-                item_name=item.name,
-                price=item.price,
-                quantity=qty,
-            ))
+            s.add(
+                OrderItem(
+                    order_id=order.id,
+                    item_name=item.name,
+                    price=item.price,
+                    quantity=qty,
+                )
+            )
 
         created += 1
 
     s.commit()
-    print(f"  {created} orders created across {len(statuses)} statuses, "
-          f"{len(payment_methods)} payment methods, {len(delivery_types)} delivery types")
+    print(
+        f"  {created} orders created across {len(statuses)} statuses, "
+        f"{len(payment_methods)} payment methods, {len(delivery_types)} delivery types"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -709,15 +1098,16 @@ def load_referrals(s, user_ids=None):
         # Create earning record
         original = Decimal(str(random.randint(100, 500)))
         commission = original * Decimal("0.05")
-        existing = s.query(ReferralEarnings).filter_by(
-            referrer_id=referrer_id, referral_id=referral_id).first()
+        existing = s.query(ReferralEarnings).filter_by(referrer_id=referrer_id, referral_id=referral_id).first()
         if not existing:
-            s.add(ReferralEarnings(
-                referrer_id=referrer_id,
-                referral_id=referral_id,
-                amount=commission,
-                original_amount=original,
-            ))
+            s.add(
+                ReferralEarnings(
+                    referrer_id=referrer_id,
+                    referral_id=referral_id,
+                    amount=commission,
+                    original_amount=original,
+                )
+            )
             count += 1
 
     # Reference codes
@@ -725,13 +1115,15 @@ def load_referrals(s, user_ids=None):
         code = f"REF{_rand_code(4)}"
         existing = s.query(ReferenceCode).filter_by(code=code).first()
         if not existing:
-            s.add(ReferenceCode(
-                code=code,
-                created_by=user_ids[i],
-                max_uses=random.choice([None, 10, 50]),
-                current_uses=random.randint(0, 5),
-                note=f"Referral code from user #{i}",
-            ))
+            s.add(
+                ReferenceCode(
+                    code=code,
+                    created_by=user_ids[i],
+                    max_uses=random.choice([None, 10, 50]),
+                    current_uses=random.randint(0, 5),
+                    note=f"Referral code from user #{i}",
+                )
+            )
 
     s.commit()
     print(f"  {count} referral earnings, 3 reference codes")
@@ -747,29 +1139,63 @@ def load_coupons(s, user_ids=None):
 
     coupons_spec = [
         # Active percent
-        dict(code="WELCOME10", discount_type="percent", discount_value=Decimal("10"),
-             min_order=Decimal("100"), max_discount=Decimal("50"),
-             valid_until=_now + timedelta(days=30), max_uses=1000,
-             note="New user welcome discount"),
+        {
+            "code": "WELCOME10",
+            "discount_type": "percent",
+            "discount_value": Decimal("10"),
+            "min_order": Decimal("100"),
+            "max_discount": Decimal("50"),
+            "valid_until": _now + timedelta(days=30),
+            "max_uses": 1000,
+            "note": "New user welcome discount",
+        },
         # Active fixed
-        dict(code="FLAT50", discount_type="fixed", discount_value=Decimal("50"),
-             min_order=Decimal("200"), valid_until=_now + timedelta(days=14),
-             max_uses=200, note="Flat 50 off"),
+        {
+            "code": "FLAT50",
+            "discount_type": "fixed",
+            "discount_value": Decimal("50"),
+            "min_order": Decimal("200"),
+            "valid_until": _now + timedelta(days=14),
+            "max_uses": 200,
+            "note": "Flat 50 off",
+        },
         # High-value percent
-        dict(code="VIP25", discount_type="percent", discount_value=Decimal("25"),
-             min_order=Decimal("500"), max_discount=Decimal("200"),
-             valid_until=_now + timedelta(days=60), max_uses=50,
-             max_uses_per_user=2, note="VIP customers only"),
+        {
+            "code": "VIP25",
+            "discount_type": "percent",
+            "discount_value": Decimal("25"),
+            "min_order": Decimal("500"),
+            "max_discount": Decimal("200"),
+            "valid_until": _now + timedelta(days=60),
+            "max_uses": 50,
+            "max_uses_per_user": 2,
+            "note": "VIP customers only",
+        },
         # Expired
-        dict(code="EXPIRED20", discount_type="percent", discount_value=Decimal("20"),
-             valid_from=_ago(days=60), valid_until=_ago(days=30),
-             max_uses=100, note="This one is expired"),
+        {
+            "code": "EXPIRED20",
+            "discount_type": "percent",
+            "discount_value": Decimal("20"),
+            "valid_from": _ago(days=60),
+            "valid_until": _ago(days=30),
+            "max_uses": 100,
+            "note": "This one is expired",
+        },
         # Exhausted (all uses consumed)
-        dict(code="SOLDOUT", discount_type="fixed", discount_value=Decimal("30"),
-             max_uses=5, note="All uses consumed"),
+        {
+            "code": "SOLDOUT",
+            "discount_type": "fixed",
+            "discount_value": Decimal("30"),
+            "max_uses": 5,
+            "note": "All uses consumed",
+        },
         # Unlimited, no minimum
-        dict(code="FREEDELIVERY", discount_type="fixed", discount_value=Decimal("80"),
-             note="Free delivery — unlimited uses"),
+        {
+            "code": "FREEDELIVERY",
+            "discount_type": "fixed",
+            "discount_value": Decimal("80"),
+            "note": "Free delivery — unlimited uses",
+        },
     ]
 
     for spec in coupons_spec:
@@ -784,20 +1210,24 @@ def load_coupons(s, user_ids=None):
         if spec["code"] == "SOLDOUT":
             coupon.current_uses = 5
             for j in range(5):
-                s.add(CouponUsage(
-                    coupon_id=coupon.id,
-                    user_id=user_ids[j + 5],
-                    discount_applied=Decimal("30"),
-                ))
+                s.add(
+                    CouponUsage(
+                        coupon_id=coupon.id,
+                        user_id=user_ids[j + 5],
+                        discount_applied=Decimal("30"),
+                    )
+                )
 
         # Add some usage to WELCOME10
         if spec["code"] == "WELCOME10":
             for j in range(min(8, len(user_ids) - 10)):
-                s.add(CouponUsage(
-                    coupon_id=coupon.id,
-                    user_id=user_ids[j + 10],
-                    discount_applied=Decimal(str(random.randint(10, 50))),
-                ))
+                s.add(
+                    CouponUsage(
+                        coupon_id=coupon.id,
+                        user_id=user_ids[j + 10],
+                        discount_applied=Decimal(str(random.randint(10, 50))),
+                    )
+                )
             coupon.current_uses = 8
 
     s.commit()
@@ -828,7 +1258,9 @@ def load_reviews(s, user_ids=None):
         "Best I've had in Bangkok!",
         "Average. Nothing special.",
         "Great value for the price.",
-        None, None, None,  # Some reviews without comments
+        None,
+        None,
+        None,  # Some reviews without comments
     ]
 
     count = 0
@@ -845,13 +1277,15 @@ def load_reviews(s, user_ids=None):
         if order.items:
             item_name = order.items[0].item_name
 
-        s.add(Review(
-            order_id=order.id,
-            user_id=order.buyer_id,
-            rating=rating,
-            comment=random.choice(comments),
-            item_name=item_name,
-        ))
+        s.add(
+            Review(
+                order_id=order.id,
+                user_id=order.buyer_id,
+                rating=rating,
+                comment=random.choice(comments),
+                item_name=item_name,
+            )
+        )
         count += 1
 
     s.commit()
@@ -867,14 +1301,14 @@ def load_support(s, user_ids=None):
         user_ids = [FAKE_USER_BASE_ID + i for i in range(50)]
 
     tickets_spec = [
-        dict(subject="Order never arrived", status="open", priority="high"),
-        dict(subject="Wrong item received", status="in_progress", priority="normal"),
-        dict(subject="Payment charged twice", status="open", priority="urgent"),
-        dict(subject="How to use promo code?", status="resolved", priority="low"),
-        dict(subject="Delivery driver was rude", status="in_progress", priority="normal"),
-        dict(subject="Request for refund #12345", status="closed", priority="normal"),
-        dict(subject="App crash when opening cart", status="open", priority="high"),
-        dict(subject="Cannot change delivery address", status="resolved", priority="normal"),
+        {"subject": "Order never arrived", "status": "open", "priority": "high"},
+        {"subject": "Wrong item received", "status": "in_progress", "priority": "normal"},
+        {"subject": "Payment charged twice", "status": "open", "priority": "urgent"},
+        {"subject": "How to use promo code?", "status": "resolved", "priority": "low"},
+        {"subject": "Delivery driver was rude", "status": "in_progress", "priority": "normal"},
+        {"subject": "Request for refund #12345", "status": "closed", "priority": "normal"},
+        {"subject": "App crash when opening cart", "status": "open", "priority": "high"},
+        {"subject": "Cannot change delivery address", "status": "resolved", "priority": "normal"},
     ]
 
     admin_id = FAKE_USER_BASE_ID + 1
@@ -898,14 +1332,32 @@ def load_support(s, user_ids=None):
         s.flush()
 
         # Add messages
-        s.add(TicketMessage(ticket_id=ticket.id, sender_id=uid, sender_role="user",
-                            message_text=f"Hi, I have a problem: {spec['subject']}"))
+        s.add(
+            TicketMessage(
+                ticket_id=ticket.id,
+                sender_id=uid,
+                sender_role="user",
+                message_text=f"Hi, I have a problem: {spec['subject']}",
+            )
+        )
         if spec["status"] != "open":
-            s.add(TicketMessage(ticket_id=ticket.id, sender_id=admin_id, sender_role="admin",
-                                message_text="Thank you for reporting. We're looking into this."))
+            s.add(
+                TicketMessage(
+                    ticket_id=ticket.id,
+                    sender_id=admin_id,
+                    sender_role="admin",
+                    message_text="Thank you for reporting. We're looking into this.",
+                )
+            )
         if spec["status"] in ("resolved", "closed"):
-            s.add(TicketMessage(ticket_id=ticket.id, sender_id=admin_id, sender_role="admin",
-                                message_text="This has been resolved. Please let us know if you need anything else."))
+            s.add(
+                TicketMessage(
+                    ticket_id=ticket.id,
+                    sender_id=admin_id,
+                    sender_role="admin",
+                    message_text="This has been resolved. Please let us know if you need anything else.",
+                )
+            )
 
         count += 1
 
@@ -931,19 +1383,24 @@ def load_inventory(s, user_ids=None):
     count = 0
     for item in product_items:
         # Simulate restock
-        s.add(InventoryLog(item_name=item.name, change_type="add",
-                           quantity_change=50, admin_id=admin_id,
-                           comment="Weekly restock"))
+        s.add(
+            InventoryLog(
+                item_name=item.name, change_type="add", quantity_change=50, admin_id=admin_id, comment="Weekly restock"
+            )
+        )
         # Simulate some sales
         for _ in range(random.randint(2, 8)):
             qty = random.randint(1, 3)
-            s.add(InventoryLog(item_name=item.name, change_type="deduct",
-                               quantity_change=-qty, comment="Order fulfilled"))
+            s.add(
+                InventoryLog(item_name=item.name, change_type="deduct", quantity_change=-qty, comment="Order fulfilled")
+            )
         # Simulate a reservation + release
-        s.add(InventoryLog(item_name=item.name, change_type="reserve",
-                           quantity_change=-2, comment="Reserved for order"))
-        s.add(InventoryLog(item_name=item.name, change_type="release",
-                           quantity_change=2, comment="Reservation expired"))
+        s.add(
+            InventoryLog(item_name=item.name, change_type="reserve", quantity_change=-2, comment="Reserved for order")
+        )
+        s.add(
+            InventoryLog(item_name=item.name, change_type="release", quantity_change=2, comment="Reservation expired")
+        )
         count += 1
 
     # Edge case: item with 0 stock
@@ -1018,13 +1475,16 @@ def load_carts(s, user_ids=None):
         n = random.randint(1, 3)
         chosen = random.sample(items, min(n, len(items)))
         for item in chosen:
-            existing = s.query(ShoppingCart).filter_by(
-                user_id=uid, item_name=item.name, brand_id=item.brand_id).first()
+            existing = s.query(ShoppingCart).filter_by(user_id=uid, item_name=item.name, brand_id=item.brand_id).first()
             if not existing:
-                s.add(ShoppingCart(
-                    user_id=uid, item_name=item.name,
-                    quantity=random.randint(1, 3), brand_id=item.brand_id,
-                ))
+                s.add(
+                    ShoppingCart(
+                        user_id=uid,
+                        item_name=item.name,
+                        quantity=random.randint(1, 3),
+                        brand_id=item.brand_id,
+                    )
+                )
                 count += 1
 
     s.commit()
@@ -1042,13 +1502,11 @@ def clean_seeded_data(s):
 
     # Order-dependent deletion
     s.query(DeliveryChatMessage).filter(
-        DeliveryChatMessage.order_id.in_(
-            s.query(Order.id).filter(Order.buyer_id.in_(fake_ids))
-        )).delete(synchronize_session=False)
-    s.query(OrderItem).filter(
-        OrderItem.order_id.in_(
-            s.query(Order.id).filter(Order.buyer_id.in_(fake_ids))
-        )).delete(synchronize_session=False)
+        DeliveryChatMessage.order_id.in_(s.query(Order.id).filter(Order.buyer_id.in_(fake_ids)))
+    ).delete(synchronize_session=False)
+    s.query(OrderItem).filter(OrderItem.order_id.in_(s.query(Order.id).filter(Order.buyer_id.in_(fake_ids)))).delete(
+        synchronize_session=False
+    )
     s.query(Review).filter(Review.user_id.in_(fake_ids)).delete(synchronize_session=False)
     s.query(CouponUsage).filter(CouponUsage.user_id.in_(fake_ids)).delete(synchronize_session=False)
     s.query(Order).filter(Order.buyer_id.in_(fake_ids)).delete(synchronize_session=False)
@@ -1057,9 +1515,8 @@ def clean_seeded_data(s):
     s.query(ReferenceCodeUsage).filter(ReferenceCodeUsage.used_by.in_(fake_ids)).delete(synchronize_session=False)
     s.query(ReferenceCode).filter(ReferenceCode.created_by.in_(fake_ids)).delete(synchronize_session=False)
     s.query(TicketMessage).filter(
-        TicketMessage.ticket_id.in_(
-            s.query(SupportTicket.id).filter(SupportTicket.user_id.in_(fake_ids))
-        )).delete(synchronize_session=False)
+        TicketMessage.ticket_id.in_(s.query(SupportTicket.id).filter(SupportTicket.user_id.in_(fake_ids)))
+    ).delete(synchronize_session=False)
     s.query(SupportTicket).filter(SupportTicket.user_id.in_(fake_ids)).delete(synchronize_session=False)
     s.query(BrandStaff).filter(BrandStaff.user_id.in_(fake_ids)).delete(synchronize_session=False)
     s.query(CustomerInfo).filter(CustomerInfo.telegram_id.in_(fake_ids)).delete(synchronize_session=False)
@@ -1072,13 +1529,11 @@ def clean_seeded_data(s):
         if brand:
             # Manual cascade for items that use category FK
             s.query(InventoryLog).filter(
-                InventoryLog.item_name.in_(
-                    s.query(Goods.name).filter(Goods.brand_id == brand.id)
-                )).delete(synchronize_session=False)
+                InventoryLog.item_name.in_(s.query(Goods.name).filter(Goods.brand_id == brand.id))
+            ).delete(synchronize_session=False)
             s.query(BranchInventory).filter(
-                BranchInventory.store_id.in_(
-                    s.query(Store.id).filter(Store.brand_id == brand.id)
-                )).delete(synchronize_session=False)
+                BranchInventory.store_id.in_(s.query(Store.id).filter(Store.brand_id == brand.id))
+            ).delete(synchronize_session=False)
             s.query(ShoppingCart).filter(ShoppingCart.brand_id == brand.id).delete(synchronize_session=False)
             s.query(Goods).filter(Goods.brand_id == brand.id).delete(synchronize_session=False)
             s.query(Categories).filter(Categories.brand_id == brand.id).delete(synchronize_session=False)
@@ -1117,15 +1572,26 @@ DATASETS = {
     "stress": lambda s, _: load_stress(s),
 }
 
-ALL_ORDER = ["thai", "afghan", "cafe", "multi", "users", "settings",
-             "orders", "referrals", "coupons", "reviews", "support",
-             "inventory", "carts"]
+ALL_ORDER = [
+    "thai",
+    "afghan",
+    "cafe",
+    "multi",
+    "users",
+    "settings",
+    "orders",
+    "referrals",
+    "coupons",
+    "reviews",
+    "support",
+    "inventory",
+    "carts",
+]
 
 
 def main():
     parser = argparse.ArgumentParser(description="Load test data for Telegram Shop")
-    parser.add_argument("--dataset", "-d", type=str, default="all",
-                        help="Dataset to load (comma-separated or 'all')")
+    parser.add_argument("--dataset", "-d", type=str, default="all", help="Dataset to load (comma-separated or 'all')")
     parser.add_argument("--list", "-l", action="store_true", help="List available datasets")
     parser.add_argument("--clean", action="store_true", help="Remove all seeded data")
     args = parser.parse_args()
@@ -1134,8 +1600,8 @@ def main():
         print("Available datasets:")
         for name in ALL_ORDER:
             print(f"  {name}")
-        print(f"  stress  (high-volume: 200 users, 500 orders)")
-        print(f"  all     (everything except stress)")
+        print("  stress  (high-volume: 200 users, 500 orders)")
+        print("  all     (everything except stress)")
         return
 
     with Database().session() as s:

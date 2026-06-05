@@ -19,7 +19,6 @@ SATOSHI = Decimal("100000000")
 
 
 class BTCVerifier(ChainVerifier):
-
     def required_confirmations(self) -> int:
         return 2
 
@@ -41,9 +40,7 @@ class BTCVerifier(ChainVerifier):
         logger.error("BTC verifier: all APIs failed for address %s", address)
         return TxResult(found=False)
 
-    async def _check_with_api(
-        self, base_url: str, address: str, expected_amount: Decimal
-    ) -> TxResult:
+    async def _check_with_api(self, base_url: str, address: str, expected_amount: Decimal) -> TxResult:
         async with httpx.AsyncClient(timeout=15.0) as client:
             # Fetch transactions for the address
             txs_resp = await client.get(f"{base_url}/address/{address}/txs")

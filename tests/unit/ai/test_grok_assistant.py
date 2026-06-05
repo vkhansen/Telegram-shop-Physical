@@ -23,7 +23,6 @@ from bot.handlers.admin.grok_assistant import (
 )
 from bot.states.user_state import GrokAssistantStates
 
-
 # ── Helpers ──────────────────────────────────────────────────────────
 
 
@@ -175,17 +174,20 @@ class TestProcessToolCall:
 
     @pytest.mark.asyncio
     async def test_valid_mutation_calls_execute_mutation(self):
-        tc = _tool_call("create_item", {
-            "item_name": "Test Item",
-            "description": "A test",
-            "price": "99.00",
-            "category_name": "Food",
-        })
+        tc = _tool_call(
+            "create_item",
+            {
+                "item_name": "Test Item",
+                "description": "A test",
+                "price": "99.00",
+                "category_name": "Food",
+            },
+        )
         with patch("bot.handlers.admin.grok_assistant.execute_mutation", new_callable=AsyncMock) as mock_em:
             mock_em.return_value = {"success": True}
             result = await _process_tool_call(tc, admin_id=42)
         mock_em.assert_called_once()
-        _, call_kwargs = mock_em.call_args
+        _, _call_kwargs = mock_em.call_args
         # admin_id is second positional arg
         assert result == {"success": True}
 
@@ -413,10 +415,12 @@ class TestHandleChatMessage:
 
     def _make_state(self, history=None, timestamps=None):
         state = AsyncMock()
-        state.get_data = AsyncMock(return_value={
-            "grok_history": history or [{"role": "system", "content": "sys"}],
-            "grok_call_timestamps": timestamps if timestamps is not None else [],
-        })
+        state.get_data = AsyncMock(
+            return_value={
+                "grok_history": history or [{"role": "system", "content": "sys"}],
+                "grok_call_timestamps": timestamps if timestamps is not None else [],
+            }
+        )
         return state
 
     @pytest.mark.asyncio
@@ -426,7 +430,11 @@ class TestHandleChatMessage:
 
         with (
             patch("bot.handlers.admin.grok_assistant.extract_content", new_callable=AsyncMock, return_value="Hi Grok"),
-            patch("bot.handlers.admin.grok_assistant.call_grok", new_callable=AsyncMock, return_value=_grok_response("Hey there!")),
+            patch(
+                "bot.handlers.admin.grok_assistant.call_grok",
+                new_callable=AsyncMock,
+                return_value=_grok_response("Hey there!"),
+            ),
         ):
             await handle_chat_message(message, state)
 
@@ -441,7 +449,11 @@ class TestHandleChatMessage:
 
         with (
             patch("bot.handlers.admin.grok_assistant.extract_content", new_callable=AsyncMock, return_value="test"),
-            patch("bot.handlers.admin.grok_assistant.call_grok", new_callable=AsyncMock, side_effect=RuntimeError("timeout")),
+            patch(
+                "bot.handlers.admin.grok_assistant.call_grok",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("timeout"),
+            ),
         ):
             await handle_chat_message(message, state)
 
@@ -469,7 +481,11 @@ class TestHandleChatMessage:
 
         with (
             patch("bot.handlers.admin.grok_assistant.extract_content", new_callable=AsyncMock, return_value="q"),
-            patch("bot.handlers.admin.grok_assistant.call_grok", new_callable=AsyncMock, return_value=_grok_response(content=None)),
+            patch(
+                "bot.handlers.admin.grok_assistant.call_grok",
+                new_callable=AsyncMock,
+                return_value=_grok_response(content=None),
+            ),
         ):
             await handle_chat_message(message, state)
 
@@ -488,9 +504,17 @@ class TestHandleChatMessage:
         call_grok_responses = [first_response, followup_response]
 
         with (
-            patch("bot.handlers.admin.grok_assistant.extract_content", new_callable=AsyncMock, return_value="show orders"),
-            patch("bot.handlers.admin.grok_assistant.call_grok", new_callable=AsyncMock, side_effect=call_grok_responses),
-            patch("bot.handlers.admin.grok_assistant.execute_query", new_callable=AsyncMock, return_value={"orders": [], "count": 0}),
+            patch(
+                "bot.handlers.admin.grok_assistant.extract_content", new_callable=AsyncMock, return_value="show orders"
+            ),
+            patch(
+                "bot.handlers.admin.grok_assistant.call_grok", new_callable=AsyncMock, side_effect=call_grok_responses
+            ),
+            patch(
+                "bot.handlers.admin.grok_assistant.execute_query",
+                new_callable=AsyncMock,
+                return_value={"orders": [], "count": 0},
+            ),
         ):
             await handle_chat_message(message, state)
 
@@ -504,7 +528,11 @@ class TestHandleChatMessage:
 
         with (
             patch("bot.handlers.admin.grok_assistant.extract_content", new_callable=AsyncMock, return_value="Hello"),
-            patch("bot.handlers.admin.grok_assistant.call_grok", new_callable=AsyncMock, return_value=_grok_response("Hi!")),
+            patch(
+                "bot.handlers.admin.grok_assistant.call_grok",
+                new_callable=AsyncMock,
+                return_value=_grok_response("Hi!"),
+            ),
         ):
             await handle_chat_message(message, state)
 
@@ -524,8 +552,16 @@ class TestHandleChatMessage:
 
         with (
             patch("bot.handlers.admin.grok_assistant.extract_content", new_callable=AsyncMock, return_value="[photo]"),
-            patch("bot.handlers.admin.grok_assistant.call_grok", new_callable=AsyncMock, side_effect=[first_response, followup_response]),
-            patch("bot.handlers.admin.grok_assistant.execute_mutation", new_callable=AsyncMock, return_value={"success": True}) as mock_mut,
+            patch(
+                "bot.handlers.admin.grok_assistant.call_grok",
+                new_callable=AsyncMock,
+                side_effect=[first_response, followup_response],
+            ),
+            patch(
+                "bot.handlers.admin.grok_assistant.execute_mutation",
+                new_callable=AsyncMock,
+                return_value={"success": True},
+            ) as mock_mut,
         ):
             await handle_chat_message(message, state)
 
@@ -543,8 +579,14 @@ class TestHandleChatMessage:
 
         with (
             patch("bot.handlers.admin.grok_assistant.extract_content", new_callable=AsyncMock, return_value="x"),
-            patch("bot.handlers.admin.grok_assistant.call_grok", new_callable=AsyncMock, side_effect=[first_response, Exception("followup fail")]),
-            patch("bot.handlers.admin.grok_assistant.execute_query", new_callable=AsyncMock, return_value={"orders": []}),
+            patch(
+                "bot.handlers.admin.grok_assistant.call_grok",
+                new_callable=AsyncMock,
+                side_effect=[first_response, Exception("followup fail")],
+            ),
+            patch(
+                "bot.handlers.admin.grok_assistant.execute_query", new_callable=AsyncMock, return_value={"orders": []}
+            ),
         ):
             await handle_chat_message(message, state)
 
@@ -567,7 +609,9 @@ class TestHandleChatMessage:
         with (
             patch("bot.handlers.admin.grok_assistant.extract_content", new_callable=AsyncMock, return_value="q"),
             patch("bot.handlers.admin.grok_assistant.call_grok", new_callable=AsyncMock, side_effect=responses),
-            patch("bot.handlers.admin.grok_assistant.execute_query", new_callable=AsyncMock, return_value={"orders": []}),
+            patch(
+                "bot.handlers.admin.grok_assistant.execute_query", new_callable=AsyncMock, return_value={"orders": []}
+            ),
         ):
             await handle_chat_message(message, state)
 
@@ -582,7 +626,11 @@ class TestHandleChatMessage:
 
         with (
             patch("bot.handlers.admin.grok_assistant.extract_content", new_callable=AsyncMock, return_value="hi"),
-            patch("bot.handlers.admin.grok_assistant.call_grok", new_callable=AsyncMock, return_value=_grok_response("hey")),
+            patch(
+                "bot.handlers.admin.grok_assistant.call_grok",
+                new_callable=AsyncMock,
+                return_value=_grok_response("hey"),
+            ),
         ):
             await handle_chat_message(message, state)
 
@@ -595,6 +643,7 @@ class TestHandleChatMessage:
 class TestHandleGenerateImages:
     def _make_action(self, confirm=True, all_missing=True, item_names=None):
         from bot.ai.schemas import GenerateItemImagesAction
+
         return GenerateItemImagesAction(
             confirm=confirm,
             all_missing=all_missing,
@@ -802,7 +851,7 @@ class TestCheckRateLimit:
         data = {"grok_call_timestamps": old_timestamps}
         with patch("bot.handlers.admin.grok_assistant.time") as mock_time:
             mock_time.monotonic.return_value = now
-            allowed, reset_in = _check_rate_limit(data)
+            allowed, _reset_in = _check_rate_limit(data)
         assert allowed is True
         # Only the single new timestamp should remain
         assert len(data["grok_call_timestamps"]) == 1
@@ -864,10 +913,12 @@ class TestHandleChatMessageRateLimit:
 
     def _make_state(self, timestamps=None):
         state = AsyncMock()
-        state.get_data = AsyncMock(return_value={
-            "grok_history": [{"role": "system", "content": "sys"}],
-            "grok_call_timestamps": timestamps if timestamps is not None else [],
-        })
+        state.get_data = AsyncMock(
+            return_value={
+                "grok_history": [{"role": "system", "content": "sys"}],
+                "grok_call_timestamps": timestamps if timestamps is not None else [],
+            }
+        )
         return state
 
     def _exceed_limit(self, data):
@@ -941,9 +992,11 @@ class TestHandleChatMessageRateLimit:
 
         with (
             patch("bot.handlers.admin.grok_assistant.extract_content", new_callable=AsyncMock, return_value="hi"),
-            patch("bot.handlers.admin.grok_assistant.call_grok", new_callable=AsyncMock, return_value={
-                "choices": [{"message": {"role": "assistant", "content": "Hello!"}}]
-            }),
+            patch(
+                "bot.handlers.admin.grok_assistant.call_grok",
+                new_callable=AsyncMock,
+                return_value={"choices": [{"message": {"role": "assistant", "content": "Hello!"}}]},
+            ),
         ):
             await handle_chat_message(message, state)
 
@@ -960,7 +1013,11 @@ class TestHandleChatMessageRateLimit:
 
         with (
             patch("bot.handlers.admin.grok_assistant.extract_content", new_callable=AsyncMock, return_value="hi"),
-            patch("bot.handlers.admin.grok_assistant.call_grok", new_callable=AsyncMock, side_effect=RuntimeError("timeout")),
+            patch(
+                "bot.handlers.admin.grok_assistant.call_grok",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("timeout"),
+            ),
         ):
             await handle_chat_message(message, state)
 

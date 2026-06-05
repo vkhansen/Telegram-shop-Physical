@@ -1,10 +1,11 @@
 """Tests for bot.utils.message_utils — send_or_edit and safe_edit_text."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 from aiogram.exceptions import TelegramBadRequest
 
-from bot.utils.message_utils import send_or_edit, safe_edit_text
+from bot.utils.message_utils import safe_edit_text, send_or_edit
 
 
 @pytest.mark.unit

@@ -13,35 +13,46 @@ Covers:
 - BotSettings management
 - Order status integration (order_status helpers used across admin flow)
 """
-import pytest
-from datetime import datetime, timedelta, timezone
+
+from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
-from unittest.mock import patch
 
+import pytest
 from sqlalchemy.orm import Session
 
-from bot.database.models.main import (
-    Role, User, Categories, Goods, Order, OrderItem, CustomerInfo,
-    ShoppingCart, BitcoinAddress, BotSettings, InventoryLog,
-)
 from bot.database.methods.inventory import (
-    reserve_inventory, release_reservation, deduct_inventory, add_inventory,
+    add_inventory,
     get_inventory_stats,
+    reserve_inventory,
 )
-from bot.utils.order_codes import generate_unique_order_code
+from bot.database.models.main import (
+    BotSettings,
+    Categories,
+    CustomerInfo,
+    Goods,
+    InventoryLog,
+    Order,
+    OrderItem,
+    User,
+)
+from bot.utils.constants import (
+    DELIVERY_DEAD_DROP,
+    DELIVERY_DOOR,
+    DELIVERY_PICKUP,
+    PAYMENT_BITCOIN,
+    PAYMENT_CASH,
+    PAYMENT_PROMPTPAY,
+)
 from bot.utils.modifiers import calculate_item_price, validate_modifier_selection
-from bot.utils.order_status import is_valid_transition, get_allowed_transitions, ALL_STATUSES, VALID_TRANSITIONS
-from bot.utils.delivery_types import needs_delivery_photo
-from bot.utils.constants import PAYMENT_BITCOIN, PAYMENT_CASH, PAYMENT_PROMPTPAY, DELIVERY_DOOR, DELIVERY_DEAD_DROP, DELIVERY_PICKUP
-
+from bot.utils.order_status import ALL_STATUSES, VALID_TRANSITIONS, get_allowed_transitions, is_valid_transition
 from tests.e2e.menu_loader import load_menu_from_file
 
 SAMPLE_MENU_PATH = Path(__file__).parent / "sample_menu.json"
 
 
 def _user(session, tid, role_id=1):
-    u = User(telegram_id=tid, role_id=role_id, registration_date=datetime.now(timezone.utc))
+    u = User(telegram_id=tid, role_id=role_id, registration_date=datetime.now(UTC))
     session.add(u)
     session.commit()
     session.refresh(u)
@@ -51,6 +62,7 @@ def _user(session, tid, role_id=1):
 # ===================================================================
 # Order Helpers (0% covered in E2E)
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestOrderHelpers:
@@ -84,7 +96,9 @@ class TestOrderHelpers:
         db_with_roles.commit()
 
         order = create_order_from_customer(
-            db_with_roles, user.telegram_id, ci,
+            db_with_roles,
+            user.telegram_id,
+            ci,
             payment_method="cash",
             total_amount=Decimal("250.00"),
         )
@@ -104,14 +118,16 @@ class TestOrderHelpers:
         from bot.utils.order_helpers import create_order_from_customer
 
         user = _user(db_with_roles, 50002)
-        ci = CustomerInfo(telegram_id=user.telegram_id, phone_number="+66800000000",
-                          delivery_address="Bonus test")
+        ci = CustomerInfo(telegram_id=user.telegram_id, phone_number="+66800000000", delivery_address="Bonus test")
         db_with_roles.add(ci)
         db_with_roles.commit()
 
         order = create_order_from_customer(
-            db_with_roles, user.telegram_id, ci,
-            payment_method="cash", total_amount=Decimal("500.00"),
+            db_with_roles,
+            user.telegram_id,
+            ci,
+            payment_method="cash",
+            total_amount=Decimal("500.00"),
             bonus_applied=Decimal("50.00"),
         )
         db_with_roles.commit()
@@ -125,14 +141,20 @@ class TestOrderHelpers:
         cat = Categories(name="Helpers Test")
         db_with_roles.add(cat)
         db_with_roles.flush()
-        g = Goods(name="Helper Item", price=Decimal("100"), description="T",
-                  category_name="Helpers Test", stock_quantity=50)
+        g = Goods(
+            name="Helper Item", price=Decimal("100"), description="T", category_name="Helpers Test", stock_quantity=50
+        )
         db_with_roles.add(g)
         db_with_roles.flush()
 
-        order = Order(buyer_id=user.telegram_id, total_price=Decimal("200"),
-                      payment_method="cash", delivery_address="T", phone_number="+66",
-                      order_code="HELP01")
+        order = Order(
+            buyer_id=user.telegram_id,
+            total_price=Decimal("200"),
+            payment_method="cash",
+            delivery_address="T",
+            phone_number="+66",
+            order_code="HELP01",
+        )
         db_with_roles.add(order)
         db_with_roles.flush()
 
@@ -165,23 +187,27 @@ class TestOrderHelpers:
 # Delivery Zones (0% covered in E2E)
 # ===================================================================
 
+
 @pytest.mark.e2e
 class TestDeliveryZones:
     """Test bot/config/delivery_zones.py functions."""
 
     def test_calculate_distance_same_point(self):
         from bot.config.delivery_zones import calculate_distance
+
         dist = calculate_distance(13.75, 100.50, 13.75, 100.50)
         assert dist == pytest.approx(0, abs=0.01)
 
     def test_calculate_distance_known(self):
         from bot.config.delivery_zones import calculate_distance
+
         # Bangkok to Pattaya ~150 km
         dist = calculate_distance(13.7563, 100.5018, 12.9236, 100.8825)
         assert 90 < dist < 110  # Approximate
 
     def test_get_delivery_zone_central(self):
-        from bot.config.delivery_zones import get_delivery_zone, RESTAURANT_LAT, RESTAURANT_LNG
+        from bot.config.delivery_zones import RESTAURANT_LAT, RESTAURANT_LNG, get_delivery_zone
+
         # Very close to restaurant
         zone = get_delivery_zone(RESTAURANT_LAT + 0.001, RESTAURANT_LNG + 0.001)
         assert zone is not None
@@ -189,7 +215,8 @@ class TestDeliveryZones:
         assert zone["fee"] == Decimal("0")
 
     def test_get_delivery_zone_inner(self):
-        from bot.config.delivery_zones import get_delivery_zone, RESTAURANT_LAT, RESTAURANT_LNG
+        from bot.config.delivery_zones import RESTAURANT_LAT, RESTAURANT_LNG, get_delivery_zone
+
         # ~5km away
         zone = get_delivery_zone(RESTAURANT_LAT + 0.04, RESTAURANT_LNG)
         assert zone is not None
@@ -197,6 +224,7 @@ class TestDeliveryZones:
 
     def test_get_delivery_zone_far(self):
         from bot.config.delivery_zones import get_delivery_zone
+
         # Very far
         zone = get_delivery_zone(14.5, 101.5)
         assert zone is not None
@@ -204,11 +232,13 @@ class TestDeliveryZones:
 
     def test_get_delivery_zone_none_coords(self):
         from bot.config.delivery_zones import get_delivery_zone
+
         assert get_delivery_zone(None, None) is None
         assert get_delivery_zone(13.75, None) is None
 
     def test_get_available_time_slots(self):
         from bot.config.delivery_zones import get_available_time_slots
+
         slots = get_available_time_slots()
         assert len(slots) > 0
         assert all("label" in s for s in slots)
@@ -222,11 +252,16 @@ class TestDeliveryZones:
         zone = get_delivery_zone(13.80, 100.60)  # ~7km
 
         order = Order(
-            buyer_id=user.telegram_id, total_price=Decimal("200") + zone["fee"],
-            payment_method="cash", delivery_address="Zone test",
-            phone_number="+66", order_code="ZONE01",
-            delivery_zone=zone["name"], delivery_fee=zone["fee"],
-            latitude=13.80, longitude=100.60,
+            buyer_id=user.telegram_id,
+            total_price=Decimal("200") + zone["fee"],
+            payment_method="cash",
+            delivery_address="Zone test",
+            phone_number="+66",
+            order_code="ZONE01",
+            delivery_zone=zone["name"],
+            delivery_fee=zone["fee"],
+            latitude=13.80,
+            longitude=100.60,
         )
         db_with_roles.add(order)
         db_with_roles.commit()
@@ -238,6 +273,7 @@ class TestDeliveryZones:
 # ===================================================================
 # Constants usage
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestConstants:
@@ -263,6 +299,7 @@ class TestConstants:
 # Inventory edge cases
 # ===================================================================
 
+
 @pytest.mark.e2e
 class TestInventoryEdgeCases:
     """Test inventory operations not covered by existing tests."""
@@ -272,15 +309,13 @@ class TestInventoryEdgeCases:
         cat = Categories(name="Inv Test")
         s.add(cat)
         s.flush()
-        g = Goods(name="Inv Item", price=Decimal("50"), description="T",
-                  category_name="Inv Test", stock_quantity=0)
+        g = Goods(name="Inv Item", price=Decimal("50"), description="T", category_name="Inv Test", stock_quantity=0)
         s.add(g)
         s.commit()
 
         admin = _user(s, 52001, role_id=2)
 
-        success, msg = add_inventory("Inv Item", 25, admin.telegram_id,
-                                     comment="Restock", session=s)
+        success, _msg = add_inventory("Inv Item", 25, admin.telegram_id, comment="Restock", session=s)
         s.commit()
         assert success
 
@@ -298,8 +333,9 @@ class TestInventoryEdgeCases:
         cat = Categories(name="Stats Test")
         s.add(cat)
         s.flush()
-        g = Goods(name="Stats Item", price=Decimal("100"), description="T",
-                  category_name="Stats Test", stock_quantity=50)
+        g = Goods(
+            name="Stats Item", price=Decimal("100"), description="T", category_name="Stats Test", stock_quantity=50
+        )
         g.reserved_quantity = 10
         s.add(g)
         s.commit()
@@ -319,23 +355,29 @@ class TestInventoryEdgeCases:
         cat = Categories(name="InsufTest")
         s.add(cat)
         s.flush()
-        g = Goods(name="Scarce Item", price=Decimal("100"), description="T",
-                  category_name="InsufTest", stock_quantity=2)
+        g = Goods(
+            name="Scarce Item", price=Decimal("100"), description="T", category_name="InsufTest", stock_quantity=2
+        )
         s.add(g)
         s.commit()
 
         user = _user(s, 52002)
-        order = Order(buyer_id=user.telegram_id, total_price=Decimal("300"),
-                      payment_method="cash", delivery_address="T", phone_number="+66",
-                      order_code="INSUF1")
+        order = Order(
+            buyer_id=user.telegram_id,
+            total_price=Decimal("300"),
+            payment_method="cash",
+            delivery_address="T",
+            phone_number="+66",
+            order_code="INSUF1",
+        )
         s.add(order)
         s.flush()
-        s.add(OrderItem(order_id=order.id, item_name="Scarce Item",
-                        price=Decimal("100"), quantity=5))
+        s.add(OrderItem(order_id=order.id, item_name="Scarce Item", price=Decimal("100"), quantity=5))
         s.commit()
 
         success, msg = reserve_inventory(
-            order.id, [{"item_name": "Scarce Item", "quantity": 5}], payment_method="cash", session=s)
+            order.id, [{"item_name": "Scarce Item", "quantity": 5}], payment_method="cash", session=s
+        )
         s.commit()
 
         assert not success
@@ -348,16 +390,22 @@ class TestInventoryEdgeCases:
         s.commit()
 
         user = _user(s, 52003)
-        order = Order(buyer_id=user.telegram_id, total_price=Decimal("149"),
-                      payment_method="cash", delivery_address="T", phone_number="+66",
-                      order_code="DBL001")
+        order = Order(
+            buyer_id=user.telegram_id,
+            total_price=Decimal("149"),
+            payment_method="cash",
+            delivery_address="T",
+            phone_number="+66",
+            order_code="DBL001",
+        )
         s.add(order)
         s.flush()
-        s.add(OrderItem(order_id=order.id, item_name="Pad Thai",
-                        price=Decimal("149"), quantity=1))
+        s.add(OrderItem(order_id=order.id, item_name="Pad Thai", price=Decimal("149"), quantity=1))
         s.commit()
 
-        success1, _ = reserve_inventory(order.id, [{"item_name": "Pad Thai", "quantity": 1}], payment_method="cash", session=s)
+        success1, _ = reserve_inventory(
+            order.id, [{"item_name": "Pad Thai", "quantity": 1}], payment_method="cash", session=s
+        )
         s.commit()
         assert success1
 
@@ -365,7 +413,9 @@ class TestInventoryEdgeCases:
         reserved_after_first = pt.reserved_quantity
 
         # Second reserve attempt for same order
-        success2, _ = reserve_inventory(order.id, [{"item_name": "Pad Thai", "quantity": 1}], payment_method="cash", session=s)
+        _success2, _ = reserve_inventory(
+            order.id, [{"item_name": "Pad Thai", "quantity": 1}], payment_method="cash", session=s
+        )
         s.commit()
 
         s.refresh(pt)
@@ -376,6 +426,7 @@ class TestInventoryEdgeCases:
 # ===================================================================
 # Update operations
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestUpdateOperations:
@@ -388,8 +439,9 @@ class TestUpdateOperations:
         cat = Categories(name="UpdCat")
         s.add(cat)
         s.flush()
-        g = Goods(name="Old Name", price=Decimal("100"), description="Old desc",
-                  category_name="UpdCat", stock_quantity=10)
+        g = Goods(
+            name="Old Name", price=Decimal("100"), description="Old desc", category_name="UpdCat", stock_quantity=10
+        )
         s.add(g)
         s.commit()
 
@@ -416,6 +468,7 @@ class TestUpdateOperations:
 # BotSettings management
 # ===================================================================
 
+
 @pytest.mark.e2e
 class TestBotSettingsIntegration:
     """Test BotSettings in realistic workflows."""
@@ -430,6 +483,7 @@ class TestBotSettingsIntegration:
 
         # Read
         from bot.database.methods.read import get_bot_setting
+
         val = get_bot_setting("test_setting")
         assert val == "42"
 
@@ -443,6 +497,7 @@ class TestBotSettingsIntegration:
 
     def test_setting_default(self, db_with_roles: Session):
         from bot.database.methods.read import get_bot_setting
+
         val = get_bot_setting("nonexistent_key", default="fallback")
         assert val == "fallback"
 
@@ -452,6 +507,7 @@ class TestBotSettingsIntegration:
         s.commit()
 
         from bot.database.methods.read import get_bot_setting
+
         val = get_bot_setting("int_setting", default="0", value_type=int)
         assert val == 123
 
@@ -461,6 +517,7 @@ class TestBotSettingsIntegration:
         s.commit()
 
         from bot.database.methods.read import get_bot_setting
+
         tz = get_bot_setting("timezone")
         assert tz == "Asia/Bangkok"
 
@@ -468,6 +525,7 @@ class TestBotSettingsIntegration:
 # ===================================================================
 # Order Status - exhaustive transition matrix
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestOrderStatusExhaustive:
@@ -477,8 +535,7 @@ class TestOrderStatusExhaustive:
         """Every transition listed in VALID_TRANSITIONS is accepted."""
         for current, allowed in VALID_TRANSITIONS.items():
             for target in allowed:
-                assert is_valid_transition(current, target), \
-                    f"{current} → {target} should be valid"
+                assert is_valid_transition(current, target), f"{current} → {target} should be valid"
 
     def test_all_invalid_transitions(self):
         """Every transition NOT listed is rejected."""
@@ -486,8 +543,7 @@ class TestOrderStatusExhaustive:
             allowed = get_allowed_transitions(current)
             for target in ALL_STATUSES:
                 if target not in allowed:
-                    assert not is_valid_transition(current, target), \
-                        f"{current} → {target} should be invalid"
+                    assert not is_valid_transition(current, target), f"{current} → {target} should be invalid"
 
     def test_unknown_status(self):
         assert get_allowed_transitions("fantasy_status") == set()
@@ -497,9 +553,14 @@ class TestOrderStatusExhaustive:
         """Walk a real order through the full pipeline and verify DB state."""
         s = db_with_roles
         user = _user(s, 54001)
-        order = Order(buyer_id=user.telegram_id, total_price=Decimal("100"),
-                      payment_method="cash", delivery_address="T", phone_number="+66",
-                      order_code="STAT01")
+        order = Order(
+            buyer_id=user.telegram_id,
+            total_price=Decimal("100"),
+            payment_method="cash",
+            delivery_address="T",
+            phone_number="+66",
+            order_code="STAT01",
+        )
         s.add(order)
         s.commit()
 
@@ -517,6 +578,7 @@ class TestOrderStatusExhaustive:
 # ===================================================================
 # Modifier validation edge cases
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestModifierValidationEdgeCases:
@@ -544,7 +606,7 @@ class TestModifierValidationEdgeCases:
                 "options": [{"id": "mild", "label": "Mild", "price": 0}],
             },
         }
-        valid, err = validate_modifier_selection(schema, {"spice": "nonexistent"})
+        valid, _err = validate_modifier_selection(schema, {"spice": "nonexistent"})
         assert not valid
 
     def test_multi_choice_with_invalid_option(self):
@@ -559,15 +621,15 @@ class TestModifierValidationEdgeCases:
                 ],
             },
         }
-        valid, err = validate_modifier_selection(schema, {"extras": ["cheese", "ghost"]})
+        valid, _err = validate_modifier_selection(schema, {"extras": ["cheese", "ghost"]})
         assert not valid
 
     def test_no_schema_always_valid(self):
-        valid, err = validate_modifier_selection(None, {"anything": "value"})
+        valid, _err = validate_modifier_selection(None, {"anything": "value"})
         assert valid
 
     def test_no_selection_no_schema(self):
-        valid, err = validate_modifier_selection(None, None)
+        valid, _err = validate_modifier_selection(None, None)
         assert valid
 
     def test_price_with_multi_extras(self):

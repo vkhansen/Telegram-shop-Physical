@@ -1,18 +1,23 @@
 from functools import partial
 
-from aiogram import Router, F
-from aiogram.types import CallbackQuery
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery
 
+from bot.config import EnvKeys
 from bot.database.methods import (
-    check_user_referrals, get_referral_earnings_stats, get_one_referral_earning, query_user_referrals,
-    query_referral_earnings_from_user, query_all_referral_earnings, get_reference_bonus_percent
+    check_user_referrals,
+    get_one_referral_earning,
+    get_reference_bonus_percent,
+    get_referral_earnings_stats,
+    query_all_referral_earnings,
+    query_referral_earnings_from_user,
+    query_user_referrals,
 )
 from bot.handlers.other import get_bot_info
-from bot.keyboards import back, referral_system_keyboard, lazy_paginated_keyboard
-from bot.config import EnvKeys
-from bot.utils import LazyPaginator
 from bot.i18n import localize
+from bot.keyboards import back, lazy_paginated_keyboard, referral_system_keyboard
+from bot.utils import LazyPaginator
 
 router = Router()
 
@@ -25,12 +30,12 @@ async def referral_callback_handler(call: CallbackQuery, state: FSMContext):
     user_id = call.from_user.id
     referrals_count = check_user_referrals(user_id)
     referral_percent = int(get_reference_bonus_percent())
-    bot_username = await get_bot_info(call)
+    await get_bot_info(call)
 
     earnings_stats = get_referral_earnings_stats(user_id)
 
     has_referrals = referrals_count > 0
-    has_earnings = earnings_stats['total_earnings_count'] > 0
+    has_earnings = earnings_stats["total_earnings_count"] > 0
 
     text = (
         f"{localize('referral.title')}\n"
@@ -39,13 +44,14 @@ async def referral_callback_handler(call: CallbackQuery, state: FSMContext):
     )
 
     if has_earnings:
-        text += "\n\n" + localize('referrals.stats.template',
-                                  active_count=earnings_stats['active_referrals_count'],
-                                  total_earned=int(earnings_stats['total_amount']),
-                                  total_original=int(earnings_stats['total_original_amount']),
-                                  earnings_count=earnings_stats['total_earnings_count'],
-                                  currency=EnvKeys.PAY_CURRENCY
-                                  )
+        text += "\n\n" + localize(
+            "referrals.stats.template",
+            active_count=earnings_stats["active_referrals_count"],
+            total_earned=int(earnings_stats["total_amount"]),
+            total_original=int(earnings_stats["total_original_amount"]),
+            earnings_count=earnings_stats["total_earnings_count"],
+            currency=EnvKeys.PAY_CURRENCY,
+        )
 
     markup = referral_system_keyboard(has_referrals, has_earnings)
     await call.message.edit_text(text, reply_markup=markup)
@@ -66,28 +72,24 @@ async def view_referrals_handler(call: CallbackQuery, state: FSMContext):
     # Check if there are any referrals
     total = await paginator.get_total_count()
     if total == 0:
-        await call.message.edit_text(
-            localize("referrals.list.empty"),
-            reply_markup=back("referral_system")
-        )
+        await call.message.edit_text(localize("referrals.list.empty"), reply_markup=back("referral_system"))
         return
 
     markup = await lazy_paginated_keyboard(
         paginator=paginator,
-        item_text=lambda referral_data: localize("referrals.item.format",
-                                                 telegram_id=referral_data['telegram_id'],
-                                                 total_earned=int(referral_data['total_earned']),
-                                                 currency=EnvKeys.PAY_CURRENCY),
+        item_text=lambda referral_data: localize(
+            "referrals.item.format",
+            telegram_id=referral_data["telegram_id"],
+            total_earned=int(referral_data["total_earned"]),
+            currency=EnvKeys.PAY_CURRENCY,
+        ),
         item_callback=lambda referral_data: f"referral_earnings_{referral_data['telegram_id']}",
         page=0,
         back_cb="referral_system",
-        nav_cb_prefix="referrals_page_"
+        nav_cb_prefix="referrals_page_",
     )
 
-    await call.message.edit_text(
-        localize("referrals.list.title"),
-        reply_markup=markup
-    )
+    await call.message.edit_text(localize("referrals.list.title"), reply_markup=markup)
 
     # Save state
     await state.update_data(referrals_paginator=paginator.get_state())
@@ -108,7 +110,7 @@ async def referrals_pagination_handler(call: CallbackQuery, state: FSMContext):
 
     # Get saved state
     data = await state.get_data()
-    paginator_state = data.get('referrals_paginator')
+    paginator_state = data.get("referrals_paginator")
 
     # Create paginator with cached state
     query_func = partial(query_user_referrals, user_id)
@@ -116,20 +118,19 @@ async def referrals_pagination_handler(call: CallbackQuery, state: FSMContext):
 
     markup = await lazy_paginated_keyboard(
         paginator=paginator,
-        item_text=lambda referral_data: localize("referrals.item.format",
-                                                 telegram_id=referral_data['telegram_id'],
-                                                 total_earned=int(referral_data['total_earned']),
-                                                 currency=EnvKeys.PAY_CURRENCY),
+        item_text=lambda referral_data: localize(
+            "referrals.item.format",
+            telegram_id=referral_data["telegram_id"],
+            total_earned=int(referral_data["total_earned"]),
+            currency=EnvKeys.PAY_CURRENCY,
+        ),
         item_callback=lambda referral_data: f"referral_earnings_{referral_data['telegram_id']}",
         page=page,
         back_cb="referral_system",
-        nav_cb_prefix="referrals_page_"
+        nav_cb_prefix="referrals_page_",
     )
 
-    await call.message.edit_text(
-        localize("referrals.list.title"),
-        reply_markup=markup
-    )
+    await call.message.edit_text(localize("referrals.list.title"), reply_markup=markup)
 
     # Update state
     await state.update_data(referrals_paginator=paginator.get_state())
@@ -158,21 +159,23 @@ async def referral_earnings_handler(call: CallbackQuery, state: FSMContext):
         referral_info = await call.message.bot.get_chat(referral_id)
         await call.message.edit_text(
             localize("referral.earnings.empty", id=referral_id, name=referral_info.first_name),
-            reply_markup=back("view_referrals")
+            reply_markup=back("view_referrals"),
         )
         return
 
     markup = await lazy_paginated_keyboard(
         paginator=paginator,
-        item_text=lambda earning: localize("referral.earning.format",
-                                           amount=int(earning.amount),
-                                           currency=EnvKeys.PAY_CURRENCY,
-                                           date=earning.created_at.strftime("%d.%m.%Y %H:%M"),
-                                           original_amount=int(earning.original_amount)),
+        item_text=lambda earning: localize(
+            "referral.earning.format",
+            amount=int(earning.amount),
+            currency=EnvKeys.PAY_CURRENCY,
+            date=earning.created_at.strftime("%d.%m.%Y %H:%M"),
+            original_amount=int(earning.original_amount),
+        ),
         item_callback=lambda earning: f"earning_detail:{earning.id}:referral_earnings_{referral_id}",
         page=0,
         back_cb="view_referrals",
-        nav_cb_prefix=f"ref_earnings_{referral_id}_page_"
+        nav_cb_prefix=f"ref_earnings_{referral_id}_page_",
     )
 
     referral_info = await call.message.bot.get_chat(referral_id)
@@ -197,10 +200,7 @@ async def view_all_earnings_handler(call: CallbackQuery, state: FSMContext):
     # Check if there are any earnings
     total = await paginator.get_total_count()
     if total == 0:
-        await call.message.edit_text(
-            localize("all.earnings.empty"),
-            reply_markup=back("referral_system")
-        )
+        await call.message.edit_text(localize("all.earnings.empty"), reply_markup=back("referral_system"))
         return
 
     markup = await lazy_paginated_keyboard(
@@ -210,18 +210,15 @@ async def view_all_earnings_handler(call: CallbackQuery, state: FSMContext):
             amount=int(earning.amount),
             currency=EnvKeys.PAY_CURRENCY,
             referral_id=earning.referral_id if earning.referral_id is not None else 0,
-            date=earning.created_at.strftime("%d.%m.%Y %H:%M")
+            date=earning.created_at.strftime("%d.%m.%Y %H:%M"),
         ),
         item_callback=lambda earning: f"earning_detail:{earning.id}:view_all_earnings",
         page=0,
         back_cb="referral_system",
-        nav_cb_prefix="all_earnings_page_"
+        nav_cb_prefix="all_earnings_page_",
     )
 
-    await call.message.edit_text(
-        localize("all.earnings.title"),
-        reply_markup=markup
-    )
+    await call.message.edit_text(localize("all.earnings.title"), reply_markup=markup)
 
     # Save state
     await state.update_data(all_earnings_paginator=paginator.get_state())
@@ -242,7 +239,7 @@ async def all_earnings_pagination_handler(call: CallbackQuery, state: FSMContext
 
     # Get saved state
     data = await state.get_data()
-    paginator_state = data.get('all_earnings_paginator')
+    paginator_state = data.get("all_earnings_paginator")
 
     # Create paginator with cached state
     query_func = partial(query_all_referral_earnings, user_id)
@@ -255,55 +252,56 @@ async def all_earnings_pagination_handler(call: CallbackQuery, state: FSMContext
             amount=int(earning.amount),
             currency=EnvKeys.PAY_CURRENCY,
             referral_id=earning.referral_id if earning.referral_id is not None else 0,
-            date=earning.created_at.strftime("%d.%m.%Y %H:%M")
+            date=earning.created_at.strftime("%d.%m.%Y %H:%M"),
         ),
         item_callback=lambda earning: f"earning_detail:{earning.id}:all_earnings_page_{page}",
         page=page,
         back_cb="referral_system",
-        nav_cb_prefix="all_earnings_page_"
+        nav_cb_prefix="all_earnings_page_",
     )
 
-    await call.message.edit_text(
-        localize("all.earnings.title"),
-        reply_markup=markup
-    )
+    await call.message.edit_text(localize("all.earnings.title"), reply_markup=markup)
 
     # Update state
     await state.update_data(all_earnings_paginator=paginator.get_state())
 
 
 @router.callback_query(F.data.startswith("earning_detail:"))
-async def referral_callback_handler(call: CallbackQuery, state: FSMContext):
+async def earning_detail_callback_handler(call: CallbackQuery, state: FSMContext):
     """
     Show detailed earning information.
     If referral_id is None, it's an admin bonus.
     """
-    trash, earning_id, back_data = call.data.split(':', 2)
+    _trash, earning_id, back_data = call.data.split(":", 2)
     earning_info = get_one_referral_earning(int(earning_id))
 
     # Check if this is an admin bonus (referral_id = None)
-    if earning_info['referral_id'] is None:
+    if earning_info["referral_id"] is None:
         await call.message.edit_text(
-            localize('referral.admin_bonus.info',
-                     id=earning_id,
-                     amount=earning_info['amount'],
-                     currency=EnvKeys.PAY_CURRENCY,
-                     date=earning_info['created_at'].strftime("%d.%m.%Y %H:%M")),
-            reply_markup=back(back_data)
+            localize(
+                "referral.admin_bonus.info",
+                id=earning_id,
+                amount=earning_info["amount"],
+                currency=EnvKeys.PAY_CURRENCY,
+                date=earning_info["created_at"].strftime("%d.%m.%Y %H:%M"),
+            ),
+            reply_markup=back(back_data),
         )
     else:
         # Regular referral earning
-        user_info = await call.message.bot.get_chat(earning_info['referral_id'])
+        user_info = await call.message.bot.get_chat(earning_info["referral_id"])
         await call.message.edit_text(
-            localize('referral.item.info',
-                     id=earning_id,
-                     telegram_id=earning_info['referral_id'],
-                     name=user_info.first_name,
-                     amount=earning_info['amount'],
-                     currency=EnvKeys.PAY_CURRENCY,
-                     date=earning_info['created_at'].strftime("%d.%m.%Y %H:%M"),
-                     original_amount=earning_info['original_amount']),
-            reply_markup=back(back_data)
+            localize(
+                "referral.item.info",
+                id=earning_id,
+                telegram_id=earning_info["referral_id"],
+                name=user_info.first_name,
+                amount=earning_info["amount"],
+                currency=EnvKeys.PAY_CURRENCY,
+                date=earning_info["created_at"].strftime("%d.%m.%Y %H:%M"),
+                original_amount=earning_info["original_amount"],
+            ),
+            reply_markup=back(back_data),
         )
 
     await state.clear()

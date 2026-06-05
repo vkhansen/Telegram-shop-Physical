@@ -1,11 +1,10 @@
+import threading
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional, List
-from datetime import datetime, timezone
 
 from bot.database.main import Database
 from bot.database.models.main import BitcoinAddress
 from bot.export.custom_logging import log_bitcoin_address_assigned
-import threading
 
 # File path for Bitcoin addresses
 BTC_ADDRESSES_FILE = Path("crypto_addresses/btc_addresses.txt")
@@ -26,13 +25,9 @@ def load_bitcoin_addresses_from_file() -> int:
         BTC_ADDRESSES_FILE.touch()
         return 0
 
-    with _file_lock:
-        with open(BTC_ADDRESSES_FILE, 'r') as f:
-            # Filter out comments and empty lines
-            addresses = [
-                line.strip() for line in f
-                if line.strip() and not line.strip().startswith('#')
-            ]
+    with _file_lock, open(BTC_ADDRESSES_FILE) as f:
+        # Filter out comments and empty lines
+        addresses = [line.strip() for line in f if line.strip() and not line.strip().startswith("#")]
 
     if not addresses:
         return 0
@@ -52,7 +47,7 @@ def load_bitcoin_addresses_from_file() -> int:
     return loaded_count
 
 
-def get_available_bitcoin_address(user_id: int = None, order_id: int = None) -> Optional[str]:
+def get_available_bitcoin_address(user_id: int | None = None, order_id: int | None = None) -> str | None:
     """
     Atomically claim an available (unused) Bitcoin address.
     SEC-04 fix: Uses SELECT FOR UPDATE SKIP LOCKED to prevent double assignment.
@@ -61,12 +56,7 @@ def get_available_bitcoin_address(user_id: int = None, order_id: int = None) -> 
         Bitcoin address string or None if no addresses available
     """
     with Database().session() as session:
-        btc_addr = (
-            session.query(BitcoinAddress)
-            .filter_by(is_used=False)
-            .with_for_update(skip_locked=True)
-            .first()
-        )
+        btc_addr = session.query(BitcoinAddress).filter_by(is_used=False).with_for_update(skip_locked=True).first()
 
         if btc_addr:
             # Atomically mark as used in the same transaction
@@ -75,15 +65,16 @@ def get_available_bitcoin_address(user_id: int = None, order_id: int = None) -> 
                 btc_addr.used_by = user_id
             if order_id:
                 btc_addr.order_id = order_id
-            btc_addr.used_at = datetime.now(timezone.utc)
+            btc_addr.used_at = datetime.now(UTC)
             session.commit()
             return btc_addr.address
 
     return None
 
 
-def mark_bitcoin_address_used(address: str, user_id: int, user_username: str,
-                               order_id: int, session=None, order_code: str = None) -> bool:
+def mark_bitcoin_address_used(
+    address: str, user_id: int, user_username: str, order_id: int, session=None, order_code: str | None = None
+) -> bool:
     """
     Mark a Bitcoin address as used and remove from file
 
@@ -108,7 +99,7 @@ def mark_bitcoin_address_used(address: str, user_id: int, user_username: str,
         # Mark as used
         btc_addr.is_used = True
         btc_addr.used_by = user_id
-        btc_addr.used_at = datetime.now(timezone.utc)
+        btc_addr.used_at = datetime.now(UTC)
         btc_addr.order_id = order_id
 
         # Don't commit here - caller will commit
@@ -123,7 +114,7 @@ def mark_bitcoin_address_used(address: str, user_id: int, user_username: str,
             # Mark as used
             btc_addr.is_used = True
             btc_addr.used_by = user_id
-            btc_addr.used_at = datetime.now(timezone.utc)
+            btc_addr.used_at = datetime.now(UTC)
             btc_addr.order_id = order_id
 
             db_session.commit()
@@ -149,19 +140,19 @@ def remove_bitcoin_address_from_file(address: str):
 
     with _file_lock:
         # Read all lines (including comments)
-        with open(BTC_ADDRESSES_FILE, 'r') as f:
-            lines = [line.rstrip('\n') for line in f]
+        with open(BTC_ADDRESSES_FILE) as f:
+            lines = [line.rstrip("\n") for line in f]
 
         # Remove the specified address but keep comments
         filtered_lines = []
         for line in lines:
             stripped = line.strip()
             # Keep comments and empty lines, remove only the matching address
-            if not stripped or stripped.startswith('#') or stripped != address:
+            if not stripped or stripped.startswith("#") or stripped != address:
                 filtered_lines.append(line)
 
         # Write back
-        with open(BTC_ADDRESSES_FILE, 'w') as f:
+        with open(BTC_ADDRESSES_FILE, "w") as f:
             for line in filtered_lines:
                 f.write(f"{line}\n")
 
@@ -187,14 +178,13 @@ def add_bitcoin_address(address: str) -> bool:
         session.commit()
 
     # Add to file
-    with _file_lock:
-        with open(BTC_ADDRESSES_FILE, 'a') as f:
-            f.write(f"{address}\n")
+    with _file_lock, open(BTC_ADDRESSES_FILE, "a") as f:
+        f.write(f"{address}\n")
 
     return True
 
 
-def add_bitcoin_addresses_bulk(addresses: List[str]) -> int:
+def add_bitcoin_addresses_bulk(addresses: list[str]) -> int:
     """
     Add multiple Bitcoin addresses
 
@@ -218,10 +208,9 @@ def add_bitcoin_addresses_bulk(addresses: List[str]) -> int:
 
     # Add to file
     if added_count > 0:
-        with _file_lock:
-            with open(BTC_ADDRESSES_FILE, 'a') as f:
-                for address in addresses:
-                    f.write(f"{address}\n")
+        with _file_lock, open(BTC_ADDRESSES_FILE, "a") as f:
+            for address in addresses:
+                f.write(f"{address}\n")
 
     return added_count
 
@@ -238,8 +227,4 @@ def get_bitcoin_address_stats() -> dict:
         used = session.query(BitcoinAddress).filter_by(is_used=True).count()
         available = total - used
 
-        return {
-            'total': total,
-            'used': used,
-            'available': available
-        }
+        return {"total": total, "used": used, "available": available}

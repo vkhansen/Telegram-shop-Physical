@@ -1,9 +1,16 @@
 """Tests for order status workflow (Card 9)"""
-import pytest
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 from decimal import Decimal
 
-from bot.utils.order_status import is_valid_transition, get_allowed_transitions, EXPIRABLE_STATUSES, ALL_STATUSES, VALID_TRANSITIONS
+import pytest
+
+from bot.utils.order_status import (
+    ALL_STATUSES,
+    EXPIRABLE_STATUSES,
+    get_allowed_transitions,
+    is_valid_transition,
+)
 
 
 @pytest.mark.unit
@@ -52,7 +59,7 @@ class TestOrderStatusTransitions:
 
     def test_reservation_cleaner_only_expires_reserved(self):
         """Only 'reserved' orders should be auto-expired"""
-        assert EXPIRABLE_STATUSES == {"reserved"}
+        assert {"reserved"} == EXPIRABLE_STATUSES
         assert "preparing" not in EXPIRABLE_STATUSES
         assert "ready" not in EXPIRABLE_STATUSES
 
@@ -66,16 +73,28 @@ class TestExtendedStatusFields:
         """All extended statuses can be stored"""
         from bot.database.models.main import Order, User
 
-        user = User(telegram_id=400001, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=400001, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
-        for status in ["pending", "reserved", "confirmed", "preparing", "ready",
-                        "out_for_delivery", "delivered", "cancelled", "expired"]:
+        for status in [
+            "pending",
+            "reserved",
+            "confirmed",
+            "preparing",
+            "ready",
+            "out_for_delivery",
+            "delivered",
+            "cancelled",
+            "expired",
+        ]:
             order = Order(
-                buyer_id=400001, total_price=Decimal("100.00"),
-                payment_method="cash", delivery_address="Test",
-                phone_number="0812345678", order_status=status
+                buyer_id=400001,
+                total_price=Decimal("100.00"),
+                payment_method="cash",
+                delivery_address="Test",
+                phone_number="0812345678",
+                order_status=status,
             )
             db_session.add(order)
             db_session.commit()
@@ -85,14 +104,16 @@ class TestExtendedStatusFields:
         """Kitchen and rider group message IDs are nullable"""
         from bot.database.models.main import Order, User
 
-        user = User(telegram_id=400002, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=400002, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
         order = Order(
-            buyer_id=400002, total_price=Decimal("100.00"),
-            payment_method="cash", delivery_address="Test",
-            phone_number="0812345678"
+            buyer_id=400002,
+            total_price=Decimal("100.00"),
+            payment_method="cash",
+            delivery_address="Test",
+            phone_number="0812345678",
         )
         db_session.add(order)
         db_session.commit()
@@ -129,9 +150,7 @@ class TestStatusTransitionEdgeCases:
     def test_self_transition_returns_false(self):
         """Self-transition (same status to same status) returns False"""
         for status in ALL_STATUSES:
-            assert is_valid_transition(status, status) is False, (
-                f"Self-transition should be invalid for '{status}'"
-            )
+            assert is_valid_transition(status, status) is False, f"Self-transition should be invalid for '{status}'"
 
     def test_get_allowed_transitions_pending(self):
         """Pending can transition to reserved or cancelled"""
@@ -178,10 +197,17 @@ class TestStatusTransitionEdgeCases:
         """ALL_STATUSES constant contains exactly 9 statuses"""
         assert len(ALL_STATUSES) == 9
         expected = {
-            "pending", "reserved", "confirmed", "preparing", "ready",
-            "out_for_delivery", "delivered", "cancelled", "expired"
+            "pending",
+            "reserved",
+            "confirmed",
+            "preparing",
+            "ready",
+            "out_for_delivery",
+            "delivered",
+            "cancelled",
+            "expired",
         }
-        assert ALL_STATUSES == expected
+        assert expected == ALL_STATUSES
 
     def test_pending_to_cancelled_is_valid(self):
         """Pending can be cancelled"""
@@ -194,13 +220,9 @@ class TestStatusTransitionEdgeCases:
     def test_cancelled_to_anything_is_not_valid(self):
         """Cancelled is terminal — cannot transition to any status"""
         for status in ALL_STATUSES:
-            assert is_valid_transition("cancelled", status) is False, (
-                f"Cancelled should not transition to '{status}'"
-            )
+            assert is_valid_transition("cancelled", status) is False, f"Cancelled should not transition to '{status}'"
 
     def test_expired_to_anything_is_not_valid(self):
         """Expired is terminal — cannot transition to any status"""
         for status in ALL_STATUSES:
-            assert is_valid_transition("expired", status) is False, (
-                f"Expired should not transition to '{status}'"
-            )
+            assert is_valid_transition("expired", status) is False, f"Expired should not transition to '{status}'"

@@ -5,6 +5,7 @@ the actual order assignment is performed single-threaded inside that loop to
 avoid two drivers racing onto the same order.
 """
 
+import contextlib
 import logging
 
 from aiogram import F, Router
@@ -38,16 +39,12 @@ async def accept_offer(call: CallbackQuery):
         return
 
     if register_acceptance(order_id, driver_tg):
-        try:
+        with contextlib.suppress(Exception):
             await call.message.edit_text(localize("driver.offer.accept_ack"))
-        except Exception:
-            pass
         await call.answer(localize("driver.offer.accept_ack"))
     else:
-        try:
+        with contextlib.suppress(Exception):
             await call.message.edit_text(localize("driver.offer.taken"))
-        except Exception:
-            pass
         await call.answer(localize("driver.offer.taken"), show_alert=True)
 
 
@@ -63,8 +60,6 @@ async def decline_offer(call: CallbackQuery):
         return
 
     register_decline(order_id, driver_tg)
-    try:
+    with contextlib.suppress(Exception):
         await call.message.edit_text(localize("driver.offer.declined"))
-    except Exception:
-        pass
     await call.answer()

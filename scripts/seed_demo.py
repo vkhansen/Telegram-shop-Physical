@@ -14,6 +14,7 @@ untouched, so it is safe to re-run. Validates integrity before committing.
     python scripts/seed_demo.py            # seed brand 1
     python scripts/seed_demo.py --brand-id 5
 """
+
 import argparse
 import logging
 import os
@@ -23,13 +24,15 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-from bot.database.main import Database
-from bot.database.integrity import check_integrity, summarize, Severity
-from bot.database.models.main import Brand, BranchInventory, Categories, Goods, Store
+from bot.database.integrity import Severity, check_integrity, summarize  # noqa: E402
+from bot.database.main import Database  # noqa: E402
+from bot.database.models.main import BranchInventory, Brand, Categories, Goods, Store  # noqa: E402
 
 SPICE = {
     "spice_level": {
-        "label": "🌶 Spice Level", "type": "single", "required": True,
+        "label": "🌶 Spice Level",
+        "type": "single",
+        "required": True,
         "options": [
             {"id": "mild", "label": "Mild", "price": 0},
             {"id": "medium", "label": "Medium", "price": 0},
@@ -39,7 +42,9 @@ SPICE = {
 }
 EXTRAS = {
     "extras": {
-        "label": "➕ Extras", "type": "multi", "required": False,
+        "label": "➕ Extras",
+        "type": "multi",
+        "required": False,
         "options": [
             {"id": "extra_rice", "label": "Extra Rice", "price": 20},
             {"id": "fried_egg", "label": "Fried Egg", "price": 15},
@@ -62,9 +67,27 @@ MENU = {
         ("Papaya Salad", 90, "Som tam with lime and chili", "prepared", 0, 7, "fish,peanut", {**SPICE}),
     ],
     ("Main Dishes", 2): [
-        ("Pad Thai", 120, "Stir-fried rice noodles with shrimp", "prepared", 0, 12, "shellfish,peanut,egg", {**SPICE, **EXTRAS}),
+        (
+            "Pad Thai",
+            120,
+            "Stir-fried rice noodles with shrimp",
+            "prepared",
+            0,
+            12,
+            "shellfish,peanut,egg",
+            {**SPICE, **EXTRAS},
+        ),
         ("Pad See Ew", 110, "Wide noodles in sweet soy with chicken", "prepared", 0, 12, "gluten,egg", {**EXTRAS}),
-        ("Basil Chicken Rice", 130, "Stir-fried minced chicken with holy basil", "prepared", 0, 10, None, {**SPICE, **EXTRAS}),
+        (
+            "Basil Chicken Rice",
+            130,
+            "Stir-fried minced chicken with holy basil",
+            "prepared",
+            0,
+            10,
+            None,
+            {**SPICE, **EXTRAS},
+        ),
     ],
     ("Curries", 3): [
         ("Green Curry", 150, "Coconut green curry with chicken", "prepared", 0, 15, "fish", {**SPICE}),
@@ -99,8 +122,15 @@ def seed_demo(session, brand_id: int) -> dict:
             stores.append(existing)
             counts["skipped"] += 1
             continue
-        store = Store(name=name, brand_id=brand_id, latitude=lat, longitude=lng,
-                      phone=phone, is_default=is_default, address=f"{name}, Bangkok")
+        store = Store(
+            name=name,
+            brand_id=brand_id,
+            latitude=lat,
+            longitude=lng,
+            phone=phone,
+            is_default=is_default,
+            address=f"{name}, Bangkok",
+        )
         session.add(store)
         stores.append(store)
         counts["branches"] += 1
@@ -118,9 +148,18 @@ def seed_demo(session, brand_id: int) -> dict:
                 if itype == "product":
                     product_items.append(name)
                 continue
-            g = Goods(name=name, brand_id=brand_id, category_name=cat_name, price=price,
-                      description=desc, item_type=itype, stock_quantity=stock,
-                      prep_time_minutes=prep, allergens=allergens, modifiers=mods)
+            g = Goods(
+                name=name,
+                brand_id=brand_id,
+                category_name=cat_name,
+                price=price,
+                description=desc,
+                item_type=itype,
+                stock_quantity=stock,
+                prep_time_minutes=prep,
+                allergens=allergens,
+                modifiers=mods,
+            )
             session.add(g)
             counts["items"] += 1
             if itype == "product":
@@ -132,8 +171,9 @@ def seed_demo(session, brand_id: int) -> dict:
         for store in stores:
             if session.query(BranchInventory).filter_by(store_id=store.id, item_name=item_name).first():
                 continue
-            session.add(BranchInventory(store_id=store.id, item_name=item_name,
-                                        stock_quantity=100, reserved_quantity=0))
+            session.add(
+                BranchInventory(store_id=store.id, item_name=item_name, stock_quantity=100, reserved_quantity=0)
+            )
             counts["branch_inventory"] += 1
     session.flush()
     return counts

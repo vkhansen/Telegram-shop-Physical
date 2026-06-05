@@ -40,11 +40,7 @@ class TestSlipDedup:
 
         # The pre-confirm guard query the handler runs finds the prior owner,
         # so order B is never auto-confirmed.
-        owner = (
-            db_session.query(Order)
-            .filter(Order.slip_transaction_id == "TXN-DUP-1", Order.id != b.id)
-            .first()
-        )
+        owner = db_session.query(Order).filter(Order.slip_transaction_id == "TXN-DUP-1", Order.id != b.id).first()
         assert owner is not None
         assert owner.id == a.id
 

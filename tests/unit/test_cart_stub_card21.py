@@ -11,9 +11,10 @@ Pins:
 - inject_cart_stub is a no-op for an empty stub, and prepends with a
   separator otherwise.
 """
+
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -22,7 +23,7 @@ from bot.config import EnvKeys
 from bot.database.main import Database
 from bot.database.methods.create import add_to_cart
 from bot.database.methods.read import get_cart_items
-from bot.database.models.main import Brand, Categories, Goods, ShoppingCart, Store
+from bot.database.models.main import Categories, Goods, ShoppingCart, Store
 from bot.utils.cart_stub import (
     _as_aware_utc,
     build_cart_stub,
@@ -33,10 +34,10 @@ from bot.utils.cart_stub import (
     inject_cart_stub,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def seeded_item(db_session, test_user, test_brand):
@@ -63,12 +64,13 @@ def seeded_item(db_session, test_user, test_brand):
 # Phase 6: add_to_cart sets/resets expires_at
 # ---------------------------------------------------------------------------
 
+
 class TestAddToCartSetsExpiresAt:
     @pytest.mark.asyncio
     async def test_new_cart_row_has_expires_at(self, db_session, test_user, seeded_item):
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
         success, _ = await add_to_cart(test_user.telegram_id, "Iced Tea", quantity=1)
-        after = datetime.now(timezone.utc)
+        after = datetime.now(UTC)
         assert success
 
         db_session.expire_all()
@@ -80,33 +82,38 @@ class TestAddToCartSetsExpiresAt:
         assert before + ttl - timedelta(seconds=5) <= row_exp <= after + ttl + timedelta(seconds=5)
 
     @pytest.mark.asyncio
-    async def test_second_add_resets_expiry_across_whole_cart(
-        self, db_session, test_user, test_brand
-    ):
+    async def test_second_add_resets_expiry_across_whole_cart(self, db_session, test_user, test_brand):
         # Seed two items in the same brand
         db_session.add(Categories(name="C", brand_id=test_brand.id))
         db_session.commit()
         for name in ("A", "B"):
-            db_session.add(Goods(
-                name=name, price=Decimal("10"), description="d",
-                category_name="C", stock_quantity=0,
-                item_type="prepared", brand_id=test_brand.id,
-            ))
+            db_session.add(
+                Goods(
+                    name=name,
+                    price=Decimal("10"),
+                    description="d",
+                    category_name="C",
+                    stock_quantity=0,
+                    item_type="prepared",
+                    brand_id=test_brand.id,
+                )
+            )
         db_session.commit()
 
         # First add: A
         await add_to_cart(test_user.telegram_id, "A", quantity=1)
 
         # Forcibly age A's expires_at into the past to simulate time passing
-        stale = datetime.now(timezone.utc) - timedelta(hours=10)
+        stale = datetime.now(UTC) - timedelta(hours=10)
         with Database().session() as s:
             s.query(ShoppingCart).filter_by(user_id=test_user.telegram_id).update(
-                {ShoppingCart.expires_at: stale}, synchronize_session=False,
+                {ShoppingCart.expires_at: stale},
+                synchronize_session=False,
             )
             s.commit()
 
         # Second add: B. This should reset expiry on BOTH A and B.
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
         await add_to_cart(test_user.telegram_id, "B", quantity=1)
 
         with Database().session() as s:
@@ -114,25 +121,22 @@ class TestAddToCartSetsExpiresAt:
             assert len(rows) == 2
             for r in rows:
                 r_exp = _as_aware_utc(r.expires_at)
-                assert r_exp > before, (
-                    f"expected expires_at to be reset past {before}, got {r_exp}"
-                )
+                assert r_exp > before, f"expected expires_at to be reset past {before}, got {r_exp}"
 
     @pytest.mark.asyncio
-    async def test_quantity_update_also_refreshes_expiry(
-        self, db_session, test_user, seeded_item
-    ):
+    async def test_quantity_update_also_refreshes_expiry(self, db_session, test_user, seeded_item):
         await add_to_cart(test_user.telegram_id, "Iced Tea", quantity=1)
 
         # Age
-        stale = datetime.now(timezone.utc) - timedelta(hours=10)
+        stale = datetime.now(UTC) - timedelta(hours=10)
         with Database().session() as s:
             s.query(ShoppingCart).filter_by(user_id=test_user.telegram_id).update(
-                {ShoppingCart.expires_at: stale}, synchronize_session=False,
+                {ShoppingCart.expires_at: stale},
+                synchronize_session=False,
             )
             s.commit()
 
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
         await add_to_cart(test_user.telegram_id, "Iced Tea", quantity=2)  # qty update path
 
         with Database().session() as s:
@@ -145,6 +149,7 @@ class TestAddToCartSetsExpiresAt:
 # Phase 6: get_cart_items lazy-expires stale carts
 # ---------------------------------------------------------------------------
 
+
 class TestGetCartItemsLazyExpiry:
     @pytest.mark.asyncio
     async def test_returns_items_when_fresh(self, db_session, test_user, seeded_item):
@@ -155,16 +160,15 @@ class TestGetCartItemsLazyExpiry:
         assert items[0]["quantity"] == 2
 
     @pytest.mark.asyncio
-    async def test_expired_cart_cleared_and_returns_empty(
-        self, db_session, test_user, seeded_item
-    ):
+    async def test_expired_cart_cleared_and_returns_empty(self, db_session, test_user, seeded_item):
         await add_to_cart(test_user.telegram_id, "Iced Tea", quantity=1)
 
         # Age all rows past their TTL
-        stale = datetime.now(timezone.utc) - timedelta(hours=10)
+        stale = datetime.now(UTC) - timedelta(hours=10)
         with Database().session() as s:
             s.query(ShoppingCart).filter_by(user_id=test_user.telegram_id).update(
-                {ShoppingCart.expires_at: stale}, synchronize_session=False,
+                {ShoppingCart.expires_at: stale},
+                synchronize_session=False,
             )
             s.commit()
 
@@ -196,6 +200,7 @@ class TestGetCartItemsLazyExpiry:
 # Phase 2: build_cart_stub integration
 # ---------------------------------------------------------------------------
 
+
 class TestBuildCartStub:
     def test_empty_cart_returns_empty_string(self, db_with_roles, test_user):
         assert build_cart_stub(test_user.telegram_id) == ""
@@ -204,9 +209,7 @@ class TestBuildCartStub:
         assert get_cart_stub_data(test_user.telegram_id) is None
 
     @pytest.mark.asyncio
-    async def test_populated_cart_returns_banner_with_total(
-        self, db_session, test_user, seeded_item
-    ):
+    async def test_populated_cart_returns_banner_with_total(self, db_session, test_user, seeded_item):
         await add_to_cart(test_user.telegram_id, "Iced Tea", quantity=2)
         stub = build_cart_stub(test_user.telegram_id)
         # Should contain cart emoji + currency + total
@@ -215,9 +218,7 @@ class TestBuildCartStub:
         assert "90" in stub  # 45 * 2
 
     @pytest.mark.asyncio
-    async def test_get_stub_data_returns_totals_and_counts(
-        self, db_session, test_user, seeded_item
-    ):
+    async def test_get_stub_data_returns_totals_and_counts(self, db_session, test_user, seeded_item):
         await add_to_cart(test_user.telegram_id, "Iced Tea", quantity=3)
         data = get_cart_stub_data(test_user.telegram_id)
         assert data is not None
@@ -225,16 +226,15 @@ class TestBuildCartStub:
         assert data["total"] == Decimal("135.00")  # 45 * 3
 
     @pytest.mark.asyncio
-    async def test_expired_cart_returns_empty_banner(
-        self, db_session, test_user, seeded_item
-    ):
+    async def test_expired_cart_returns_empty_banner(self, db_session, test_user, seeded_item):
         await add_to_cart(test_user.telegram_id, "Iced Tea", quantity=1)
 
         # Force expiry
-        stale = datetime.now(timezone.utc) - timedelta(hours=10)
+        stale = datetime.now(UTC) - timedelta(hours=10)
         with Database().session() as s:
             s.query(ShoppingCart).filter_by(user_id=test_user.telegram_id).update(
-                {ShoppingCart.expires_at: stale}, synchronize_session=False,
+                {ShoppingCart.expires_at: stale},
+                synchronize_session=False,
             )
             s.commit()
 
@@ -249,15 +249,25 @@ class TestBuildCartStub:
         # Seed category/item/store then manually add a cart row with brand+store
         db_session.add(Categories(name="C", brand_id=test_brand.id))
         db_session.commit()
-        db_session.add(Goods(
-            name="X", price=Decimal("50"), description="d",
-            category_name="C", stock_quantity=0,
-            item_type="prepared", brand_id=test_brand.id,
-        ))
+        db_session.add(
+            Goods(
+                name="X",
+                price=Decimal("50"),
+                description="d",
+                category_name="C",
+                stock_quantity=0,
+                item_type="prepared",
+                brand_id=test_brand.id,
+            )
+        )
         store = Store(
-            name="Silom Branch", brand_id=test_brand.id,
-            address="1 Silom", latitude=13.7, longitude=100.5,
-            phone="+66", is_default=True,
+            name="Silom Branch",
+            brand_id=test_brand.id,
+            address="1 Silom",
+            latitude=13.7,
+            longitude=100.5,
+            phone="+66",
+            is_default=True,
         )
         db_session.add(store)
         db_session.commit()
@@ -269,7 +279,7 @@ class TestBuildCartStub:
             brand_id=test_brand.id,
             store_id=store.id,
         )
-        cart.expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        cart.expires_at = datetime.now(UTC) + timedelta(hours=1)
         db_session.add(cart)
         db_session.commit()
 
@@ -281,6 +291,7 @@ class TestBuildCartStub:
 # ---------------------------------------------------------------------------
 # Phase 2: inject_cart_stub / format helpers (pure functions)
 # ---------------------------------------------------------------------------
+
 
 class TestStubFormatters:
     def test_inject_empty_stub_is_noop(self):
@@ -320,6 +331,7 @@ class TestStubFormatters:
 # ---------------------------------------------------------------------------
 # Phase 3: flash_cart_added two-step animation
 # ---------------------------------------------------------------------------
+
 
 class TestFlashCartAdded:
     @pytest.mark.asyncio

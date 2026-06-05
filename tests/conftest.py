@@ -1,6 +1,7 @@
 """
 Pytest configuration and shared fixtures for all tests
 """
+
 import asyncio
 import os
 from collections.abc import Generator
@@ -14,12 +15,12 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 # Set test environment variables before importing bot modules
-os.environ['TOKEN'] = 'test_token_123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-os.environ['OWNER_ID'] = '123456789'
-os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
-os.environ['REDIS_HOST'] = 'localhost'
-os.environ['LOG_TO_STDOUT'] = '0'
-os.environ['LOG_TO_FILE'] = '0'
+os.environ["TOKEN"] = "test_token_123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+os.environ["OWNER_ID"] = "123456789"
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["REDIS_HOST"] = "localhost"
+os.environ["LOG_TO_STDOUT"] = "0"
+os.environ["LOG_TO_FILE"] = "0"
 
 from bot.database.main import Database
 from bot.database.models.main import (
@@ -54,10 +55,7 @@ def db_engine():
     """Create a test database engine with in-memory SQLite"""
     # Use in-memory SQLite for testing
     engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-        echo=False
+        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool, echo=False
     )
 
     # Enable foreign keys for SQLite
@@ -84,16 +82,11 @@ def override_database_singleton(db_engine, monkeypatch):
     db = Database()
 
     # Create a test SessionLocal bound to test engine
-    test_session_local = sessionmaker(
-        bind=db_engine,
-        autoflush=False,
-        autocommit=False,
-        expire_on_commit=False
-    )
+    test_session_local = sessionmaker(bind=db_engine, autoflush=False, autocommit=False, expire_on_commit=False)
 
     # Replace the private attributes with test versions
-    monkeypatch.setattr(db, '_Database__engine', db_engine)
-    monkeypatch.setattr(db, '_Database__SessionLocal', test_session_local)
+    monkeypatch.setattr(db, "_Database__engine", db_engine)
+    monkeypatch.setattr(db, "_Database__SessionLocal", test_session_local)
 
     return db
 
@@ -101,10 +94,12 @@ def override_database_singleton(db_engine, monkeypatch):
 @pytest.fixture(scope="function", autouse=True)
 def mock_cache_invalidation():
     """Mock all cache invalidation functions to prevent coroutine warnings"""
-    with patch('bot.database.methods.update.invalidate_user_cache', new_callable=AsyncMock), \
-            patch('bot.database.methods.update.invalidate_item_cache', new_callable=AsyncMock), \
-            patch('bot.database.methods.update.invalidate_category_cache', new_callable=AsyncMock), \
-            patch('bot.database.methods.inventory.invalidate_item_cache', new_callable=AsyncMock):
+    with (
+        patch("bot.database.methods.update.invalidate_user_cache", new_callable=AsyncMock),
+        patch("bot.database.methods.update.invalidate_item_cache", new_callable=AsyncMock),
+        patch("bot.database.methods.update.invalidate_category_cache", new_callable=AsyncMock),
+        patch("bot.database.methods.inventory.invalidate_item_cache", new_callable=AsyncMock),
+    ):
         yield
 
 
@@ -125,10 +120,10 @@ def db_session(db_engine) -> Generator[Session, None, None]:
 def db_with_roles(db_session: Session) -> Session:
     """Database session with roles initialized"""
     # Create roles
-    user_role = Role(name='USER', permissions=1)
-    admin_role = Role(name='ADMIN', permissions=31)  # All permissions except OWN
-    owner_role = Role(name='OWNER', permissions=127)  # All permissions
-    superadmin_role = Role(name='SUPERADMIN', permissions=255)  # All permissions including SUPER
+    user_role = Role(name="USER", permissions=1)
+    admin_role = Role(name="ADMIN", permissions=31)  # All permissions except OWN
+    owner_role = Role(name="OWNER", permissions=127)  # All permissions
+    superadmin_role = Role(name="SUPERADMIN", permissions=255)  # All permissions including SUPER
 
     db_session.add_all([user_role, admin_role, owner_role, superadmin_role])
     db_session.commit()
@@ -139,12 +134,7 @@ def db_with_roles(db_session: Session) -> Session:
 @pytest.fixture
 def test_user(db_with_roles: Session) -> User:
     """Create a test user"""
-    user = User(
-        telegram_id=123456789,
-        role_id=1,
-        registration_date=datetime.now(UTC),
-        referral_id=None
-    )
+    user = User(telegram_id=123456789, role_id=1, registration_date=datetime.now(UTC), referral_id=None)
     db_with_roles.add(user)
     db_with_roles.commit()
     db_with_roles.refresh(user)
@@ -154,12 +144,7 @@ def test_user(db_with_roles: Session) -> User:
 @pytest.fixture
 def test_admin(db_with_roles: Session) -> User:
     """Create a test admin user"""
-    admin = User(
-        telegram_id=987654321,
-        role_id=2,
-        registration_date=datetime.now(UTC),
-        referral_id=None
-    )
+    admin = User(telegram_id=987654321, role_id=2, registration_date=datetime.now(UTC), referral_id=None)
     db_with_roles.add(admin)
     db_with_roles.commit()
     db_with_roles.refresh(admin)
@@ -215,7 +200,7 @@ def test_goods(db_session: Session, test_category: Categories, test_brand: Brand
         stock_quantity=100,
         reserved_quantity=0,
         brand_id=test_brand.id,
-        item_type='product',
+        item_type="product",
     )
     db_session.add(goods)
     db_session.commit()
@@ -234,7 +219,7 @@ def test_goods_low_stock(db_session: Session, test_category: Categories, test_br
         stock_quantity=5,
         reserved_quantity=0,
         brand_id=test_brand.id,
-        item_type='product',
+        item_type="product",
     )
     db_session.add(goods)
     db_session.commit()
@@ -252,7 +237,7 @@ def test_customer_info(db_session: Session, test_user: User) -> CustomerInfo:
         delivery_note="Ring the doorbell",
         total_spendings=Decimal("0"),
         completed_orders_count=0,
-        bonus_balance=Decimal("0")
+        bonus_balance=Decimal("0"),
     )
     db_session.add(customer_info)
     db_session.commit()
@@ -270,18 +255,13 @@ def test_order(db_session: Session, test_user: User, test_goods: Goods) -> Order
         delivery_address="123 Test Street",
         phone_number="+1234567890",
         order_status="pending",
-        order_code="TEST01"
+        order_code="TEST01",
     )
     db_session.add(order)
     db_session.flush()
 
     # Add order items
-    order_item = OrderItem(
-        order_id=order.id,
-        item_name=test_goods.name,
-        price=test_goods.price,
-        quantity=2
-    )
+    order_item = OrderItem(order_id=order.id, item_name=test_goods.name, price=test_goods.price, quantity=2)
     db_session.add(order_item)
     db_session.commit()
     db_session.refresh(order)
@@ -307,7 +287,7 @@ def test_reference_code(db_session: Session, test_admin: User) -> ReferenceCode:
         expires_at=None,
         max_uses=None,
         note="Test reference code",
-        is_admin_code=True
+        is_admin_code=True,
     )
     db_session.add(ref_code)
     db_session.commit()
@@ -318,11 +298,7 @@ def test_reference_code(db_session: Session, test_admin: User) -> ReferenceCode:
 @pytest.fixture
 def test_shopping_cart(db_session: Session, test_user: User, test_goods: Goods) -> ShoppingCart:
     """Create a test shopping cart item"""
-    cart_item = ShoppingCart(
-        user_id=test_user.telegram_id,
-        item_name=test_goods.name,
-        quantity=2
-    )
+    cart_item = ShoppingCart(user_id=test_user.telegram_id, item_name=test_goods.name, quantity=2)
     db_session.add(cart_item)
     db_session.commit()
     db_session.refresh(cart_item)
@@ -333,10 +309,10 @@ def test_shopping_cart(db_session: Session, test_user: User, test_goods: Goods) 
 def test_bot_settings(db_session: Session) -> BotSettings:
     """Create test bot settings"""
     settings = [
-        BotSettings(setting_key='reference_codes_enabled', setting_value='true'),
-        BotSettings(setting_key='reference_bonus_percent', setting_value='5'),
-        BotSettings(setting_key='cash_order_timeout_hours', setting_value='24'),
-        BotSettings(setting_key='timezone', setting_value='Asia/Bangkok'),
+        BotSettings(setting_key="reference_codes_enabled", setting_value="true"),
+        BotSettings(setting_key="reference_bonus_percent", setting_value="5"),
+        BotSettings(setting_key="cash_order_timeout_hours", setting_value="24"),
+        BotSettings(setting_key="timezone", setting_value="Asia/Bangkok"),
     ]
     for setting in settings:
         db_session.add(setting)
@@ -347,12 +323,12 @@ def test_bot_settings(db_session: Session) -> BotSettings:
 # Helper fixtures for complex test scenarios
 @pytest.fixture
 def populated_database(
-        db_with_roles: Session,
-        test_user: User,
-        test_admin: User,
-        test_category: Categories,
-        test_goods: Goods,
-        test_customer_info: CustomerInfo
+    db_with_roles: Session,
+    test_user: User,
+    test_admin: User,
+    test_category: Categories,
+    test_goods: Goods,
+    test_customer_info: CustomerInfo,
 ) -> Session:
     """Database populated with test data"""
     return db_with_roles
@@ -371,7 +347,7 @@ def multiple_products(db_session: Session, test_category: Categories, test_brand
             stock_quantity=50 + i * 10,
             reserved_quantity=0,
             brand_id=test_brand.id,
-            item_type='prepared' if i % 2 == 0 else 'product',
+            item_type="prepared" if i % 2 == 0 else "product",
         )
         db_session.add(goods)
         products.append(goods)
@@ -405,7 +381,7 @@ def test_brand_staff(db_session: Session, test_brand: Brand, test_admin: User) -
     staff = BrandStaff(
         brand_id=test_brand.id,
         user_id=test_admin.telegram_id,
-        role='owner',
+        role="owner",
     )
     db_session.add(staff)
     db_session.commit()

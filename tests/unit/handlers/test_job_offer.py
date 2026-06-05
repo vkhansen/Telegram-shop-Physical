@@ -138,6 +138,7 @@ async def test_timeout_falls_back_to_manual(db_with_roles, monkeypatch):
         called["order_id"] = order.id
 
     import bot.handlers.admin.order_management as om
+
     monkeypatch.setattr(om, "_send_rider_notification", fake_rider_notification)
 
     bot = FakeBot()
@@ -155,9 +156,13 @@ async def test_no_gps_falls_back_immediately(db_with_roles, monkeypatch):
     _seed_user(s, 9003)
     s.commit()
     order = Order(
-        buyer_id=9003, total_price=Decimal("50.00"), payment_method="cash",
-        delivery_address="No GPS", phone_number="+66000000001",
-        order_status="ready", order_code="DSP003",
+        buyer_id=9003,
+        total_price=Decimal("50.00"),
+        payment_method="cash",
+        delivery_address="No GPS",
+        phone_number="+66000000001",
+        order_status="ready",
+        order_code="DSP003",
     )
     s.add(order)
     s.commit()
@@ -169,6 +174,7 @@ async def test_no_gps_falls_back_immediately(db_with_roles, monkeypatch):
         called["hit"] = True
 
     import bot.handlers.admin.order_management as om
+
     monkeypatch.setattr(om, "_send_rider_notification", fake_rider_notification)
 
     bot = FakeBot()

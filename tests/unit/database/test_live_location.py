@@ -8,12 +8,13 @@ Tests:
 - Location trail retrieval
 - Customer GPS choice flow
 """
-import pytest
-from datetime import datetime, timedelta, timezone
+
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from bot.database.main import Database
-from bot.database.models.main import Order, DeliveryChatMessage, User, Role
+import pytest
+
+from bot.database.models.main import DeliveryChatMessage, Order
 
 
 @pytest.fixture
@@ -145,16 +146,19 @@ class TestChatSessionLifecycle:
     def test_chat_active_out_for_delivery(self, order_out_for_delivery):
         """Chat should be active when order is out_for_delivery."""
         from bot.handlers.user.delivery_chat_handler import is_chat_active
+
         assert is_chat_active(order_out_for_delivery) is True
 
     def test_chat_active_delivered_within_window(self, order_delivered_with_window):
         """Chat should be active during post-delivery window."""
         from bot.handlers.user.delivery_chat_handler import is_chat_active
+
         assert is_chat_active(order_delivered_with_window) is True
 
     def test_chat_inactive_delivered_window_expired(self, order_delivered_window_expired):
         """Chat should be inactive after post-delivery window expires."""
         from bot.handlers.user.delivery_chat_handler import is_chat_active
+
         assert is_chat_active(order_delivered_window_expired) is False
 
     def test_chat_inactive_pending(self, db_with_roles, test_user):
@@ -274,7 +278,7 @@ class TestChatSessionManagement:
         refreshed = session.query(Order).filter_by(id=order_out_for_delivery.id).first()
         assert refreshed.chat_post_delivery_until is not None
         # Should be approximately 30 minutes from now (default POST_DELIVERY_CHAT_MINUTES)
-        expected = datetime.now(timezone.utc) + timedelta(minutes=30)
+        expected = datetime.now(UTC) + timedelta(minutes=30)
         diff = abs((refreshed.chat_post_delivery_until - expected).total_seconds())
         assert diff < 5  # Within 5 seconds
 
@@ -298,9 +302,7 @@ class TestLiveLocationLogging:
         session.add(msg)
         session.commit()
 
-        stored = session.query(DeliveryChatMessage).filter_by(
-            order_id=order_out_for_delivery.id
-        ).first()
+        stored = session.query(DeliveryChatMessage).filter_by(order_id=order_out_for_delivery.id).first()
 
         assert stored.is_live_location is True
         assert stored.live_location_update_count == 0
@@ -325,10 +327,15 @@ class TestLiveLocationLogging:
             session.add(msg)
         session.commit()
 
-        msgs = session.query(DeliveryChatMessage).filter_by(
-            order_id=order_out_for_delivery.id,
-            is_live_location=True,
-        ).order_by(DeliveryChatMessage.created_at).all()
+        msgs = (
+            session.query(DeliveryChatMessage)
+            .filter_by(
+                order_id=order_out_for_delivery.id,
+                is_live_location=True,
+            )
+            .order_by(DeliveryChatMessage.created_at)
+            .all()
+        )
 
         assert len(msgs) == 5
         for i, msg in enumerate(msgs):
@@ -349,9 +356,7 @@ class TestLiveLocationLogging:
         session.add(msg)
         session.commit()
 
-        stored = session.query(DeliveryChatMessage).filter_by(
-            order_id=order_out_for_delivery.id
-        ).first()
+        stored = session.query(DeliveryChatMessage).filter_by(order_id=order_out_for_delivery.id).first()
 
         assert stored.is_live_location is False
         assert stored.live_location_update_count is None
@@ -380,24 +385,28 @@ class TestLocationTrail:
         session = db_with_roles
         # Add driver locations
         for i in range(3):
-            session.add(DeliveryChatMessage(
-                order_id=order_out_for_delivery.id,
-                sender_id=111222333,
-                sender_role="driver",
-                location_lat=13.75 + (i * 0.01),
-                location_lng=100.50 + (i * 0.01),
-                is_live_location=True,
-                live_location_update_count=i,
-            ))
+            session.add(
+                DeliveryChatMessage(
+                    order_id=order_out_for_delivery.id,
+                    sender_id=111222333,
+                    sender_role="driver",
+                    location_lat=13.75 + (i * 0.01),
+                    location_lng=100.50 + (i * 0.01),
+                    is_live_location=True,
+                    live_location_update_count=i,
+                )
+            )
         # Add customer location
-        session.add(DeliveryChatMessage(
-            order_id=order_out_for_delivery.id,
-            sender_id=order_out_for_delivery.buyer_id,
-            sender_role="customer",
-            location_lat=13.74,
-            location_lng=100.49,
-            is_live_location=False,
-        ))
+        session.add(
+            DeliveryChatMessage(
+                order_id=order_out_for_delivery.id,
+                sender_id=order_out_for_delivery.buyer_id,
+                sender_role="customer",
+                location_lat=13.74,
+                location_lng=100.49,
+                is_live_location=False,
+            )
+        )
         session.commit()
 
         trail = await get_location_trail(order_out_for_delivery.id)
@@ -410,23 +419,27 @@ class TestLocationTrail:
 
         session = db_with_roles
         # Add driver and customer locations
-        session.add(DeliveryChatMessage(
-            order_id=order_out_for_delivery.id,
-            sender_id=111222333,
-            sender_role="driver",
-            location_lat=13.75,
-            location_lng=100.50,
-            is_live_location=True,
-            live_location_update_count=0,
-        ))
-        session.add(DeliveryChatMessage(
-            order_id=order_out_for_delivery.id,
-            sender_id=order_out_for_delivery.buyer_id,
-            sender_role="customer",
-            location_lat=13.74,
-            location_lng=100.49,
-            is_live_location=False,
-        ))
+        session.add(
+            DeliveryChatMessage(
+                order_id=order_out_for_delivery.id,
+                sender_id=111222333,
+                sender_role="driver",
+                location_lat=13.75,
+                location_lng=100.50,
+                is_live_location=True,
+                live_location_update_count=0,
+            )
+        )
+        session.add(
+            DeliveryChatMessage(
+                order_id=order_out_for_delivery.id,
+                sender_id=order_out_for_delivery.buyer_id,
+                sender_role="customer",
+                location_lat=13.74,
+                location_lng=100.49,
+                is_live_location=False,
+            )
+        )
         session.commit()
 
         driver_trail = await get_location_trail(order_out_for_delivery.id, sender_role="driver")
@@ -455,27 +468,33 @@ class TestChatHistory:
         from bot.handlers.user.delivery_chat_handler import get_chat_history
 
         session = db_with_roles
-        session.add(DeliveryChatMessage(
-            order_id=order_out_for_delivery.id,
-            sender_id=111222333,
-            sender_role="driver",
-            message_text="I'm on my way!",
-        ))
-        session.add(DeliveryChatMessage(
-            order_id=order_out_for_delivery.id,
-            sender_id=order_out_for_delivery.buyer_id,
-            sender_role="customer",
-            message_text="Great, I'm waiting outside.",
-        ))
-        session.add(DeliveryChatMessage(
-            order_id=order_out_for_delivery.id,
-            sender_id=111222333,
-            sender_role="driver",
-            location_lat=13.75,
-            location_lng=100.50,
-            is_live_location=True,
-            live_location_update_count=0,
-        ))
+        session.add(
+            DeliveryChatMessage(
+                order_id=order_out_for_delivery.id,
+                sender_id=111222333,
+                sender_role="driver",
+                message_text="I'm on my way!",
+            )
+        )
+        session.add(
+            DeliveryChatMessage(
+                order_id=order_out_for_delivery.id,
+                sender_id=order_out_for_delivery.buyer_id,
+                sender_role="customer",
+                message_text="Great, I'm waiting outside.",
+            )
+        )
+        session.add(
+            DeliveryChatMessage(
+                order_id=order_out_for_delivery.id,
+                sender_id=111222333,
+                sender_role="driver",
+                location_lat=13.75,
+                location_lng=100.50,
+                is_live_location=True,
+                live_location_update_count=0,
+            )
+        )
         session.commit()
 
         history = await get_chat_history(order_out_for_delivery.id)

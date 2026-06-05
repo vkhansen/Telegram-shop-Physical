@@ -4,9 +4,10 @@ Tests for bot.monitoring.metrics — MetricsCollector and helpers.
 All tests in this file operate purely in-memory with no external
 dependencies, so they run fast and never require the database or Redis.
 """
+
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -17,10 +18,10 @@ from bot.monitoring.metrics import (
     init_metrics,
 )
 
-
 # ===========================================================================
 # MetricsCollector — basic tracking
 # ===========================================================================
+
 
 @pytest.mark.unit
 class TestMetricsCollectorInit:
@@ -141,6 +142,7 @@ class TestMetricsCollectorTrackError:
 # MetricsCollector — track_conversion
 # ===========================================================================
 
+
 @pytest.mark.unit
 class TestMetricsCollectorTrackConversion:
     """track_conversion populates conversion funnels."""
@@ -179,6 +181,7 @@ class TestMetricsCollectorTrackConversion:
 # ===========================================================================
 # MetricsCollector — get_metrics_summary
 # ===========================================================================
+
 
 @pytest.mark.unit
 class TestMetricsCollectorGetSummary:
@@ -238,6 +241,7 @@ class TestMetricsCollectorGetSummary:
 # ===========================================================================
 # MetricsCollector — analytics helpers
 # ===========================================================================
+
 
 @pytest.mark.unit
 class TestCustomerJourneyAnalytics:
@@ -353,6 +357,7 @@ class TestInventoryAnalytics:
 # MetricsCollector — export_to_prometheus
 # ===========================================================================
 
+
 @pytest.mark.unit
 class TestExportToPrometheus:
     """export_to_prometheus generates valid Prometheus text format."""
@@ -394,6 +399,7 @@ class TestExportToPrometheus:
 # ===========================================================================
 # AnalyticsMiddleware
 # ===========================================================================
+
 
 @pytest.mark.unit
 class TestAnalyticsMiddleware:
@@ -466,12 +472,14 @@ class TestAnalyticsMiddleware:
 # Module-level functions — init_metrics / get_metrics
 # ===========================================================================
 
+
 @pytest.mark.unit
 class TestInitAndGetMetrics:
     """init_metrics and get_metrics manage the global collector."""
 
     def test_get_metrics_returns_none_initially(self):
         import bot.monitoring.metrics as m_module
+
         original = m_module._metrics_collector
         m_module._metrics_collector = None
         try:
@@ -481,6 +489,7 @@ class TestInitAndGetMetrics:
 
     def test_init_metrics_returns_collector(self):
         import bot.monitoring.metrics as m_module
+
         original = m_module._metrics_collector
         try:
             collector = init_metrics()
@@ -490,6 +499,7 @@ class TestInitAndGetMetrics:
 
     def test_get_metrics_returns_collector_after_init(self):
         import bot.monitoring.metrics as m_module
+
         original = m_module._metrics_collector
         try:
             init_metrics()

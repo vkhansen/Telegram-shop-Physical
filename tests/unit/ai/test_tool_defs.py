@@ -8,7 +8,7 @@ proper parameter schemas.
 import json
 
 from bot.ai.schemas import TOOL_SCHEMA_MAP
-from bot.ai.tool_defs import ALL_TOOLS, schema_to_tool, _resolve_refs
+from bot.ai.tool_defs import ALL_TOOLS, _resolve_refs
 
 
 class TestSchemaToTool:
@@ -33,9 +33,7 @@ class TestSchemaToTool:
         """The 'action' field should be stripped from tool parameters."""
         for tool in ALL_TOOLS:
             props = tool["function"]["parameters"].get("properties", {})
-            assert "action" not in props, (
-                f"Tool '{tool['function']['name']}' still has 'action' in parameters"
-            )
+            assert "action" not in props, f"Tool '{tool['function']['name']}' still has 'action' in parameters"
 
     def test_no_ref_pointers_in_any_tool(self):
         """$ref must be fully resolved — LLMs don't support JSON Schema references."""
@@ -45,9 +43,7 @@ class TestSchemaToTool:
     def test_required_fields_exclude_action(self):
         for tool in ALL_TOOLS:
             required = tool["function"]["parameters"].get("required", [])
-            assert "action" not in required, (
-                f"Tool '{tool['function']['name']}' has 'action' in required"
-            )
+            assert "action" not in required, f"Tool '{tool['function']['name']}' has 'action' in required"
 
 
 class TestBulkPriceUpdateTool:

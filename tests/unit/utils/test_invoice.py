@@ -1,8 +1,10 @@
 """Tests for invoice text generation."""
-import pytest
+
+from datetime import UTC, datetime
 from decimal import Decimal
-from datetime import datetime, timezone
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 def _make_order(**overrides):
@@ -10,13 +12,13 @@ def _make_order(**overrides):
     order = MagicMock()
     order.id = overrides.get("id", 1)
     order.order_code = overrides.get("order_code", "ABC123")
-    order.created_at = overrides.get("created_at", datetime(2025, 6, 15, 14, 30, tzinfo=timezone.utc))
+    order.created_at = overrides.get("created_at", datetime(2025, 6, 15, 14, 30, tzinfo=UTC))
     order.payment_method = overrides.get("payment_method", "cash")
-    order.store_id = overrides.get("store_id", None)
-    order.delivery_fee = overrides.get("delivery_fee", None)
-    order.coupon_discount = overrides.get("coupon_discount", None)
-    order.coupon_code = overrides.get("coupon_code", None)
-    order.bonus_applied = overrides.get("bonus_applied", None)
+    order.store_id = overrides.get("store_id")
+    order.delivery_fee = overrides.get("delivery_fee")
+    order.coupon_discount = overrides.get("coupon_discount")
+    order.coupon_code = overrides.get("coupon_code")
+    order.bonus_applied = overrides.get("bonus_applied")
     order.total_price = overrides.get("total_price", Decimal("500.00"))
     order.delivery_address = overrides.get("delivery_address", "123 Main St")
     order.phone_number = overrides.get("phone_number", "0812345678")
@@ -66,6 +68,7 @@ class TestGenerateInvoiceText:
     def test_order_not_found_returns_none(self):
         with _patch_db(order=None, items=[]):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=999)
         assert result is None
 
@@ -74,6 +77,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "XYZ789" in result
 
@@ -82,6 +86,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "2025-06-15 14:30" in result
 
@@ -90,6 +95,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "PROMPTPAY" in result
 
@@ -98,6 +104,7 @@ class TestGenerateInvoiceText:
         items = [_make_item(name="Burger", price=Decimal("150.00"), quantity=3)]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "Burger" in result
         assert "3 x 150.00 = 450.00" in result
@@ -110,6 +117,7 @@ class TestGenerateInvoiceText:
         ]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "Item A" in result
         assert "Item B" in result
@@ -120,6 +128,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "Delivery Fee: 30.00" in result
 
@@ -128,6 +137,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "Delivery Fee" not in result
 
@@ -136,6 +146,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "Delivery Fee" not in result
 
@@ -144,6 +155,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "Coupon (HALF): -50.00" in result
 
@@ -152,6 +164,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "Coupon" not in result
 
@@ -160,6 +173,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "Bonus Applied: -25.00" in result
 
@@ -168,6 +182,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "Bonus" not in result
 
@@ -176,6 +191,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "TOTAL: 999.99" in result
 
@@ -184,6 +200,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "456 Elm Ave" in result
         assert "0999999999" in result
@@ -194,6 +211,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "Type:" not in result
 
@@ -202,6 +220,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "Type: pickup" in result
 
@@ -210,6 +229,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "Type: dead_drop" in result
 
@@ -220,6 +240,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items, store=mock_store):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "Store: Downtown Branch" in result
 
@@ -228,6 +249,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "Store:" not in result
 
@@ -236,6 +258,7 @@ class TestGenerateInvoiceText:
         items = [_make_item()]
         with _patch_db(order, items):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "RECEIPT / INVOICE" in result
         assert "Thank you for your order!" in result
@@ -245,6 +268,7 @@ class TestGenerateInvoiceText:
         order = _make_order()
         with _patch_db(order, items=[]):
             from bot.utils.invoice import generate_invoice_text
+
             result = generate_invoice_text(order_id=1)
         assert "Subtotal: 0" in result
         assert result is not None

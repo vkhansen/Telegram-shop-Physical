@@ -1,20 +1,21 @@
 """
 Tests for inventory management system
 """
-import pytest
+
 from decimal import Decimal
-from datetime import datetime, timezone, timedelta
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+
+import pytest
 
 from bot.database.methods.inventory import (
-    reserve_inventory,
-    release_reservation,
-    deduct_inventory,
     add_inventory,
+    deduct_inventory,
     get_inventory_stats,
-    log_inventory_change
+    log_inventory_change,
+    release_reservation,
+    reserve_inventory,
 )
-from bot.database.models.main import Goods, Order, OrderItem, InventoryLog
+from bot.database.models.main import InventoryLog, Order, OrderItem
 
 
 @pytest.mark.unit
@@ -27,46 +28,46 @@ class TestInventoryReservation:
         """Test reserving inventory for an order"""
         initial_reserved = test_goods.reserved_quantity
 
-        items = [{'item_name': test_goods.name, 'quantity': 5}]
-        success, message = reserve_inventory(test_order.id, items, payment_method='cash', session=db_session)
+        items = [{"item_name": test_goods.name, "quantity": 5}]
+        success, message = reserve_inventory(test_order.id, items, payment_method="cash", session=db_session)
         db_session.commit()  # Inventory functions don't commit when session is passed
 
-        assert success == True
+        assert success
         assert "success" in message.lower()
 
         db_session.refresh(test_goods)
         assert test_goods.reserved_quantity == initial_reserved + 5
 
         db_session.refresh(test_order)
-        assert test_order.order_status == 'reserved'
+        assert test_order.order_status == "reserved"
         assert test_order.reserved_until is not None
 
     def test_reserve_inventory_insufficient_stock(self, db_session, test_order, test_goods_low_stock):
         """Test reserving more inventory than available"""
-        items = [{'item_name': test_goods_low_stock.name, 'quantity': 10}]
-        success, message = reserve_inventory(test_order.id, items, payment_method='cash', session=db_session)
+        items = [{"item_name": test_goods_low_stock.name, "quantity": 10}]
+        success, message = reserve_inventory(test_order.id, items, payment_method="cash", session=db_session)
 
-        assert success == False
+        assert not success
         assert "insufficient" in message.lower()
 
     def test_reserve_inventory_nonexistent_item(self, db_session, test_order):
         """Test reserving non-existent item"""
-        items = [{'item_name': 'Non-Existent Product', 'quantity': 1}]
-        success, message = reserve_inventory(test_order.id, items, payment_method='cash', session=db_session)
+        items = [{"item_name": "Non-Existent Product", "quantity": 1}]
+        success, message = reserve_inventory(test_order.id, items, payment_method="cash", session=db_session)
 
-        assert success == False
+        assert not success
         assert "not found" in message.lower()
 
     def test_reserve_inventory_multiple_items(self, db_session, test_order, multiple_products):
         """Test reserving multiple items at once"""
         items = [
-            {'item_name': multiple_products[0].name, 'quantity': 5},
-            {'item_name': multiple_products[1].name, 'quantity': 3},
+            {"item_name": multiple_products[0].name, "quantity": 5},
+            {"item_name": multiple_products[1].name, "quantity": 3},
         ]
 
-        success, message = reserve_inventory(test_order.id, items, payment_method='cash', session=db_session)
+        success, _message = reserve_inventory(test_order.id, items, payment_method="cash", session=db_session)
 
-        assert success == True
+        assert success
 
         db_session.refresh(multiple_products[0])
         db_session.refresh(multiple_products[1])
@@ -91,17 +92,12 @@ class TestInventoryRelease:
             delivery_address="123 Test St",
             phone_number="+1234567890",
             order_status="reserved",
-            order_code="REL001"
+            order_code="REL001",
         )
         db_session.add(order)
         db_session.flush()
 
-        order_item = OrderItem(
-            order_id=order.id,
-            item_name=test_goods.name,
-            price=test_goods.price,
-            quantity=10
-        )
+        order_item = OrderItem(order_id=order.id, item_name=test_goods.name, price=test_goods.price, quantity=10)
         db_session.add(order_item)
 
         # Reserve inventory
@@ -111,11 +107,11 @@ class TestInventoryRelease:
         initial_reserved = test_goods.reserved_quantity
 
         # Release reservation
-        with patch('bot.database.methods.inventory.get_metrics', return_value=None):
-            success, message = release_reservation(order.id, "Order cancelled", session=db_session)
+        with patch("bot.database.methods.inventory.get_metrics", return_value=None):
+            success, _message = release_reservation(order.id, "Order cancelled", session=db_session)
         db_session.commit()  # Inventory functions don't commit when session is passed
 
-        assert success == True
+        assert success
 
         db_session.refresh(test_goods)
         assert test_goods.reserved_quantity == initial_reserved - 10
@@ -124,7 +120,7 @@ class TestInventoryRelease:
         """Test releasing reservation for non-existent order"""
         success, message = release_reservation(999999, "Test", session=db_session)
 
-        assert success == False
+        assert not success
         assert "not found" in message.lower()
 
 
@@ -144,17 +140,12 @@ class TestInventoryDeduction:
             delivery_address="123 Test St",
             phone_number="+1234567890",
             order_status="confirmed",
-            order_code="DED001"
+            order_code="DED001",
         )
         db_session.add(order)
         db_session.flush()
 
-        order_item = OrderItem(
-            order_id=order.id,
-            item_name=test_goods.name,
-            price=test_goods.price,
-            quantity=10
-        )
+        order_item = OrderItem(order_id=order.id, item_name=test_goods.name, price=test_goods.price, quantity=10)
         db_session.add(order_item)
 
         # Reserve inventory first
@@ -163,11 +154,11 @@ class TestInventoryDeduction:
         db_session.commit()
 
         # Deduct inventory
-        with patch('bot.database.methods.inventory.get_metrics', return_value=None):
-            success, message = deduct_inventory(order.id, test_admin.telegram_id, session=db_session)
+        with patch("bot.database.methods.inventory.get_metrics", return_value=None):
+            success, _message = deduct_inventory(order.id, test_admin.telegram_id, session=db_session)
         db_session.commit()  # Inventory functions don't commit when session is passed
 
-        assert success == True
+        assert success
 
         db_session.refresh(test_goods)
         assert test_goods.stock_quantity == initial_stock - 10
@@ -182,7 +173,7 @@ class TestInventoryDeduction:
             delivery_address="123 Test St",
             phone_number="+1234567890",
             order_status="confirmed",
-            order_code="NEG001"
+            order_code="NEG001",
         )
         db_session.add(order)
         db_session.flush()
@@ -192,16 +183,16 @@ class TestInventoryDeduction:
             order_id=order.id,
             item_name=test_goods_low_stock.name,
             price=test_goods_low_stock.price,
-            quantity=100  # More than stock
+            quantity=100,  # More than stock
         )
         db_session.add(order_item)
         test_goods_low_stock.reserved_quantity += 100
         db_session.commit()
 
-        with patch('bot.database.methods.inventory.get_metrics', return_value=None):
+        with patch("bot.database.methods.inventory.get_metrics", return_value=None):
             success, message = deduct_inventory(order.id, None, session=db_session)
 
-        assert success == False
+        assert not success
         assert "negative" in message.lower()
 
 
@@ -215,29 +206,21 @@ class TestInventoryAddition:
         """Test adding inventory (restocking)"""
         initial_stock = test_goods.stock_quantity
 
-        success, message = add_inventory(
-            test_goods.name,
-            quantity=50,
-            admin_id=test_admin.telegram_id,
-            comment="Restocking",
-            session=db_session
+        success, _message = add_inventory(
+            test_goods.name, quantity=50, admin_id=test_admin.telegram_id, comment="Restocking", session=db_session
         )
         db_session.commit()  # Inventory functions don't commit when session is passed
 
-        assert success == True
+        assert success
 
         db_session.refresh(test_goods)
         assert test_goods.stock_quantity == initial_stock + 50
 
     def test_add_inventory_nonexistent_item(self, db_session):
         """Test adding inventory for non-existent item"""
-        success, message = add_inventory(
-            "Non-Existent Product",
-            quantity=50,
-            session=db_session
-        )
+        success, message = add_inventory("Non-Existent Product", quantity=50, session=db_session)
 
-        assert success == False
+        assert not success
         assert "not found" in message.lower()
 
 
@@ -256,9 +239,9 @@ class TestInventoryStats:
         stats = get_inventory_stats(test_goods.name)
 
         assert stats is not None
-        assert stats['stock'] == 100
-        assert stats['reserved'] == 20
-        assert stats['available'] == 80
+        assert stats["stock"] == 100
+        assert stats["reserved"] == 20
+        assert stats["available"] == 80
 
     def test_get_inventory_stats_nonexistent(self, db_session):
         """Test getting stats for non-existent item"""
@@ -276,18 +259,16 @@ class TestInventoryLogging:
         """Test logging inventory change"""
         log_inventory_change(
             item_name=test_goods.name,
-            change_type='add',
+            change_type="add",
             quantity_change=50,
             admin_id=test_admin.telegram_id,
             comment="Test log entry",
-            session=db_session
+            session=db_session,
         )
 
-        log_entry = db_session.query(InventoryLog).filter_by(
-            item_name=test_goods.name
-        ).first()
+        log_entry = db_session.query(InventoryLog).filter_by(item_name=test_goods.name).first()
 
         assert log_entry is not None
-        assert log_entry.change_type == 'add'
+        assert log_entry.change_type == "add"
         assert log_entry.quantity_change == 50
         assert log_entry.admin_id == test_admin.telegram_id

@@ -1,38 +1,31 @@
-from aiogram import Router, F
+from aiogram import F, Router
 from aiogram.types import CallbackQuery, Message
 
-from bot.database.models import Permission
+from bot.config import EnvKeys
 from bot.database.methods import check_item_cached, update_item
-
+from bot.database.models import Permission
+from bot.filters import HasPermissionFilter
+from bot.i18n import localize
 from bot.keyboards.inline import back
 from bot.logger_mesh import audit_logger
-from bot.filters import HasPermissionFilter
-from bot.config import EnvKeys
-from bot.i18n import localize
 from bot.states import UpdateItemFSM
 
 router = Router()
 
 
-@router.callback_query(F.data == 'update_item_amount', HasPermissionFilter(permission=Permission.SHOP_MANAGE))
+@router.callback_query(F.data == "update_item_amount", HasPermissionFilter(permission=Permission.SHOP_MANAGE))
 async def update_item_amount_callback_handler(call: CallbackQuery, state):
     """
     Redirects to stock management (now handled in goods_management_states.py).
     """
-    await call.message.edit_text(
-        localize('admin.goods.stock.redirect_message'),
-        reply_markup=back("goods_management")
-    )
+    await call.message.edit_text(localize("admin.goods.stock.redirect_message"), reply_markup=back("goods_management"))
     await state.clear()
 
 
-@router.callback_query(F.data == 'update_item', HasPermissionFilter(permission=Permission.SHOP_MANAGE))
+@router.callback_query(F.data == "update_item", HasPermissionFilter(permission=Permission.SHOP_MANAGE))
 async def update_item_callback_handler(call: CallbackQuery, state):
     """Starts the item update flow (name, description, price only)."""
-    await call.message.edit_text(
-        localize('admin.goods.update.prompt.name'),
-        reply_markup=back("goods_management")
-    )
+    await call.message.edit_text(localize("admin.goods.update.prompt.name"), reply_markup=back("goods_management"))
     await state.set_state(UpdateItemFSM.waiting_item_name_for_update)
 
 
@@ -42,17 +35,11 @@ async def check_item_name_for_update(message: Message, state):
     item_name = message.text.strip()
     item = await check_item_cached(item_name)
     if not item:
-        await message.answer(
-            localize('admin.goods.update.not_exists'),
-            reply_markup=back('goods_management')
-        )
+        await message.answer(localize("admin.goods.update.not_exists"), reply_markup=back("goods_management"))
         return
 
-    await state.update_data(item_old_name=item_name, item_category=item['category_name'])
-    await message.answer(
-        localize('admin.goods.update.prompt.new_name'),
-        reply_markup=back('goods_management')
-    )
+    await state.update_data(item_old_name=item_name, item_category=item["category_name"])
+    await message.answer(localize("admin.goods.update.prompt.new_name"), reply_markup=back("goods_management"))
     await state.set_state(UpdateItemFSM.waiting_item_new_name)
 
 
@@ -60,10 +47,7 @@ async def check_item_name_for_update(message: Message, state):
 async def update_item_name(message: Message, state):
     """Ask for item description."""
     await state.update_data(item_new_name=message.text.strip())
-    await message.answer(
-        localize('admin.goods.update.prompt.description'),
-        reply_markup=back('goods_management')
-    )
+    await message.answer(localize("admin.goods.update.prompt.description"), reply_markup=back("goods_management"))
     await state.set_state(UpdateItemFSM.waiting_item_description)
 
 
@@ -72,8 +56,7 @@ async def update_item_description(message: Message, state):
     """Ask for new price."""
     await state.update_data(item_description=message.text.strip())
     await message.answer(
-        localize('admin.goods.add.prompt.price', currency=EnvKeys.PAY_CURRENCY),
-        reply_markup=back('goods_management')
+        localize("admin.goods.add.prompt.price", currency=EnvKeys.PAY_CURRENCY), reply_markup=back("goods_management")
     )
     await state.set_state(UpdateItemFSM.waiting_item_price)
 
@@ -91,27 +74,21 @@ async def update_item_price_and_finish(message: Message, state):
         if price_value <= 0:
             raise ValueError("Price must be positive")
     except ValueError:
-        await message.answer(
-            localize('admin.goods.add.price.invalid'),
-            reply_markup=back('goods_management')
-        )
+        await message.answer(localize("admin.goods.add.price.invalid"), reply_markup=back("goods_management"))
         return
 
     await state.update_data(item_price=price_value)
     data = await state.get_data()
-    item_old_name = data.get('item_old_name')
-    item_new_name = data.get('item_new_name')
-    item_description = data.get('item_description')
-    category = data.get('item_category')
-    price = data.get('item_price')
+    item_old_name = data.get("item_old_name")
+    item_new_name = data.get("item_new_name")
+    item_description = data.get("item_description")
+    category = data.get("item_category")
+    price = data.get("item_price")
 
     # Update item metadata (stock is managed separately)
     update_item(item_old_name, item_new_name, item_description, price, category)
 
-    await message.answer(
-        localize('admin.goods.update.success'),
-        reply_markup=back('goods_management')
-    )
+    await message.answer(localize("admin.goods.update.success"), reply_markup=back("goods_management"))
 
     admin_info = await message.bot.get_chat(message.from_user.id)
     audit_logger.info(

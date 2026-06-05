@@ -1,16 +1,17 @@
 from __future__ import annotations
+
+import contextlib
 import contextvars
 from functools import lru_cache
 from typing import Any
 
 from bot.config import EnvKeys
-from .strings import TRANSLATIONS, DEFAULT_LOCALE
 from bot.logger_mesh import logger
 
+from .strings import DEFAULT_LOCALE, TRANSLATIONS
+
 # LOGIC-10 fix: Use contextvars instead of global variable for async safety
-_request_locale: contextvars.ContextVar[str | None] = contextvars.ContextVar(
-    '_request_locale', default=None
-)
+_request_locale: contextvars.ContextVar[str | None] = contextvars.ContextVar("_request_locale", default=None)
 
 
 @lru_cache(maxsize=1)
@@ -34,15 +35,15 @@ def get_user_locale(telegram_id: int) -> str | None:
     Get a user's saved locale from the database.
     Returns None if not set (user hasn't picked yet).
     """
-    try:
+    # Best-effort DB lookup; fall back to None if the DB is unavailable
+    with contextlib.suppress(Exception):
         from bot.database import Database
         from bot.database.models.main import User
+
         with Database().session() as session:
             user = session.query(User.locale).filter_by(telegram_id=telegram_id).first()
             if user and user.locale:
                 return user.locale
-    except Exception:
-        pass
     return None
 
 

@@ -1,4 +1,5 @@
 """Seed script: creates a test brand, categories, and items for debugging."""
+
 import os
 import sys
 
@@ -6,11 +7,12 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
 from bot.database.models import register_models
+
 register_models()
 
-from bot.database.methods.create import create_brand, create_category, create_item
-from bot.database import Database
-from bot.database.models.main import Goods
+from bot.database import Database  # noqa: E402
+from bot.database.methods.create import create_brand, create_category, create_item  # noqa: E402
+from bot.database.models.main import Goods  # noqa: E402
 
 # 1. Create a brand
 brand_id = create_brand(
@@ -21,6 +23,7 @@ brand_id = create_brand(
 if brand_id is None:
     # Brand may already exist, fetch its ID
     from bot.database.models.main import Brand
+
     with Database().session() as s:
         existing = s.query(Brand).filter_by(slug="test-kitchen").first()
         brand_id = existing.id if existing else None

@@ -1,19 +1,21 @@
 """
 Tests for validator utilities
 """
-import pytest
+
 from decimal import Decimal
+
+import pytest
 from pydantic import ValidationError
 
 from bot.utils.validators import (
-    UserDataUpdate,
-    CategoryRequest,
     BroadcastMessage,
+    CategoryRequest,
     SearchQuery,
-    validate_telegram_id,
-    validate_money_amount,
+    UserDataUpdate,
     sanitize_html,
     validate_and_normalize_phone,
+    validate_money_amount,
+    validate_telegram_id,
 )
 
 
@@ -24,10 +26,7 @@ class TestUserDataUpdate:
 
     def test_valid_user_data_update(self):
         """Test valid user data update"""
-        data = UserDataUpdate(
-            telegram_id=123456789,
-            balance=Decimal("100.50")
-        )
+        data = UserDataUpdate(telegram_id=123456789, balance=Decimal("100.50"))
 
         assert data.telegram_id == 123456789
         assert data.balance == Decimal("100.50")
@@ -40,18 +39,12 @@ class TestUserDataUpdate:
     def test_negative_balance(self):
         """Test negative balance validation"""
         with pytest.raises(ValidationError):
-            UserDataUpdate(
-                telegram_id=123456789,
-                balance=Decimal("-10")
-            )
+            UserDataUpdate(telegram_id=123456789, balance=Decimal("-10"))
 
     def test_balance_too_large(self):
         """Test balance exceeds maximum"""
         with pytest.raises(ValidationError):
-            UserDataUpdate(
-                telegram_id=123456789,
-                balance=Decimal("2000000")
-            )
+            UserDataUpdate(telegram_id=123456789, balance=Decimal("2000000"))
 
 
 @pytest.mark.unit
@@ -97,10 +90,7 @@ class TestBroadcastMessage:
 
     def test_valid_broadcast_message(self):
         """Test valid broadcast message"""
-        message = BroadcastMessage(
-            text="<b>Important</b> announcement!",
-            parse_mode="HTML"
-        )
+        message = BroadcastMessage(text="<b>Important</b> announcement!", parse_mode="HTML")
 
         assert message.text == "<b>Important</b> announcement!"
         assert message.parse_mode == "HTML"
@@ -123,10 +113,7 @@ class TestBroadcastMessage:
     def test_unbalanced_html_tags(self):
         """Test unbalanced HTML tags validation"""
         with pytest.raises(ValidationError):
-            BroadcastMessage(
-                text="<b>Bold text without closing tag",
-                parse_mode="HTML"
-            )
+            BroadcastMessage(text="<b>Bold text without closing tag", parse_mode="HTML")
 
 
 @pytest.mark.unit

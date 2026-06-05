@@ -32,9 +32,9 @@ def _driver(tg, lat, lng, active=0, zones=None):
 @pytest.mark.unit
 def test_nearest_available_ranked():
     """The closest driver ranks first; distance_km is attached and ordered."""
-    near = _driver(1, 13.757, 100.502)      # ~tens of metres away
-    mid = _driver(2, 13.78, 100.52)         # a couple of km
-    far = _driver(3, 13.85, 100.60)         # ~13 km
+    near = _driver(1, 13.757, 100.502)  # ~tens of metres away
+    mid = _driver(2, 13.78, 100.52)  # a couple of km
+    far = _driver(3, 13.85, 100.60)  # ~13 km
     ranked = rank_drivers([far, mid, near], *ORIGIN, radius_km=50)
 
     assert [d["telegram_id"] for d in ranked] == [1, 2, 3]

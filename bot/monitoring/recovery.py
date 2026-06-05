@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from datetime import datetime
+
 from sqlalchemy import func
 
 from bot.database import Database
@@ -23,14 +24,10 @@ class RecoveryManager:
         self.running = True
 
         # Restore interrupted mailings
-        self.recovery_tasks.append(
-            asyncio.create_task(self._safe_run(self.recover_interrupted_broadcasts()))
-        )
+        self.recovery_tasks.append(asyncio.create_task(self._safe_run(self.recover_interrupted_broadcasts())))
 
         # Periodic status checks
-        self.recovery_tasks.append(
-            asyncio.create_task(self._safe_run(self.periodic_health_check()))
-        )
+        self.recovery_tasks.append(asyncio.create_task(self._safe_run(self.periodic_health_check())))
 
     async def stop(self):
         """Stopping the recovery system"""
@@ -73,13 +70,13 @@ class RecoveryManager:
             logger.info(f"Attempting to resume broadcast from state: {state}")
 
             # Validate state has required fields
-            if not all(key in state for key in ['user_ids', 'sent_count', 'message_text']):
+            if not all(key in state for key in ["user_ids", "sent_count", "message_text"]):
                 logger.error("Invalid broadcast state, missing required fields")
                 return
 
-            user_ids = state['user_ids']
-            sent_count = state['sent_count']
-            message_text = state['message_text']
+            user_ids = state["user_ids"]
+            sent_count = state["sent_count"]
+            message_text = state["message_text"]
 
             # Calculate remaining users
             remaining_users = user_ids[sent_count:]
@@ -100,9 +97,7 @@ class RecoveryManager:
 
                 # Resume broadcast for remaining users
                 success_count = await send_broadcast_to_users(
-                    bot=self.bot,
-                    user_ids=remaining_users,
-                    message_text=message_text
+                    bot=self.bot, user_ids=remaining_users, message_text=message_text
                 )
 
                 logger.info(f"Resumed broadcast completed: {success_count} messages sent")
@@ -132,6 +127,7 @@ class RecoveryManager:
                 try:
                     with Database().session() as s:
                         from sqlalchemy import text
+
                         s.execute(text("SELECT 1"))
                     consecutive_db_failures = 0
                 except Exception as e:
@@ -146,6 +142,7 @@ class RecoveryManager:
                 # Check Redis
                 try:
                     from bot.caching.cache import get_cache_manager
+
                     cache = get_cache_manager()
                     if cache:
                         await cache.set("health:check", "ok", ttl=60)
@@ -175,7 +172,7 @@ class RecoveryManager:
         max_attempts = 5
         for attempt in range(max_attempts):
             try:
-                wait_time = 2 ** attempt  # Exponential backoff: 1, 2, 4, 8, 16 seconds
+                wait_time = 2**attempt  # Exponential backoff: 1, 2, 4, 8, 16 seconds
                 logger.info(f"Database recovery attempt {attempt + 1}/{max_attempts}, waiting {wait_time}s...")
                 await asyncio.sleep(wait_time)
 
@@ -183,6 +180,7 @@ class RecoveryManager:
                 db = Database()
                 with db.session() as s:
                     from sqlalchemy import text
+
                     s.execute(text("SELECT 1"))
 
                 logger.info("Database connection recovered successfully!")
@@ -203,12 +201,12 @@ class RecoveryManager:
         try:
             with Database().session() as s:
                 # Check available Bitcoin addresses using SQLAlchemy ORM
-                available = s.query(func.count(BitcoinAddress.address)).filter(
-                    BitcoinAddress.is_used == False
-                ).scalar()
+                available = s.query(func.count(BitcoinAddress.address)).filter(not BitcoinAddress.is_used).scalar()
 
                 if available < 5:
-                    logger.critical(f"CRITICAL: Bitcoin address pool critically low! Only {available} addresses available")
+                    logger.critical(
+                        f"CRITICAL: Bitcoin address pool critically low! Only {available} addresses available"
+                    )
                     # Could send notification to admin here
                 elif available < 10:
                     logger.warning(f"WARNING: Bitcoin address pool running low: {available} addresses available")
@@ -223,8 +221,7 @@ class StateManager:
     def __init__(self):
         self.state_file = "data/bot_state.json"
 
-    async def save_broadcast_state(self, user_ids: list, sent_count: int,
-                                   message_text: str, start_time: datetime):
+    async def save_broadcast_state(self, user_ids: list, sent_count: int, message_text: str, start_time: datetime):
         """Saving the mailing status"""
         import json
         from pathlib import Path
@@ -236,15 +233,16 @@ class StateManager:
             "sent_count": sent_count,
             "message_text": message_text,
             "start_time": start_time.isoformat(),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
         try:
-            with open(self.state_file, 'w') as f:
+            with open(self.state_file, "w") as f:
                 json.dump(state, f)
 
             # Also save in Redis for quick access
             from bot.caching.cache import get_cache_manager
+
             cache = get_cache_manager()
             if cache:
                 await cache.set("broadcast:state", state, ttl=3600)

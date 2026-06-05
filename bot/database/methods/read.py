@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+from datetime import UTC
 from decimal import Decimal
 from functools import wraps
 
@@ -17,7 +18,6 @@ from bot.database.models import (
     Goods,
     Operations,
     Order,
-    OrderItem,
     Permission,
     ReferralEarnings,
     Role,
@@ -72,7 +72,7 @@ def check_user(telegram_id: int | str) -> dict | None:
         result = s.query(User).filter(User.telegram_id == telegram_id).one_or_none()
         if not result:
             return None
-        return {k: v for k, v in result.__dict__.items() if not k.startswith('_')}
+        return {k: v for k, v in result.__dict__.items() if not k.startswith("_")}
 
 
 def check_role(telegram_id: int) -> int:
@@ -110,10 +110,7 @@ def select_today_users(date: str) -> int:
     """Return count of users registered on given date (YYYY-MM-DD)."""
     start_of_day, end_of_day = _day_window(date)
     with Database().session() as s:
-        return s.query(User).filter(
-            User.registration_date >= start_of_day,
-            User.registration_date < end_of_day
-        ).count()
+        return s.query(User).filter(User.registration_date >= start_of_day, User.registration_date < end_of_day).count()
 
 
 def get_user_count() -> int:
@@ -224,10 +221,7 @@ def select_today_orders(date: str) -> Decimal:
     with Database().session() as s:
         res = (
             s.query(func.sum(BoughtGoods.price))
-            .filter(
-                BoughtGoods.bought_datetime >= start_of_day,
-                BoughtGoods.bought_datetime < end_of_day
-            )
+            .filter(BoughtGoods.bought_datetime >= start_of_day, BoughtGoods.bought_datetime < end_of_day)
             .scalar()
         )
         return res or Decimal(0)
@@ -245,10 +239,7 @@ def select_today_operations(date: str) -> Decimal:
     with Database().session() as s:
         res = (
             s.query(func.sum(Operations.operation_value))
-            .filter(
-                Operations.operation_time >= start_of_day,
-                Operations.operation_time < end_of_day
-            )
+            .filter(Operations.operation_time >= start_of_day, Operations.operation_time < end_of_day)
             .scalar()
         )
         return res or Decimal(0)
@@ -284,20 +275,22 @@ def get_referral_earnings_stats(referrer_id: int) -> dict:
     Get statistics on user referral charges.
     """
     with Database().session() as s:
-        stats = s.query(
-            func.count(ReferralEarnings.id).label('total_earnings_count'),
-            func.sum(ReferralEarnings.amount).label('total_amount'),
-            func.sum(ReferralEarnings.original_amount).label('total_original_amount'),
-            func.count(func.distinct(ReferralEarnings.referral_id)).label('active_referrals_count')
-        ).filter(
-            ReferralEarnings.referrer_id == referrer_id
-        ).first()
+        stats = (
+            s.query(
+                func.count(ReferralEarnings.id).label("total_earnings_count"),
+                func.sum(ReferralEarnings.amount).label("total_amount"),
+                func.sum(ReferralEarnings.original_amount).label("total_original_amount"),
+                func.count(func.distinct(ReferralEarnings.referral_id)).label("active_referrals_count"),
+            )
+            .filter(ReferralEarnings.referrer_id == referrer_id)
+            .first()
+        )
 
         return {
-            'total_earnings_count': stats.total_earnings_count or 0,
-            'total_amount': stats.total_amount or Decimal(0),
-            'total_original_amount': stats.total_original_amount or Decimal(0),
-            'active_referrals_count': stats.active_referrals_count or 0
+            "total_earnings_count": stats.total_earnings_count or 0,
+            "total_amount": stats.total_amount or Decimal(0),
+            "total_original_amount": stats.total_original_amount or Decimal(0),
+            "active_referrals_count": stats.active_referrals_count or 0,
         }
 
 
@@ -310,7 +303,7 @@ def get_one_referral_earning(earning_id: int) -> dict | None:
         return result.__dict__ if result else None
 
 
-def get_reference_bonus_percent(brand_id: int = None) -> Decimal:
+def get_reference_bonus_percent(brand_id: int | None = None) -> Decimal:
     """
     Get reference_bonus_percent from bot_settings.
     Tries brand-specific first, then global fallback.
@@ -319,15 +312,17 @@ def get_reference_bonus_percent(brand_id: int = None) -> Decimal:
     with Database().session() as s:
         setting = None
         if brand_id is not None:
-            setting = s.query(BotSettings).filter(
-                BotSettings.setting_key == 'reference_bonus_percent',
-                BotSettings.brand_id == brand_id
-            ).first()
+            setting = (
+                s.query(BotSettings)
+                .filter(BotSettings.setting_key == "reference_bonus_percent", BotSettings.brand_id == brand_id)
+                .first()
+            )
         if not setting:
-            setting = s.query(BotSettings).filter(
-                BotSettings.setting_key == 'reference_bonus_percent',
-                BotSettings.brand_id.is_(None)
-            ).first()
+            setting = (
+                s.query(BotSettings)
+                .filter(BotSettings.setting_key == "reference_bonus_percent", BotSettings.brand_id.is_(None))
+                .first()
+            )
         if setting and setting.setting_value:
             try:
                 return Decimal(str(setting.setting_value))
@@ -336,8 +331,9 @@ def get_reference_bonus_percent(brand_id: int = None) -> Decimal:
         return Decimal(0)
 
 
-def get_bot_setting(setting_key: str, default: str = None, value_type: type = str,
-                    brand_id: int = None) -> any:
+def get_bot_setting(
+    setting_key: str, default: str | None = None, value_type: type = str, brand_id: int | None = None
+) -> any:
     """
     Get a setting value from BotSettings.
     If brand_id is given, tries brand-specific first, then falls back to global (brand_id=NULL).
@@ -355,23 +351,25 @@ def get_bot_setting(setting_key: str, default: str = None, value_type: type = st
         setting = None
         # Try brand-specific first
         if brand_id is not None:
-            setting = s.query(BotSettings).filter(
-                BotSettings.setting_key == setting_key,
-                BotSettings.brand_id == brand_id
-            ).first()
+            setting = (
+                s.query(BotSettings)
+                .filter(BotSettings.setting_key == setting_key, BotSettings.brand_id == brand_id)
+                .first()
+            )
         # Fall back to global
         if not setting:
-            setting = s.query(BotSettings).filter(
-                BotSettings.setting_key == setting_key,
-                BotSettings.brand_id.is_(None)
-            ).first()
+            setting = (
+                s.query(BotSettings)
+                .filter(BotSettings.setting_key == setting_key, BotSettings.brand_id.is_(None))
+                .first()
+            )
         if setting and setting.setting_value:
             try:
-                if value_type == int:
+                if value_type is int:
                     return int(setting.setting_value)
-                if value_type == float:
+                if value_type is float:
                     return float(setting.setting_value)
-                if value_type == Decimal:
+                if value_type is Decimal:
                     return Decimal(str(setting.setting_value))
                 return str(setting.setting_value)
             except (ValueError, TypeError):
@@ -380,11 +378,11 @@ def get_bot_setting(setting_key: str, default: str = None, value_type: type = st
         # Convert default to the requested type if needed
         if default is not None:
             try:
-                if value_type == int and not isinstance(default, int):
+                if value_type is int and not isinstance(default, int):
                     return int(default)
-                if value_type == float and not isinstance(default, float):
+                if value_type is float and not isinstance(default, float):
                     return float(default)
-                if value_type == Decimal and not isinstance(default, Decimal):
+                if value_type is Decimal and not isinstance(default, Decimal):
                     return Decimal(str(default))
             except (ValueError, TypeError):
                 pass
@@ -402,48 +400,53 @@ async def get_cart_items(user_id: int) -> list:
     Returns:
         List of cart items with product info (includes selected_modifiers and modifier-adjusted price)
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from bot.utils.modifiers import calculate_item_price
 
     with Database().session() as session:
         # Card 21: lazy expiry — if any row is past its TTL, clear the whole cart
-        now = datetime.now(timezone.utc)
-        has_expired = session.query(ShoppingCart).filter(
-            ShoppingCart.user_id == user_id,
-            ShoppingCart.expires_at.is_not(None),
-            ShoppingCart.expires_at < now,
-        ).first()
+        now = datetime.now(UTC)
+        has_expired = (
+            session.query(ShoppingCart)
+            .filter(
+                ShoppingCart.user_id == user_id,
+                ShoppingCart.expires_at.is_not(None),
+                ShoppingCart.expires_at < now,
+            )
+            .first()
+        )
         if has_expired is not None:
             session.query(ShoppingCart).filter_by(user_id=user_id).delete()
             session.commit()
             return []
 
-        cart_items = session.query(ShoppingCart, Goods).join(
-            Goods, ShoppingCart.item_name == Goods.name
-        ).filter(
-            ShoppingCart.user_id == user_id
-        ).all()
+        cart_items = (
+            session.query(ShoppingCart, Goods)
+            .join(Goods, ShoppingCart.item_name == Goods.name)
+            .filter(ShoppingCart.user_id == user_id)
+            .all()
+        )
 
         result = []
         for cart_item, good in cart_items:
             # Calculate price with modifier adjustments (Card 8)
-            unit_price = calculate_item_price(
-                good.price, good.modifiers, cart_item.selected_modifiers
+            unit_price = calculate_item_price(good.price, good.modifiers, cart_item.selected_modifiers)
+            result.append(
+                {
+                    "cart_id": cart_item.id,
+                    "item_name": cart_item.item_name,
+                    "quantity": cart_item.quantity,
+                    "price": unit_price,
+                    "total": unit_price * cart_item.quantity,
+                    "selected_modifiers": cart_item.selected_modifiers,
+                    "modifiers_schema": good.modifiers,
+                }
             )
-            result.append({
-                'cart_id': cart_item.id,
-                'item_name': cart_item.item_name,
-                'quantity': cart_item.quantity,
-                'price': unit_price,
-                'total': unit_price * cart_item.quantity,
-                'selected_modifiers': cart_item.selected_modifiers,
-                'modifiers_schema': good.modifiers,
-            })
         return result
 
 
-async def query_user_orders(user_id: int, status: str = None, limit: int = 10, offset: int = 0):
+async def query_user_orders(user_id: int, status: str | None = None, limit: int = 10, offset: int = 0):
     """
     Query user's orders with optional status filter
 
@@ -457,9 +460,7 @@ async def query_user_orders(user_id: int, status: str = None, limit: int = 10, o
         List of Order objects with items
     """
     with Database().session() as session:
-        query = session.query(Order).options(
-            joinedload(Order.items)
-        ).filter(Order.buyer_id == user_id)
+        query = session.query(Order).options(joinedload(Order.items)).filter(Order.buyer_id == user_id)
 
         if status:
             query = query.filter(Order.order_status == status)
@@ -471,33 +472,34 @@ async def query_user_orders(user_id: int, status: str = None, limit: int = 10, o
         # Return order data as dicts to avoid session issues
         result = []
         for order in orders:
-            items_data = [{
-                'item_name': item.item_name,
-                'price': float(item.price),
-                'quantity': item.quantity
-            } for item in order.items]
+            items_data = [
+                {"item_name": item.item_name, "price": float(item.price), "quantity": item.quantity}
+                for item in order.items
+            ]
 
-            result.append({
-                'id': order.id,
-                'order_code': order.order_code,
-                'total_price': float(order.total_price) if order.total_price else 0,
-                'bonus_applied': float(order.bonus_applied) if order.bonus_applied else 0,
-                'payment_method': order.payment_method,
-                'delivery_address': order.delivery_address,
-                'phone_number': order.phone_number,
-                'delivery_note': order.delivery_note,
-                'bitcoin_address': order.bitcoin_address,
-                'order_status': order.order_status,
-                'created_at': order.created_at,
-                'completed_at': order.completed_at,
-                'delivery_time': order.delivery_time,
-                'items': items_data
-            })
+            result.append(
+                {
+                    "id": order.id,
+                    "order_code": order.order_code,
+                    "total_price": float(order.total_price) if order.total_price else 0,
+                    "bonus_applied": float(order.bonus_applied) if order.bonus_applied else 0,
+                    "payment_method": order.payment_method,
+                    "delivery_address": order.delivery_address,
+                    "phone_number": order.phone_number,
+                    "delivery_note": order.delivery_note,
+                    "bitcoin_address": order.bitcoin_address,
+                    "order_status": order.order_status,
+                    "created_at": order.created_at,
+                    "completed_at": order.completed_at,
+                    "delivery_time": order.delivery_time,
+                    "items": items_data,
+                }
+            )
 
         return result
 
 
-async def count_user_orders(user_id: int, status: str = None) -> int:
+async def count_user_orders(user_id: int, status: str | None = None) -> int:
     """
     Count user's orders
 
@@ -520,7 +522,7 @@ async def count_user_orders(user_id: int, status: str = None) -> int:
 async def calculate_cart_total(user_id: int) -> int:
     """Calculate total price of all items in cart"""
     items = await get_cart_items(user_id)
-    return sum(item['total'] for item in items)
+    return sum(item["total"] for item in items)
 
 
 @async_cached(ttl=60, key_prefix="user")
@@ -573,13 +575,19 @@ def select_admins_cached():
 
 # ── Brand / multi-store queries ───────────────────────────────────────
 
+
 def _brand_to_dict(b) -> dict:
     """Convert a Brand ORM instance to a plain dict."""
     return {
-        'id': b.id, 'name': b.name, 'slug': b.slug,
-        'description': b.description, 'logo_file_id': b.logo_file_id,
-        'is_active': b.is_active, 'promptpay_id': b.promptpay_id,
-        'promptpay_name': b.promptpay_name, 'timezone': b.timezone,
+        "id": b.id,
+        "name": b.name,
+        "slug": b.slug,
+        "description": b.description,
+        "logo_file_id": b.logo_file_id,
+        "is_active": b.is_active,
+        "promptpay_id": b.promptpay_id,
+        "promptpay_name": b.promptpay_name,
+        "timezone": b.timezone,
     }
 
 
@@ -615,18 +623,23 @@ def get_stores_for_brand(brand_id: int, active_only: bool = True) -> list[dict]:
     """Return list of stores/branches for a brand."""
     with Database().session() as s:
         from bot.database.models.main import Store
+
         q = s.query(Store).filter(Store.brand_id == brand_id)
         if active_only:
             q = q.filter(Store.is_active.is_(True))
         stores = q.order_by(Store.name).all()
         return [
             {
-                'id': st.id, 'name': st.name, 'address': st.address,
-                'latitude': st.latitude, 'longitude': st.longitude,
-                'phone': st.phone, 'is_active': st.is_active,
-                'is_default': st.is_default,
-                'kitchen_group_id': st.kitchen_group_id,
-                'rider_group_id': st.rider_group_id,
+                "id": st.id,
+                "name": st.name,
+                "address": st.address,
+                "latitude": st.latitude,
+                "longitude": st.longitude,
+                "phone": st.phone,
+                "is_active": st.is_active,
+                "is_default": st.is_default,
+                "kitchen_group_id": st.kitchen_group_id,
+                "rider_group_id": st.rider_group_id,
             }
             for st in stores
         ]
@@ -638,29 +651,27 @@ def get_saved_carts(user_id: int) -> list[dict]:
     Each dict: id, brand_id, brand_name, store_id, store_name, item_count, total, saved_at.
     """
     from bot.database.models.main import SavedCart, Store
+
     out: list[dict] = []
     with Database().session() as s:
-        rows = (
-            s.query(SavedCart)
-            .filter_by(user_id=user_id)
-            .order_by(SavedCart.saved_at.desc())
-            .all()
-        )
+        rows = s.query(SavedCart).filter_by(user_id=user_id).order_by(SavedCart.saved_at.desc()).all()
         for r in rows:
             payload = r.items_json or {}
             items = payload.get("items", []) if isinstance(payload, dict) else []
             brand = s.query(Brand).filter_by(id=r.brand_id).first()
             store = s.query(Store).filter_by(id=r.store_id).first() if r.store_id else None
-            out.append({
-                "id": r.id,
-                "brand_id": r.brand_id,
-                "brand_name": brand.name if brand else str(r.brand_id),
-                "store_id": r.store_id,
-                "store_name": store.name if store else None,
-                "item_count": sum(int(i.get("quantity", 0) or 0) for i in items),
-                "total": r.original_total,
-                "saved_at": r.saved_at,
-            })
+            out.append(
+                {
+                    "id": r.id,
+                    "brand_id": r.brand_id,
+                    "brand_name": brand.name if brand else str(r.brand_id),
+                    "store_id": r.store_id,
+                    "store_name": store.name if store else None,
+                    "item_count": sum(int(i.get("quantity", 0) or 0) for i in items),
+                    "total": r.original_total,
+                    "saved_at": r.saved_at,
+                }
+            )
     return out
 
 
@@ -675,11 +686,13 @@ def can_manage_brand(user_id: int, brand_id: int) -> bool:
                 return True
 
         # Check BrandStaff
-        staff = s.query(BrandStaff).filter(
-            BrandStaff.user_id == user_id,
-            BrandStaff.brand_id == brand_id,
-            BrandStaff.role.in_(['owner', 'admin'])
-        ).first()
+        staff = (
+            s.query(BrandStaff)
+            .filter(
+                BrandStaff.user_id == user_id, BrandStaff.brand_id == brand_id, BrandStaff.role.in_(["owner", "admin"])
+            )
+            .first()
+        )
         return staff is not None
 
 
@@ -695,7 +708,7 @@ def get_user_brands(user_id: int) -> list[dict]:
 
         # Get brands via staff assignment
         staff_entries = s.query(BrandStaff).filter_by(user_id=user_id).all()
-        brand_ids = list(set(entry.brand_id for entry in staff_entries))
+        brand_ids = list({entry.brand_id for entry in staff_entries})
         if not brand_ids:
             return []
 

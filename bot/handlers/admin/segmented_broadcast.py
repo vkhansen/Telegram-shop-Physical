@@ -1,19 +1,18 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message
+from aiogram import F, Router
+from aiogram.filters.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
-from aiogram.filters.state import StatesGroup, State
+from aiogram.types import CallbackQuery, Message
+from sqlalchemy import func
 
-from sqlalchemy import func, and_
-
+from bot.communication.broadcast_system import BroadcastManager
 from bot.database.main import Database
-from bot.database.models.main import User, CustomerInfo, Order, Permission
+from bot.database.models.main import CustomerInfo, Order, Permission, User
 from bot.filters import HasPermissionFilter
 from bot.i18n import localize
 from bot.keyboards.inline import back, simple_buttons
-from bot.communication.broadcast_system import BroadcastManager
 
 logger = logging.getLogger(__name__)
 
@@ -58,56 +57,37 @@ def _get_segment_user_ids(segment_type: str) -> list[int]:
             # Users whose total_spendings >= 2x the average
             avg_spending = session.query(func.avg(CustomerInfo.total_spendings)).scalar() or 0
             threshold = float(avg_spending) * 2
-            rows = (
-                session.query(CustomerInfo.telegram_id)
-                .filter(CustomerInfo.total_spendings >= threshold)
-                .all()
-            )
+            rows = session.query(CustomerInfo.telegram_id).filter(CustomerInfo.total_spendings >= threshold).all()
             return [int(row[0]) for row in rows]
 
-        elif segment_type == "recent_buyers":
+        if segment_type == "recent_buyers":
             # Users who placed an order in the last 7 days
-            cutoff = datetime.now(timezone.utc) - timedelta(days=7)
-            rows = (
-                session.query(Order.buyer_id)
-                .filter(Order.created_at >= cutoff)
-                .distinct()
-                .all()
-            )
+            cutoff = datetime.now(UTC) - timedelta(days=7)
+            rows = session.query(Order.buyer_id).filter(Order.created_at >= cutoff).distinct().all()
             return [int(row[0]) for row in rows if row[0] is not None]
 
-        elif segment_type == "inactive":
+        if segment_type == "inactive":
             # Users who have NOT placed an order in the last 30 days
-            cutoff = datetime.now(timezone.utc) - timedelta(days=30)
-            recent_buyer_ids = (
-                session.query(Order.buyer_id)
-                .filter(Order.created_at >= cutoff)
-                .distinct()
-                .subquery()
-            )
+            cutoff = datetime.now(UTC) - timedelta(days=30)
+            recent_buyer_ids = session.query(Order.buyer_id).filter(Order.created_at >= cutoff).distinct().subquery()
             rows = (
                 session.query(User.telegram_id)
-                .filter(User.telegram_id.notin_(
-                    session.query(recent_buyer_ids.c.buyer_id).filter(
-                        recent_buyer_ids.c.buyer_id.isnot(None)
+                .filter(
+                    User.telegram_id.notin_(
+                        session.query(recent_buyer_ids.c.buyer_id).filter(recent_buyer_ids.c.buyer_id.isnot(None))
                     )
-                ))
+                )
                 .all()
             )
             return [int(row[0]) for row in rows]
 
-        elif segment_type == "new_users":
+        if segment_type == "new_users":
             # Users registered in the last 7 days
-            cutoff = datetime.now(timezone.utc) - timedelta(days=7)
-            rows = (
-                session.query(User.telegram_id)
-                .filter(User.registration_date >= cutoff)
-                .all()
-            )
+            cutoff = datetime.now(UTC) - timedelta(days=7)
+            rows = session.query(User.telegram_id).filter(User.registration_date >= cutoff).all()
             return [int(row[0]) for row in rows]
 
-        else:
-            return []
+        return []
 
 
 @router.callback_query(
@@ -186,7 +166,11 @@ async def process_segment_broadcast(message: Message, state: FSMContext):
 
         logger.info(
             "Segmented broadcast [%s] by user %s: sent=%d, failed=%d, total=%d",
-            segment_type, message.from_user.id, stats.sent, stats.failed, stats.total,
+            segment_type,
+            message.from_user.id,
+            stats.sent,
+            stats.failed,
+            stats.total,
         )
 
     except Exception as e:

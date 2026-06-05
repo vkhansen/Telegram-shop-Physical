@@ -4,6 +4,7 @@ plus availability/inventory/currency invariants.
 
 Run with:  pytest tests/e2e/test_fuzz_campaign.py --run-e2e -s
 """
+
 import datetime as dt
 import random
 from decimal import Decimal
@@ -11,10 +12,17 @@ from decimal import Decimal
 import pytest
 
 from bot.database.brand_scope import brand_query
-from bot.database.integrity import check_integrity, Severity
-from bot.database.methods.inventory import reserve_inventory, release_reservation
+from bot.database.integrity import Severity, check_integrity
+from bot.database.methods.inventory import release_reservation, reserve_inventory
 from bot.database.models.main import (
-    Brand, BranchInventory, BrandStaff, Categories, Goods, Order, OrderItem, Store,
+    BranchInventory,
+    Brand,
+    BrandStaff,
+    Categories,
+    Goods,
+    Order,
+    OrderItem,
+    Store,
 )
 from bot.utils.currency import format_currency
 from scripts.fuzz_seed import generate_fuzz_data
@@ -28,12 +36,13 @@ NO_BRAND_COLUMN = (OrderItem, BranchInventory)
 
 
 def _now():
-    return dt.datetime.now(dt.timezone.utc)
+    return dt.datetime.now(dt.UTC)
 
 
 # --------------------------------------------------------------------------- #
 # 1. Brand / branch isolation — the core "no cross-contamination" guarantee.
 # --------------------------------------------------------------------------- #
+
 
 @pytest.mark.parametrize("seed", [3, 11, 77, 2024])
 def test_brand_query_never_leaks_foreign_brand(db_session, seed):
@@ -73,23 +82,36 @@ def test_branch_inventory_isolated_to_its_brand(db_session):
         # A branch's inventory may only reference items of the branch's own brand.
         assert store_brand[bi.store_id] == item_brand[bi.item_name], (
             f"branch {bi.store_id} (brand {store_brand[bi.store_id]}) holds item "
-            f"{bi.item_name!r} of brand {item_brand[bi.item_name]} — cross-contamination")
+            f"{bi.item_name!r} of brand {item_brand[bi.item_name]} — cross-contamination"
+        )
 
 
 def test_branches_of_same_brand_have_independent_stock(db_session):
     """Two branches of one brand must not share a stock counter for the same item."""
     brand = Brand(name="Multi", slug="multi-branch")
-    db_session.add(brand); db_session.flush()
+    db_session.add(brand)
+    db_session.flush()
     s1 = Store(name="A", brand_id=brand.id, is_default=True)
     s2 = Store(name="B", brand_id=brand.id)
-    db_session.add_all([s1, s2]); db_session.flush()
-    cat = Categories(name="multi:Drinks", brand_id=brand.id); db_session.add(cat); db_session.flush()
-    item = Goods(name="multi:Water", brand_id=brand.id, category_name=cat.name,
-                 price=20, description="x", item_type="product", stock_quantity=0)
+    db_session.add_all([s1, s2])
+    db_session.flush()
+    cat = Categories(name="multi:Drinks", brand_id=brand.id)
+    db_session.add(cat)
+    db_session.flush()
+    item = Goods(
+        name="multi:Water",
+        brand_id=brand.id,
+        category_name=cat.name,
+        price=20,
+        description="x",
+        item_type="product",
+        stock_quantity=0,
+    )
     db_session.add(item)
     bi1 = BranchInventory(store_id=s1.id, item_name=item.name, stock_quantity=10)
     bi2 = BranchInventory(store_id=s2.id, item_name=item.name, stock_quantity=99)
-    db_session.add_all([bi1, bi2]); db_session.flush()
+    db_session.add_all([bi1, bi2])
+    db_session.flush()
     # Mutating one branch's stock must not affect the other.
     bi1.stock_quantity = 3
     db_session.flush()
@@ -103,15 +125,38 @@ def test_global_name_pk_blocks_same_item_name_in_two_brands(db_session):
     must namespace item/category names per brand (the seeders do; a human admin in
     multi-bot mode would hit this)."""
     from sqlalchemy.exc import IntegrityError
-    a = Brand(name="BrandA", slug="brand-a"); b = Brand(name="BrandB", slug="brand-b")
-    db_session.add_all([a, b]); db_session.flush()
-    ca = Categories(name="a:Drinks", brand_id=a.id); cb = Categories(name="b:Drinks", brand_id=b.id)
-    db_session.add_all([ca, cb]); db_session.flush()
-    db_session.add(Goods(name="Coke", brand_id=a.id, category_name=ca.name, price=20,
-                         description="x", item_type="product", stock_quantity=1))
+
+    a = Brand(name="BrandA", slug="brand-a")
+    b = Brand(name="BrandB", slug="brand-b")
+    db_session.add_all([a, b])
     db_session.flush()
-    db_session.add(Goods(name="Coke", brand_id=b.id, category_name=cb.name, price=20,
-                         description="x", item_type="product", stock_quantity=1))
+    ca = Categories(name="a:Drinks", brand_id=a.id)
+    cb = Categories(name="b:Drinks", brand_id=b.id)
+    db_session.add_all([ca, cb])
+    db_session.flush()
+    db_session.add(
+        Goods(
+            name="Coke",
+            brand_id=a.id,
+            category_name=ca.name,
+            price=20,
+            description="x",
+            item_type="product",
+            stock_quantity=1,
+        )
+    )
+    db_session.flush()
+    db_session.add(
+        Goods(
+            name="Coke",
+            brand_id=b.id,
+            category_name=cb.name,
+            price=20,
+            description="x",
+            item_type="product",
+            stock_quantity=1,
+        )
+    )
     with pytest.raises(IntegrityError):
         db_session.flush()
     db_session.rollback()
@@ -131,6 +176,7 @@ def test_brand_query_does_not_scope_columnless_models(db_session):
 # 2. Generated configs are always integrity-clean across many seeds.
 # --------------------------------------------------------------------------- #
 
+
 @pytest.mark.parametrize("brands", [1, 2, 8, 20])
 def test_varied_brand_counts_stay_clean(db_session, brands):
     generate_fuzz_data(db_session, random.Random(brands * 7 + 1), num_brands=brands)
@@ -142,12 +188,15 @@ def test_varied_brand_counts_stay_clean(db_session, brands):
 # 3. Edge-case value probes — availability properties, currency, reserve/release.
 # --------------------------------------------------------------------------- #
 
+
 def _edge_brand(db_session):
     brand = Brand(name="Edge", slug="edge")
-    db_session.add(brand); db_session.flush()
+    db_session.add(brand)
+    db_session.flush()
     db_session.add(Store(name="Main", brand_id=brand.id, is_default=True))
     cat = Categories(name="edge:Cat", brand_id=brand.id)
-    db_session.add(cat); db_session.flush()
+    db_session.add(cat)
+    db_session.flush()
     return brand, cat
 
 
@@ -166,8 +215,16 @@ def test_goods_properties_never_crash_on_extremes(db_session):
         ("edge:ünïcodé 🌶", Decimal("50"), "prepared", 0, 0, False, None, 0),
     ]
     for name, price, itype, stock, reserved, sold_out, dlimit, dsold in edge_items:
-        g = Goods(name=name, brand_id=brand.id, category_name=cat.name, price=price,
-                  description="x", item_type=itype, stock_quantity=stock, daily_limit=dlimit)
+        g = Goods(
+            name=name,
+            brand_id=brand.id,
+            category_name=cat.name,
+            price=price,
+            description="x",
+            item_type=itype,
+            stock_quantity=stock,
+            daily_limit=dlimit,
+        )
         g.reserved_quantity = reserved
         g.sold_out_today = sold_out
         g.daily_sold_count = dsold
@@ -190,21 +247,34 @@ def test_goods_properties_never_crash_on_extremes(db_session):
 
 
 def test_currency_formatting_survives_extremes(db_session):
-    for amt in [Decimal("0"), Decimal("0.01"), Decimal("99999.99"),
-                Decimal("1000000"), Decimal("123456789.55")]:
+    for amt in [Decimal("0"), Decimal("0.01"), Decimal("99999.99"), Decimal("1000000"), Decimal("123456789.55")]:
         out = format_currency(amt)
         assert isinstance(out, str) and out, f"format_currency({amt}) returned {out!r}"
 
 
 def _seed_item_and_order(db_session, stock, qty):
     brand, cat = _edge_brand(db_session)
-    item = Goods(name="edge:Cola", brand_id=brand.id, category_name=cat.name, price=30,
-                 description="x", item_type="product", stock_quantity=stock)
-    db_session.add(item); db_session.flush()
-    o = Order(total_price=Decimal("30"), payment_method="cash",
-              delivery_address="addr", phone_number="0800000000", buyer_id=None)
+    item = Goods(
+        name="edge:Cola",
+        brand_id=brand.id,
+        category_name=cat.name,
+        price=30,
+        description="x",
+        item_type="product",
+        stock_quantity=stock,
+    )
+    db_session.add(item)
+    db_session.flush()
+    o = Order(
+        total_price=Decimal("30"),
+        payment_method="cash",
+        delivery_address="addr",
+        phone_number="0800000000",
+        buyer_id=None,
+    )
     o.order_status = "pending"
-    db_session.add(o); db_session.flush()
+    db_session.add(o)
+    db_session.flush()
     db_session.add(OrderItem(order_id=o.id, item_name=item.name, price=Decimal("30"), quantity=qty))
     db_session.flush()
     return item, o
@@ -238,14 +308,22 @@ def test_failed_reservation_preserves_caller_uncommitted_work(db_session):
     """A failed reservation must undo ONLY its own partial work (via SAVEPOINT) and
     leave the caller's other uncommitted changes intact — no shared-session footgun."""
     brand, cat = _edge_brand(db_session)
-    item = Goods(name="edge:Soda", brand_id=brand.id, category_name=cat.name, price=30,
-                 description="x", item_type="product", stock_quantity=1)
-    db_session.add(item); db_session.flush()
+    item = Goods(
+        name="edge:Soda",
+        brand_id=brand.id,
+        category_name=cat.name,
+        price=30,
+        description="x",
+        item_type="product",
+        stock_quantity=1,
+    )
+    db_session.add(item)
+    db_session.flush()
     marker = Categories(name="edge:UncommittedMarker", brand_id=brand.id)
     db_session.add(marker)  # caller's other pending work
-    o = Order(total_price=Decimal("30"), payment_method="cash",
-              delivery_address="a", phone_number="0", buyer_id=None)
-    db_session.add(o); db_session.flush()
+    o = Order(total_price=Decimal("30"), payment_method="cash", delivery_address="a", phone_number="0", buyer_id=None)
+    db_session.add(o)
+    db_session.flush()
     db_session.add(OrderItem(order_id=o.id, item_name=item.name, price=Decimal("30"), quantity=50))
     db_session.flush()
 

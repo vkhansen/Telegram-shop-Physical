@@ -1,28 +1,29 @@
+import contextlib
 import csv
-from pathlib import Path
-from typing import Optional, Dict
-from decimal import Decimal
 import threading
+from decimal import Decimal
+from pathlib import Path
 
 from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
 
+from bot.config import EnvKeys
 from bot.database.main import Database
 from bot.database.models.main import CustomerInfo
+
 from .custom_logging import log_customer_info_change
-from bot.config import EnvKeys
 
 # CSV file path
 CUSTOMER_CSV_PATH = Path("logs/customer_list.csv")
 CSV_HEADERS = [
-    'Telegram ID',
-    'Username',
-    'Phone Number',
-    'Delivery Address',
-    'Delivery Note',
-    'Client Total Spendings',
-    'Completed Orders Total',
-    'Client Bonus Balance'
+    "Telegram ID",
+    "Username",
+    "Phone Number",
+    "Delivery Address",
+    "Delivery Note",
+    "Client Total Spendings",
+    "Completed Orders Total",
+    "Client Bonus Balance",
 ]
 
 # Lock for thread-safe CSV operations
@@ -34,13 +35,12 @@ def initialize_customer_csv():
     CUSTOMER_CSV_PATH.parent.mkdir(exist_ok=True)
 
     if not CUSTOMER_CSV_PATH.exists():
-        with _csv_lock:
-            with open(CUSTOMER_CSV_PATH, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                writer.writerow(CSV_HEADERS)
+        with _csv_lock, open(CUSTOMER_CSV_PATH, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(CSV_HEADERS)
 
 
-def get_customer_info(telegram_id: int) -> Optional[Dict]:
+def get_customer_info(telegram_id: int) -> dict | None:
     """
     Get customer information from database
 
@@ -57,17 +57,17 @@ def get_customer_info(telegram_id: int) -> Optional[Dict]:
             return None
 
         return {
-            'telegram_id': customer.telegram_id,
-            'phone_number': customer.phone_number,
-            'delivery_address': customer.delivery_address,
-            'delivery_note': customer.delivery_note,
-            'total_spendings': float(customer.total_spendings),
-            'completed_orders_count': customer.completed_orders_count,
-            'bonus_balance': float(customer.bonus_balance)
+            "telegram_id": customer.telegram_id,
+            "phone_number": customer.phone_number,
+            "delivery_address": customer.delivery_address,
+            "delivery_note": customer.delivery_note,
+            "total_spendings": float(customer.total_spendings),
+            "completed_orders_count": customer.completed_orders_count,
+            "bonus_balance": float(customer.bonus_balance),
         }
 
 
-def get_username_by_telegram_id(telegram_id: int) -> Optional[str]:
+def get_username_by_telegram_id(telegram_id: int) -> str | None:
     """
     Get username from CSV file by telegram_id
 
@@ -82,13 +82,13 @@ def get_username_by_telegram_id(telegram_id: int) -> Optional[str]:
 
     with _csv_lock:
         try:
-            with open(CUSTOMER_CSV_PATH, 'r', newline='', encoding='utf-8') as f:
+            with open(CUSTOMER_CSV_PATH, newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    if row.get('Telegram ID') == str(telegram_id):
-                        username = row.get('Username', '').strip()
+                    if row.get("Telegram ID") == str(telegram_id):
+                        username = row.get("Username", "").strip()
                         # Return username only if it's not empty and not a fallback pattern
-                        if username and not username.startswith('user_'):
+                        if username and not username.startswith("user_"):
                             return username
                         return None
         except Exception:
@@ -97,10 +97,13 @@ def get_username_by_telegram_id(telegram_id: int) -> Optional[str]:
     return None
 
 
-def create_or_update_customer_info(telegram_id: int, username: str,
-                                   phone_number: str = None,
-                                   delivery_address: str = None,
-                                   delivery_note: str = None) -> bool:
+def create_or_update_customer_info(
+    telegram_id: int,
+    username: str,
+    phone_number: str | None = None,
+    delivery_address: str | None = None,
+    delivery_note: str | None = None,
+) -> bool:
     """
     Create or update customer information in database
 
@@ -126,17 +129,17 @@ def create_or_update_customer_info(telegram_id: int, username: str,
 
             if phone_number and customer.phone_number != phone_number:
                 old_phone = customer.phone_number or "NONE"
-                changes.append(('PHONE', old_phone, phone_number))
+                changes.append(("PHONE", old_phone, phone_number))
                 customer.phone_number = phone_number
 
             if delivery_address and customer.delivery_address != delivery_address:
                 old_address = customer.delivery_address or "NONE"
-                changes.append(('ADDRESS', old_address, delivery_address))
+                changes.append(("ADDRESS", old_address, delivery_address))
                 customer.delivery_address = delivery_address
 
             if delivery_note is not None and customer.delivery_note != delivery_note:
                 old_note = customer.delivery_note or "NONE"
-                changes.append(('NOTE', old_note, delivery_note))
+                changes.append(("NOTE", old_note, delivery_note))
                 customer.delivery_note = delivery_note
 
             session.commit()
@@ -152,7 +155,7 @@ def create_or_update_customer_info(telegram_id: int, username: str,
                 telegram_id=telegram_id,
                 phone_number=phone_number,
                 delivery_address=delivery_address,
-                delivery_note=delivery_note
+                delivery_note=delivery_note,
             )
             session.add(customer)
             session.commit()
@@ -166,14 +169,14 @@ def create_or_update_customer_info(telegram_id: int, username: str,
 def _customer_to_row(telegram_id: int, username: str, customer: dict) -> dict:
     """Build a CSV row dict from customer data."""
     return {
-        'Telegram ID': str(telegram_id),
-        'Username': username,
-        'Phone Number': customer['phone_number'] or '',
-        'Delivery Address': customer['delivery_address'] or '',
-        'Delivery Note': customer['delivery_note'] or '',
-        'Client Total Spendings': f"{customer['total_spendings']:.2f}",
-        'Completed Orders Total': str(customer['completed_orders_count']),
-        'Client Bonus Balance': f"{customer['bonus_balance']:.2f}"
+        "Telegram ID": str(telegram_id),
+        "Username": username,
+        "Phone Number": customer["phone_number"] or "",
+        "Delivery Address": customer["delivery_address"] or "",
+        "Delivery Note": customer["delivery_note"] or "",
+        "Client Total Spendings": f"{customer['total_spendings']:.2f}",
+        "Completed Orders Total": str(customer["completed_orders_count"]),
+        "Client Bonus Balance": f"{customer['bonus_balance']:.2f}",
     }
 
 
@@ -198,30 +201,30 @@ def sync_customer_to_csv(telegram_id: int, username: str):
     with _csv_lock:
         # First pass: check if customer already exists
         customer_exists = False
-        with open(CUSTOMER_CSV_PATH, 'r', newline='', encoding='utf-8') as f:
+        with open(CUSTOMER_CSV_PATH, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                if row.get('Telegram ID') == str(telegram_id):
+                if row.get("Telegram ID") == str(telegram_id):
                     customer_exists = True
                     break
 
         if not customer_exists:
             # O(1) append for new customers
-            with open(CUSTOMER_CSV_PATH, 'a', newline='', encoding='utf-8') as f:
+            with open(CUSTOMER_CSV_PATH, "a", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=CSV_HEADERS)
                 writer.writerow(new_row)
         else:
             # Full rewrite only when updating an existing customer
             rows = []
-            with open(CUSTOMER_CSV_PATH, 'r', newline='', encoding='utf-8') as f:
+            with open(CUSTOMER_CSV_PATH, newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    if row.get('Telegram ID') == str(telegram_id):
+                    if row.get("Telegram ID") == str(telegram_id):
                         rows.append(new_row)
                     else:
                         rows.append(row)
 
-            with open(CUSTOMER_CSV_PATH, 'w', newline='', encoding='utf-8') as f:
+            with open(CUSTOMER_CSV_PATH, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=CSV_HEADERS)
                 writer.writeheader()
                 writer.writerows(rows)
@@ -294,7 +297,7 @@ def get_customer_bonus_balance(telegram_id: int) -> Decimal:
         if customer:
             return customer.bonus_balance
 
-    return Decimal('0')
+    return Decimal("0")
 
 
 async def sync_all_customers_to_csv():
@@ -318,32 +321,31 @@ async def sync_all_customers_to_csv():
         with Database().session() as session:
             customers = session.query(CustomerInfo).all()
 
-            with _csv_lock:
-                with open(CUSTOMER_CSV_PATH, 'w', newline='', encoding='utf-8') as f:
-                    writer = csv.DictWriter(f, fieldnames=CSV_HEADERS)
-                    writer.writeheader()
+            with _csv_lock, open(CUSTOMER_CSV_PATH, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=CSV_HEADERS)
+                writer.writeheader()
 
-                    for customer in customers:
-                        # Get username from Telegram API
-                        username = f"user_{customer.telegram_id}"  # Default fallback
-                        try:
-                            chat = await bot.get_chat(customer.telegram_id)
-                            if chat.username:
-                                username = chat.username
-                        except Exception:
-                            # If we can't get username from Telegram, use fallback
-                            pass
+                for customer in customers:
+                    # Get username from Telegram API
+                    username = f"user_{customer.telegram_id}"  # Default fallback
+                    # If we can't get username from Telegram, keep the fallback
+                    with contextlib.suppress(Exception):
+                        chat = await bot.get_chat(customer.telegram_id)
+                        if chat.username:
+                            username = chat.username
 
-                        writer.writerow({
-                            'Telegram ID': str(customer.telegram_id),
-                            'Username': username,
-                            'Phone Number': customer.phone_number or '',
-                            'Delivery Address': customer.delivery_address or '',
-                            'Delivery Note': customer.delivery_note or '',
-                            'Client Total Spendings': f"{float(customer.total_spendings):.2f}",
-                            'Completed Orders Total': str(customer.completed_orders_count),
-                            'Client Bonus Balance': f"{float(customer.bonus_balance):.2f}"
-                        })
+                    writer.writerow(
+                        {
+                            "Telegram ID": str(customer.telegram_id),
+                            "Username": username,
+                            "Phone Number": customer.phone_number or "",
+                            "Delivery Address": customer.delivery_address or "",
+                            "Delivery Note": customer.delivery_note or "",
+                            "Client Total Spendings": f"{float(customer.total_spendings):.2f}",
+                            "Completed Orders Total": str(customer.completed_orders_count),
+                            "Client Bonus Balance": f"{float(customer.bonus_balance):.2f}",
+                        }
+                    )
     finally:
         await bot.session.close()
 
@@ -362,10 +364,12 @@ def export_customers_csv(output_path: Path) -> bool:
         return False
 
     try:
-        with _csv_lock:
-            with open(CUSTOMER_CSV_PATH, 'r', encoding='utf-8') as src:
-                with open(output_path, 'w', encoding='utf-8') as dst:
-                    dst.write(src.read())
+        with (
+            _csv_lock,
+            open(CUSTOMER_CSV_PATH, encoding="utf-8") as src,
+            open(output_path, "w", encoding="utf-8") as dst,
+        ):
+            dst.write(src.read())
         return True
     except Exception:
         return False

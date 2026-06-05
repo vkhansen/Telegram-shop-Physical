@@ -6,17 +6,17 @@ Hot registration: call pool.register(config) at runtime without a full restart.
 Backward compatibility: when MULTI_BOT_ENABLED=false the single-bot main.py never
 instantiates BotPool and the pool is unused.
 """
+
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
-import secrets
 from typing import TYPE_CHECKING
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.fsm.storage.redis import RedisStorage
 
 from bot.database import Database
 from bot.database.models.main import BotConfig, Brand
@@ -42,8 +42,8 @@ class BotPool:
 
     def __init__(self, storage=None):
         self._storage = storage or MemoryStorage()
-        self._instances: dict[int, BotInstance] = {}   # brand_id → BotInstance
-        self._tasks: dict[int, asyncio.Task] = {}       # brand_id → polling Task
+        self._instances: dict[int, BotInstance] = {}  # brand_id → BotInstance
+        self._tasks: dict[int, asyncio.Task] = {}  # brand_id → polling Task
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -91,6 +91,7 @@ class BotPool:
 
         # Inject brand context before any handler runs
         from bot.middleware.brand_context import BrandContextMiddleware
+
         mw = BrandContextMiddleware(config.brand_id)
         dp.message.middleware(mw)
         dp.callback_query.middleware(mw)
@@ -114,7 +115,7 @@ class BotPool:
             db_cfg = s.query(BotConfig).filter(BotConfig.id == config.id).first()
             if db_cfg:
                 db_cfg.bot_username = username
-                db_cfg.bot_display_name = me.first_name if 'me' in dir() else None
+                db_cfg.bot_display_name = me.first_name if "me" in dir() else None
                 s.commit()
 
         instance = BotInstance(
@@ -129,9 +130,8 @@ class BotPool:
         task = asyncio.create_task(
             dp.start_polling(
                 bot,
-                allowed_updates=config.allowed_updates or [
-                    "message", "callback_query", "pre_checkout_query", "successful_payment"
-                ],
+                allowed_updates=config.allowed_updates
+                or ["message", "callback_query", "pre_checkout_query", "successful_payment"],
             ),
             name=f"poll-brand-{config.brand_id}",
         )
@@ -147,16 +147,12 @@ class BotPool:
 
         if task and not task.done():
             task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError, Exception):
                 await task
-            except (asyncio.CancelledError, Exception):
-                pass
 
         if instance:
-            try:
+            with contextlib.suppress(Exception):
                 await instance.bot.session.close()
-            except Exception:
-                pass
 
         logger.info("Unregistered bot for brand_id=%s", brand_id)
 
@@ -187,6 +183,7 @@ class BotPool:
         brand_id to inject even in legacy single-bot deployments.
         """
         from bot.config.env import EnvKeys
+
         with Database().session() as s:
             brand = s.query(Brand).filter(Brand.id == 1).first()
             if not brand:

@@ -15,32 +15,49 @@ these tests simulate complete user journeys through the system:
 9. Post-delivery chat window lifecycle
 10. Admin manages menu (CRUD + modifiers) then customer orders
 """
-import json
-import pytest
-from datetime import datetime, timedelta, timezone
+
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
 from sqlalchemy.orm import Session
 
-from bot.database.models.main import (
-    Role, User, Categories, Goods, Order, OrderItem, CustomerInfo,
-    ShoppingCart, BitcoinAddress, BotSettings, ReferenceCode,
-    ReferenceCodeUsage, ReferralEarnings, DeliveryChatMessage,
-    InventoryLog,
-)
 from bot.database.methods.inventory import (
-    reserve_inventory, release_reservation, deduct_inventory, add_inventory,
+    add_inventory,
+    deduct_inventory,
+    release_reservation,
+    reserve_inventory,
 )
-from bot.utils.order_codes import generate_unique_order_code
-from bot.utils.modifiers import calculate_item_price, validate_modifier_selection
-from bot.utils.order_status import is_valid_transition, get_allowed_transitions
-from bot.utils.delivery_types import needs_delivery_photo
+from bot.database.models.main import (
+    BitcoinAddress,
+    BotSettings,
+    Categories,
+    CustomerInfo,
+    DeliveryChatMessage,
+    Goods,
+    InventoryLog,
+    Order,
+    OrderItem,
+    ReferenceCode,
+    ReferenceCodeUsage,
+    ReferralEarnings,
+    Role,
+    ShoppingCart,
+    User,
+)
 from bot.handlers.user.delivery_chat_handler import (
-    is_chat_active, open_chat_session, close_chat_session, set_post_delivery_window,
-    get_chat_history, get_location_trail,
+    close_chat_session,
+    get_location_trail,
+    is_chat_active,
+    open_chat_session,
+    set_post_delivery_window,
 )
+from bot.utils.delivery_types import needs_delivery_photo
+from bot.utils.modifiers import calculate_item_price, validate_modifier_selection
+from bot.utils.order_codes import generate_unique_order_code
+from bot.utils.order_status import is_valid_transition
 from tests.e2e.menu_loader import load_menu_from_file
 
 SAMPLE_MENU_PATH = Path(__file__).parent / "sample_menu.json"
@@ -49,6 +66,7 @@ SAMPLE_MENU_PATH = Path(__file__).parent / "sample_menu.json"
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
+
 
 def _seed(session: Session):
     """Create roles + load menu."""
@@ -61,9 +79,9 @@ def _seed(session: Session):
 
 
 def _user(session, tid, role_id=1, locale="en", referral_id=None):
-    u = User(telegram_id=tid, role_id=role_id,
-             registration_date=datetime.now(timezone.utc),
-             locale=locale, referral_id=referral_id)
+    u = User(
+        telegram_id=tid, role_id=role_id, registration_date=datetime.now(UTC), locale=locale, referral_id=referral_id
+    )
     session.add(u)
     session.commit()
     session.refresh(u)
@@ -84,6 +102,7 @@ def _customer_info(session, tid, **kw):
 # ===================================================================
 # Scenario 1: Complete customer → admin → kitchen → rider → delivered
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestScenarioFullOrderJourney:
@@ -158,13 +177,17 @@ class TestScenarioFullOrderJourney:
         s.flush()
 
         oi1 = OrderItem(
-            order_id=order.id, item_name="Green Curry",
-            price=price_with_mods, quantity=2,
+            order_id=order.id,
+            item_name="Green Curry",
+            price=price_with_mods,
+            quantity=2,
             selected_modifiers=selected_mods,
         )
         oi2 = OrderItem(
-            order_id=order.id, item_name="Thai Iced Tea",
-            price=thai_tea.price, quantity=1,
+            order_id=order.id,
+            item_name="Thai Iced Tea",
+            price=thai_tea.price,
+            quantity=1,
         )
         s.add_all([oi1, oi2])
         s.commit()
@@ -200,7 +223,6 @@ class TestScenarioFullOrderJourney:
 
         gc = s.query(Goods).filter_by(name="Green Curry").one()
         assert gc.reserved_quantity == 0  # Released after deduction
-        initial_stock = gc.stock_quantity  # Stock decreased
 
         # --- 7. Kitchen prepares ---
         assert is_valid_transition(order.order_status, "preparing")
@@ -223,7 +245,7 @@ class TestScenarioFullOrderJourney:
         # --- 9. Rider delivers ---
         assert is_valid_transition(order.order_status, "delivered")
         order.order_status = "delivered"
-        order.completed_at = datetime.now(timezone.utc)
+        order.completed_at = datetime.now(UTC)
 
         # Set post-delivery chat window
         set_post_delivery_window(s, order)
@@ -258,6 +280,7 @@ class TestScenarioFullOrderJourney:
 # ===================================================================
 # Scenario 2: Dead drop with photo proof enforcement
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestScenarioDeadDropPhotoProof:
@@ -295,7 +318,7 @@ class TestScenarioDeadDropPhotoProof:
 
         # Simulate admin uploading photo
         order.delivery_photo = "AgACAgIAAxkBAAI_PHOTO_FILE_ID"
-        order.delivery_photo_at = datetime.now(timezone.utc)
+        order.delivery_photo_at = datetime.now(UTC)
         order.delivery_photo_by = 200098  # admin
         s.commit()
 
@@ -304,7 +327,7 @@ class TestScenarioDeadDropPhotoProof:
 
         # Mark delivered
         order.order_status = "delivered"
-        order.completed_at = datetime.now(timezone.utc)
+        order.completed_at = datetime.now(UTC)
         s.commit()
 
         assert order.delivery_photo is not None
@@ -357,6 +380,7 @@ class TestScenarioDeadDropPhotoProof:
 # Scenario 3: PromptPay payment with admin verification
 # ===================================================================
 
+
 @pytest.mark.e2e
 class TestScenarioPromptPayVerification:
     """
@@ -403,7 +427,7 @@ class TestScenarioPromptPayVerification:
 
         # Admin verifies payment
         order.payment_verified_by = admin.telegram_id
-        order.payment_verified_at = datetime.now(timezone.utc)
+        order.payment_verified_at = datetime.now(UTC)
         order.order_status = "confirmed"
         s.commit()
 
@@ -420,6 +444,7 @@ class TestScenarioPromptPayVerification:
 # ===================================================================
 # Scenario 4: Customer cancellation with inventory restore
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestScenarioCancellationRestore:
@@ -456,7 +481,9 @@ class TestScenarioCancellationRestore:
         s.commit()
 
         # Reserve
-        success, _ = reserve_inventory(order.id, [{"item_name": "Pad Thai", "quantity": 5}], payment_method="cash", session=s)
+        success, _ = reserve_inventory(
+            order.id, [{"item_name": "Pad Thai", "quantity": 5}], payment_method="cash", session=s
+        )
         s.commit()
         assert success
 
@@ -479,6 +506,7 @@ class TestScenarioCancellationRestore:
 # ===================================================================
 # Scenario 5: Multi-item order with modifiers and delivery fee
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestScenarioMultiItemModifiers:
@@ -538,12 +566,13 @@ class TestScenarioMultiItemModifiers:
         s.add(order)
         s.flush()
 
-        s.add(OrderItem(order_id=order.id, item_name="Tom Yum Soup",
-                        price=price1, quantity=1, selected_modifiers=mods1))
-        s.add(OrderItem(order_id=order.id, item_name="Satay Chicken",
-                        price=price2, quantity=2, selected_modifiers=mods2))
-        s.add(OrderItem(order_id=order.id, item_name="Fresh Spring Rolls",
-                        price=fsr.price, quantity=1))
+        s.add(
+            OrderItem(order_id=order.id, item_name="Tom Yum Soup", price=price1, quantity=1, selected_modifiers=mods1)
+        )
+        s.add(
+            OrderItem(order_id=order.id, item_name="Satay Chicken", price=price2, quantity=2, selected_modifiers=mods2)
+        )
+        s.add(OrderItem(order_id=order.id, item_name="Fresh Spring Rolls", price=fsr.price, quantity=1))
         s.commit()
 
         # Verify
@@ -565,6 +594,7 @@ class TestScenarioMultiItemModifiers:
 # ===================================================================
 # Scenario 6: Referral bonus applied to order
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestScenarioReferralBonus:
@@ -600,8 +630,7 @@ class TestScenarioReferralBonus:
         )
         s.add(order_b)
         s.flush()
-        s.add(OrderItem(order_id=order_b.id, item_name="Green Curry",
-                        price=Decimal("179.00"), quantity=2))
+        s.add(OrderItem(order_id=order_b.id, item_name="Green Curry", price=Decimal("179.00"), quantity=2))
         s.commit()
 
         # Referrer earns 10% = 50 THB
@@ -645,6 +674,7 @@ class TestScenarioReferralBonus:
 # Scenario 7: Driver-customer chat with full audit trail
 # ===================================================================
 
+
 @pytest.mark.e2e
 class TestScenarioDeliveryChatAudit:
     """
@@ -681,59 +711,84 @@ class TestScenarioDeliveryChatAudit:
         assert order.chat_opened_at is not None
 
         # Driver sends text
-        s.add(DeliveryChatMessage(
-            order_id=order.id, sender_id=driver.telegram_id,
-            sender_role="driver", message_text="On my way! ETA 10 min",
-            telegram_message_id=1001,
-        ))
+        s.add(
+            DeliveryChatMessage(
+                order_id=order.id,
+                sender_id=driver.telegram_id,
+                sender_role="driver",
+                message_text="On my way! ETA 10 min",
+                telegram_message_id=1001,
+            )
+        )
 
         # Customer replies
-        s.add(DeliveryChatMessage(
-            order_id=order.id, sender_id=customer.telegram_id,
-            sender_role="customer", message_text="Great, I'm at the lobby",
-            telegram_message_id=1002,
-        ))
+        s.add(
+            DeliveryChatMessage(
+                order_id=order.id,
+                sender_id=customer.telegram_id,
+                sender_role="customer",
+                message_text="Great, I'm at the lobby",
+                telegram_message_id=1002,
+            )
+        )
 
         # Driver sends photo
-        s.add(DeliveryChatMessage(
-            order_id=order.id, sender_id=driver.telegram_id,
-            sender_role="driver", message_text="I'm at the entrance",
-            photo_file_id="AgACAgIAAxkBAAI_DRIVER_PHOTO",
-            telegram_message_id=1003,
-        ))
+        s.add(
+            DeliveryChatMessage(
+                order_id=order.id,
+                sender_id=driver.telegram_id,
+                sender_role="driver",
+                message_text="I'm at the entrance",
+                photo_file_id="AgACAgIAAxkBAAI_DRIVER_PHOTO",
+                telegram_message_id=1003,
+            )
+        )
 
         # Driver shares static location
-        s.add(DeliveryChatMessage(
-            order_id=order.id, sender_id=driver.telegram_id,
-            sender_role="driver",
-            location_lat=13.7400, location_lng=100.5200,
-            is_live_location=False, telegram_message_id=1004,
-        ))
+        s.add(
+            DeliveryChatMessage(
+                order_id=order.id,
+                sender_id=driver.telegram_id,
+                sender_role="driver",
+                location_lat=13.7400,
+                location_lng=100.5200,
+                is_live_location=False,
+                telegram_message_id=1004,
+            )
+        )
 
         # Customer shares live location
-        s.add(DeliveryChatMessage(
-            order_id=order.id, sender_id=customer.telegram_id,
-            sender_role="customer",
-            location_lat=13.7410, location_lng=100.5210,
-            is_live_location=True, live_location_update_count=0,
-            telegram_message_id=1005,
-        ))
+        s.add(
+            DeliveryChatMessage(
+                order_id=order.id,
+                sender_id=customer.telegram_id,
+                sender_role="customer",
+                location_lat=13.7410,
+                location_lng=100.5210,
+                is_live_location=True,
+                live_location_update_count=0,
+                telegram_message_id=1005,
+            )
+        )
         order.customer_live_location_message_id = 1005
 
         # Live location update
-        s.add(DeliveryChatMessage(
-            order_id=order.id, sender_id=customer.telegram_id,
-            sender_role="customer",
-            location_lat=13.7415, location_lng=100.5215,
-            is_live_location=True, live_location_update_count=1,
-            telegram_message_id=1005,
-        ))
+        s.add(
+            DeliveryChatMessage(
+                order_id=order.id,
+                sender_id=customer.telegram_id,
+                sender_role="customer",
+                location_lat=13.7415,
+                location_lng=100.5215,
+                is_live_location=True,
+                live_location_update_count=1,
+                telegram_message_id=1005,
+            )
+        )
         s.commit()
 
         # Verify audit trail
-        messages = s.query(DeliveryChatMessage).filter_by(
-            order_id=order.id
-        ).order_by(DeliveryChatMessage.id).all()
+        messages = s.query(DeliveryChatMessage).filter_by(order_id=order.id).order_by(DeliveryChatMessage.id).all()
 
         assert len(messages) == 6
 
@@ -771,15 +826,27 @@ class TestScenarioDeliveryChatAudit:
 
         # 3 driver GPS points, 1 customer GPS
         for i in range(3):
-            s.add(DeliveryChatMessage(
-                order_id=order.id, sender_id=700099, sender_role="driver",
-                location_lat=13.75 + i * 0.001, location_lng=100.50 + i * 0.001,
-                is_live_location=True, live_location_update_count=i,
-            ))
-        s.add(DeliveryChatMessage(
-            order_id=order.id, sender_id=customer.telegram_id, sender_role="customer",
-            location_lat=13.74, location_lng=100.49, is_live_location=False,
-        ))
+            s.add(
+                DeliveryChatMessage(
+                    order_id=order.id,
+                    sender_id=700099,
+                    sender_role="driver",
+                    location_lat=13.75 + i * 0.001,
+                    location_lng=100.50 + i * 0.001,
+                    is_live_location=True,
+                    live_location_update_count=i,
+                )
+            )
+        s.add(
+            DeliveryChatMessage(
+                order_id=order.id,
+                sender_id=customer.telegram_id,
+                sender_role="customer",
+                location_lat=13.74,
+                location_lng=100.49,
+                is_live_location=False,
+            )
+        )
         s.commit()
 
         trail = await get_location_trail(order.id)
@@ -793,6 +860,7 @@ class TestScenarioDeliveryChatAudit:
 # ===================================================================
 # Scenario 8: Post-delivery chat window lifecycle
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestScenarioPostDeliveryWindow:
@@ -851,6 +919,7 @@ class TestScenarioPostDeliveryWindow:
 # Scenario 9: Admin menu management then customer orders
 # ===================================================================
 
+
 @pytest.mark.e2e
 class TestScenarioAdminMenuManagement:
     """
@@ -893,7 +962,7 @@ class TestScenarioAdminMenuManagement:
         s.commit()
 
         # Admin adds stock
-        success, msg = add_inventory(
+        success, _msg = add_inventory(
             item_name="Chef Special Soup",
             quantity=20,
             admin_id=admin.telegram_id,
@@ -913,7 +982,7 @@ class TestScenarioAdminMenuManagement:
 
         # Customer orders with "large" modifier
         selected = {"size": "large"}
-        valid, err = validate_modifier_selection(product.modifiers, selected)
+        valid, _err = validate_modifier_selection(product.modifiers, selected)
         assert valid
 
         price = calculate_item_price(product.price, product.modifiers, selected)
@@ -931,15 +1000,21 @@ class TestScenarioAdminMenuManagement:
         )
         s.add(order)
         s.flush()
-        s.add(OrderItem(
-            order_id=order.id, item_name="Chef Special Soup",
-            price=price, quantity=1, selected_modifiers=selected,
-        ))
+        s.add(
+            OrderItem(
+                order_id=order.id,
+                item_name="Chef Special Soup",
+                price=price,
+                quantity=1,
+                selected_modifiers=selected,
+            )
+        )
         s.commit()
 
         # Reserve
         success, _ = reserve_inventory(
-            order.id, [{"item_name": "Chef Special Soup", "quantity": 1}], payment_method="cash", session=s)
+            order.id, [{"item_name": "Chef Special Soup", "quantity": 1}], payment_method="cash", session=s
+        )
         s.commit()
         assert success
 
@@ -955,6 +1030,7 @@ class TestScenarioAdminMenuManagement:
 # ===================================================================
 # Scenario 10: Bitcoin payment with address assignment
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestScenarioBitcoinPayment:
@@ -990,14 +1066,13 @@ class TestScenarioBitcoinPayment:
         )
         s.add(order)
         s.flush()
-        s.add(OrderItem(order_id=order.id, item_name="Green Curry",
-                        price=Decimal("179.00"), quantity=2))
+        s.add(OrderItem(order_id=order.id, item_name="Green Curry", price=Decimal("179.00"), quantity=2))
         s.commit()
 
         # Mark bitcoin address as used
         btc1.is_used = True
         btc1.used_by = customer.telegram_id
-        btc1.used_at = datetime.now(timezone.utc)
+        btc1.used_at = datetime.now(UTC)
         btc1.order_id = order.id
         s.commit()
 
@@ -1027,6 +1102,7 @@ class TestScenarioBitcoinPayment:
 # ===================================================================
 # Scenario 11: Reference code registration flow
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestScenarioReferenceCodeFlow:
@@ -1083,18 +1159,19 @@ class TestScenarioReferenceCodeFlow:
         code = ReferenceCode(
             code="EXPIRED1",
             created_by=admin.telegram_id,
-            expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
+            expires_at=datetime.now(UTC) - timedelta(hours=1),
         )
         s.add(code)
         s.commit()
 
         # Code is expired
-        assert code.expires_at < datetime.now(timezone.utc)
+        assert code.expires_at < datetime.now(UTC)
 
 
 # ===================================================================
 # Scenario 12: Concurrent orders don't oversell inventory
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestScenarioInventoryIntegrity:
@@ -1117,18 +1194,22 @@ class TestScenarioInventoryIntegrity:
 
         # Customer 1 orders all stock
         o1 = Order(
-            buyer_id=c1.telegram_id, total_price=Decimal("1000"),
-            payment_method="cash", delivery_address="T1",
-            phone_number="+66800000000", order_status="pending",
+            buyer_id=c1.telegram_id,
+            total_price=Decimal("1000"),
+            payment_method="cash",
+            delivery_address="T1",
+            phone_number="+66800000000",
+            order_status="pending",
             order_code=generate_unique_order_code(s),
         )
         s.add(o1)
         s.flush()
-        s.add(OrderItem(order_id=o1.id, item_name="Thai Iced Tea",
-                        price=Decimal("59.00"), quantity=stock))
+        s.add(OrderItem(order_id=o1.id, item_name="Thai Iced Tea", price=Decimal("59.00"), quantity=stock))
         s.commit()
 
-        success1, _ = reserve_inventory(o1.id, [{"item_name": "Thai Iced Tea", "quantity": stock}], payment_method="cash", session=s)
+        success1, _ = reserve_inventory(
+            o1.id, [{"item_name": "Thai Iced Tea", "quantity": stock}], payment_method="cash", session=s
+        )
         s.commit()
         assert success1
 
@@ -1137,17 +1218,21 @@ class TestScenarioInventoryIntegrity:
 
         # Customer 2 tries to order 1 more → should fail
         o2 = Order(
-            buyer_id=c2.telegram_id, total_price=Decimal("59"),
-            payment_method="cash", delivery_address="T2",
-            phone_number="+66800000000", order_status="pending",
+            buyer_id=c2.telegram_id,
+            total_price=Decimal("59"),
+            payment_method="cash",
+            delivery_address="T2",
+            phone_number="+66800000000",
+            order_status="pending",
             order_code=generate_unique_order_code(s),
         )
         s.add(o2)
         s.flush()
-        s.add(OrderItem(order_id=o2.id, item_name="Thai Iced Tea",
-                        price=Decimal("59.00"), quantity=1))
+        s.add(OrderItem(order_id=o2.id, item_name="Thai Iced Tea", price=Decimal("59.00"), quantity=1))
         s.commit()
 
-        success2, msg2 = reserve_inventory(o2.id, [{"item_name": "Thai Iced Tea", "quantity": 1}], payment_method="cash", session=s)
+        success2, _msg2 = reserve_inventory(
+            o2.id, [{"item_name": "Thai Iced Tea", "quantity": 1}], payment_method="cash", session=s
+        )
         s.commit()
         assert not success2  # Should fail - no stock left

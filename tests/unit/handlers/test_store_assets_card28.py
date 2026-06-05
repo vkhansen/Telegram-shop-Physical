@@ -81,11 +81,14 @@ async def test_menu_image_sent_on_select(db_session, monkeypatch):
 
     # Stub the downstream category render so we isolate the image send.
     import bot.handlers.user.shop_and_goods as sg
+
     async def _noop(call, state):
         return None
+
     monkeypatch.setattr(sg, "show_brand_categories", _noop)
 
     from bot.handlers.user.store_selection import _show_categories
+
     call = FakeCall()
     state = FakeState({"current_store_id": store_id, "current_store_name": "HasImg"})
     await _show_categories(call, state)
@@ -99,11 +102,14 @@ async def test_no_menu_image_no_photo(db_session, monkeypatch):
     store_id = _make_store(db_session, name="NoImg")  # no menu_image_file_id
 
     import bot.handlers.user.shop_and_goods as sg
+
     async def _noop(call, state):
         return None
+
     monkeypatch.setattr(sg, "show_brand_categories", _noop)
 
     from bot.handlers.user.store_selection import _show_categories
+
     call = FakeCall()
     state = FakeState({"current_store_id": store_id, "current_store_name": "NoImg"})
     await _show_categories(call, state)
@@ -117,6 +123,7 @@ async def test_no_menu_image_no_photo(db_session, monkeypatch):
 async def test_admin_sets_menu_image(db_session):
     store_id = _make_store(db_session)
     from bot.handlers.admin.store_management import set_menu_image_save
+
     state = FakeState({"asset_store_id": store_id})
     await set_menu_image_save(FakeMessage(photo_file_id="new_menu_img"), state)
 
@@ -129,6 +136,7 @@ async def test_admin_sets_menu_image(db_session):
 async def test_admin_sets_valid_promptpay_id(db_session):
     store_id = _make_store(db_session)
     from bot.handlers.admin.store_management import set_promptpay_id_save
+
     state = FakeState({"asset_store_id": store_id})
     msg = FakeMessage(text="0812345678")
     await set_promptpay_id_save(msg, state)
@@ -142,6 +150,7 @@ async def test_admin_sets_valid_promptpay_id(db_session):
 async def test_admin_rejects_invalid_promptpay_id(db_session):
     store_id = _make_store(db_session)
     from bot.handlers.admin.store_management import set_promptpay_id_save
+
     state = FakeState({"asset_store_id": store_id})
     msg = FakeMessage(text="12345")  # not 10 or 13 digits
     await set_promptpay_id_save(msg, state)
@@ -156,6 +165,7 @@ async def test_admin_rejects_invalid_promptpay_id(db_session):
 async def test_admin_clears_promptpay(db_session):
     store_id = _make_store(db_session, promptpay_id="0812345678", promptpay_name="Old")
     from bot.handlers.admin.store_management import set_promptpay_id_save
+
     state = FakeState({"asset_store_id": store_id})
     await set_promptpay_id_save(FakeMessage(text="-"), state)
 

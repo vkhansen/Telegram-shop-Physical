@@ -12,19 +12,20 @@ These helpers collapse that into a single call.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 def _metrics():
     """Lazy import to avoid circular dependencies."""
     from bot.monitoring import get_metrics
+
     return get_metrics()
 
 
 def track_event(
     event_name: str,
     user_id: int,
-    data: Optional[Dict[str, Any]] = None,
+    data: dict[str, Any] | None = None,
 ) -> None:
     """Fire a tracking event if metrics are initialised."""
     m = _metrics()

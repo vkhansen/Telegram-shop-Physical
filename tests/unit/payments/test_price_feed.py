@@ -1,19 +1,18 @@
 """
 Tests for bot.payments.price_feed module — CoinGecko live price feed.
 """
-import pytest
+
 from decimal import Decimal
-from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
+import pytest
 
 from bot.payments.price_feed import (
-    get_crypto_amount,
     _get_price,
-    clear_price_cache,
     _price_cache,
-    CACHE_TTL,
+    clear_price_cache,
+    get_crypto_amount,
 )
 
 
@@ -32,9 +31,7 @@ def _mock_response(json_data, status_code=200):
     resp.json.return_value = json_data
     resp.raise_for_status.return_value = None
     if status_code >= 400:
-        resp.raise_for_status.side_effect = httpx.HTTPStatusError(
-            "error", request=MagicMock(), response=resp
-        )
+        resp.raise_for_status.side_effect = httpx.HTTPStatusError("error", request=MagicMock(), response=resp)
     return resp
 
 
@@ -55,8 +52,7 @@ class TestGetCryptoAmountBTC:
     """BTC conversion with mocked CoinGecko response."""
 
     async def test_btc_conversion(self):
-        with _patch_httpx({"bitcoin": {"thb": 2450000}}), \
-             patch("bot.payments.price_feed.EnvKeys") as mock_env:
+        with _patch_httpx({"bitcoin": {"thb": 2450000}}), patch("bot.payments.price_feed.EnvKeys") as mock_env:
             mock_env.PAY_CURRENCY = "THB"
             mock_env.COINGECKO_API_KEY = ""
 
@@ -74,8 +70,7 @@ class TestGetCryptoAmountLTC:
     """LTC conversion with 8-decimal rounding."""
 
     async def test_ltc_8_decimal_rounding(self):
-        with _patch_httpx({"litecoin": {"thb": 3500}}), \
-             patch("bot.payments.price_feed.EnvKeys") as mock_env:
+        with _patch_httpx({"litecoin": {"thb": 3500}}), patch("bot.payments.price_feed.EnvKeys") as mock_env:
             mock_env.PAY_CURRENCY = "THB"
             mock_env.COINGECKO_API_KEY = ""
 
@@ -95,8 +90,7 @@ class TestGetCryptoAmountSOL:
     """SOL conversion with 9-decimal rounding."""
 
     async def test_sol_9_decimal_rounding(self):
-        with _patch_httpx({"solana": {"thb": 5200}}), \
-             patch("bot.payments.price_feed.EnvKeys") as mock_env:
+        with _patch_httpx({"solana": {"thb": 5200}}), patch("bot.payments.price_feed.EnvKeys") as mock_env:
             mock_env.PAY_CURRENCY = "THB"
             mock_env.COINGECKO_API_KEY = ""
 
@@ -116,8 +110,7 @@ class TestGetCryptoAmountUSDT:
     """USDT THB->USD conversion via tether price."""
 
     async def test_usdt_thb_conversion(self):
-        with _patch_httpx({"tether": {"thb": Decimal("34.5")}}), \
-             patch("bot.payments.price_feed.EnvKeys") as mock_env:
+        with _patch_httpx({"tether": {"thb": Decimal("34.5")}}), patch("bot.payments.price_feed.EnvKeys") as mock_env:
             mock_env.PAY_CURRENCY = "THB"
             mock_env.COINGECKO_API_KEY = ""
 
@@ -151,8 +144,10 @@ class TestGetPriceCaching:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("bot.payments.price_feed.httpx.AsyncClient", return_value=mock_client), \
-             patch("bot.payments.price_feed.EnvKeys") as mock_env:
+        with (
+            patch("bot.payments.price_feed.httpx.AsyncClient", return_value=mock_client),
+            patch("bot.payments.price_feed.EnvKeys") as mock_env,
+        ):
             mock_env.COINGECKO_API_KEY = ""
 
             price1 = await _get_price("bitcoin", "thb")
@@ -177,8 +172,10 @@ class TestClearPriceCache:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("bot.payments.price_feed.httpx.AsyncClient", return_value=mock_client), \
-             patch("bot.payments.price_feed.EnvKeys") as mock_env:
+        with (
+            patch("bot.payments.price_feed.httpx.AsyncClient", return_value=mock_client),
+            patch("bot.payments.price_feed.EnvKeys") as mock_env,
+        ):
             mock_env.COINGECKO_API_KEY = ""
 
             await _get_price("bitcoin", "thb")
@@ -211,8 +208,7 @@ class TestAPIError:
     """HTTP errors from CoinGecko should propagate."""
 
     async def test_api_error_propagates(self):
-        with _patch_httpx({}, status_code=500), \
-             patch("bot.payments.price_feed.EnvKeys") as mock_env:
+        with _patch_httpx({}, status_code=500), patch("bot.payments.price_feed.EnvKeys") as mock_env:
             mock_env.PAY_CURRENCY = "THB"
             mock_env.COINGECKO_API_KEY = ""
 

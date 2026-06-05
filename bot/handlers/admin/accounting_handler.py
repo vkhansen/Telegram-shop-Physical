@@ -7,22 +7,23 @@ Provides:
 - Export Revenue by Product CSV
 - Export Payment Reconciliation CSV
 """
-from datetime import datetime, timedelta, timezone
 
-from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message, BufferedInputFile
+from datetime import UTC, datetime, timedelta
+
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
+from aiogram.types import BufferedInputFile, CallbackQuery
 
 from bot.database.models.main import Permission
+from bot.export.sales_report import (
+    generate_payment_reconciliation_csv,
+    generate_revenue_by_product_csv,
+    generate_sales_csv,
+    get_revenue_summary,
+)
 from bot.filters import HasPermissionFilter
 from bot.i18n import localize
 from bot.keyboards.inline import back, simple_buttons
-from bot.export.sales_report import (
-    generate_sales_csv,
-    generate_revenue_by_product_csv,
-    generate_payment_reconciliation_csv,
-    get_revenue_summary,
-)
 
 router = Router()
 
@@ -35,6 +36,7 @@ PERIOD_LABELS = {
 
 
 # ── Accounting menu ──────────────────────────────────────────────────
+
 
 @router.callback_query(F.data == "admin_accounting", HasPermissionFilter(permission=Permission.SHOP_MANAGE))
 async def admin_accounting(call: CallbackQuery, state: FSMContext):
@@ -58,9 +60,10 @@ async def admin_accounting(call: CallbackQuery, state: FSMContext):
 
 # ── Revenue summary ─────────────────────────────────────────────────
 
+
 def _resolve_period(period: str):
     """Return (from_date, to_date) for the requested period."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     to_date = now
     if period == "today":
         from_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -87,18 +90,18 @@ async def accounting_summary(call: CallbackQuery, state: FSMContext):
     period_label = PERIOD_LABELS.get(period, period)
 
     # Format payment breakdown lines
-    payment_lines = "\n".join(
-        f"  - {method}: {amount:.2f}"
-        for method, amount in summary.get("by_payment", {}).items()
-    ) or "  N/A"
+    payment_lines = (
+        "\n".join(f"  - {method}: {amount:.2f}" for method, amount in summary.get("by_payment", {}).items()) or "  N/A"
+    )
 
     # Format top products lines
-    top_lines = "\n".join(
-        f"  {i}. {name} — {rev:.2f}"
-        for i, (name, rev) in enumerate(summary.get("top_products", [])[:5], 1)
-    ) or "  N/A"
+    top_lines = (
+        "\n".join(f"  {i}. {name} — {rev:.2f}" for i, (name, rev) in enumerate(summary.get("top_products", [])[:5], 1))
+        or "  N/A"
+    )
 
     from bot.config import EnvKeys
+
     text = localize(
         "admin.accounting.summary",
         period=period_label,
@@ -139,7 +142,7 @@ async def accounting_export(call: CallbackQuery, state: FSMContext):
         return
 
     csv_string = await generator()
-    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    date_str = datetime.now(UTC).strftime("%Y-%m-%d")
     filename = f"{export_type}_report_{date_str}.csv"
 
     document = BufferedInputFile(csv_string.encode("utf-8"), filename=filename)

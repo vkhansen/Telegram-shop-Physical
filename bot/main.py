@@ -1,24 +1,37 @@
 import asyncio
+import contextlib
+import json
 import logging
 import sys
-import json
 from pathlib import Path
+
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
 
-from bot.database.methods import check_category_cached
-from bot.handlers.admin.shop_management_states import init_stats_cache
-from bot.handlers import register_all_handlers
-from bot.database.models import register_models
-from bot.logger_mesh import configure_logging
-
+from bot.caching import CacheScheduler, get_cache_manager, init_cache_manager
 from bot.config import EnvKeys, get_redis_storage, timezone
-from bot.middleware import setup_rate_limiting, RateLimitConfig, SecurityMiddleware, AuthenticationMiddleware, LocaleMiddleware
-from bot.caching import init_cache_manager, get_cache_manager, CacheScheduler
-from bot.monitoring import RecoveryManager, StateManager, init_metrics, get_metrics, AnalyticsMiddleware, \
-    MonitoringServer
+from bot.database.methods import check_category_cached
+from bot.database.models import register_models
+from bot.handlers import register_all_handlers
+from bot.handlers.admin.shop_management_states import init_stats_cache
+from bot.logger_mesh import configure_logging
+from bot.middleware import (
+    AuthenticationMiddleware,
+    LocaleMiddleware,
+    RateLimitConfig,
+    SecurityMiddleware,
+    setup_rate_limiting,
+)
+from bot.monitoring import (
+    AnalyticsMiddleware,
+    MonitoringServer,
+    RecoveryManager,
+    StateManager,
+    get_metrics,
+    init_metrics,
+)
 from bot.tasks import start_file_watcher, stop_file_watcher
 
 # Global variables for components
@@ -40,6 +53,7 @@ def initialize_database() -> None:
 
     # Initialize export loggers (lazy-loaded) now that database is ready
     from bot.export.custom_logging import initialize_export_loggers
+
     initialize_export_loggers()
 
 
@@ -51,13 +65,14 @@ async def __on_start_up(dp: Dispatcher, bot: Bot) -> None:
     register_all_handlers(dp)
 
     # Load Bitcoin addresses from file into database
-    from bot.payments.bitcoin import load_bitcoin_addresses_from_file, get_bitcoin_address_stats
+    from bot.payments.bitcoin import get_bitcoin_address_stats, load_bitcoin_addresses_from_file
+
     loaded_count = load_bitcoin_addresses_from_file()
     stats = get_bitcoin_address_stats()
     if loaded_count > 0:
         logging.info(f"Loaded {loaded_count} new Bitcoin addresses from btc_addresses.txt")
     logging.info(f"Bitcoin address pool: {stats['available']} available, {stats['used']} used, {stats['total']} total")
-    if stats['available'] == 0:
+    if stats["available"] == 0:
         logging.warning("⚠️  No Bitcoin addresses available! Add addresses to btc_addresses.txt")
 
     # Start file watcher for automatic Bitcoin address reloading
@@ -68,24 +83,30 @@ async def __on_start_up(dp: Dispatcher, bot: Bot) -> None:
 
     # Start reservation cleaner for expired inventory reservations
     from bot.tasks.reservation_cleaner import start_reservation_cleaner
+
     start_reservation_cleaner()
     logging.info("🧹 Inventory reservation cleaner started - expired reservations will be auto-released every 60s")
 
     # Load multi-coin crypto addresses and start payment checker (Card 18)
     if EnvKeys.CRYPTO_PAYMENTS_ENABLED:
         import asyncio
+
         from bot.payments.crypto_addresses import load_all_addresses
+
         loaded = load_all_addresses()
         for coin, count in loaded.items():
             if count > 0:
                 logging.info("Loaded %d new %s addresses", count, coin.upper())
 
         from bot.tasks.payment_checker import payment_checker_loop
-        asyncio.ensure_future(payment_checker_loop(bot))
+        from bot.utils.background import track_task
+
+        track_task(asyncio.ensure_future(payment_checker_loop(bot)))
         logging.info("🔗 Crypto payment checker started (interval=%ds)", EnvKeys.CRYPTO_POLL_INTERVAL)
 
         # Reclaim addresses from expired/cancelled orders back to the pool (Card 24)
         from bot.tasks.address_reclaimer import start_address_reclaimer
+
         start_address_reclaimer()
         logging.info("♻️  Crypto address reclaimer started (expired/cancelled orders return to pool)")
 
@@ -96,13 +117,13 @@ async def __on_start_up(dp: Dispatcher, bot: Bot) -> None:
         ban_duration=300,
         admin_bypass=True,
         action_limits={
-            'broadcast': (1, 3600),  # 1 time per hour
-            'payment': (10, 60),  # 10 times per minute
-            'shop_view': (60, 60),  # 60 times per minute
-            'admin_action': (30, 60),  # 30 times per minute
-            'buy_item': (5, 60),  # 5 purchases per minute
-            'top_up': (5, 300),  # 5 top-ups in 5 minutes
-        }
+            "broadcast": (1, 3600),  # 1 time per hour
+            "payment": (10, 60),  # 10 times per minute
+            "shop_view": (60, 60),  # 60 times per minute
+            "admin_action": (30, 60),  # 30 times per minute
+            "buy_item": (5, 60),  # 5 purchases per minute
+            "top_up": (5, 300),  # 5 top-ups in 5 minutes
+        },
     )
     setup_rate_limiting(dp, rate_config)
 
@@ -173,7 +194,7 @@ async def __on_shutdown(dp: Dispatcher, bot: Bot) -> None:
     Path("data").mkdir(exist_ok=True)
 
     # Saving status
-    state_manager = StateManager()
+    StateManager()
     metrics = get_metrics()
     if metrics:
         summary = metrics.get_metrics_summary()
@@ -188,29 +209,24 @@ async def __on_shutdown(dp: Dispatcher, bot: Bot) -> None:
     if monitoring_server:
         await monitoring_server.stop()
 
-    # Close shared notification bot session
-    try:
+    # Close shared notification bot session (best-effort during shutdown)
+    with contextlib.suppress(Exception):
         from bot.payments.notifications import close_shared_bot
-        await close_shared_bot()
-    except Exception:
-        pass
 
-    # Close Grok AI aiohttp session (Card 17)
-    try:
+        await close_shared_bot()
+
+    # Close Grok AI aiohttp session (Card 17) (best-effort during shutdown)
+    with contextlib.suppress(Exception):
         from bot.ai.grok_client import close_grok_session
+
         await close_grok_session()
-    except Exception:
-        pass
 
     logging.info("Shutdown completed")
 
 
 async def warm_up_critical_caches():
     """Warming of critical caches at startup"""
-    from bot.database.methods.read import (
-        get_user_count_cached,
-        select_admins_cached
-    )
+    from bot.database.methods.read import get_user_count_cached, select_admins_cached
 
     cache_manager = get_cache_manager()
     if not cache_manager:
@@ -223,6 +239,7 @@ async def warm_up_critical_caches():
 
         # Warming up popular categories and products
         from bot.database.methods import query_categories
+
         categories = await query_categories(limit=5)
         for category in categories:
             await check_category_cached(category)
@@ -238,10 +255,7 @@ async def start_bot() -> None:
 
     initialize_database()
 
-    configure_logging(
-        console=EnvKeys.LOG_TO_STDOUT == "1",
-        debug=EnvKeys.DEBUG == "1"
-    )
+    configure_logging(console=EnvKeys.LOG_TO_STDOUT == "1", debug=EnvKeys.DEBUG == "1")
 
     # Log successful database initialization
     logging.info(f"Database initialized. Timezone: {timezone.get_timezone()}")
@@ -256,19 +270,17 @@ async def start_bot() -> None:
 
     # ── Preflight checks ──────────────────────────────────────────
     from bot.preflight import run_preflight
+
     preflight_report = await run_preflight()
     if not preflight_report.ok:
-        logging.critical(
-            "Preflight checks failed! Fix the issues above before starting the bot."
-        )
+        logging.critical("Preflight checks failed! Fix the issues above before starting the bot.")
         sys.exit(1)
 
     # Retrieve storage (Redis or Memory)
     storage = get_redis_storage() or MemoryStorage()
     if isinstance(storage, MemoryStorage):
         logging.warning(
-            "Using MemoryStorage - FSM states will be lost on restart! "
-            "Consider setting up Redis for production."
+            "Using MemoryStorage - FSM states will be lost on restart! Consider setting up Redis for production."
         )
 
     cache_scheduler = CacheScheduler()
@@ -277,8 +289,8 @@ async def start_bot() -> None:
     if EnvKeys.MULTI_BOT_ENABLED:
         # ── Multi-bot mode (Card 19) ───────────────────────────────────────────
         logging.info("MULTI_BOT_ENABLED=true — starting BotPool")
-        from bot.multibot.pool import BotPool, set_handler_registration_fn
         from bot.handlers import register_all_handlers as _rah
+        from bot.multibot.pool import BotPool, set_handler_registration_fn
 
         # Inject handler-registration callback (avoids circular import in pool.py)
         set_handler_registration_fn(_rah)
@@ -302,14 +314,16 @@ async def start_bot() -> None:
         # ── Legacy single-bot mode (default) ─────────────────────────────────
         # Ensure a default Brand + BotConfig row exist so BrandContextMiddleware
         # always has a valid brand_id (=1) even in single-bot deployments.
-        from bot.multibot.pool import BotPool as _BP
-        default_brand_id = _BP.ensure_default_brand()
+        from bot.multibot.pool import BotPool
+
+        default_brand_id = BotPool.ensure_default_brand()
 
         # Creating a dispatcher
         dp = Dispatcher(storage=storage)
 
         # Inject BrandContextMiddleware with brand_id=1 for single-bot mode
         from bot.middleware.brand_context import BrandContextMiddleware
+
         _brand_mw = BrandContextMiddleware(default_brand_id)
         dp.message.middleware(_brand_mw)
         dp.callback_query.middleware(_brand_mw)
@@ -317,12 +331,12 @@ async def start_bot() -> None:
 
         # Create and run the bot
         async with Bot(
-                token=EnvKeys.TOKEN,
-                default=DefaultBotProperties(
-                    parse_mode="HTML",
-                    link_preview_is_disabled=False,
-                    protect_content=False,
-                ),
+            token=EnvKeys.TOKEN,
+            default=DefaultBotProperties(
+                parse_mode="HTML",
+                link_preview_is_disabled=False,
+                protect_content=False,
+            ),
         ) as bot:
             # Getting information about the bot
             bot_info = await bot.get_me()
@@ -340,7 +354,7 @@ async def start_bot() -> None:
                         "edited_message",  # live-location pin moves (Card 15 & 26)
                         "callback_query",
                         "pre_checkout_query",
-                        "successful_payment"
+                        "successful_payment",
                     ],
                     handle_signals=True,
                 )

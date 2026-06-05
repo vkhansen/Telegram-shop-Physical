@@ -1,4 +1,4 @@
-from aiogram.filters.state import StatesGroup, State
+from aiogram.filters.state import State, StatesGroup
 
 
 class CategoryFSM(StatesGroup):
@@ -8,6 +8,7 @@ class CategoryFSM(StatesGroup):
     - delete,
     - rename.
     """
+
     waiting_add_category = State()
     waiting_delete_category = State()
     waiting_update_category = State()

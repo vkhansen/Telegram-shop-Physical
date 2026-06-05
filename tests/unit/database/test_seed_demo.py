@@ -1,7 +1,8 @@
 """The demo seeder must produce a coherent, integrity-clean menu and be idempotent."""
+
 import pytest
 
-from bot.database.integrity import check_integrity, Severity
+from bot.database.integrity import Severity, check_integrity
 from bot.database.models.main import Brand, Categories, Goods, Store
 from scripts.seed_demo import seed_demo
 

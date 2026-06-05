@@ -1,26 +1,24 @@
 """
 Tests for bot.payments.crypto_addresses module — multi-coin address pool management.
 """
-import pytest
-from datetime import datetime, timezone
-from pathlib import Path
-from tempfile import NamedTemporaryFile
-from unittest.mock import patch, MagicMock, PropertyMock, call
 
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from bot.database.models.main import CryptoAddress
 from bot.payments.crypto_addresses import (
-    load_addresses_for_coin,
+    COIN_ADDRESS_FILES,
+    get_address_stats,
     get_available_address,
+    load_addresses_for_coin,
+    load_all_addresses,
     mark_address_used,
     remove_address_from_file,
-    get_address_stats,
-    load_all_addresses,
-    COIN_ADDRESS_FILES,
 )
-from bot.database.models.main import CryptoAddress
 
 
-def _make_crypto_address(coin="btc", address="addr1", is_used=False,
-                         used_by=None, order_id=None, used_at=None):
+def _make_crypto_address(coin="btc", address="addr1", is_used=False, used_by=None, order_id=None, used_at=None):
     """Helper to build a mock CryptoAddress."""
     obj = MagicMock(spec=CryptoAddress)
     obj.coin = coin
@@ -70,8 +68,7 @@ class TestLoadAddressesForCoin:
 
         session.query.return_value.filter_by.side_effect = filter_by_side_effect
 
-        with _patch_database(session), \
-             patch("bot.payments.crypto_addresses._get_address_file", return_value=addr_file):
+        with _patch_database(session), patch("bot.payments.crypto_addresses._get_address_file", return_value=addr_file):
             count = load_addresses_for_coin("btc")
 
         assert count == 2
@@ -136,8 +133,7 @@ class TestMarkAddressUsed:
         session = _mock_session()
         session.query.return_value.filter_by.return_value.first.return_value = mock_addr
 
-        with _patch_database(session), \
-             patch("bot.payments.crypto_addresses.remove_address_from_file") as mock_remove:
+        with _patch_database(session), patch("bot.payments.crypto_addresses.remove_address_from_file") as mock_remove:
             result = mark_address_used("btc", "btc_addr_1", user_id=100, order_id=200)
 
         assert result is True
@@ -154,8 +150,7 @@ class TestMarkAddressUsed:
         ext_session.query.return_value.filter_by.return_value.first.return_value = mock_addr
 
         with patch("bot.payments.crypto_addresses.remove_address_from_file") as mock_remove:
-            result = mark_address_used("ltc", "ltc_addr_1", user_id=10, order_id=20,
-                                       session=ext_session)
+            result = mark_address_used("ltc", "ltc_addr_1", user_id=10, order_id=20, session=ext_session)
 
         assert result is True
         assert mock_addr.is_used is True

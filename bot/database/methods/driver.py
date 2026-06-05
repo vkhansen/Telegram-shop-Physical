@@ -6,7 +6,7 @@ only talks to the database and returns plain dicts (never ORM instances) so
 callers never touch a detached object — matching the convention in ``read.py``.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import or_
 
@@ -35,9 +35,15 @@ def _to_dict(driver: Driver) -> dict:
     }
 
 
-def create_driver(telegram_id: int, name: str, brand_id: int = None,
-                   phone: str = None, vehicle_type: str = None,
-                   service_zones: list = None, status: str = "pending") -> int:
+def create_driver(
+    telegram_id: int,
+    name: str,
+    brand_id: int | None = None,
+    phone: str | None = None,
+    vehicle_type: str | None = None,
+    service_zones: list | None = None,
+    status: str = "pending",
+) -> int:
     """Create a driver record (or return the existing one's id). Idempotent."""
     with Database().session() as s:
         existing = s.query(Driver).filter(Driver.telegram_id == telegram_id).one_or_none()
@@ -64,7 +70,7 @@ def get_driver(telegram_id: int) -> dict | None:
         return _to_dict(driver) if driver else None
 
 
-def list_drivers(status: str = None, brand_id: int = None) -> list[dict]:
+def list_drivers(status: str | None = None, brand_id: int | None = None) -> list[dict]:
     """List drivers, optionally filtered by status and/or brand."""
     with Database().session() as s:
         q = s.query(Driver)
@@ -75,7 +81,7 @@ def list_drivers(status: str = None, brand_id: int = None) -> list[dict]:
         return [_to_dict(d) for d in q.order_by(Driver.created_at).all()]
 
 
-def approve_driver(telegram_id: int, approved_by: int = None) -> bool:
+def approve_driver(telegram_id: int, approved_by: int | None = None) -> bool:
     """Promote a pending driver to approved. Returns False if no such driver."""
     with Database().session() as s:
         driver = s.query(Driver).filter(Driver.telegram_id == telegram_id).one_or_none()
@@ -83,7 +89,7 @@ def approve_driver(telegram_id: int, approved_by: int = None) -> bool:
             return False
         driver.status = "approved"
         driver.approved_by = approved_by
-        driver.approved_at = datetime.now(timezone.utc)
+        driver.approved_at = datetime.now(UTC)
         return True
 
 
@@ -130,7 +136,7 @@ def record_driver_location(telegram_id: int, latitude: float, longitude: float) 
             return False
         driver.last_latitude = latitude
         driver.last_longitude = longitude
-        driver.last_location_at = datetime.now(timezone.utc)
+        driver.last_location_at = datetime.now(UTC)
         s.add(DriverLocationTrail(driver_id=driver.id, latitude=latitude, longitude=longitude))
         return True
 
@@ -144,7 +150,7 @@ def adjust_active_orders(telegram_id: int, delta: int) -> None:
         driver.active_order_count = max(0, (driver.active_order_count or 0) + delta)
 
 
-def list_dispatchable_drivers(brand_id: int = None) -> list[dict]:
+def list_dispatchable_drivers(brand_id: int | None = None) -> list[dict]:
     """Return drivers eligible to receive an offer right now.
 
     Eligible = approved, online, available, under the active-order cap, and with

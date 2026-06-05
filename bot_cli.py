@@ -1,10 +1,10 @@
 import argparse
-import sys
-import os
 import asyncio
-from pathlib import Path
+import os
+import sys
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 # Add bot directory to Python path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -12,36 +12,34 @@ sys.path.insert(0, str(Path(__file__).parent))
 from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
 
+from bot.config import EnvKeys
+from bot.config import timezone as tz_config
 from bot.database.main import Database
-from bot.database.models.main import (
-    User, Order, CustomerInfo, BotSettings,
-    ReferenceCode, BitcoinAddress, Goods,
-    ReferralEarnings, OrderItem
-)
-from bot.database.methods.update import ban_user, unban_user
-from bot.database.methods.inventory import deduct_inventory, release_reservation, add_inventory, reserve_inventory
+from bot.database.methods.inventory import add_inventory, deduct_inventory, release_reservation, reserve_inventory
 from bot.database.methods.read import get_reference_bonus_percent
-from bot.referrals.codes import create_reference_code, deactivate_reference_code
-from bot.payments.bitcoin import add_bitcoin_address, add_bitcoin_addresses_bulk, get_bitcoin_address_stats
+from bot.database.methods.update import ban_user, unban_user
+from bot.database.models.main import (
+    BitcoinAddress,
+    BotSettings,
+    CustomerInfo,
+    Goods,
+    Order,
+    OrderItem,
+    ReferenceCode,
+    ReferralEarnings,
+    User,
+)
+from bot.export.custom_logging import log_inventory_update, log_order_cancellation, log_order_completion
 from bot.export.customer_csv import (
-    update_customer_spendings,
-    sync_all_customers_to_csv,
     export_customers_csv,
     get_username_by_telegram_id,
-    sync_customer_to_csv
+    sync_all_customers_to_csv,
+    sync_customer_to_csv,
+    update_customer_spendings,
 )
-from bot.export.custom_logging import (
-    log_order_completion,
-    log_order_cancellation,
-    log_inventory_update
-)
-from bot.config import timezone, EnvKeys
-
-from bot.payments.notifications import (
-    notify_order_confirmed,
-    notify_order_delivered,
-    notify_order_modified
-)
+from bot.payments.bitcoin import add_bitcoin_address, add_bitcoin_addresses_bulk, get_bitcoin_address_stats
+from bot.payments.notifications import notify_order_confirmed, notify_order_delivered, notify_order_modified
+from bot.referrals.codes import create_reference_code, deactivate_reference_code
 
 
 def get_admin_user_id():
@@ -51,16 +49,15 @@ def get_admin_user_id():
     Returns:
         int: Admin user telegram ID or None if not found
     """
-    owner_id = os.getenv('OWNER_ID')
+    owner_id = os.getenv("OWNER_ID")
     if owner_id:
         return int(owner_id)
 
     # Get from database
     with Database().session() as session:
-        from bot.database.models.main import User, Role
-        admin_user = session.query(User).join(Role).filter(
-            Role.name.in_(['ADMIN', 'OWNER'])
-        ).first()
+        from bot.database.models.main import Role, User
+
+        admin_user = session.query(User).join(Role).filter(Role.name.in_(["ADMIN", "OWNER"])).first()
 
         if admin_user:
             return admin_user.telegram_id
@@ -83,6 +80,7 @@ async def get_telegram_username(telegram_id: int) -> str:
     )
     try:
         from bot.utils.user_utils import get_telegram_username as _get_username
+
         return await _get_username(telegram_id, bot)
     finally:
         await bot.session.close()
@@ -105,11 +103,11 @@ async def complete_order_by_code(order_code: str):
             return
 
         # LOGIC-17 fix: Use correct status values (delivered/cancelled, not completed/canceled)
-        if order.order_status == 'delivered':
+        if order.order_status == "delivered":
             print(f"⚠️  Order {order_code} is already delivered")
             return
 
-        if order.order_status == 'cancelled':
+        if order.order_status == "cancelled":
             print(f"❌ Cannot complete cancelled order {order_code}")
             return
 
@@ -120,7 +118,7 @@ async def complete_order_by_code(order_code: str):
         buyer_username = await get_telegram_username(order.buyer_id)
 
         # Deduct inventory from stock (actual reduction)
-        success, deduct_message = deduct_inventory(order.id, admin_id=int(os.getenv('OWNER_ID', 0)), session=session)
+        success, deduct_message = deduct_inventory(order.id, admin_id=int(os.getenv("OWNER_ID", 0)), session=session)
         if not success:
             print(f"❌ Failed to deduct inventory: {deduct_message}")
             print("   Order not completed")
@@ -129,26 +127,20 @@ async def complete_order_by_code(order_code: str):
         # Mark order as delivered (terminal). 'completed' is not a valid
         # order_status per ck_orders_order_status — it would fail the CHECK
         # constraint; 'delivered' is the canonical terminal state (Card 24).
-        order.order_status = 'delivered'
-        order.completed_at = datetime.now(timezone.utc)
+        order.order_status = "delivered"
+        order.completed_at = datetime.now(UTC)
 
         # Update customer spendings
-        update_customer_spendings(
-            order.buyer_id,
-            buyer_username,
-            order.total_price
-        )
+        update_customer_spendings(order.buyer_id, buyer_username, order.total_price)
 
         # Process referral bonus if applicable
-        referral_bonus_amount = Decimal('0')
+        referral_bonus_amount = Decimal("0")
         referral_percent = get_reference_bonus_percent()
         if buyer and buyer.referral_id and referral_percent > 0:
-            referral_bonus_amount = (order.total_price * referral_percent) / Decimal('100')
+            referral_bonus_amount = (order.total_price * referral_percent) / Decimal("100")
 
             # Get referrer
-            referrer = session.query(User).filter_by(
-                telegram_id=buyer.referral_id
-            ).with_for_update().first()
+            referrer = session.query(User).filter_by(telegram_id=buyer.referral_id).with_for_update().first()
 
             if referrer:
                 # Create referral earnings record
@@ -156,14 +148,12 @@ async def complete_order_by_code(order_code: str):
                     referrer_id=buyer.referral_id,
                     referral_id=buyer.telegram_id,
                     amount=referral_bonus_amount,
-                    original_amount=order.total_price
+                    original_amount=order.total_price,
                 )
                 session.add(earning)
 
                 # Update referrer's bonus balance in CustomerInfo
-                referrer_customer_info = session.query(CustomerInfo).filter_by(
-                    telegram_id=buyer.referral_id
-                ).first()
+                referrer_customer_info = session.query(CustomerInfo).filter_by(telegram_id=buyer.referral_id).first()
 
                 if referrer_customer_info:
                     referrer_customer_info.bonus_balance += referral_bonus_amount
@@ -173,10 +163,7 @@ async def complete_order_by_code(order_code: str):
 
                 # Send notification to referrer about the bonus
                 try:
-                    bot = Bot(
-                        token=EnvKeys.TOKEN,
-                        default=DefaultBotProperties(parse_mode="HTML")
-                    )
+                    bot = Bot(token=EnvKeys.TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 
                     try:
                         notification_text = (
@@ -189,10 +176,7 @@ async def complete_order_by_code(order_code: str):
                             f"💡 You can use this bonus to reduce payment on your next order!"
                         )
 
-                        await bot.send_message(
-                            buyer.referral_id,
-                            notification_text
-                        )
+                        await bot.send_message(buyer.referral_id, notification_text)
                     finally:
                         await bot.session.close()
 
@@ -206,6 +190,7 @@ async def complete_order_by_code(order_code: str):
 
         # Log completion - get all order items
         from bot.database.models.main import OrderItem
+
         order_items = session.query(OrderItem).filter_by(order_id=order.id).all()
 
         # Build items summary: "item1 x 2, item2 x 1"
@@ -221,9 +206,9 @@ async def complete_order_by_code(order_code: str):
             buyer_username=buyer_username,
             items_summary=items_summary,
             total=float(order.total_price),
-            completed_by=int(os.getenv('OWNER_ID', 0)),
-            completed_by_username='admin_cli',
-            order_code=order.order_code
+            completed_by=int(os.getenv("OWNER_ID", 0)),
+            completed_by_username="admin_cli",
+            order_code=order.order_code,
         )
 
         print(f"✅ Order {order_code} completed successfully")
@@ -251,12 +236,12 @@ async def cancel_order_by_code(order_code: str):
             return
 
         # Check if already cancelled
-        if order.order_status == 'cancelled':
+        if order.order_status == "cancelled":
             print(f"⚠️  Order {order_code} is already cancelled")
             return
 
         # Check if already delivered
-        if order.order_status == 'delivered':
+        if order.order_status == "delivered":
             print(f"❌ Cannot cancel delivered order {order_code}")
             print("   Delivered orders cannot be cancelled")
             return
@@ -274,18 +259,17 @@ async def cancel_order_by_code(order_code: str):
         # flagged for manual refund. reverse_payment restores bonus, writes a
         # Refund audit record, and sets order.refund_status (Card 24).
         from bot.payments.refunds import reverse_payment
-        admin_id = get_admin_user_id() or int(os.getenv('OWNER_ID', 0))
+
+        admin_id = get_admin_user_id() or int(os.getenv("OWNER_ID", 0))
         refund = reverse_payment(order, session, reason="Canceled by admin", created_by=admin_id)
 
         # Mark order as cancelled
-        order.order_status = 'cancelled'
+        order.order_status = "cancelled"
 
         # Notify customer if bonus was returned
         new_bonus_balance = None
         if refund.bonus_restored and refund.bonus_restored > 0:
-            customer_info = session.query(CustomerInfo).filter_by(
-                telegram_id=order.buyer_id
-            ).first()
+            customer_info = session.query(CustomerInfo).filter_by(telegram_id=order.buyer_id).first()
             new_bonus_balance = customer_info.bonus_balance if customer_info else refund.bonus_restored
 
             print(f"💰 Refunded bonus: ${refund.bonus_restored}")
@@ -298,10 +282,7 @@ async def cancel_order_by_code(order_code: str):
 
             # Send notification to customer about bonus refund
             try:
-                bot = Bot(
-                    token=EnvKeys.TOKEN,
-                    default=DefaultBotProperties(parse_mode="HTML")
-                )
+                bot = Bot(token=EnvKeys.TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 
                 try:
                     notification_text = (
@@ -323,12 +304,15 @@ async def cancel_order_by_code(order_code: str):
                 # Continue execution even if notification fails
 
         # Surface any external payment that an admin must refund out of band
-        if refund.status == 'pending_manual':
-            print(f"⚠️  MANUAL REFUND REQUIRED: {refund.amount} {order.payment_method} "
-                  f"for order {order_code} — customer already paid.")
+        if refund.status == "pending_manual":
+            print(
+                f"⚠️  MANUAL REFUND REQUIRED: {refund.amount} {order.payment_method} "
+                f"for order {order_code} — customer already paid."
+            )
 
         # Get order items for logging
         from bot.database.models.main import OrderItem
+
         order_items = session.query(OrderItem).filter_by(order_id=order.id).all()
         if order_items:
             items_list = [f"{item.item_name} x {item.quantity}" for item in order_items]
@@ -339,7 +323,7 @@ async def cancel_order_by_code(order_code: str):
         # Get admin user ID
         admin_id = get_admin_user_id()
         if not admin_id:
-            admin_id = int(os.getenv('OWNER_ID', 0))
+            admin_id = int(os.getenv("OWNER_ID", 0))
 
         # Log order cancellation
         log_order_cancellation(
@@ -350,8 +334,8 @@ async def cancel_order_by_code(order_code: str):
             total=float(order.total_price),
             reason="Canceled by admin",
             canceled_by=admin_id,
-            canceled_by_username='admin_cli',
-            order_code=order.order_code
+            canceled_by_username="admin_cli",
+            order_code=order.order_code,
         )
 
         session.commit()
@@ -375,10 +359,10 @@ async def refund_order_by_code(order_code: str, reason: str = "Manual refund (ad
         order_code: Unique 6-character order code (e.g., ECBDJI)
         reason: Reason recorded on the refund
     """
-    from bot.payments.refunds import reverse_payment
     from bot.database.models.main import Refund
+    from bot.payments.refunds import reverse_payment
 
-    admin_id = get_admin_user_id() or int(os.getenv('OWNER_ID', 0))
+    admin_id = get_admin_user_id() or int(os.getenv("OWNER_ID", 0))
 
     with Database().session() as session:
         order = session.query(Order).filter_by(order_code=order_code).first()
@@ -388,8 +372,7 @@ async def refund_order_by_code(order_code: str, reason: str = "Manual refund (ad
 
         existing = session.query(Refund).filter_by(order_id=order.id).first()
         if existing is not None:
-            print(f"⚠️  Order {order_code} already has a refund "
-                  f"(#{existing.id}, status={existing.status})")
+            print(f"⚠️  Order {order_code} already has a refund (#{existing.id}, status={existing.status})")
             return
 
         refund = reverse_payment(order, session, reason=reason, created_by=admin_id)
@@ -398,9 +381,8 @@ async def refund_order_by_code(order_code: str, reason: str = "Manual refund (ad
         print(f"✅ Refund recorded for order {order_code}")
         print(f"   Method: {refund.method}")
         print(f"   Bonus restored: {refund.bonus_restored}")
-        if refund.status == 'pending_manual':
-            print(f"   ⚠️  MANUAL REFUND REQUIRED: {refund.amount} {refund.method} "
-                  f"— customer already paid")
+        if refund.status == "pending_manual":
+            print(f"   ⚠️  MANUAL REFUND REQUIRED: {refund.amount} {refund.method} — customer already paid")
         else:
             print(f"   Status: {refund.status} (no external payout needed)")
 
@@ -440,12 +422,12 @@ async def confirm_order_with_delivery_time(order_code: str, delivery_time_str: s
             return
 
         # Check if already delivered
-        if order.order_status == 'delivered':
+        if order.order_status == "delivered":
             print(f"⚠️  Order {order_code} is already delivered")
             return
 
         # Check if cancelled
-        if order.order_status in ['cancelled', 'canceled', 'expired']:
+        if order.order_status in ["cancelled", "canceled", "expired"]:
             print(f"❌ Cannot confirm cancelled/expired order {order_code}")
             return
 
@@ -453,7 +435,7 @@ async def confirm_order_with_delivery_time(order_code: str, delivery_time_str: s
         try:
             delivery_time = datetime.strptime(delivery_time_str, "%Y-%m-%d %H:%M")
             # Make it timezone-aware (UTC)
-            delivery_time = delivery_time.replace(tzinfo=timezone.utc)
+            delivery_time = delivery_time.replace(tzinfo=UTC)
         except ValueError:
             print("❌ Invalid delivery time format. Use: YYYY-MM-DD HH:MM")
             print("   Example: 2025-11-16 18:45")
@@ -461,11 +443,11 @@ async def confirm_order_with_delivery_time(order_code: str, delivery_time_str: s
 
         # Update order
         old_status = order.order_status
-        order.order_status = 'confirmed'
+        order.order_status = "confirmed"
         order.delivery_time = delivery_time
 
         # Extend reservation if needed (in case it's about to expire)
-        if order.reserved_until and order.reserved_until < datetime.now(timezone.utc) + timedelta(hours=1):
+        if order.reserved_until and order.reserved_until < datetime.now(UTC) + timedelta(hours=1):
             order.reserved_until = delivery_time + timedelta(hours=1)
 
         session.commit()
@@ -475,11 +457,7 @@ async def confirm_order_with_delivery_time(order_code: str, delivery_time_str: s
 
         # Send notification to customer
         try:
-            success = await notify_order_confirmed(
-                order=order,
-                items=order_items,
-                delivery_time=delivery_time
-            )
+            success = await notify_order_confirmed(order=order, items=order_items, delivery_time=delivery_time)
 
             if success:
                 print("[OK] Notification sent to customer")
@@ -512,12 +490,12 @@ async def mark_order_delivered(order_code: str):
             return
 
         # Check if already delivered
-        if order.order_status == 'delivered':
+        if order.order_status == "delivered":
             print(f"⚠️  Order {order_code} is already delivered")
             return
 
         # Check if cancelled
-        if order.order_status in ['cancelled', 'canceled', 'expired']:
+        if order.order_status in ["cancelled", "canceled", "expired"]:
             print(f"❌ Cannot deliver cancelled/expired order {order_code}")
             return
 
@@ -526,11 +504,7 @@ async def mark_order_delivered(order_code: str):
         buyer_username = await get_telegram_username(order.buyer_id)
 
         # Deduct inventory from stock (actual reduction)
-        success, deduct_message = deduct_inventory(
-            order.id,
-            admin_id=int(os.getenv('OWNER_ID', 0)),
-            session=session
-        )
+        success, deduct_message = deduct_inventory(order.id, admin_id=int(os.getenv("OWNER_ID", 0)), session=session)
 
         if not success:
             print(f"❌ Failed to deduct inventory: {deduct_message}")
@@ -539,27 +513,21 @@ async def mark_order_delivered(order_code: str):
 
         # Mark order as delivered
         old_status = order.order_status
-        order.order_status = 'delivered'
-        order.completed_at = datetime.now(timezone.utc)
+        order.order_status = "delivered"
+        order.completed_at = datetime.now(UTC)
 
         # Update customer spendings
-        update_customer_spendings(
-            order.buyer_id,
-            buyer_username,
-            order.total_price
-        )
+        update_customer_spendings(order.buyer_id, buyer_username, order.total_price)
 
         # Process referral bonus if applicable
-        referral_bonus_amount = Decimal('0')
+        referral_bonus_amount = Decimal("0")
         referral_percent = get_reference_bonus_percent()
 
         if buyer and buyer.referral_id and referral_percent > 0:
-            referral_bonus_amount = (order.total_price * referral_percent) / Decimal('100')
+            referral_bonus_amount = (order.total_price * referral_percent) / Decimal("100")
 
             # Get referrer
-            referrer = session.query(User).filter_by(
-                telegram_id=buyer.referral_id
-            ).with_for_update().first()
+            referrer = session.query(User).filter_by(telegram_id=buyer.referral_id).with_for_update().first()
 
             if referrer:
                 # Create referral earnings record
@@ -567,14 +535,12 @@ async def mark_order_delivered(order_code: str):
                     referrer_id=buyer.referral_id,
                     referral_id=buyer.telegram_id,
                     amount=referral_bonus_amount,
-                    original_amount=order.total_price
+                    original_amount=order.total_price,
                 )
                 session.add(earning)
 
                 # Update referrer's bonus balance in CustomerInfo
-                referrer_customer_info = session.query(CustomerInfo).filter_by(
-                    telegram_id=buyer.referral_id
-                ).first()
+                referrer_customer_info = session.query(CustomerInfo).filter_by(telegram_id=buyer.referral_id).first()
 
                 if referrer_customer_info:
                     referrer_customer_info.bonus_balance += referral_bonus_amount
@@ -584,10 +550,7 @@ async def mark_order_delivered(order_code: str):
 
                 # Send notification to referrer about the bonus
                 try:
-                    bot = Bot(
-                        token=EnvKeys.TOKEN,
-                        default=DefaultBotProperties(parse_mode="HTML")
-                    )
+                    bot = Bot(token=EnvKeys.TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 
                     try:
                         notification_text = (
@@ -626,9 +589,9 @@ async def mark_order_delivered(order_code: str):
             buyer_username=buyer_username,
             items_summary=items_summary,
             total=float(order.total_price),
-            completed_by=int(os.getenv('OWNER_ID', 0)),
-            completed_by_username='admin_cli',
-            order_code=order.order_code
+            completed_by=int(os.getenv("OWNER_ID", 0)),
+            completed_by_username="admin_cli",
+            order_code=order.order_code,
         )
 
         # Send delivery notification to customer
@@ -678,32 +641,21 @@ async def add_item_to_order(order_code: str, item_name: str, quantity: int, noti
             return
 
         # Check if item already in order
-        existing_item = session.query(OrderItem).filter_by(
-            order_id=order.id,
-            item_name=item_name
-        ).first()
+        existing_item = session.query(OrderItem).filter_by(order_id=order.id, item_name=item_name).first()
 
         if existing_item:
             existing_item.quantity += quantity
             print(f"   Updated existing item quantity: {existing_item.quantity - quantity} → {existing_item.quantity}")
         else:
-            new_item = OrderItem(
-                order_id=order.id,
-                item_name=item_name,
-                price=goods.price,
-                quantity=quantity
-            )
+            new_item = OrderItem(order_id=order.id, item_name=item_name, price=goods.price, quantity=quantity)
             session.add(new_item)
             print("   Added new item to order")
 
-        if order.order_status != 'delivered':
+        if order.order_status != "delivered":
             # Reserve additional inventory
-            items_to_reserve = [{'item_name': item_name, 'quantity': quantity}]
+            items_to_reserve = [{"item_name": item_name, "quantity": quantity}]
             success, message = reserve_inventory(
-                order.id,
-                items_to_reserve,
-                payment_method=order.payment_method,
-                session=session
+                order.id, items_to_reserve, payment_method=order.payment_method, session=session
             )
 
             if not success:
@@ -721,10 +673,7 @@ async def add_item_to_order(order_code: str, item_name: str, quantity: int, noti
         if notify:
             changes_desc = f"+ {item_name} x {quantity} (${goods.price * quantity})"
             try:
-                await notify_order_modified(
-                    order=order,
-                    changes_description=changes_desc
-                )
+                await notify_order_modified(order=order, changes_description=changes_desc)
                 print("📧 Modification notification sent to customer")
             except Exception as e:
                 print(f"⚠️  Failed to send notification: {e}")
@@ -753,10 +702,7 @@ async def remove_item_from_order(order_code: str, item_name: str, quantity: int,
             return
 
         # Find item in order
-        order_item = session.query(OrderItem).filter_by(
-            order_id=order.id,
-            item_name=item_name
-        ).first()
+        order_item = session.query(OrderItem).filter_by(order_id=order.id, item_name=item_name).first()
 
         if not order_item:
             print(f"❌ Item '{item_name}' not found in order")
@@ -779,6 +725,7 @@ async def remove_item_from_order(order_code: str, item_name: str, quantity: int,
 
         # Release inventory reservation
         from bot.database.models.main import Goods
+
         goods = session.query(Goods).filter_by(name=item_name).with_for_update().first()
 
         if goods:
@@ -795,10 +742,7 @@ async def remove_item_from_order(order_code: str, item_name: str, quantity: int,
         if notify:
             changes_desc = f"- {item_name} x {quantity} (-${removed_value})"
             try:
-                await notify_order_modified(
-                    order=order,
-                    changes_description=changes_desc
-                )
+                await notify_order_modified(order=order, changes_description=changes_desc)
                 print("📧 Modification notification sent to customer")
             except Exception as e:
                 print(f"⚠️  Failed to send notification: {e}")
@@ -825,7 +769,7 @@ async def update_delivery_time(order_code: str, delivery_time_str: str, notify: 
             print(f"❌ Order not found with code: {order_code}")
             return
 
-        if order.order_status == 'delivered':
+        if order.order_status == "delivered":
             print(f"⚠️  Order {order_code} is already delivered")
             return
 
@@ -833,13 +777,13 @@ async def update_delivery_time(order_code: str, delivery_time_str: str, notify: 
         try:
             delivery_time = datetime.strptime(delivery_time_str, "%Y-%m-%d %H:%M")
             # Make it timezone-aware (UTC)
-            delivery_time = delivery_time.replace(tzinfo=timezone.utc)
+            delivery_time = delivery_time.replace(tzinfo=UTC)
         except ValueError:
             print("❌ Invalid delivery time format. Use: YYYY-MM-DD HH:MM")
             print("   Example: 2025-11-16 18:45")
             return
 
-        old_time = order.delivery_time.strftime('%Y-%m-%d %H:%M') if order.delivery_time else "Not set"
+        old_time = order.delivery_time.strftime("%Y-%m-%d %H:%M") if order.delivery_time else "Not set"
 
         # Update delivery time
         order.delivery_time = delivery_time
@@ -854,10 +798,7 @@ async def update_delivery_time(order_code: str, delivery_time_str: str, notify: 
         if notify:
             changes_desc = f"Delivery time updated:\n  {old_time} → {delivery_time.strftime('%Y-%m-%d %H:%M')}"
             try:
-                await notify_order_modified(
-                    order=order,
-                    changes_description=changes_desc
-                )
+                await notify_order_modified(order=order, changes_description=changes_desc)
                 print("📧 Update notification sent to customer")
             except Exception as e:
                 print(f"⚠️  Failed to send notification: {e}")
@@ -871,7 +812,7 @@ def create_refcode(args):
     """Create a new reference code"""
     try:
         # Get creator user ID
-        if hasattr(args, 'created_by') and args.created_by:
+        if hasattr(args, "created_by") and args.created_by:
             created_by = args.created_by
         else:
             created_by = get_admin_user_id()
@@ -889,11 +830,11 @@ def create_refcode(args):
 
         code = create_reference_code(
             created_by=created_by,
-            created_by_username='admin_cli',
-            is_admin_code=not getattr(args, 'user_type', False),
+            created_by_username="admin_cli",
+            is_admin_code=not getattr(args, "user_type", False),
             expires_in_hours=expires_in_hours,
             max_uses=max_uses,
-            note=args.note
+            note=args.note,
         )
 
         print(f"✅ Reference code created: {code}")
@@ -925,8 +866,8 @@ def disable_refcode(args):
     success = deactivate_reference_code(
         code=args.code,
         deactivated_by=admin_id,
-        deactivated_by_username='admin_cli',
-        reason=args.reason or "Disabled via CLI"
+        deactivated_by_username="admin_cli",
+        reason=args.reason or "Disabled via CLI",
     )
 
     if success:
@@ -954,8 +895,8 @@ def list_refcodes(args):
 
         for code in codes:
             code_type = "ADMIN" if code.is_admin_code else "USER"
-            created = code.created_at.strftime('%Y-%m-%d %H:%M')
-            expires = code.expires_at.strftime('%Y-%m-%d %H:%M') if code.expires_at else "Never"
+            created = code.created_at.strftime("%Y-%m-%d %H:%M")
+            expires = code.expires_at.strftime("%Y-%m-%d %H:%M") if code.expires_at else "Never"
             max_uses = str(code.max_uses) if code.max_uses else "∞"
             uses = f"{code.current_uses}/{max_uses}"
             active = "Yes" if code.is_active else "No"
@@ -974,7 +915,7 @@ def add_btc_address(args):
             print(f"❌ File not found: {args.file}")
             return
 
-        with open(file_path, 'r') as f:
+        with open(file_path) as f:
             addresses = [line.strip() for line in f if line.strip()]
 
         count = add_bitcoin_addresses_bulk(addresses)
@@ -1052,13 +993,14 @@ def update_inventory(args):
 
             # Log the change using inventory system
             from bot.database.methods.inventory import log_inventory_change
+
             log_inventory_change(
                 session=session,
                 item_name=args.item_name,
-                change_type='manual',
+                change_type="manual",
                 quantity_change=target_stock - old_stock,
                 admin_id=admin_id,
-                comment=f"CLI: Stock set to {target_stock} (was {old_stock})"
+                comment=f"CLI: Stock set to {target_stock} (was {old_stock})",
             )
 
         elif args.add is not None:
@@ -1068,7 +1010,7 @@ def update_inventory(args):
                 quantity=args.add,
                 admin_id=admin_id,
                 comment=f"CLI: Added {args.add} units",
-                session=session
+                session=session,
             )
             if not success:
                 print(f"❌ Failed to add inventory: {msg}")
@@ -1087,13 +1029,14 @@ def update_inventory(args):
 
             # Log the change
             from bot.database.methods.inventory import log_inventory_change
+
             log_inventory_change(
                 session=session,
                 item_name=args.item_name,
-                change_type='manual',
+                change_type="manual",
                 quantity_change=-args.remove,
                 admin_id=admin_id,
-                comment=f"CLI: Removed {args.remove} units"
+                comment=f"CLI: Removed {args.remove} units",
             )
 
         # Get final stock
@@ -1106,8 +1049,8 @@ def update_inventory(args):
             old_stock=current_stock,
             new_stock=final_stock,
             updated_by=admin_id,
-            updated_by_username='admin_cli',
-            method='CLI'
+            updated_by_username="admin_cli",
+            method="CLI",
         )
 
         print(f"✅ Inventory updated for '{args.item_name}'")
@@ -1122,7 +1065,7 @@ def export_data(args):
     export_dir = Path(args.output_dir)
     export_dir.mkdir(exist_ok=True, parents=True)
 
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     print(f"Exporting data to {export_dir}...")
 
@@ -1139,16 +1082,36 @@ def export_data(args):
         with Database().session() as session:
             codes = session.query(ReferenceCode).all()
             import csv
-            with open(refcode_file, 'w', newline='') as f:
+
+            with open(refcode_file, "w", newline="") as f:
                 writer = csv.writer(f)
-                writer.writerow(['Code', 'Created By', 'Created At', 'Expires At', 'Max Uses', 'Current Uses', 'Active',
-                                 'Admin Code', 'Note'])
+                writer.writerow(
+                    [
+                        "Code",
+                        "Created By",
+                        "Created At",
+                        "Expires At",
+                        "Max Uses",
+                        "Current Uses",
+                        "Active",
+                        "Admin Code",
+                        "Note",
+                    ]
+                )
                 for code in codes:
-                    writer.writerow([
-                        code.code, code.created_by, code.created_at,
-                        code.expires_at, code.max_uses, code.current_uses,
-                        code.is_active, code.is_admin_code, code.note or ''
-                    ])
+                    writer.writerow(
+                        [
+                            code.code,
+                            code.created_by,
+                            code.created_at,
+                            code.expires_at,
+                            code.max_uses,
+                            code.current_uses,
+                            code.is_active,
+                            code.is_admin_code,
+                            code.note or "",
+                        ]
+                    )
         print(f"✅ Exported reference codes to {refcode_file}")
 
     # Export orders
@@ -1157,26 +1120,58 @@ def export_data(args):
         with Database().session() as session:
             orders = session.query(Order).all()
             import csv
-            with open(orders_file, 'w', newline='') as f:
+
+            with open(orders_file, "w", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow(
-                    ['ID', 'Buyer ID', 'Item', 'Price', 'Quantity', 'Payment Method', 'Status', 'Created At',
-                     'Completed At',
-                     'Phone', 'Address'])
+                    [
+                        "ID",
+                        "Buyer ID",
+                        "Item",
+                        "Price",
+                        "Quantity",
+                        "Payment Method",
+                        "Status",
+                        "Created At",
+                        "Completed At",
+                        "Phone",
+                        "Address",
+                    ]
+                )
                 for order in orders:
                     if order.items:
                         for item in order.items:
-                            writer.writerow([
-                                order.id, order.buyer_id, item.item_name, item.price, item.quantity,
-                                order.payment_method, order.order_status, order.created_at,
-                                order.completed_at, order.phone_number, order.delivery_address
-                            ])
+                            writer.writerow(
+                                [
+                                    order.id,
+                                    order.buyer_id,
+                                    item.item_name,
+                                    item.price,
+                                    item.quantity,
+                                    order.payment_method,
+                                    order.order_status,
+                                    order.created_at,
+                                    order.completed_at,
+                                    order.phone_number,
+                                    order.delivery_address,
+                                ]
+                            )
                     else:
-                        writer.writerow([
-                            order.id, order.buyer_id, '', '', 0,
-                            order.payment_method, order.order_status, order.created_at,
-                            order.completed_at, order.phone_number, order.delivery_address
-                        ])
+                        writer.writerow(
+                            [
+                                order.id,
+                                order.buyer_id,
+                                "",
+                                "",
+                                0,
+                                order.payment_method,
+                                order.order_status,
+                                order.created_at,
+                                order.completed_at,
+                                order.phone_number,
+                                order.delivery_address,
+                            ]
+                        )
         print(f"✅ Exported orders to {orders_file}")
 
     print("\n✅ Export completed!")
@@ -1198,9 +1193,9 @@ def set_setting(args):
     print(f"✅ Setting updated: {args.key} = {args.value}")
 
     # Special handling for timezone - reload for hot reload support
-    if args.key == 'timezone':
-        timezone.reload_timezone()
-        print(f"⏰ Timezone reloaded: {timezone.get_timezone()}")
+    if args.key == "timezone":
+        tz_config.reload_timezone()
+        print(f"⏰ Timezone reloaded: {tz_config.get_timezone()}")
 
 
 def get_setting(args):
@@ -1270,16 +1265,10 @@ async def ban_user_cli(args):
         # Try to notify the user
         if args.notify:
             try:
-                bot = Bot(
-                    token=EnvKeys.TOKEN,
-                    default=DefaultBotProperties(parse_mode="HTML")
-                )
+                bot = Bot(token=EnvKeys.TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 
                 try:
-                    await bot.send_message(
-                        user_id,
-                        f"⛔ <b>You have been banned</b>\n\nReason: {reason}"
-                    )
+                    await bot.send_message(user_id, f"⛔ <b>You have been banned</b>\n\nReason: {reason}")
                     print("📧 Ban notification sent to user")
                 finally:
                     await bot.session.close()
@@ -1322,15 +1311,11 @@ async def unban_user_cli(args):
         # Try to notify the user
         if args.notify:
             try:
-                bot = Bot(
-                    token=EnvKeys.TOKEN,
-                    default=DefaultBotProperties(parse_mode="HTML")
-                )
+                bot = Bot(token=EnvKeys.TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 
                 try:
                     await bot.send_message(
-                        user_id,
-                        "✅ <b>You have been unbanned</b>\n\nYou can now use the bot again."
+                        user_id, "✅ <b>You have been unbanned</b>\n\nYou can now use the bot again."
                     )
                     print("📧 Unban notification sent to user")
                 finally:
@@ -1344,31 +1329,32 @@ async def unban_user_cli(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Telegram Shop Bot CLI',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        description="Telegram Shop Bot CLI", formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
-    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # Order management
-    order_parser = subparsers.add_parser('order', help='Manage orders')
-    order_parser.add_argument('--order-code', required=True, help='Order code (e.g., ECBDJI)')
+    order_parser = subparsers.add_parser("order", help="Manage orders")
+    order_parser.add_argument("--order-code", required=True, help="Order code (e.g., ECBDJI)")
 
     order_action = order_parser.add_mutually_exclusive_group(required=True)
-    order_action.add_argument('--complete', action='store_true',
-                              help='[DEPRECATED] Mark order as completed (use --status-delivered)')
-    order_action.add_argument('--cancel', action='store_true', help='Cancel order')
-    order_action.add_argument('--status-confirmed', action='store_true', help='Confirm order with delivery time')
-    order_action.add_argument('--status-delivered', action='store_true',
-                              help='Mark order as delivered (deducts inventory)')
-    order_action.add_argument('--add-item', metavar='ITEM_NAME', help='Add item to order')
-    order_action.add_argument('--remove-item', metavar='ITEM_NAME', help='Remove item from order')
-    order_action.add_argument('--update-delivery-time', action='store_true', help='Update delivery time')
+    order_action.add_argument(
+        "--complete", action="store_true", help="[DEPRECATED] Mark order as completed (use --status-delivered)"
+    )
+    order_action.add_argument("--cancel", action="store_true", help="Cancel order")
+    order_action.add_argument("--status-confirmed", action="store_true", help="Confirm order with delivery time")
+    order_action.add_argument(
+        "--status-delivered", action="store_true", help="Mark order as delivered (deducts inventory)"
+    )
+    order_action.add_argument("--add-item", metavar="ITEM_NAME", help="Add item to order")
+    order_action.add_argument("--remove-item", metavar="ITEM_NAME", help="Remove item from order")
+    order_action.add_argument("--update-delivery-time", action="store_true", help="Update delivery time")
 
     # Additional arguments for specific actions
-    order_parser.add_argument('--delivery-time', help='Delivery time in format "YYYY-MM-DD HH:MM"')
-    order_parser.add_argument('--quantity', type=int, default=1, help='Quantity for add/remove item (default: 1)')
-    order_parser.add_argument('--notify', action='store_true', help='Notify customer about changes')
+    order_parser.add_argument("--delivery-time", help='Delivery time in format "YYYY-MM-DD HH:MM"')
+    order_parser.add_argument("--quantity", type=int, default=1, help="Quantity for add/remove item (default: 1)")
+    order_parser.add_argument("--notify", action="store_true", help="Notify customer about changes")
 
     def handle_order_action(args):
         """Handle order actions based on flags"""
@@ -1381,7 +1367,7 @@ def main():
         elif args.status_confirmed:
             if not args.delivery_time:
                 print("❌ --delivery-time is required with --status-confirmed")
-                print("   Example: --delivery-time \"2025-11-16 18:45\"")
+                print('   Example: --delivery-time "2025-11-16 18:45"')
                 return
             asyncio.run(confirm_order_with_delivery_time(args.order_code, args.delivery_time))
         elif args.status_delivered:
@@ -1393,7 +1379,7 @@ def main():
         elif args.update_delivery_time:
             if not args.delivery_time:
                 print("❌ --delivery-time is required with --update-delivery-time")
-                print("   Example: --delivery-time \"2025-11-16 20:00\"")
+                print('   Example: --delivery-time "2025-11-16 20:00"')
                 return
             asyncio.run(update_delivery_time(args.order_code, args.delivery_time, args.notify))
 
@@ -1401,106 +1387,102 @@ def main():
 
     # Payment refund / reversal (Card 24)
     refund_parser = subparsers.add_parser(
-        'refund',
-        help='Reverse a payment: restore bonus, record a Refund, flag manual payout'
+        "refund", help="Reverse a payment: restore bonus, record a Refund, flag manual payout"
     )
-    refund_parser.add_argument('order_code', help='Order code (e.g., ECBDJI)')
-    refund_parser.add_argument('--reason', default='Manual refund (admin CLI)',
-                               help='Reason recorded on the refund')
-    refund_parser.set_defaults(
-        func=lambda args: asyncio.run(refund_order_by_code(args.order_code, args.reason))
-    )
+    refund_parser.add_argument("order_code", help="Order code (e.g., ECBDJI)")
+    refund_parser.add_argument("--reason", default="Manual refund (admin CLI)", help="Reason recorded on the refund")
+    refund_parser.set_defaults(func=lambda args: asyncio.run(refund_order_by_code(args.order_code, args.reason)))
 
     # Crypto address pool maintenance (Card 24)
     reclaim_parser = subparsers.add_parser(
-        'reclaim-addresses',
-        help='Return crypto addresses from expired/cancelled orders back to the pool'
+        "reclaim-addresses", help="Return crypto addresses from expired/cancelled orders back to the pool"
     )
-    reclaim_parser.add_argument('--ttl-hours', type=int, default=24,
-                                help='Only reclaim addresses idle at least this many hours (default 24)')
+    reclaim_parser.add_argument(
+        "--ttl-hours", type=int, default=24, help="Only reclaim addresses idle at least this many hours (default 24)"
+    )
     reclaim_parser.set_defaults(func=lambda args: reclaim_addresses_cmd(args.ttl_hours))
 
     # Reference code management
-    refcode_parser = subparsers.add_parser('refcode', help='Manage reference codes')
-    refcode_sub = refcode_parser.add_subparsers(dest='refcode_command')
+    refcode_parser = subparsers.add_parser("refcode", help="Manage reference codes")
+    refcode_sub = refcode_parser.add_subparsers(dest="refcode_command")
 
     # Create reference code
-    create_ref = refcode_sub.add_parser('create', help='Create a reference code')
-    create_ref.add_argument('--created-by', type=int, help='User ID creating the code (defaults to first admin)')
-    create_ref.add_argument('--expires-hours', type=int, default=0, help='Expiration in hours (0 for never)')
-    create_ref.add_argument('--max-uses', type=int, default=0, help='Maximum uses (0 for unlimited)')
-    create_ref.add_argument('--note', type=str, help='Optional note')
-    create_ref.add_argument('--user-type', action='store_true', help='Create a regular user code (not admin)')
+    create_ref = refcode_sub.add_parser("create", help="Create a reference code")
+    create_ref.add_argument("--created-by", type=int, help="User ID creating the code (defaults to first admin)")
+    create_ref.add_argument("--expires-hours", type=int, default=0, help="Expiration in hours (0 for never)")
+    create_ref.add_argument("--max-uses", type=int, default=0, help="Maximum uses (0 for unlimited)")
+    create_ref.add_argument("--note", type=str, help="Optional note")
+    create_ref.add_argument("--user-type", action="store_true", help="Create a regular user code (not admin)")
     create_ref.set_defaults(func=create_refcode)
 
     # Disable reference code
-    disable_ref = refcode_sub.add_parser('disable', help='Disable a reference code')
-    disable_ref.add_argument('code', help='Reference code to disable')
-    disable_ref.add_argument('--reason', help='Reason for disabling')
+    disable_ref = refcode_sub.add_parser("disable", help="Disable a reference code")
+    disable_ref.add_argument("code", help="Reference code to disable")
+    disable_ref.add_argument("--reason", help="Reason for disabling")
     disable_ref.set_defaults(func=disable_refcode)
 
     # List reference codes
-    list_ref = refcode_sub.add_parser('list', help='List reference codes')
-    list_ref.add_argument('--active-only', action='store_true', help='Show only active codes')
+    list_ref = refcode_sub.add_parser("list", help="List reference codes")
+    list_ref.add_argument("--active-only", action="store_true", help="Show only active codes")
     list_ref.set_defaults(func=list_refcodes)
 
     # Bitcoin address management
-    btc_parser = subparsers.add_parser('btc', help='Manage Bitcoin addresses')
-    btc_sub = btc_parser.add_subparsers(dest='btc_command')
+    btc_parser = subparsers.add_parser("btc", help="Manage Bitcoin addresses")
+    btc_sub = btc_parser.add_subparsers(dest="btc_command")
 
     # Add Bitcoin address
-    add_btc = btc_sub.add_parser('add', help='Add Bitcoin address(es)')
-    add_btc.add_argument('--address', help='Single Bitcoin address')
-    add_btc.add_argument('--file', help='File with Bitcoin addresses (one per line)')
+    add_btc = btc_sub.add_parser("add", help="Add Bitcoin address(es)")
+    add_btc.add_argument("--address", help="Single Bitcoin address")
+    add_btc.add_argument("--file", help="File with Bitcoin addresses (one per line)")
     add_btc.set_defaults(func=add_btc_address)
 
     # List Bitcoin addresses
-    list_btc = btc_sub.add_parser('list', help='List Bitcoin addresses')
-    list_btc.add_argument('--show-all', action='store_true', help='Show all addresses')
+    list_btc = btc_sub.add_parser("list", help="List Bitcoin addresses")
+    list_btc.add_argument("--show-all", action="store_true", help="Show all addresses")
     list_btc.set_defaults(func=list_btc_addresses)
 
     # Update inventory
-    inv_parser = subparsers.add_parser('inventory', help='Update item inventory')
-    inv_parser.add_argument('item_name', help='Item name')
+    inv_parser = subparsers.add_parser("inventory", help="Update item inventory")
+    inv_parser.add_argument("item_name", help="Item name")
     inv_group = inv_parser.add_mutually_exclusive_group(required=True)
-    inv_group.add_argument('--set', type=int, help='Set inventory to specific value')
-    inv_group.add_argument('--add', type=int, help='Add to current inventory')
-    inv_group.add_argument('--remove', type=int, help='Remove from current inventory')
+    inv_group.add_argument("--set", type=int, help="Set inventory to specific value")
+    inv_group.add_argument("--add", type=int, help="Add to current inventory")
+    inv_group.add_argument("--remove", type=int, help="Remove from current inventory")
     inv_parser.set_defaults(func=update_inventory)
 
     # Export data
-    export_parser = subparsers.add_parser('export', help='Export data for backup')
-    export_parser.add_argument('--output-dir', default='backups', help='Output directory')
-    export_parser.add_argument('--all', action='store_true', help='Export all data')
-    export_parser.add_argument('--customers', action='store_true', help='Export customers')
-    export_parser.add_argument('--refcodes', action='store_true', help='Export reference codes')
-    export_parser.add_argument('--orders', action='store_true', help='Export orders')
+    export_parser = subparsers.add_parser("export", help="Export data for backup")
+    export_parser.add_argument("--output-dir", default="backups", help="Output directory")
+    export_parser.add_argument("--all", action="store_true", help="Export all data")
+    export_parser.add_argument("--customers", action="store_true", help="Export customers")
+    export_parser.add_argument("--refcodes", action="store_true", help="Export reference codes")
+    export_parser.add_argument("--orders", action="store_true", help="Export orders")
     export_parser.set_defaults(func=export_data)
 
     # Settings management
-    settings_parser = subparsers.add_parser('settings', help='Manage bot settings')
-    settings_sub = settings_parser.add_subparsers(dest='settings_command')
+    settings_parser = subparsers.add_parser("settings", help="Manage bot settings")
+    settings_sub = settings_parser.add_subparsers(dest="settings_command")
 
     # Set setting
-    set_parser = settings_sub.add_parser('set', help='Set a setting value')
-    set_parser.add_argument('key', help='Setting key')
-    set_parser.add_argument('value', help='Setting value')
+    set_parser = settings_sub.add_parser("set", help="Set a setting value")
+    set_parser.add_argument("key", help="Setting key")
+    set_parser.add_argument("value", help="Setting value")
     set_parser.set_defaults(func=set_setting)
 
     # Get setting
-    get_parser = settings_sub.add_parser('get', help='Get a setting value')
-    get_parser.add_argument('key', help='Setting key')
+    get_parser = settings_sub.add_parser("get", help="Get a setting value")
+    get_parser.add_argument("key", help="Setting key")
     get_parser.set_defaults(func=get_setting)
 
     # List settings
-    list_set_parser = settings_sub.add_parser('list', help='List all settings')
+    list_set_parser = settings_sub.add_parser("list", help="List all settings")
     list_set_parser.set_defaults(func=list_settings)
 
     # User ban management
-    ban_parser = subparsers.add_parser('ban', help='Ban a user')
-    ban_parser.add_argument('user_id', help='Telegram ID of user to ban')
-    ban_parser.add_argument('--reason', help='Reason for ban', default=None)
-    ban_parser.add_argument('--notify', action='store_true', help='Notify user about ban')
+    ban_parser = subparsers.add_parser("ban", help="Ban a user")
+    ban_parser.add_argument("user_id", help="Telegram ID of user to ban")
+    ban_parser.add_argument("--reason", help="Reason for ban", default=None)
+    ban_parser.add_argument("--notify", action="store_true", help="Notify user about ban")
 
     def handle_ban(args):
         asyncio.run(ban_user_cli(args))
@@ -1508,9 +1490,9 @@ def main():
     ban_parser.set_defaults(func=handle_ban)
 
     # User unban management
-    unban_parser = subparsers.add_parser('unban', help='Unban a user')
-    unban_parser.add_argument('user_id', help='Telegram ID of user to unban')
-    unban_parser.add_argument('--notify', action='store_true', help='Notify user about unban')
+    unban_parser = subparsers.add_parser("unban", help="Unban a user")
+    unban_parser.add_argument("user_id", help="Telegram ID of user to unban")
+    unban_parser.add_argument("--notify", action="store_true", help="Notify user about unban")
 
     def handle_unban(args):
         asyncio.run(unban_user_cli(args))
@@ -1518,31 +1500,31 @@ def main():
     unban_parser.set_defaults(func=handle_unban)
 
     # ── Multi-bot management (Card 19) ────────────────────────────────────────
-    bots_parser = subparsers.add_parser('bots', help='Manage multi-brand bots (Card 19)')
-    bots_sub = bots_parser.add_subparsers(dest='bots_command')
+    bots_parser = subparsers.add_parser("bots", help="Manage multi-brand bots (Card 19)")
+    bots_sub = bots_parser.add_subparsers(dest="bots_command")
 
     # bots list
-    bots_sub.add_parser('list', help='List all registered bots')
+    bots_sub.add_parser("list", help="List all registered bots")
 
     # bots add
-    bots_add = bots_sub.add_parser('add', help='Register a new bot for a brand')
-    bots_add.add_argument('--brand-slug', required=True, help='Brand slug (creates brand if absent)')
-    bots_add.add_argument('--brand-name', default=None, help='Brand display name (default: slug)')
-    bots_add.add_argument('--token', required=True, help='Telegram bot token from @BotFather')
-    bots_add.add_argument('--language', default='th', help='Default language (default: th)')
-    bots_add.add_argument('--currency', default='THB', help='Default currency (default: THB)')
-    bots_add.add_argument('--payments', default=None, help='Comma-separated payment methods')
+    bots_add = bots_sub.add_parser("add", help="Register a new bot for a brand")
+    bots_add.add_argument("--brand-slug", required=True, help="Brand slug (creates brand if absent)")
+    bots_add.add_argument("--brand-name", default=None, help="Brand display name (default: slug)")
+    bots_add.add_argument("--token", required=True, help="Telegram bot token from @BotFather")
+    bots_add.add_argument("--language", default="th", help="Default language (default: th)")
+    bots_add.add_argument("--currency", default="THB", help="Default currency (default: THB)")
+    bots_add.add_argument("--payments", default=None, help="Comma-separated payment methods")
 
     # bots activate / deactivate
-    bots_act = bots_sub.add_parser('activate', help='Activate a bot by brand slug')
-    bots_act.add_argument('--brand-slug', required=True)
-    bots_deact = bots_sub.add_parser('deactivate', help='Deactivate a bot by brand slug')
-    bots_deact.add_argument('--brand-slug', required=True)
+    bots_act = bots_sub.add_parser("activate", help="Activate a bot by brand slug")
+    bots_act.add_argument("--brand-slug", required=True)
+    bots_deact = bots_sub.add_parser("deactivate", help="Deactivate a bot by brand slug")
+    bots_deact.add_argument("--brand-slug", required=True)
 
     # bots delete
-    bots_del = bots_sub.add_parser('delete', help='Delete a BotConfig row (keeps brand/data)')
-    bots_del.add_argument('--brand-slug', required=True)
-    bots_del.add_argument('--confirm', action='store_true', help='Skip confirmation prompt')
+    bots_del = bots_sub.add_parser("delete", help="Delete a BotConfig row (keeps brand/data)")
+    bots_del.add_argument("--brand-slug", required=True)
+    bots_del.add_argument("--confirm", action="store_true", help="Skip confirmation prompt")
 
     def handle_bots(args):
         asyncio.run(_handle_bots_cmd(args))
@@ -1557,7 +1539,7 @@ def main():
         return
 
     # Execute command
-    if hasattr(args, 'func'):
+    if hasattr(args, "func"):
         args.func(args)
     else:
         parser.print_help()
@@ -1565,15 +1547,15 @@ def main():
 
 async def _handle_bots_cmd(args):
     """Dispatch bots sub-commands."""
-    from bot.database.models.main import BotConfig, Brand
     from bot.database.main import Database
+    from bot.database.models.main import BotConfig, Brand
 
-    sub = getattr(args, 'bots_command', None)
+    sub = getattr(args, "bots_command", None)
     if not sub:
         print("Usage: bot_cli.py bots <list|add|activate|deactivate|delete>")
         return
 
-    if sub == 'list':
+    if sub == "list":
         with Database().session() as s:
             configs = s.query(BotConfig).order_by(BotConfig.brand_id).all()
             if not configs:
@@ -1585,13 +1567,13 @@ async def _handle_bots_cmd(args):
                 brand = s.query(Brand).filter(Brand.id == cfg.brand_id).first()
                 slug = brand.slug if brand else "?"
                 username = cfg.bot_username or "(not cached)"
-                print(f"{cfg.brand_id:<10} {username:<25} {slug:<20} {str(cfg.is_active):<8} {cfg.id}")
+                print(f"{cfg.brand_id:<10} {username:<25} {slug:<20} {cfg.is_active!s:<8} {cfg.id}")
 
-    elif sub == 'add':
+    elif sub == "add":
         slug = args.brand_slug
         name = args.brand_name or slug
         token = args.token
-        payments = [p.strip() for p in args.payments.split(',')] if args.payments else None
+        payments = [p.strip() for p in args.payments.split(",")] if args.payments else None
 
         with Database().session() as s:
             brand = s.query(Brand).filter(Brand.slug == slug).first()
@@ -1634,10 +1616,10 @@ async def _handle_bots_cmd(args):
             s.add(cfg)
             s.commit()
             print(f"✅ Bot registered for brand '{slug}' (BotConfig id={cfg.id})")
-            print(f"   Run with MULTI_BOT_ENABLED=true to start all registered bots.")
+            print("   Run with MULTI_BOT_ENABLED=true to start all registered bots.")
 
-    elif sub in ('activate', 'deactivate'):
-        active = sub == 'activate'
+    elif sub in ("activate", "deactivate"):
+        active = sub == "activate"
         slug = args.brand_slug
         with Database().session() as s:
             brand = s.query(Brand).filter(Brand.slug == slug).first()
@@ -1653,12 +1635,12 @@ async def _handle_bots_cmd(args):
             verb = "activated" if active else "deactivated"
             print(f"✅ Bot for brand '{slug}' {verb} (restart backend to apply)")
 
-    elif sub == 'delete':
+    elif sub == "delete":
         slug = args.brand_slug
-        confirmed = getattr(args, 'confirm', False)
+        confirmed = getattr(args, "confirm", False)
         if not confirmed:
             resp = input(f"Delete BotConfig for brand '{slug}'? This does NOT delete the brand or its data. [y/N] ")
-            if resp.lower() != 'y':
+            if resp.lower() != "y":
                 print("Cancelled.")
                 return
         with Database().session() as s:
@@ -1678,6 +1660,5 @@ async def _handle_bots_cmd(args):
         print(f"Unknown bots sub-command: {sub}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-

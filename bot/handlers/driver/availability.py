@@ -41,11 +41,9 @@ def driver_menu_keyboard(driver: dict) -> InlineKeyboardMarkup | None:
     if driver["status"] != "approved":
         return None
     if driver["is_online"]:
-        btn = InlineKeyboardButton(text=localize("driver.menu.go_offline"),
-                                   callback_data="driver_go_offline")
+        btn = InlineKeyboardButton(text=localize("driver.menu.go_offline"), callback_data="driver_go_offline")
     else:
-        btn = InlineKeyboardButton(text=localize("driver.menu.go_online"),
-                                   callback_data="driver_go_online")
+        btn = InlineKeyboardButton(text=localize("driver.menu.go_online"), callback_data="driver_go_online")
     return InlineKeyboardMarkup(inline_keyboard=[[btn]])
 
 
@@ -79,20 +77,16 @@ async def _is_approved_driver(message: Message) -> bool:
 @router.message(F.location, F.chat.type == ChatType.PRIVATE, _is_approved_driver)
 async def driver_shares_location(message: Message):
     """Initial live/static location share from an approved driver."""
-    record_driver_location(message.from_user.id,
-                           message.location.latitude, message.location.longitude)
-    await _maybe_push_eta(message.bot, message.from_user.id,
-                          message.location.latitude, message.location.longitude)
+    record_driver_location(message.from_user.id, message.location.latitude, message.location.longitude)
+    await _maybe_push_eta(message.bot, message.from_user.id, message.location.latitude, message.location.longitude)
     await message.answer(localize("driver.location.received"))
 
 
 @router.edited_message(F.location, F.chat.type == ChatType.PRIVATE, _is_approved_driver)
 async def driver_location_update(message: Message):
     """Live-location pin move from an approved driver (Telegram edited_message)."""
-    record_driver_location(message.from_user.id,
-                           message.location.latitude, message.location.longitude)
-    await _maybe_push_eta(message.bot, message.from_user.id,
-                          message.location.latitude, message.location.longitude)
+    record_driver_location(message.from_user.id, message.location.latitude, message.location.longitude)
+    await _maybe_push_eta(message.bot, message.from_user.id, message.location.latitude, message.location.longitude)
 
 
 async def _maybe_push_eta(bot, driver_tg: int, lat: float, lng: float) -> None:

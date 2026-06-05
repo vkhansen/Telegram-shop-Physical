@@ -1,19 +1,26 @@
 """
 Tests for CRUD operations (Create, Read, Update, Delete)
 """
-import pytest
-from decimal import Decimal
-from datetime import datetime, timezone
-from unittest.mock import patch, MagicMock
 
-from bot.database.methods.create import create_user, create_item, create_category, add_to_cart
+from datetime import UTC, datetime
+from decimal import Decimal
+from unittest.mock import patch
+
+import pytest
+
+from bot.database.methods.create import add_to_cart, create_category, create_item, create_user
 from bot.database.methods.read import (
-    check_user, check_role, get_item_info, check_category,
-    select_item_values_amount, get_user_count, check_user_referrals,
-    get_bot_setting
+    check_category,
+    check_role,
+    check_user,
+    check_user_referrals,
+    get_bot_setting,
+    get_item_info,
+    get_user_count,
+    select_item_values_amount,
 )
-from bot.database.methods.update import set_role, update_item, update_category, ban_user, unban_user
-from bot.database.models.main import User, Goods, Categories, ShoppingCart
+from bot.database.methods.update import ban_user, set_role, unban_user, update_category, update_item
+from bot.database.models.main import Categories, Goods, ShoppingCart, User
 
 
 @pytest.mark.unit
@@ -24,7 +31,7 @@ class TestCreateOperations:
 
     def test_create_user(self, db_with_roles):
         """Test creating a user"""
-        registration_date = datetime.now(timezone.utc)
+        registration_date = datetime.now(UTC)
         create_user(999999999, registration_date, None, role=1)
 
         user = db_with_roles.query(User).filter_by(telegram_id=999999999).first()
@@ -34,7 +41,7 @@ class TestCreateOperations:
 
     def test_create_user_duplicate(self, db_with_roles, test_user):
         """Test creating duplicate user (should not create)"""
-        registration_date = datetime.now(timezone.utc)
+        registration_date = datetime.now(UTC)
         initial_count = db_with_roles.query(User).count()
 
         # Try to create duplicate
@@ -69,7 +76,7 @@ class TestCreateOperations:
             item_name="New Product",
             item_description="Description of new product",
             item_price=Decimal("49.99"),
-            category_name=test_category.name
+            category_name=test_category.name,
         )
 
         item = db_session.query(Goods).filter_by(name="New Product").first()
@@ -80,31 +87,34 @@ class TestCreateOperations:
     @pytest.mark.asyncio
     async def test_add_to_cart(self, db_session, test_user, test_goods):
         """Test adding item to cart"""
-        with patch('bot.database.methods.read.check_value', return_value=False):
-            with patch('bot.database.methods.read.select_item_values_amount_cached', return_value=100):
-                success, message = await add_to_cart(test_user.telegram_id, test_goods.name, 2)
+        with (
+            patch("bot.database.methods.read.check_value", return_value=False),
+            patch("bot.database.methods.read.select_item_values_amount_cached", return_value=100),
+        ):
+            success, message = await add_to_cart(test_user.telegram_id, test_goods.name, 2)
 
-                assert success == True
-                assert "added" in message.lower()
+            assert success
+            assert "added" in message.lower()
 
-                cart_item = db_session.query(ShoppingCart).filter_by(
-                    user_id=test_user.telegram_id,
-                    item_name=test_goods.name
-                ).first()
+            cart_item = (
+                db_session.query(ShoppingCart)
+                .filter_by(user_id=test_user.telegram_id, item_name=test_goods.name)
+                .first()
+            )
 
-                assert cart_item is not None
-                assert cart_item.quantity == 2
+            assert cart_item is not None
+            assert cart_item.quantity == 2
 
     @pytest.mark.asyncio
     async def test_add_to_cart_insufficient_stock(self, db_session, test_user, test_goods):
         """Test adding item to cart with insufficient stock.
         LOGIC-01: add_to_cart now uses locked row data directly for stock check."""
-        with patch('bot.database.methods.read.check_value', return_value=False):
+        with patch("bot.database.methods.read.check_value", return_value=False):
             # test_goods has stock=100, reserved=0, so available=100
             # Request quantity > 100 to trigger insufficient stock
             success, message = await add_to_cart(test_user.telegram_id, test_goods.name, 200)
 
-            assert success == False
+            assert not success
             assert "available" in message.lower()
 
 
@@ -118,7 +128,7 @@ class TestReadOperations:
         """Test checking if user exists"""
         result = check_user(test_user.telegram_id)
         assert result is not None
-        assert result['telegram_id'] == test_user.telegram_id
+        assert result["telegram_id"] == test_user.telegram_id
 
     def test_check_user_not_found(self, db_session):
         """Test checking non-existent user"""
@@ -134,14 +144,14 @@ class TestReadOperations:
         """Test getting item information"""
         info = get_item_info(test_goods.name)
         assert info is not None
-        assert info['name'] == test_goods.name
-        assert Decimal(str(info['price'])) == test_goods.price
+        assert info["name"] == test_goods.name
+        assert Decimal(str(info["price"])) == test_goods.price
 
     def test_check_category(self, db_session, test_category):
         """Test checking category"""
         result = check_category(test_category.name)
         assert result is not None
-        assert result['name'] == test_category.name
+        assert result["name"] == test_category.name
 
     def test_select_item_values_amount(self, db_session, test_goods):
         """Test getting available stock quantity"""
@@ -156,7 +166,7 @@ class TestReadOperations:
             description="Test",
             category_name=test_category.name,
             stock_quantity=100,
-            reserved_quantity=30
+            reserved_quantity=30,
         )
         db_session.add(goods)
         db_session.commit()
@@ -172,12 +182,7 @@ class TestReadOperations:
     def test_check_user_referrals(self, db_with_roles):
         """Test checking user referrals"""
         # Create referrer
-        referrer = User(
-            telegram_id=111111111,
-            role_id=1,
-            registration_date=datetime.now(timezone.utc),
-            referral_id=None
-        )
+        referrer = User(telegram_id=111111111, role_id=1, registration_date=datetime.now(UTC), referral_id=None)
         db_with_roles.add(referrer)
         db_with_roles.flush()
 
@@ -186,8 +191,8 @@ class TestReadOperations:
             referred = User(
                 telegram_id=222222220 + i,
                 role_id=1,
-                registration_date=datetime.now(timezone.utc),
-                referral_id=referrer.telegram_id
+                registration_date=datetime.now(UTC),
+                referral_id=referrer.telegram_id,
             )
             db_with_roles.add(referred)
 
@@ -198,13 +203,13 @@ class TestReadOperations:
 
     def test_get_bot_setting(self, test_bot_settings):
         """Test getting bot setting"""
-        value = get_bot_setting('reference_bonus_percent', default='0', value_type=Decimal)
-        assert value == Decimal('5')
+        value = get_bot_setting("reference_bonus_percent", default="0", value_type=Decimal)
+        assert value == Decimal("5")
 
     def test_get_bot_setting_with_default(self, db_session):
         """Test getting non-existent setting returns default"""
-        value = get_bot_setting('non_existent_setting', default='default_value')
-        assert value == 'default_value'
+        value = get_bot_setting("non_existent_setting", default="default_value")
+        assert value == "default_value"
 
 
 @pytest.mark.unit
@@ -227,10 +232,10 @@ class TestUpdateOperations:
             new_name=test_goods.name,  # Same name
             description="Updated description",
             price=Decimal("149.99"),
-            category=test_goods.category_name
+            category=test_goods.category_name,
         )
 
-        assert success == True
+        assert success
         assert error is None
 
         db_session.refresh(test_goods)
@@ -247,10 +252,10 @@ class TestUpdateOperations:
             new_name=new_name,
             description=test_goods.description,
             price=test_goods.price,
-            category=test_category.name
+            category=test_category.name,
         )
 
-        assert success == True
+        assert success
         assert error is None
 
         # Old item should not exist
@@ -291,11 +296,7 @@ class TestBanOperations:
     def test_ban_user(self, db_with_roles, test_user, test_admin):
         """Test banning a user"""
         # Ban the user
-        success = ban_user(
-            test_user.telegram_id,
-            banned_by=test_admin.telegram_id,
-            reason="Test ban"
-        )
+        success = ban_user(test_user.telegram_id, banned_by=test_admin.telegram_id, reason="Test ban")
 
         assert success is True
 
@@ -308,11 +309,7 @@ class TestBanOperations:
 
     def test_ban_nonexistent_user(self, db_with_roles):
         """Test banning a non-existent user"""
-        success = ban_user(
-            999999999,
-            banned_by=123456789,
-            reason="Test"
-        )
+        success = ban_user(999999999, banned_by=123456789, reason="Test")
 
         assert success is False
 
@@ -322,11 +319,7 @@ class TestBanOperations:
         ban_user(test_user.telegram_id, banned_by=test_admin.telegram_id, reason="First ban")
 
         # Try to ban again
-        success = ban_user(
-            test_user.telegram_id,
-            banned_by=test_admin.telegram_id,
-            reason="Second ban"
-        )
+        success = ban_user(test_user.telegram_id, banned_by=test_admin.telegram_id, reason="Second ban")
 
         assert success is False
 

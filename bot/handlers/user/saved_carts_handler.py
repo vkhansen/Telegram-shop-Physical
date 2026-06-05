@@ -10,6 +10,7 @@ Flow:
   Restore replaces the active cart, re-adds available items (skipping any that are
   no longer orderable), consumes the snapshot, and offers a jump to the cart.
 """
+
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
@@ -37,13 +38,15 @@ async def _render_saved_carts(call: CallbackQuery, state: FSMContext):
     lines = [localize("saved_carts.title"), ""]
     for c in carts:
         store = f" · {c['store_name']}" if c["store_name"] else ""
-        lines.append(localize(
-            "saved_carts.entry",
-            brand=c["brand_name"],
-            store=store,
-            n=c["item_count"],
-            total=c["total"],
-        ))
+        lines.append(
+            localize(
+                "saved_carts.entry",
+                brand=c["brand_name"],
+                store=store,
+                n=c["item_count"],
+                total=c["total"],
+            )
+        )
     await call.message.edit_text(
         "\n".join(lines),
         reply_markup=saved_carts_keyboard(carts),
@@ -85,10 +88,12 @@ async def restore_cart(call: CallbackQuery, state: FSMContext):
 
     await call.message.edit_text(
         text,
-        reply_markup=simple_buttons([
-            (localize("btn.cart"), "view_cart"),
-            (localize("btn.back"), "profile"),
-        ]),
+        reply_markup=simple_buttons(
+            [
+                (localize("btn.cart"), "view_cart"),
+                (localize("btn.back"), "profile"),
+            ]
+        ),
     )
 
 

@@ -1,14 +1,15 @@
 """Tests for bot.tasks.payment_checker — background crypto payment polling."""
 
-import pytest
-from datetime import datetime, timezone, timedelta
+import contextlib
 from decimal import Decimal
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from bot.tasks.payment_checker import (
-    check_pending_payments,
     _auto_confirm_order,
     _expire_order,
+    check_pending_payments,
 )
 
 
@@ -85,7 +86,9 @@ class TestCheckPendingPayments:
         # Setup mock verifier
         verifier = AsyncMock()
         verifier.check_payment.return_value = TxResult(
-            found=True, tx_hash="abc123", amount=Decimal("0.5"),
+            found=True,
+            tx_hash="abc123",
+            amount=Decimal("0.5"),
             confirmations=1,
         )
         mock_get_verifier.return_value = verifier
@@ -111,12 +114,10 @@ class TestCheckPendingPayments:
 
         bot = AsyncMock()
 
-        # Patch the import inside check_pending_payments
-        with patch("bot.tasks.payment_checker.get_verifier", mock_get_verifier):
-            try:
-                await check_pending_payments(bot)
-            except Exception:
-                pass  # May fail due to complex DB mocking, that's OK
+        # Patch the import inside check_pending_payments.
+        # May fail due to complex DB mocking, that's OK.
+        with patch("bot.tasks.payment_checker.get_verifier", mock_get_verifier), contextlib.suppress(Exception):
+            await check_pending_payments(bot)
 
         # At minimum verify the verifier was set up correctly
         assert verifier.check_payment is not None

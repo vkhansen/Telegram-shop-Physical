@@ -1,7 +1,7 @@
 import logging
 import time
 from datetime import datetime
-from typing import Optional
+
 import pytz
 from pytz.exceptions import UnknownTimeZoneError
 
@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 
 # MISC-03 fix: Cache with TTL (3600 seconds = 1 hour)
 _TIMEZONE_CACHE_TTL = 3600
-_cached_timezone: Optional[str] = None
-_cached_tz_object: Optional[pytz.tzinfo.BaseTzInfo] = None
+_cached_timezone: str | None = None
+_cached_tz_object: pytz.tzinfo.BaseTzInfo | None = None
 _cache_timestamp: float = 0
 
 
@@ -32,7 +32,7 @@ def get_timezone() -> str:
     from bot.database.methods.read import get_bot_setting
 
     try:
-        timezone_str = get_bot_setting('timezone', default='Asia/Bangkok', value_type=str)
+        timezone_str = get_bot_setting("timezone", default="Asia/Bangkok", value_type=str)
         # Validate timezone
         try:
             pytz.timezone(timezone_str)

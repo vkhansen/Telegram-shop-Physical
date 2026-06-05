@@ -7,13 +7,14 @@ Provides:
 - Toggle coupon active/inactive status
 - View coupon details with usage stats
 """
+
 import random
 import string
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
-from aiogram import Router, F
-from aiogram.filters.state import StatesGroup, State
+from aiogram import F, Router
+from aiogram.filters.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
@@ -29,6 +30,7 @@ PAGE_SIZE = 10
 
 
 # ── FSM States ───────────────────────────────────────────────────────
+
 
 class CouponAdminStates(StatesGroup):
     waiting_code = State()
@@ -58,6 +60,7 @@ def _format_coupon_line(c: Coupon) -> str:
 
 # ── Management menu ──────────────────────────────────────────────────
 
+
 @router.callback_query(F.data == "coupon_management", HasPermissionFilter(permission=Permission.SHOP_MANAGE))
 async def coupon_management(call: CallbackQuery, state: FSMContext):
     """Show coupon management menu."""
@@ -75,6 +78,7 @@ async def coupon_management(call: CallbackQuery, state: FSMContext):
 
 
 # ── Coupon creation flow ─────────────────────────────────────────────
+
 
 @router.callback_query(F.data == "admin_create_coupon", HasPermissionFilter(permission=Permission.SHOP_MANAGE))
 async def create_coupon_start(call: CallbackQuery, state: FSMContext):
@@ -223,7 +227,7 @@ async def process_expiry(message: Message, state: FSMContext):
             days = int(text)
             if days <= 0:
                 raise ValueError
-            valid_until = datetime.now(timezone.utc) + timedelta(days=days)
+            valid_until = datetime.now(UTC) + timedelta(days=days)
         except ValueError:
             await message.answer(localize("admin.coupon.invalid_expiry"))
             return
@@ -238,7 +242,7 @@ async def process_expiry(message: Message, state: FSMContext):
             discount_value=Decimal(data["discount_value"]),
             min_order=Decimal(data.get("min_order", "0")),
             max_uses=data.get("max_uses"),
-            valid_from=datetime.now(timezone.utc),
+            valid_from=datetime.now(UTC),
             valid_until=valid_until,
             created_by=data.get("creator_id"),
         )
@@ -248,11 +252,7 @@ async def process_expiry(message: Message, state: FSMContext):
     await state.clear()
 
     # Build summary
-    discount_str = (
-        f"{data['discount_value']}%"
-        if data["discount_type"] == "percent"
-        else f"${data['discount_value']}"
-    )
+    discount_str = f"{data['discount_value']}%" if data["discount_type"] == "percent" else f"${data['discount_value']}"
     max_uses_str = str(data.get("max_uses")) if data.get("max_uses") else "Unlimited"
     expiry_str = valid_until.strftime("%Y-%m-%d %H:%M UTC") if valid_until else "Never"
 
@@ -272,8 +272,11 @@ async def process_expiry(message: Message, state: FSMContext):
 
 # ── List coupons ─────────────────────────────────────────────────────
 
-@router.callback_query(F.data.in_({"admin_list_coupons_active", "admin_list_coupons_all"}),
-                       HasPermissionFilter(permission=Permission.SHOP_MANAGE))
+
+@router.callback_query(
+    F.data.in_({"admin_list_coupons_active", "admin_list_coupons_all"}),
+    HasPermissionFilter(permission=Permission.SHOP_MANAGE),
+)
 async def admin_list_coupons(call: CallbackQuery, state: FSMContext):
     """List coupons with usage stats."""
     active_only = call.data == "admin_list_coupons_active"
@@ -306,6 +309,7 @@ async def admin_list_coupons(call: CallbackQuery, state: FSMContext):
 
 
 # ── View coupon details ──────────────────────────────────────────────
+
 
 @router.callback_query(F.data.startswith("admin_view_coupon_"), HasPermissionFilter(permission=Permission.SHOP_MANAGE))
 async def admin_view_coupon(call: CallbackQuery, state: FSMContext):
@@ -365,7 +369,10 @@ async def admin_view_coupon(call: CallbackQuery, state: FSMContext):
 
 # ── Toggle coupon active status ──────────────────────────────────────
 
-@router.callback_query(F.data.startswith("admin_toggle_coupon_"), HasPermissionFilter(permission=Permission.SHOP_MANAGE))
+
+@router.callback_query(
+    F.data.startswith("admin_toggle_coupon_"), HasPermissionFilter(permission=Permission.SHOP_MANAGE)
+)
 async def admin_toggle_coupon(call: CallbackQuery, state: FSMContext):
     """Activate or deactivate a coupon."""
     try:

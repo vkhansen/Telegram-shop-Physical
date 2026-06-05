@@ -20,14 +20,13 @@ from bot.database.models.main import Brand, Store
 class PaymentTarget:
     """Where an order's PromptPay payment should go and how to verify its slip."""
 
-    promptpay_id: str = ""              # "" if no dynamic id configured anywhere
-    promptpay_name: str = ""            # account name → expected slip receiver
+    promptpay_id: str = ""  # "" if no dynamic id configured anywhere
+    promptpay_name: str = ""  # account name → expected slip receiver
     static_qr_file_id: str | None = None  # store's pre-made static QR image, if any
-    source: str = "global"             # "store" | "brand" | "global" (for logging/tests)
+    source: str = "global"  # "store" | "brand" | "global" (for logging/tests)
 
 
-def resolve_payment_target(store_id: int | None = None,
-                           brand_id: int | None = None) -> PaymentTarget:
+def resolve_payment_target(store_id: int | None = None, brand_id: int | None = None) -> PaymentTarget:
     """Resolve the PromptPay target for an order, store → brand → global.
 
     A store "wins" if it has either its own dynamic PromptPay id *or* a static
@@ -57,6 +56,7 @@ def resolve_payment_target(store_id: int | None = None,
 
     # Global fallback — lazy import avoids a module-load cycle with the admin handler.
     from bot.handlers.admin.settings_management import get_promptpay_id, get_promptpay_name
+
     return PaymentTarget(
         promptpay_id=get_promptpay_id() or "",
         promptpay_name=get_promptpay_name() or "",

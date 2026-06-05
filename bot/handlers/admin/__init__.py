@@ -1,22 +1,22 @@
-from .main import router as main_router
+from aiogram import Router
+
+from .accounting_handler import router as accounting_router
 from .adding_position_states import router as adding_position_states_router
 from .broadcast import router as broadcast_router
 from .categories_management_states import router as categories_management_router
+from .coupon_management import router as coupon_management_router
 from .goods_management_states import router as goods_management_router
+from .grok_assistant import router as grok_assistant_router
+from .main import router as main_router
+from .order_management import router as order_management_router
+from .reference_code_management import router as reference_code_management_router
+from .segmented_broadcast import router as segmented_broadcast_router
+from .settings_management import router as settings_management_router
 from .shop_management_states import router as shop_management_router
+from .store_management import router as store_management_router
+from .ticket_management import router as ticket_management_router
 from .update_position_states import router as update_position_router
 from .user_management_states import router as user_management_router
-from .reference_code_management import router as reference_code_management_router
-from .settings_management import router as settings_management_router
-from .order_management import router as order_management_router
-from .coupon_management import router as coupon_management_router
-from .accounting_handler import router as accounting_router
-from .ticket_management import router as ticket_management_router
-from .segmented_broadcast import router as segmented_broadcast_router
-from .store_management import router as store_management_router
-from .grok_assistant import router as grok_assistant_router
-
-from aiogram import Router
 
 router = Router()
 router.include_router(main_router)

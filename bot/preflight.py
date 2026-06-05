@@ -17,6 +17,7 @@ Checks:
 10. Locale is valid
 11. Monitoring port is available
 """
+
 import logging
 import os
 import socket
@@ -62,7 +63,7 @@ class PreflightReport:
         return len(self.failures) == 0
 
     def log_report(self):
-        total = len(self.checks)
+        len(self.checks)
         passed = len(self.passed)
         warns = len(self.warnings)
         fails = len(self.failures)
@@ -92,7 +93,7 @@ def _check_env_vars(report: PreflightReport):
     # Required
     if not EnvKeys.TOKEN:
         report.add("TOKEN", "fail", "Not set — bot cannot start without a Telegram token")
-    elif EnvKeys.TOKEN == "your_bot_token_here":
+    elif EnvKeys.TOKEN == "your_bot_token_here":  # noqa: S105 — placeholder/marker string, not a secret
         report.add("TOKEN", "fail", "Still set to placeholder value from .env.example")
     else:
         report.add("TOKEN", "pass", f"Set ({len(EnvKeys.TOKEN)} chars)")
@@ -108,10 +109,10 @@ def _check_env_vars(report: PreflightReport):
 
     # Database
     if os.getenv("POSTGRES_HOST") or os.path.exists("/.dockerenv"):
-        db_user = os.getenv("POSTGRES_USER")
+        os.getenv("POSTGRES_USER")
         db_pass = os.getenv("POSTGRES_PASSWORD")
         db_name = os.getenv("POSTGRES_DB")
-        if not db_pass or db_pass == "change_me_to_strong_password":
+        if not db_pass or db_pass == "change_me_to_strong_password":  # noqa: S105 — placeholder/marker string, not a secret
             report.add("POSTGRES_PASSWORD", "warn", "Using default/weak password")
         else:
             report.add("POSTGRES_PASSWORD", "pass", "Set")
@@ -128,7 +129,7 @@ def _check_env_vars(report: PreflightReport):
         if len(ppid) == 10 and ppid.isdigit():
             report.add("PROMPTPAY_ID", "pass", f"Phone format ({ppid[:3]}***)", required=False)
         elif len(ppid) == 13 and ppid.isdigit():
-            report.add("PROMPTPAY_ID", "pass", f"National ID format", required=False)
+            report.add("PROMPTPAY_ID", "pass", "National ID format", required=False)
         else:
             report.add("PROMPTPAY_ID", "warn", f"Unusual format: '{ppid}' (expected 10 or 13 digits)", required=False)
     else:
@@ -136,6 +137,7 @@ def _check_env_vars(report: PreflightReport):
 
     # Locale
     from bot.i18n.strings import AVAILABLE_LOCALES
+
     bot_locale = EnvKeys.BOT_LOCALE
     if bot_locale in AVAILABLE_LOCALES:
         report.add("BOT_LOCALE", "pass", f"{bot_locale} ({AVAILABLE_LOCALES[bot_locale]})")
@@ -146,6 +148,7 @@ def _check_env_vars(report: PreflightReport):
     tz = os.getenv("TIMEZONE", "Asia/Bangkok")
     try:
         import pytz
+
         pytz.timezone(tz)
         report.add("TIMEZONE", "pass", tz)
     except Exception:
@@ -191,12 +194,13 @@ def _check_env_vars(report: PreflightReport):
 
 async def _check_telegram_api(report: PreflightReport):
     """Verify Telegram Bot API token is valid."""
-    if not EnvKeys.TOKEN or EnvKeys.TOKEN == "your_bot_token_here":
+    if not EnvKeys.TOKEN or EnvKeys.TOKEN == "your_bot_token_here":  # noqa: S105 — placeholder/marker string, not a secret
         return  # Already reported in env check
 
     try:
         from aiogram import Bot
         from aiogram.client.default import DefaultBotProperties
+
         bot = Bot(token=EnvKeys.TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
         try:
             me = await bot.get_me()
@@ -216,15 +220,16 @@ async def _check_telegram_api(report: PreflightReport):
 def _check_database(report: PreflightReport):
     """Verify PostgreSQL is connectable and has tables."""
     try:
-        from bot.database.main import Database
         from sqlalchemy import inspect
+
+        from bot.database.main import Database
 
         db = Database()
         inspector = inspect(db.engine)
         tables = inspector.get_table_names()
 
         expected = {"users", "roles", "orders", "goods", "categories"}
-        found = expected & set(tables)
+        expected & set(tables)
         missing = expected - set(tables)
 
         if missing:
@@ -242,20 +247,24 @@ def _check_database(report: PreflightReport):
 def _check_data_integrity(report: PreflightReport):
     """Report brand/store/menu integrity violations (non-blocking)."""
     try:
-        from bot.database.main import Database
         from bot.database.integrity import check_integrity, summarize
+        from bot.database.main import Database
 
         with Database().session() as session:
             violations = check_integrity(session)
         s = summarize(violations)
         if s["errors"]:
             sample = "; ".join(str(v.detail) for v in violations[:3])
-            report.add("Data Integrity", "warn",
-                       f"{s['errors']} error(s), {s['warnings']} warning(s) — run scripts/validate_data.py "
-                       f"(e.g. {sample})", required=False)
+            report.add(
+                "Data Integrity",
+                "warn",
+                f"{s['errors']} error(s), {s['warnings']} warning(s) — run scripts/validate_data.py (e.g. {sample})",
+                required=False,
+            )
         elif s["warnings"]:
-            report.add("Data Integrity", "warn",
-                       f"{s['warnings']} warning(s) — run scripts/validate_data.py", required=False)
+            report.add(
+                "Data Integrity", "warn", f"{s['warnings']} warning(s) — run scripts/validate_data.py", required=False
+            )
         else:
             report.add("Data Integrity", "pass", "No orphans or broken configs", required=False)
     except Exception as e:
@@ -270,6 +279,7 @@ def _check_redis(report: PreflightReport):
 
     try:
         import redis
+
         r = redis.Redis(
             host=EnvKeys.REDIS_HOST,
             port=EnvKeys.REDIS_PORT,
@@ -298,8 +308,9 @@ def _check_monitoring_port(report: PreflightReport):
         result = sock.connect_ex((host if host != "0.0.0.0" else "127.0.0.1", port))
         sock.close()
         if result == 0:
-            report.add("Monitoring Port", "warn",
-                        f"Port {port} already in use — monitoring may fail to start", required=False)
+            report.add(
+                "Monitoring Port", "warn", f"Port {port} already in use — monitoring may fail to start", required=False
+            )
         else:
             report.add("Monitoring Port", "pass", f"{host}:{port} available", required=False)
     except Exception:
@@ -308,16 +319,16 @@ def _check_monitoring_port(report: PreflightReport):
 
 async def _check_telegram_groups(report: PreflightReport):
     """Verify kitchen/rider groups are accessible (if configured)."""
-    if not EnvKeys.TOKEN or EnvKeys.TOKEN == "your_bot_token_here":
+    if not EnvKeys.TOKEN or EnvKeys.TOKEN == "your_bot_token_here":  # noqa: S105 — placeholder/marker string, not a secret
         return
 
     from aiogram import Bot
     from aiogram.client.default import DefaultBotProperties
+
     bot = Bot(token=EnvKeys.TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 
     try:
-        for name, group_id in [("Kitchen Group", EnvKeys.KITCHEN_GROUP_ID),
-                                ("Rider Group", EnvKeys.RIDER_GROUP_ID)]:
+        for name, group_id in [("Kitchen Group", EnvKeys.KITCHEN_GROUP_ID), ("Rider Group", EnvKeys.RIDER_GROUP_ID)]:
             if not group_id:
                 continue
             try:

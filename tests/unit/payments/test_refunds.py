@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from bot.database.models.main import Order, CustomerInfo, Refund
+from bot.database.models.main import Order, Refund
 from bot.payments.refunds import reverse_payment
 
 
@@ -25,7 +25,6 @@ def _order(buyer_id, code, *, status, bonus, method="promptpay", total="200"):
 @pytest.mark.unit
 @pytest.mark.payments
 class TestRefunds:
-
     def test_cancel_restores_bonus(self, db_session, test_user, test_customer_info):
         test_customer_info.bonus_balance = Decimal("50")
         db_session.commit()
@@ -55,7 +54,7 @@ class TestRefunds:
         db_session.commit()
 
         with patch("bot.payments.refunds.log_order_refund") as mock_log:
-            refund = reverse_payment(order, db_session, reason="admin cancel", created_by=999)
+            reverse_payment(order, db_session, reason="admin cancel", created_by=999)
             db_session.commit()
 
         rows = db_session.query(Refund).filter_by(order_id=order.id).all()

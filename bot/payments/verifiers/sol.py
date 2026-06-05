@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -18,7 +18,6 @@ LAMPORTS = Decimal("1000000000")
 
 
 class SOLVerifier(ChainVerifier):
-
     def required_confirmations(self) -> int:
         return 1  # finalized commitment already implies sufficient confirmations
 
@@ -28,6 +27,7 @@ class SOLVerifier(ChainVerifier):
     @staticmethod
     def _rpc_url() -> str:
         from bot.config.env import EnvKeys
+
         return EnvKeys.SOLANA_RPC_URL
 
     async def check_payment(self, address: str, expected_amount: Decimal) -> TxResult:
@@ -35,9 +35,7 @@ class SOLVerifier(ChainVerifier):
         try:
             return await self._query(address, expected_amount)
         except Exception:
-            logger.error(
-                "SOL verifier: failed to check address %s", address, exc_info=True
-            )
+            logger.error("SOL verifier: failed to check address %s", address, exc_info=True)
             return TxResult(found=False)
 
     async def _query(self, address: str, expected_amount: Decimal) -> TxResult:
@@ -71,9 +69,7 @@ class SOLVerifier(ChainVerifier):
                 if sig_info.get("err") is not None:
                     continue
 
-                tx_result = await self._check_transaction(
-                    client, rpc_url, signature, address, expected_amount
-                )
+                tx_result = await self._check_transaction(client, rpc_url, signature, address, expected_amount)
                 if tx_result and tx_result.found:
                     return tx_result
 
@@ -86,7 +82,7 @@ class SOLVerifier(ChainVerifier):
         signature: str,
         address: str,
         expected_amount: Decimal,
-    ) -> Optional[TxResult]:
+    ) -> TxResult | None:
         tx_payload = {
             "jsonrpc": "2.0",
             "id": 1,
@@ -147,10 +143,9 @@ class SOLVerifier(ChainVerifier):
             for i, acct in enumerate(accounts):
                 if i == addr_index:
                     continue
-                if i < len(pre_balances) and i < len(post_balances):
-                    if post_balances[i] < pre_balances[i]:
-                        from_address = acct
-                        break
+                if i < len(pre_balances) and i < len(post_balances) and post_balances[i] < pre_balances[i]:
+                    from_address = acct
+                    break
 
             slot = result.get("slot")
             block_time = result.get("blockTime")

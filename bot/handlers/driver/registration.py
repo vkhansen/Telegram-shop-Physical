@@ -5,6 +5,7 @@ owner approves/rejects it from an inline prompt. Approval promotes the user into
 a real ``Driver`` record they can then bring online.
 """
 
+import contextlib
 import logging
 
 from aiogram import F, Router
@@ -64,11 +65,12 @@ async def reg_phone(message: Message, state: FSMContext):
         await message.answer(localize("driver.register.invalid_phone"))
         return
     await state.update_data(phone=phone)
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=localize(f"driver.vehicle.{v}"),
-                              callback_data=f"driver_vehicle_{v}")]
-        for v in VEHICLE_TYPES
-    ])
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=localize(f"driver.vehicle.{v}"), callback_data=f"driver_vehicle_{v}")]
+            for v in VEHICLE_TYPES
+        ]
+    )
     await message.answer(localize("driver.register.ask_vehicle"), reply_markup=kb)
     await state.set_state(DriverRegistrationStates.waiting_vehicle)
 
@@ -104,15 +106,19 @@ async def _notify_admins_new_application(call: CallbackQuery, name: str, phone: 
     tg = call.from_user.id
     text = localize(
         "admin.driver.new_application",
-        name=name or "—", phone=phone or "—",
-        vehicle=localize(f"driver.vehicle.{vehicle}"), tg=tg,
+        name=name or "—",
+        phone=phone or "—",
+        vehicle=localize(f"driver.vehicle.{vehicle}"),
+        tg=tg,
     )
-    kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text=localize("admin.driver.approve_btn"),
-                            callback_data=f"driver_approve_{tg}"),
-        InlineKeyboardButton(text=localize("admin.driver.reject_btn"),
-                            callback_data=f"driver_reject_{tg}"),
-    ]])
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text=localize("admin.driver.approve_btn"), callback_data=f"driver_approve_{tg}"),
+                InlineKeyboardButton(text=localize("admin.driver.reject_btn"), callback_data=f"driver_reject_{tg}"),
+            ]
+        ]
+    )
     try:
         await call.bot.send_message(int(owner_id), text, reply_markup=kb)
     except Exception:
@@ -133,10 +139,8 @@ async def approve(call: CallbackQuery):
         await call.answer(localize("admin.driver.not_found"), show_alert=True)
         return
     await call.message.edit_text(call.message.text + "\n\n" + localize("admin.driver.approved_admin"))
-    try:
+    with contextlib.suppress(Exception):
         await call.bot.send_message(tg, localize("driver.approved"))
-    except Exception:
-        pass
     await call.answer()
 
 
@@ -150,8 +154,6 @@ async def reject(call: CallbackQuery):
         await call.answer(localize("admin.driver.not_found"), show_alert=True)
         return
     await call.message.edit_text(call.message.text + "\n\n" + localize("admin.driver.rejected_admin"))
-    try:
+    with contextlib.suppress(Exception):
         await call.bot.send_message(tg, localize("driver.rejected"))
-    except Exception:
-        pass
     await call.answer()

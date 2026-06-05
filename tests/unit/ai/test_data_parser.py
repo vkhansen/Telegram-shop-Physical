@@ -23,7 +23,7 @@ class TestParseCsvToText:
         assert "empty" in result.lower() or "no headers" in result.lower()
 
     def test_many_rows_shows_preview(self):
-        lines = ["name,price"] + [f"Item{i},{i*10}" for i in range(20)]
+        lines = ["name,price"] + [f"Item{i},{i * 10}" for i in range(20)]
         result = _parse_csv_to_text("\n".join(lines).encode())
         assert "First 5 rows" in result
         assert "15 more rows" in result

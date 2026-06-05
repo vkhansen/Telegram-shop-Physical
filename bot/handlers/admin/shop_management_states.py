@@ -1,34 +1,38 @@
 import asyncio
-from typing import Optional
-
-from aiogram import Router, F
-from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery
-from aiogram.types import FSInputFile
-
-from pathlib import Path
 import datetime
+from pathlib import Path
 
-from bot.database.models import Permission
-from bot.database.methods import (
-    select_today_users, select_admins, get_user_count, select_today_orders,
-    select_all_orders,
-    select_count_items, select_count_goods, select_count_categories, select_count_bought_items,
-    check_user_referrals, check_role_name_by_id, select_user_items,
-    query_admins, query_all_users, check_user_cached
-)
-from bot.keyboards import back, simple_buttons, lazy_paginated_keyboard
-from bot.filters import HasPermissionFilter
-from bot.config import EnvKeys
-from bot.utils import LazyPaginator
+from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, FSInputFile
+
 from bot.caching import StatsCache, get_cache_manager
-from bot.monitoring import get_metrics
+from bot.config import EnvKeys
+from bot.database.methods import (
+    check_role_name_by_id,
+    check_user_cached,
+    check_user_referrals,
+    get_user_count,
+    query_admins,
+    query_all_users,
+    select_admins,
+    select_count_categories,
+    select_count_goods,
+    select_count_items,
+    select_today_users,
+    select_user_items,
+)
+from bot.database.models import Permission
+from bot.filters import HasPermissionFilter
 from bot.i18n import localize
+from bot.keyboards import back, lazy_paginated_keyboard, simple_buttons
+from bot.monitoring import get_metrics
+from bot.utils import LazyPaginator
 
 router = Router()
 
 # Initialize StatsCache as a global variable
-stats_cache: Optional[StatsCache] = None
+stats_cache: StatsCache | None = None
 
 
 def init_stats_cache():
@@ -37,7 +41,9 @@ def init_stats_cache():
     cache_manager = get_cache_manager()
     if cache_manager:
         stats_cache = StatsCache(cache_manager)
-        asyncio.create_task(stats_cache.warm_up_cache())
+        from bot.utils.background import track_task
+
+        track_task(asyncio.create_task(stats_cache.warm_up_cache()))
 
 
 @router.callback_query(F.data == "shop_management", HasPermissionFilter(Permission.SHOP_MANAGE))
@@ -66,16 +72,16 @@ async def logs_callback_handler(call: CallbackQuery):
     # LOGIC-07 fix: Wrap strings in Path() objects
     audit_file_path = Path("logs/audit.log")
     if audit_file_path.exists() and audit_file_path.stat().st_size > 0:
-        files_to_send.append(('audit', audit_file_path))
+        files_to_send.append(("audit", audit_file_path))
 
     bot_file_path = Path("logs/bot.log")
     if bot_file_path.exists() and bot_file_path.stat().st_size > 0:
-        files_to_send.append(('bot', bot_file_path))
+        files_to_send.append(("bot", bot_file_path))
 
     if files_to_send:
         for log_type, file_path in files_to_send:
             doc = FSInputFile(file_path, filename=file_path.name)
-            caption = localize("admin.shop.logs.caption") if log_type == 'audit' else f"{log_type.title()} log file"
+            caption = localize("admin.shop.logs.caption") if log_type == "audit" else f"{log_type.title()} log file"
             await call.message.bot.send_document(
                 chat_id=call.message.chat.id,
                 document=doc,
@@ -105,13 +111,13 @@ async def statistics_callback_handler(call: CallbackQuery):
         # LOGIC-27 fix: Use cached categories count instead of DB query inside cached branch
         text = localize(
             "admin.shop.stats.template",
-            today_users=daily_stats['users'],
-            admins=global_stats['total_admins'],
-            users=global_stats['total_users'],
-            items=global_stats['total_items'],
-            goods=global_stats['total_goods'],
-            categories=global_stats.get('total_categories', select_count_categories()),
-            currency=EnvKeys.PAY_CURRENCY
+            today_users=daily_stats["users"],
+            admins=global_stats["total_admins"],
+            users=global_stats["total_users"],
+            items=global_stats["total_items"],
+            goods=global_stats["total_goods"],
+            categories=global_stats.get("total_categories", select_count_categories()),
+            currency=EnvKeys.PAY_CURRENCY,
         )
 
     else:
@@ -124,7 +130,7 @@ async def statistics_callback_handler(call: CallbackQuery):
             items=select_count_items(),
             goods=select_count_goods(),
             categories=select_count_categories(),
-            currency=EnvKeys.PAY_CURRENCY
+            currency=EnvKeys.PAY_CURRENCY,
         )
 
     await call.message.edit_text(text, reply_markup=back("shop_management"), parse_mode="HTML")
@@ -165,7 +171,7 @@ async def navigate_admins(call: CallbackQuery, state: FSMContext):
 
     # Get saved state
     data = await state.get_data()
-    paginator_state = data.get('admins_paginator')
+    paginator_state = data.get("admins_paginator")
 
     # Create paginator with cached state
     paginator = LazyPaginator(query_admins, per_page=10, state=paginator_state)
@@ -220,7 +226,7 @@ async def navigate_users(call: CallbackQuery, state: FSMContext):
 
     # Get saved state
     data = await state.get_data()
-    paginator_state = data.get('users_paginator')
+    paginator_state = data.get("users_paginator")
 
     # Create paginator with cached state
     paginator = LazyPaginator(query_all_users, per_page=10, state=paginator_state)
@@ -251,12 +257,12 @@ async def show_user_info(call: CallbackQuery):
 
     user = await check_user_cached(user_id)
     if not user:
-        await call.answer(localize('admin.users.not_found'), show_alert=True)
+        await call.answer(localize("admin.users.not_found"), show_alert=True)
         return
     user_info = await call.message.bot.get_chat(user_id)
     items = select_user_items(user_id)
-    role = check_role_name_by_id(user.get('role_id'))
-    referrals = check_user_referrals(user.get('telegram_id'))
+    role = check_role_name_by_id(user.get("role_id"))
+    referrals = check_user_referrals(user.get("telegram_id"))
 
     text = (
         f"{localize('profile.caption', name=user_info.first_name, id=user_id)}\n\n"

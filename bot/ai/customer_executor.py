@@ -5,36 +5,35 @@ Security invariant: every query that touches user-owned data is filtered by
 from the AI tool call payload itself.
 """
 
+import contextlib
 import logging
 import math
 import random
 import string
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
+from bot.ai.customer_schemas import (
+    BrowseMenuAction,
+    CheckCouponAction,
+    FindDealsAction,
+    FindNearbyStoresAction,
+    GetOrderStatusAction,
+    GetTodaySpecialsAction,
+    OpenSupportTicketAction,
+    StartAppLiveChatAction,
+    StartStoreLiveChatAction,
+)
 from bot.config.env import EnvKeys
 from bot.database import Database
 from bot.database.models.main import (
-    Categories,
-    CustomerInfo,
     Coupon,
+    CustomerInfo,
     Goods,
     Order,
     Store,
     SupportTicket,
     TicketMessage,
     User,
-)
-from bot.ai.customer_schemas import (
-    BrowseMenuAction,
-    CheckCouponAction,
-    FindDealsAction,
-    FindNearbyStoresAction,
-    GetMyAccountAction,
-    GetOrderStatusAction,
-    GetTodaySpecialsAction,
-    OpenSupportTicketAction,
-    StartAppLiveChatAction,
-    StartStoreLiveChatAction,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,10 +51,8 @@ def _get_maintainer_ids() -> list[int]:
         if part.isdigit():
             ids.append(int(part))
     if not ids and EnvKeys.OWNER_ID:
-        try:
+        with contextlib.suppress(ValueError, TypeError):
             ids.append(int(EnvKeys.OWNER_ID))
-        except (ValueError, TypeError):
-            pass
     return ids
 
 
@@ -75,7 +72,8 @@ async def _notify_ids(bot, ids: list[int], text: str) -> None:
 
 def _bangkok_now() -> datetime:
     """Return current Bangkok time (UTC+7)."""
-    from datetime import timezone, timedelta
+    from datetime import timedelta
+
     tz = timezone(timedelta(hours=7))
     return datetime.now(tz)
 
@@ -91,19 +89,16 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 # ── Catalog tools (no user_id needed) ────────────────────────────────────────
 
+
 def execute_browse_menu(action: BrowseMenuAction) -> dict:
     with Database().session() as s:
         q = s.query(Goods).filter(Goods.is_active.is_(True))
         if action.in_stock_only:
             # For products: available_quantity > 0; for prepared: stock_quantity=0 means unlimited
-            q = q.filter(
-                (Goods.sold_out_today.is_(False))
-            )
+            q = q.filter(Goods.sold_out_today.is_(False))
         if action.keyword:
             kw = f"%{action.keyword}%"
-            q = q.filter(
-                (Goods.name.ilike(kw)) | (Goods.description.ilike(kw)) | (Goods.allergens.ilike(kw))
-            )
+            q = q.filter((Goods.name.ilike(kw)) | (Goods.description.ilike(kw)) | (Goods.allergens.ilike(kw)))
         if action.category:
             q = q.filter(Goods.category_name.ilike(f"%{action.category}%"))
         if action.max_price is not None:
@@ -144,10 +139,7 @@ def execute_get_today_specials(action: GetTodaySpecialsAction) -> dict:
             q = q.filter(Goods.category_name.ilike(f"%{action.category}%"))
         all_items = q.all()
 
-        active = [
-            g for g in all_items
-            if g.available_from <= current_time <= g.available_until
-        ]
+        active = [g for g in all_items if g.available_from <= current_time <= g.available_until]
         return {
             "current_time_bangkok": current_time,
             "items": [
@@ -165,7 +157,7 @@ def execute_get_today_specials(action: GetTodaySpecialsAction) -> dict:
 
 
 def execute_find_deals(action: FindDealsAction) -> dict:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     with Database().session() as s:
         q = s.query(Coupon).filter(
             Coupon.is_active.is_(True),
@@ -174,9 +166,7 @@ def execute_find_deals(action: FindDealsAction) -> dict:
             (Coupon.max_uses.is_(None)) | (Coupon.current_uses < Coupon.max_uses),
         )
         if action.min_order_max is not None:
-            q = q.filter(
-                (Coupon.min_order.is_(None)) | (Coupon.min_order <= action.min_order_max)
-            )
+            q = q.filter((Coupon.min_order.is_(None)) | (Coupon.min_order <= action.min_order_max))
         coupons = q.order_by(Coupon.discount_value.desc()).all()
         return {
             "deals": [
@@ -196,32 +186,42 @@ def execute_find_deals(action: FindDealsAction) -> dict:
 
 def execute_find_nearby_stores(action: FindNearbyStoresAction) -> dict:
     with Database().session() as s:
-        stores = s.query(Store).filter(
-            Store.is_active.is_(True),
-            Store.latitude.isnot(None),
-            Store.longitude.isnot(None),
-        ).all()
+        stores = (
+            s.query(Store)
+            .filter(
+                Store.is_active.is_(True),
+                Store.latitude.isnot(None),
+                Store.longitude.isnot(None),
+            )
+            .all()
+        )
 
     results = []
     for store in stores:
         dist = _haversine_km(action.latitude, action.longitude, store.latitude, store.longitude)
         if dist <= action.max_distance_km:
-            results.append({
-                "name": store.name,
-                "address": store.address,
-                "distance_km": round(dist, 2),
-                "phone": store.phone,
-            })
+            results.append(
+                {
+                    "name": store.name,
+                    "address": store.address,
+                    "distance_km": round(dist, 2),
+                    "phone": store.phone,
+                }
+            )
     results.sort(key=lambda x: x["distance_km"])
     return {"stores": results, "count": len(results)}
 
 
 def execute_check_coupon(action: CheckCouponAction) -> dict:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     with Database().session() as s:
-        coupon = s.query(Coupon).filter(
-            Coupon.code == action.code.upper(),
-        ).first()
+        coupon = (
+            s.query(Coupon)
+            .filter(
+                Coupon.code == action.code.upper(),
+            )
+            .first()
+        )
 
     if not coupon:
         return {"valid": False, "reason": "Coupon code not found"}
@@ -262,6 +262,7 @@ def execute_check_coupon(action: CheckCouponAction) -> dict:
 
 
 # ── Own-account tools (always filtered by user_id from Telegram auth) ─────────
+
 
 def execute_get_order_status(action: GetOrderStatusAction, user_id: int) -> dict:
     with Database().session() as s:
@@ -311,19 +312,22 @@ def execute_get_my_account(user_id: int) -> dict:
 
 # ── Support tools ─────────────────────────────────────────────────────────────
 
-async def execute_open_support_ticket(
-    action: OpenSupportTicketAction, user_id: int, bot
-) -> dict:
+
+async def execute_open_support_ticket(action: OpenSupportTicketAction, user_id: int, bot) -> dict:
     ticket_code = _generate_ticket_code()
 
     # Resolve order_id from order_code if provided
     order_id = None
     if action.order_code:
         with Database().session() as s:
-            order = s.query(Order).filter(
-                Order.order_code == action.order_code.upper(),
-                Order.buyer_id == user_id,  # Security: only own orders
-            ).first()
+            order = (
+                s.query(Order)
+                .filter(
+                    Order.order_code == action.order_code.upper(),
+                    Order.buyer_id == user_id,  # Security: only own orders
+                )
+                .first()
+            )
             if order:
                 order_id = order.id
 
@@ -337,12 +341,14 @@ async def execute_open_support_ticket(
         )
         s.add(ticket)
         s.flush()
-        s.add(TicketMessage(
-            ticket_id=ticket.id,
-            sender_id=user_id,
-            sender_role="user",
-            message_text=action.description,
-        ))
+        s.add(
+            TicketMessage(
+                ticket_id=ticket.id,
+                sender_id=user_id,
+                sender_role="user",
+                message_text=action.description,
+            )
+        )
         s.commit()
 
     maintainers = _get_maintainer_ids()
@@ -359,9 +365,7 @@ async def execute_open_support_ticket(
     return {"success": True, "ticket_code": ticket_code}
 
 
-async def execute_start_app_live_chat(
-    action: StartAppLiveChatAction, user_id: int, bot
-) -> dict:
+async def execute_start_app_live_chat(action: StartAppLiveChatAction, user_id: int, bot) -> dict:
     maintainers = _get_maintainer_ids()
     if not maintainers:
         return {"success": False, "error": "No maintainers configured"}
@@ -376,12 +380,14 @@ async def execute_start_app_live_chat(
         )
         s.add(ticket)
         s.flush()
-        s.add(TicketMessage(
-            ticket_id=ticket.id,
-            sender_id=user_id,
-            sender_role="user",
-            message_text=f"App live chat started. Reason: {action.reason}",
-        ))
+        s.add(
+            TicketMessage(
+                ticket_id=ticket.id,
+                sender_id=user_id,
+                sender_role="user",
+                message_text=f"App live chat started. Reason: {action.reason}",
+            )
+        )
         s.commit()
         ticket_id = ticket.id
 
@@ -402,19 +408,21 @@ async def execute_start_app_live_chat(
     }
 
 
-async def execute_start_store_live_chat(
-    action: StartStoreLiveChatAction, user_id: int, bot
-) -> dict:
+async def execute_start_store_live_chat(action: StartStoreLiveChatAction, user_id: int, bot) -> dict:
     ticket_code = _generate_ticket_code()
 
     # Resolve order_id from order_code if provided
     order_id = None
     if action.order_code:
         with Database().session() as s:
-            order = s.query(Order).filter(
-                Order.order_code == action.order_code.upper(),
-                Order.buyer_id == user_id,  # Security: only own orders
-            ).first()
+            order = (
+                s.query(Order)
+                .filter(
+                    Order.order_code == action.order_code.upper(),
+                    Order.buyer_id == user_id,  # Security: only own orders
+                )
+                .first()
+            )
             if order:
                 order_id = order.id
 
@@ -429,12 +437,14 @@ async def execute_start_store_live_chat(
         )
         s.add(ticket)
         s.flush()
-        s.add(TicketMessage(
-            ticket_id=ticket.id,
-            sender_id=user_id,
-            sender_role="user",
-            message_text=f"Store live chat started. Reason: {action.reason}",
-        ))
+        s.add(
+            TicketMessage(
+                ticket_id=ticket.id,
+                sender_id=user_id,
+                sender_role="user",
+                message_text=f"Store live chat started. Reason: {action.reason}",
+            )
+        )
         s.commit()
         ticket_id = ticket.id
 

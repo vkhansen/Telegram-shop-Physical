@@ -1,18 +1,24 @@
 """Unit tests for bot.database.integrity — valid graphs pass, broken configs are caught."""
+
 import datetime as dt
 
 import pytest
 
-from bot.database.integrity import check_integrity, summarize, Severity
+from bot.database.integrity import Severity, check_integrity, summarize
 from bot.database.models.main import (
-    Brand, BotConfig, BranchInventory, BrandStaff, Categories, Goods, Store, User,
+    BotConfig,
+    BranchInventory,
+    Brand,
+    Categories,
+    Goods,
+    Store,
 )
 
 pytestmark = pytest.mark.database
 
 
 def _now():
-    return dt.datetime.now(dt.timezone.utc)
+    return dt.datetime.now(dt.UTC)
 
 
 def build_valid_brand(session, slug="acme", with_item=True):
@@ -27,10 +33,16 @@ def build_valid_brand(session, slug="acme", with_item=True):
     session.add(cat)
     session.flush()
     if with_item:
-        session.add(Goods(
-            name=f"{slug}:Pad Thai", brand_id=brand.id, category_name=cat.name,
-            price=120, description="Tasty", item_type="prepared",
-        ))
+        session.add(
+            Goods(
+                name=f"{slug}:Pad Thai",
+                brand_id=brand.id,
+                category_name=cat.name,
+                price=120,
+                description="Tasty",
+                item_type="prepared",
+            )
+        )
     session.flush()
     return brand, cat
 
@@ -51,8 +63,9 @@ def test_valid_brand_has_no_violations(db_session):
 def test_item_referencing_missing_category_is_caught(db_session):
     brand, _ = build_valid_brand(db_session)
     # Bypass the FK at the ORM layer to simulate a dangling reference in data.
-    db_session.add(Goods(name=f"{brand.slug}:Ghost", brand_id=brand.id,
-                         category_name="does-not-exist", price=50, description="x"))
+    db_session.add(
+        Goods(name=f"{brand.slug}:Ghost", brand_id=brand.id, category_name="does-not-exist", price=50, description="x")
+    )
     # FK may block flush on SQLite; if it does, that's fine — but if data lands, we catch it.
     try:
         db_session.flush()
@@ -63,7 +76,7 @@ def test_item_referencing_missing_category_is_caught(db_session):
 
 
 def test_cross_brand_item_is_caught(db_session):
-    brand_a, cat_a = build_valid_brand(db_session, slug="aaa")
+    _brand_a, _cat_a = build_valid_brand(db_session, slug="aaa")
     brand_b, _ = build_valid_brand(db_session, slug="bbb")
     # Item lives in brand_a's category but claims brand_b — no FK catches this.
     item = db_session.query(Goods).filter_by(name="aaa:Pad Thai").first()
@@ -122,12 +135,18 @@ def test_invalid_modifier_schema_is_caught(db_session):
 
 def test_oversold_branch_inventory_is_warning(db_session):
     brand, cat = build_valid_brand(db_session)
-    item = Goods(name=f"{brand.slug}:Water", brand_id=brand.id, category_name=cat.name,
-                 price=15, description="Bottled", item_type="product", stock_quantity=10)
+    item = Goods(
+        name=f"{brand.slug}:Water",
+        brand_id=brand.id,
+        category_name=cat.name,
+        price=15,
+        description="Bottled",
+        item_type="product",
+        stock_quantity=10,
+    )
     db_session.add(item)
     store = db_session.query(Store).filter_by(brand_id=brand.id).first()
-    db_session.add(BranchInventory(store_id=store.id, item_name=item.name,
-                                   stock_quantity=2, reserved_quantity=9))
+    db_session.add(BranchInventory(store_id=store.id, item_name=item.name, stock_quantity=2, reserved_quantity=9))
     db_session.flush()
     fired = checks_fired(db_session)
     assert "branch_inv_oversold" in fired
@@ -136,8 +155,8 @@ def test_oversold_branch_inventory_is_warning(db_session):
 def test_summarize_counts(db_session):
     build_valid_brand(db_session)
     item = db_session.query(Goods).first()
-    item.price = 0          # 1 error
-    item.brand_id = None    # triggers unbranded warning + cross-brand error
+    item.price = 0  # 1 error
+    item.brand_id = None  # triggers unbranded warning + cross-brand error
     db_session.flush()
     s = summarize(check_integrity(db_session))
     assert s["errors"] >= 1

@@ -52,7 +52,7 @@ def test_store_static_qr_only(db_session):
 
     t = resolve_payment_target(store_id=s.id, brand_id=b.id)
     assert t.source == "store"
-    assert t.promptpay_id == ""              # no dynamic id
+    assert t.promptpay_id == ""  # no dynamic id
     assert t.static_qr_file_id == "static_qr_1"
     assert t.promptpay_name == "Branch Acct"  # still used for slip verification
 
@@ -76,6 +76,7 @@ def test_global_fallback(db_session, monkeypatch):
     s = _store(db_session, b.id)
 
     import bot.handlers.admin.settings_management as sm
+
     monkeypatch.setattr(sm, "get_promptpay_id", lambda: GLOBAL_ID)
     monkeypatch.setattr(sm, "get_promptpay_name", lambda: "Global Acct")
 

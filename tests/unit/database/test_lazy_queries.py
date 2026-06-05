@@ -1,22 +1,26 @@
 """
 Tests for bot/database/methods/lazy_queries.py - paginated query functions.
 """
-import pytest
+
+from datetime import UTC, datetime
 from decimal import Decimal
-from datetime import datetime, timezone
+
+import pytest
 
 from bot.database.methods.lazy_queries import (
+    query_admins,
+    query_all_referral_earnings,
+    query_all_users,
     query_categories,
     query_items_in_category,
-    query_user_bought_items,
-    query_all_users,
-    query_admins,
-    query_user_referrals,
     query_referral_earnings_from_user,
-    query_all_referral_earnings,
+    query_user_bought_items,
+    query_user_referrals,
 )
 from bot.database.models.main import (
-    User, Goods, Categories, BoughtGoods, ReferralEarnings,
+    BoughtGoods,
+    ReferralEarnings,
+    User,
 )
 
 
@@ -196,16 +200,16 @@ class TestQueryUserReferrals:
             ref_user = User(
                 telegram_id=800100 + i,
                 role_id=1,
-                registration_date=datetime.now(timezone.utc),
-                referral_id=test_user.telegram_id
+                registration_date=datetime.now(UTC),
+                referral_id=test_user.telegram_id,
             )
             db_with_roles.add(ref_user)
         db_with_roles.commit()
 
         result = await query_user_referrals(test_user.telegram_id)
         assert len(result) == 3
-        assert all('telegram_id' in r for r in result)
-        assert all('total_earned' in r for r in result)
+        assert all("telegram_id" in r for r in result)
+        assert all("total_earned" in r for r in result)
 
     @pytest.mark.asyncio
     async def test_query_user_referrals_count_only(self, db_with_roles, test_user):
@@ -213,8 +217,8 @@ class TestQueryUserReferrals:
             ref_user = User(
                 telegram_id=800200 + i,
                 role_id=1,
-                registration_date=datetime.now(timezone.utc),
-                referral_id=test_user.telegram_id
+                registration_date=datetime.now(UTC),
+                referral_id=test_user.telegram_id,
             )
             db_with_roles.add(ref_user)
         db_with_roles.commit()
@@ -225,27 +229,35 @@ class TestQueryUserReferrals:
     @pytest.mark.asyncio
     async def test_query_user_referrals_sorted_by_earnings(self, db_with_roles, test_user):
         # Create referrals with different earnings
-        ref1 = User(telegram_id=800301, role_id=1,
-                     registration_date=datetime.now(timezone.utc),
-                     referral_id=test_user.telegram_id)
-        ref2 = User(telegram_id=800302, role_id=1,
-                     registration_date=datetime.now(timezone.utc),
-                     referral_id=test_user.telegram_id)
+        ref1 = User(
+            telegram_id=800301, role_id=1, registration_date=datetime.now(UTC), referral_id=test_user.telegram_id
+        )
+        ref2 = User(
+            telegram_id=800302, role_id=1, registration_date=datetime.now(UTC), referral_id=test_user.telegram_id
+        )
         db_with_roles.add_all([ref1, ref2])
         db_with_roles.commit()
 
         # Add earnings (ref2 earns more)
-        e1 = ReferralEarnings(referrer_id=test_user.telegram_id, referral_id=800301,
-                              amount=Decimal("5.00"), original_amount=Decimal("100.00"))
-        e2 = ReferralEarnings(referrer_id=test_user.telegram_id, referral_id=800302,
-                              amount=Decimal("50.00"), original_amount=Decimal("1000.00"))
+        e1 = ReferralEarnings(
+            referrer_id=test_user.telegram_id,
+            referral_id=800301,
+            amount=Decimal("5.00"),
+            original_amount=Decimal("100.00"),
+        )
+        e2 = ReferralEarnings(
+            referrer_id=test_user.telegram_id,
+            referral_id=800302,
+            amount=Decimal("50.00"),
+            original_amount=Decimal("1000.00"),
+        )
         db_with_roles.add_all([e1, e2])
         db_with_roles.commit()
 
         result = await query_user_referrals(test_user.telegram_id)
         assert len(result) == 2
         # Should be sorted by total_earned descending
-        assert result[0]['total_earned'] >= result[1]['total_earned']
+        assert result[0]["total_earned"] >= result[1]["total_earned"]
 
 
 @pytest.mark.unit
@@ -260,43 +272,37 @@ class TestQueryReferralEarnings:
 
     @pytest.mark.asyncio
     async def test_query_referral_earnings_from_user_count_empty(self, db_with_roles, test_user, test_admin):
-        count = await query_referral_earnings_from_user(
-            test_user.telegram_id, test_admin.telegram_id, count_only=True
-        )
+        count = await query_referral_earnings_from_user(test_user.telegram_id, test_admin.telegram_id, count_only=True)
         assert count == 0
 
     @pytest.mark.asyncio
     async def test_query_referral_earnings_from_user_with_data(self, db_with_roles, test_user, test_admin):
-        for i in range(3):
+        for _i in range(3):
             e = ReferralEarnings(
                 referrer_id=test_user.telegram_id,
                 referral_id=test_admin.telegram_id,
                 amount=Decimal("10.00"),
-                original_amount=Decimal("200.00")
+                original_amount=Decimal("200.00"),
             )
             db_with_roles.add(e)
         db_with_roles.commit()
 
-        result = await query_referral_earnings_from_user(
-            test_user.telegram_id, test_admin.telegram_id
-        )
+        result = await query_referral_earnings_from_user(test_user.telegram_id, test_admin.telegram_id)
         assert len(result) == 3
 
     @pytest.mark.asyncio
     async def test_query_referral_earnings_from_user_count(self, db_with_roles, test_user, test_admin):
-        for i in range(2):
+        for _i in range(2):
             e = ReferralEarnings(
                 referrer_id=test_user.telegram_id,
                 referral_id=test_admin.telegram_id,
                 amount=Decimal("5.00"),
-                original_amount=Decimal("100.00")
+                original_amount=Decimal("100.00"),
             )
             db_with_roles.add(e)
         db_with_roles.commit()
 
-        count = await query_referral_earnings_from_user(
-            test_user.telegram_id, test_admin.telegram_id, count_only=True
-        )
+        count = await query_referral_earnings_from_user(test_user.telegram_id, test_admin.telegram_id, count_only=True)
         assert count == 2
 
     @pytest.mark.asyncio
@@ -315,7 +321,7 @@ class TestQueryReferralEarnings:
             referrer_id=test_user.telegram_id,
             referral_id=test_admin.telegram_id,
             amount=Decimal("15.00"),
-            original_amount=Decimal("300.00")
+            original_amount=Decimal("300.00"),
         )
         db_with_roles.add(e)
         db_with_roles.commit()
@@ -325,12 +331,12 @@ class TestQueryReferralEarnings:
 
     @pytest.mark.asyncio
     async def test_query_all_referral_earnings_pagination(self, db_with_roles, test_user, test_admin):
-        for i in range(5):
+        for _i in range(5):
             e = ReferralEarnings(
                 referrer_id=test_user.telegram_id,
                 referral_id=test_admin.telegram_id,
                 amount=Decimal("1.00"),
-                original_amount=Decimal("20.00")
+                original_amount=Decimal("20.00"),
             )
             db_with_roles.add(e)
         db_with_roles.commit()
@@ -365,8 +371,8 @@ class TestQueryUserBoughtItems:
                 value=f"val_{i}",
                 price=Decimal("10.00"),
                 buyer_id=test_user.telegram_id,
-                bought_datetime=datetime.now(timezone.utc),
-                unique_id=900000 + i
+                bought_datetime=datetime.now(UTC),
+                unique_id=900000 + i,
             )
             db_with_roles.add(bought)
         db_with_roles.commit()
@@ -382,8 +388,8 @@ class TestQueryUserBoughtItems:
                 value=f"v_{i}",
                 price=Decimal("10.00"),
                 buyer_id=test_user.telegram_id,
-                bought_datetime=datetime.now(timezone.utc),
-                unique_id=910000 + i
+                bought_datetime=datetime.now(UTC),
+                unique_id=910000 + i,
             )
             db_with_roles.add(bought)
         db_with_roles.commit()
@@ -399,8 +405,8 @@ class TestQueryUserBoughtItems:
                 value=f"pag_{i}",
                 price=Decimal("10.00"),
                 buyer_id=test_user.telegram_id,
-                bought_datetime=datetime.now(timezone.utc),
-                unique_id=920000 + i
+                bought_datetime=datetime.now(UTC),
+                unique_id=920000 + i,
             )
             db_with_roles.add(bought)
         db_with_roles.commit()

@@ -5,15 +5,16 @@ If validation fails, the action is rejected and the AI must ask for corrections.
 """
 
 from decimal import Decimal
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-
 # ── Menu Mutation Schemas ─────────────────────────────────────────────
+
 
 class CreateItemAction(BaseModel):
     """Add a new menu item."""
+
     action: Literal["create_item"] = "create_item"
     item_name: str = Field(..., min_length=1, max_length=100)
     description: str = Field(..., min_length=1, max_length=500)
@@ -32,12 +33,13 @@ class CreateItemAction(BaseModel):
 
 class UpdateItemAction(BaseModel):
     """Update an existing menu item. Only provided fields are changed."""
+
     action: Literal["update_item"] = "update_item"
     item_name: str = Field(..., min_length=1, max_length=100)
-    new_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    new_description: Optional[str] = Field(None, max_length=500)
-    new_price: Optional[Decimal] = Field(None, gt=0, le=99999)
-    new_category: Optional[str] = Field(None, max_length=100)
+    new_name: str | None = Field(None, min_length=1, max_length=100)
+    new_description: str | None = Field(None, max_length=500)
+    new_price: Decimal | None = Field(None, gt=0, le=99999)
+    new_category: str | None = Field(None, max_length=100)
 
     @field_validator("new_price")
     @classmethod
@@ -49,6 +51,7 @@ class UpdateItemAction(BaseModel):
 
 class DeleteItemAction(BaseModel):
     """Delete a menu item. Requires explicit confirmation."""
+
     action: Literal["delete_item"] = "delete_item"
     item_name: str = Field(..., min_length=1, max_length=100)
     confirm: bool = Field(..., description="Must be True to proceed")
@@ -56,6 +59,7 @@ class DeleteItemAction(BaseModel):
 
 class BulkPriceUpdateEntry(BaseModel):
     """A single item price update within a bulk operation."""
+
     item_name: str = Field(..., min_length=1, max_length=100)
     new_price: Decimal = Field(..., gt=0, le=99999)
 
@@ -69,15 +73,16 @@ class BulkPriceUpdateEntry(BaseModel):
 
 class BulkPriceUpdateAction(BaseModel):
     """Change prices for multiple items at once."""
+
     action: Literal["bulk_price_update"] = "bulk_price_update"
     updates: list[BulkPriceUpdateEntry] = Field(
-        ..., min_length=1, max_length=50,
-        description="List of {item_name, new_price} entries"
+        ..., min_length=1, max_length=50, description="List of {item_name, new_price} entries"
     )
 
 
 class CreateCategoryAction(BaseModel):
     """Create a new menu category."""
+
     action: Literal["create_category"] = "create_category"
     category_name: str = Field(..., min_length=1, max_length=100)
     sort_order: int = Field(default=0, ge=0, le=999)
@@ -85,6 +90,7 @@ class CreateCategoryAction(BaseModel):
 
 class DeleteCategoryAction(BaseModel):
     """Delete a menu category. Requires explicit confirmation."""
+
     action: Literal["delete_category"] = "delete_category"
     category_name: str = Field(..., min_length=1, max_length=100)
     confirm: bool = Field(..., description="Must be True to proceed")
@@ -92,64 +98,79 @@ class DeleteCategoryAction(BaseModel):
 
 class AdjustStockAction(BaseModel):
     """Adjust inventory stock for an item."""
+
     action: Literal["adjust_stock"] = "adjust_stock"
     item_name: str = Field(..., min_length=1, max_length=100)
     operation: Literal["set", "add", "remove"]
     quantity: int = Field(..., ge=0, le=99999)
-    comment: Optional[str] = Field(None, max_length=200)
+    comment: str | None = Field(None, max_length=200)
 
 
 # ── Query / Search Schemas ────────────────────────────────────────────
 
+
 class SearchOrdersAction(BaseModel):
     """Search orders by various filters."""
+
     action: Literal["search_orders"] = "search_orders"
-    order_code: Optional[str] = Field(None, max_length=6)
-    buyer_id: Optional[int] = None
-    status: Optional[Literal[
-        "pending", "reserved", "confirmed", "preparing",
-        "ready", "out_for_delivery", "delivered",
-        "cancelled", "expired"
-    ]] = None
-    payment_method: Optional[Literal["bitcoin", "cash", "promptpay"]] = None
-    delivery_type: Optional[Literal["door", "dead_drop", "pickup"]] = None
-    date_from: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
-    date_to: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    order_code: str | None = Field(None, max_length=6)
+    buyer_id: int | None = None
+    status: (
+        Literal[
+            "pending",
+            "reserved",
+            "confirmed",
+            "preparing",
+            "ready",
+            "out_for_delivery",
+            "delivered",
+            "cancelled",
+            "expired",
+        ]
+        | None
+    ) = None
+    payment_method: Literal["bitcoin", "cash", "promptpay"] | None = None
+    delivery_type: Literal["door", "dead_drop", "pickup"] | None = None
+    date_from: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    date_to: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     limit: int = Field(default=20, ge=1, le=100)
 
 
 class SearchChatMessagesAction(BaseModel):
     """Search delivery chat messages."""
+
     action: Literal["search_chat"] = "search_chat"
-    order_id: Optional[int] = None
-    order_code: Optional[str] = None
-    sender_role: Optional[Literal["driver", "customer"]] = None
-    keyword: Optional[str] = Field(None, max_length=100)
-    has_photo: Optional[bool] = None
-    has_location: Optional[bool] = None
-    date_from: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
-    date_to: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    order_id: int | None = None
+    order_code: str | None = None
+    sender_role: Literal["driver", "customer"] | None = None
+    keyword: str | None = Field(None, max_length=100)
+    has_photo: bool | None = None
+    has_location: bool | None = None
+    date_from: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    date_to: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     limit: int = Field(default=20, ge=1, le=100)
 
 
 class SearchDeliveriesAction(BaseModel):
     """Search delivery data — zones, GPS, photos, proof."""
+
     action: Literal["search_deliveries"] = "search_deliveries"
-    delivery_zone: Optional[str] = None
-    has_delivery_photo: Optional[bool] = None
-    has_gps: Optional[bool] = None
-    driver_id: Optional[int] = None
-    delivery_type: Optional[Literal["door", "dead_drop", "pickup"]] = None
-    date_from: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
-    date_to: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    delivery_zone: str | None = None
+    has_delivery_photo: bool | None = None
+    has_gps: bool | None = None
+    driver_id: int | None = None
+    delivery_type: Literal["door", "dead_drop", "pickup"] | None = None
+    date_from: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    date_to: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     limit: int = Field(default=20, ge=1, le=100)
 
 
 class LookupUserAction(BaseModel):
     """Look up a user profile, their orders, referrals, spending."""
+
     action: Literal["lookup_user"] = "lookup_user"
-    telegram_id: Optional[int] = None
-    phone_number: Optional[str] = Field(None, max_length=50)
+    telegram_id: int | None = None
+    phone_number: str | None = Field(None, max_length=50)
     include_orders: bool = Field(default=False)
     include_referrals: bool = Field(default=False)
 
@@ -162,9 +183,10 @@ class LookupUserAction(BaseModel):
 
 class GetStatsAction(BaseModel):
     """Get shop statistics for a date range."""
+
     action: Literal["get_stats"] = "get_stats"
-    date_from: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
-    date_to: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    date_from: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    date_to: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     include_revenue: bool = True
     include_top_items: bool = False
     include_user_growth: bool = False
@@ -172,19 +194,22 @@ class GetStatsAction(BaseModel):
 
 class ViewInventoryAction(BaseModel):
     """View current inventory status."""
+
     action: Literal["view_inventory"] = "view_inventory"
-    category_filter: Optional[str] = None
+    category_filter: str | None = None
     only_low_stock: bool = False
     low_stock_threshold: int = Field(default=5, ge=0)
 
 
 class UpdateItemImageAction(BaseModel):
     """Update a menu item's photo. The admin must send the photo as an attachment."""
+
     action: Literal["update_item_image"] = "update_item_image"
     item_name: str = Field(..., min_length=1, max_length=100)
     # photo_file_id is injected by the handler from the Telegram message, not by Grok
-    photo_file_id: Optional[str] = Field(None, max_length=255,
-        description="Telegram file_id — populated automatically from the attached photo")
+    photo_file_id: str | None = Field(
+        None, max_length=255, description="Telegram file_id — populated automatically from the attached photo"
+    )
 
 
 class GenerateItemImagesAction(BaseModel):
@@ -193,15 +218,14 @@ class GenerateItemImagesAction(BaseModel):
     Use item_names to generate for specific items, or set all_missing=True
     to fill every item that has no image.
     """
+
     action: Literal["generate_item_images"] = "generate_item_images"
     item_names: list[str] = Field(
-        default_factory=list, max_length=50,
-        description="Specific item names to generate images for (empty = use all_missing)"
+        default_factory=list,
+        max_length=50,
+        description="Specific item names to generate images for (empty = use all_missing)",
     )
-    all_missing: bool = Field(
-        default=False,
-        description="If True, generate images for ALL items that lack an image"
-    )
+    all_missing: bool = Field(default=False, description="If True, generate images for ALL items that lack an image")
     confirm: bool = Field(..., description="Must be True to proceed (costs API credits)")
 
     @model_validator(mode="after")
@@ -213,34 +237,45 @@ class GenerateItemImagesAction(BaseModel):
 
 class ListItemMediaAction(BaseModel):
     """List all images/media for a menu item, showing which are AI-generated."""
+
     action: Literal["list_item_media"] = "list_item_media"
     item_name: str = Field(..., min_length=1, max_length=100)
 
 
 class RemoveItemMediaAction(BaseModel):
     """Remove a specific image from a menu item by its media ID."""
+
     action: Literal["remove_item_media"] = "remove_item_media"
     item_name: str = Field(..., min_length=1, max_length=100)
-    media_id: str = Field(..., min_length=1, max_length=20,
-        description="The ID of the media entry to remove (from list_item_media)")
+    media_id: str = Field(
+        ..., min_length=1, max_length=20, description="The ID of the media entry to remove (from list_item_media)"
+    )
     confirm: bool = Field(..., description="Must be True to proceed")
 
 
 # ── Order Management Schemas ─────────────────────────────────────────
 
+
 class ChangeOrderStatusAction(BaseModel):
     """Change an order's status. Validates against allowed transitions."""
+
     action: Literal["change_order_status"] = "change_order_status"
     order_code: str = Field(..., min_length=1, max_length=6)
     new_status: Literal[
-        "reserved", "confirmed", "preparing", "ready",
-        "out_for_delivery", "delivered", "cancelled",
+        "reserved",
+        "confirmed",
+        "preparing",
+        "ready",
+        "out_for_delivery",
+        "delivered",
+        "cancelled",
     ]
     confirm: bool = Field(..., description="Must be True to proceed")
 
 
 class AssignDriverAction(BaseModel):
     """Assign a delivery driver to an order."""
+
     action: Literal["assign_driver"] = "assign_driver"
     order_code: str = Field(..., min_length=1, max_length=6)
     driver_id: int
@@ -248,16 +283,19 @@ class AssignDriverAction(BaseModel):
 
 # ── User Management Schemas ─────────────────────────────────────────
 
+
 class BanUserAction(BaseModel):
     """Ban a user from the shop. Cannot ban OWNER role."""
+
     action: Literal["ban_user"] = "ban_user"
     telegram_id: int
-    reason: Optional[str] = Field(None, max_length=500)
+    reason: str | None = Field(None, max_length=500)
     confirm: bool = Field(..., description="Must be True to proceed")
 
 
 class UnbanUserAction(BaseModel):
     """Unban a previously banned user."""
+
     action: Literal["unban_user"] = "unban_user"
     telegram_id: int
     confirm: bool = Field(..., description="Must be True to proceed")
@@ -265,22 +303,20 @@ class UnbanUserAction(BaseModel):
 
 # ── Coupon Management Schemas ───────────────────────────────────────
 
+
 class CreateCouponAction(BaseModel):
     """Create a new discount coupon."""
+
     action: Literal["create_coupon"] = "create_coupon"
-    code: str = Field(..., min_length=1, max_length=32,
-                      description="Coupon code (auto-uppercased)")
+    code: str = Field(..., min_length=1, max_length=32, description="Coupon code (auto-uppercased)")
     discount_type: Literal["percent", "fixed"]
     discount_value: Decimal = Field(..., gt=0)
     min_order: Decimal = Field(default=Decimal("0"), ge=0)
-    max_discount: Optional[Decimal] = Field(None, gt=0,
-        description="Cap for percent discounts")
-    max_uses: Optional[int] = Field(None, ge=1,
-        description="Total usage limit (None = unlimited)")
+    max_discount: Decimal | None = Field(None, gt=0, description="Cap for percent discounts")
+    max_uses: int | None = Field(None, ge=1, description="Total usage limit (None = unlimited)")
     max_uses_per_user: int = Field(default=1, ge=1)
-    valid_until: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$",
-        description="Expiry date YYYY-MM-DD")
-    note: Optional[str] = Field(None, max_length=200)
+    valid_until: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$", description="Expiry date YYYY-MM-DD")
+    note: str | None = Field(None, max_length=200)
 
     @field_validator("discount_value")
     @classmethod
@@ -300,6 +336,7 @@ class CreateCouponAction(BaseModel):
 
 class ListCouponsAction(BaseModel):
     """List coupons with optional filters."""
+
     action: Literal["list_coupons"] = "list_coupons"
     active_only: bool = True
     limit: int = Field(default=20, ge=1, le=100)
@@ -307,6 +344,7 @@ class ListCouponsAction(BaseModel):
 
 class ToggleCouponAction(BaseModel):
     """Activate or deactivate a coupon."""
+
     action: Literal["toggle_coupon"] = "toggle_coupon"
     code: str = Field(..., min_length=1, max_length=32)
     is_active: bool
@@ -314,18 +352,19 @@ class ToggleCouponAction(BaseModel):
 
 # ── Reference Code Management Schemas ───────────────────────────────
 
+
 class CreateReferenceCodeAction(BaseModel):
     """Create a new reference/promo code."""
+
     action: Literal["create_refcode"] = "create_refcode"
-    expires_in_hours: int = Field(default=0, ge=0,
-        description="Hours until expiry (0 = never)")
-    max_uses: int = Field(default=0, ge=0,
-        description="Max uses (0 = unlimited)")
-    note: Optional[str] = Field(None, max_length=200)
+    expires_in_hours: int = Field(default=0, ge=0, description="Hours until expiry (0 = never)")
+    max_uses: int = Field(default=0, ge=0, description="Max uses (0 = unlimited)")
+    note: str | None = Field(None, max_length=200)
 
 
 class ListReferenceCodesAction(BaseModel):
     """List reference codes with optional filters."""
+
     action: Literal["list_refcodes"] = "list_refcodes"
     active_only: bool = True
     limit: int = Field(default=20, ge=1, le=100)
@@ -333,33 +372,42 @@ class ListReferenceCodesAction(BaseModel):
 
 class DeactivateReferenceCodeAction(BaseModel):
     """Deactivate a reference code."""
+
     action: Literal["deactivate_refcode"] = "deactivate_refcode"
     code: str = Field(..., min_length=1, max_length=8)
 
 
 # ── Broadcast Schemas ───────────────────────────────────────────────
 
+
 class SendBroadcastAction(BaseModel):
     """Send a broadcast message to users. Requires explicit confirmation."""
+
     action: Literal["send_broadcast"] = "send_broadcast"
     message: str = Field(..., min_length=1, max_length=4000)
     segment: Literal[
-        "all", "high_spenders", "recent_buyers",
-        "inactive", "new_users",
+        "all",
+        "high_spenders",
+        "recent_buyers",
+        "inactive",
+        "new_users",
     ] = "all"
     confirm: bool = Field(..., description="Must be True to send")
 
 
 # ── Store Management Schemas ────────────────────────────────────────
 
+
 class ListStoresAction(BaseModel):
     """List all stores/branches."""
+
     action: Literal["list_stores"] = "list_stores"
     active_only: bool = False
 
 
 class ToggleStoreAction(BaseModel):
     """Activate or deactivate a store."""
+
     action: Literal["toggle_store"] = "toggle_store"
     store_name: str = Field(..., min_length=1, max_length=200)
     is_active: bool
@@ -367,8 +415,10 @@ class ToggleStoreAction(BaseModel):
 
 # ── Revenue Report Schema ──────────────────────────────────────────
 
+
 class RevenueReportAction(BaseModel):
     """Get detailed revenue breakdown by period."""
+
     action: Literal["revenue_report"] = "revenue_report"
     period: Literal["today", "week", "month", "all"] = "today"
     include_by_payment: bool = True
@@ -377,8 +427,10 @@ class RevenueReportAction(BaseModel):
 
 # ── Data Import Schemas ───────────────────────────────────────────────
 
+
 class MenuImportRow(BaseModel):
     """Single row of imported menu data — validated per-item."""
+
     item_name: str = Field(..., min_length=1, max_length=100)
     description: str = Field(default="", max_length=500)
     price: Decimal = Field(..., gt=0, le=99999)
@@ -389,35 +441,30 @@ class MenuImportRow(BaseModel):
 
 class MenuImportAction(BaseModel):
     """Bulk import menu items from parsed data."""
+
     action: Literal["import_menu"] = "import_menu"
     items: list[MenuImportRow] = Field(..., min_length=1, max_length=500)
     create_missing_categories: bool = Field(default=True)
-    skip_existing: bool = Field(
-        default=True,
-        description="Skip items that already exist instead of overwriting"
-    )
+    skip_existing: bool = Field(default=True, description="Skip items that already exist instead of overwriting")
     overwrite_existing: bool = Field(default=False)
 
 
 class ColumnMappingGuess(BaseModel):
     """Grok's best guess at mapping CSV columns to menu fields."""
+
     source_column: str
-    target_field: Literal[
-        "item_name", "description", "price",
-        "category_name", "stock_quantity",
-        "skip"
-    ]
+    target_field: Literal["item_name", "description", "price", "category_name", "stock_quantity", "skip"]
     confidence: float = Field(ge=0, le=1)
     sample_values: list[str] = Field(default_factory=list, max_length=3)
 
 
 class DataMappingProposal(BaseModel):
     """Grok proposes how to map incoming data columns to menu schema."""
+
     action: Literal["propose_mapping"] = "propose_mapping"
     mappings: list[ColumnMappingGuess]
     unmapped_required: list[str] = Field(
-        default_factory=list,
-        description="Required fields with no matching column — must ask admin"
+        default_factory=list, description="Required fields with no matching column — must ask admin"
     )
     warnings: list[str] = Field(default_factory=list)
 
@@ -471,20 +518,40 @@ TOOL_SCHEMA_MAP: dict[str, type[BaseModel]] = {
 }
 
 READ_TOOLS = {
-    "search_orders", "search_chat", "search_deliveries",
-    "lookup_user", "get_stats", "view_inventory", "propose_mapping",
-    "list_coupons", "list_refcodes", "list_stores", "revenue_report",
+    "search_orders",
+    "search_chat",
+    "search_deliveries",
+    "lookup_user",
+    "get_stats",
+    "view_inventory",
+    "propose_mapping",
+    "list_coupons",
+    "list_refcodes",
+    "list_stores",
+    "revenue_report",
     "list_item_media",
 }
 
 MUTATION_TOOLS = {
-    "create_item", "update_item", "update_item_image",
-    "generate_item_images", "remove_item_media", "delete_item",
-    "bulk_price_update", "adjust_stock",
-    "create_category", "delete_category", "import_menu",
-    "change_order_status", "assign_driver",
-    "ban_user", "unban_user",
-    "create_coupon", "toggle_coupon",
-    "create_refcode", "deactivate_refcode",
-    "send_broadcast", "toggle_store",
+    "create_item",
+    "update_item",
+    "update_item_image",
+    "generate_item_images",
+    "remove_item_media",
+    "delete_item",
+    "bulk_price_update",
+    "adjust_stock",
+    "create_category",
+    "delete_category",
+    "import_menu",
+    "change_order_status",
+    "assign_driver",
+    "ban_user",
+    "unban_user",
+    "create_coupon",
+    "toggle_coupon",
+    "create_refcode",
+    "deactivate_refcode",
+    "send_broadcast",
+    "toggle_store",
 }

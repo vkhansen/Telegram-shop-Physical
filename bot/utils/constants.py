@@ -1,6 +1,7 @@
 """
 Application-wide constants and shared tiny helpers to replace magic strings.
 """
+
 import logging
 
 _logger = logging.getLogger(__name__)

@@ -1,17 +1,17 @@
-from aiogram import Router, F
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
+from bot.database.methods import check_role_cached
+from bot.database.models import Permission
+from bot.filters import HasPermissionFilter
 from bot.i18n import localize
 from bot.keyboards import admin_console_keyboard
-from bot.database.methods import check_role_cached
-from bot.filters import HasPermissionFilter
-from bot.database.models import Permission
 
 router = Router()
 
 
-@router.callback_query(F.data == 'console', HasPermissionFilter(permission=Permission.SHOP_MANAGE))
+@router.callback_query(F.data == "console", HasPermissionFilter(permission=Permission.SHOP_MANAGE))
 async def console_callback_handler(call: CallbackQuery, state: FSMContext):
     """
     Admin menu (only for admins and above).

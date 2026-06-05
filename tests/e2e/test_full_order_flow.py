@@ -5,31 +5,45 @@ Tests simulate the full order lifecycle using the database directly,
 covering menu loading, user management, cart operations, order creation,
 status workflow, delivery, payments, admin ops, referrals, and chat audit.
 """
+
 import json
-import os
-import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
+import pytest
 from sqlalchemy.orm import Session
 
-from bot.database.models.main import (
-    Role, User, Categories, Goods, Order, OrderItem, CustomerInfo,
-    ShoppingCart, BitcoinAddress, BotSettings, ReferenceCode,
-    ReferenceCodeUsage, ReferralEarnings, DeliveryChatMessage,
-    InventoryLog,
-)
 from bot.database.methods.inventory import (
-    reserve_inventory, release_reservation, deduct_inventory, add_inventory,
+    add_inventory,
+    deduct_inventory,
+    release_reservation,
+    reserve_inventory,
 )
+from bot.database.models.main import (
+    BitcoinAddress,
+    Categories,
+    CustomerInfo,
+    DeliveryChatMessage,
+    Goods,
+    Order,
+    OrderItem,
+    ReferenceCode,
+    ReferenceCodeUsage,
+    ReferralEarnings,
+    Role,
+    ShoppingCart,
+    User,
+)
+from bot.utils.modifiers import calculate_item_price
 from bot.utils.order_codes import generate_unique_order_code
-from bot.utils.modifiers import calculate_item_price, validate_modifier_selection
-from bot.utils.order_status import is_valid_transition, get_allowed_transitions, VALID_TRANSITIONS
-
+from bot.utils.order_status import get_allowed_transitions, is_valid_transition
 from tests.e2e.menu_loader import (
-    load_menu_from_file, load_menu_from_dict, validate_menu_schema, MenuValidationError,
+    MenuValidationError,
+    load_menu_from_dict,
+    load_menu_from_file,
+    validate_menu_schema,
 )
 
 # Path to sample menu JSON
@@ -40,8 +54,9 @@ SAMPLE_MENU_PATH = Path(__file__).parent / "sample_menu.json"
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _load_sample_menu() -> dict:
-    with open(SAMPLE_MENU_PATH, "r", encoding="utf-8") as f:
+    with open(SAMPLE_MENU_PATH, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -57,12 +72,13 @@ def _create_roles(session: Session) -> dict[str, Role]:
     return roles
 
 
-def _create_user(session: Session, telegram_id: int, role_id: int = 1,
-                 locale: str = None, referral_id: int = None) -> User:
+def _create_user(
+    session: Session, telegram_id: int, role_id: int = 1, locale: str | None = None, referral_id: int | None = None
+) -> User:
     user = User(
         telegram_id=telegram_id,
         role_id=role_id,
-        registration_date=datetime.now(timezone.utc),
+        registration_date=datetime.now(UTC),
         referral_id=referral_id,
         locale=locale,
     )
@@ -87,6 +103,7 @@ def _create_customer_info(session: Session, telegram_id: int, **kwargs) -> Custo
 # ===================================================================
 # 1. TestMenuLoading
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestMenuLoading:
@@ -160,24 +177,28 @@ class TestMenuLoading:
         """Schema validation detects invalid modifier type."""
         data = {
             "restaurant_name": "Test",
-            "categories": [{
-                "name": "Cat",
-                "sort_order": 1,
-                "items": [{
-                    "name": "Item",
-                    "description": "Desc",
-                    "price": 100,
-                    "stock_quantity": 10,
-                    "modifiers": {
-                        "grp": {
-                            "label": "G",
-                            "type": "invalid_type",
-                            "required": True,
-                            "options": [{"id": "a", "label": "A", "price": 0}]
+            "categories": [
+                {
+                    "name": "Cat",
+                    "sort_order": 1,
+                    "items": [
+                        {
+                            "name": "Item",
+                            "description": "Desc",
+                            "price": 100,
+                            "stock_quantity": 10,
+                            "modifiers": {
+                                "grp": {
+                                    "label": "G",
+                                    "type": "invalid_type",
+                                    "required": True,
+                                    "options": [{"id": "a", "label": "A", "price": 0}],
+                                }
+                            },
                         }
-                    }
-                }]
-            }]
+                    ],
+                }
+            ],
         }
         errors = validate_menu_schema(data)
         assert any("type" in e and "single" in e for e in errors)
@@ -201,6 +222,7 @@ class TestMenuLoading:
 # ===================================================================
 # 2. TestUserRegistration
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestUserRegistration:
@@ -256,6 +278,7 @@ class TestUserRegistration:
 # ===================================================================
 # 3. TestShoppingCart
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestShoppingCart:
@@ -357,7 +380,9 @@ class TestShoppingCart:
 
         # Item 1: Pad Thai x2 with shrimp (+30) = (149+30)*2 = 358
         c1 = ShoppingCart(
-            user_id=user.telegram_id, item_name="Pad Thai", quantity=2,
+            user_id=user.telegram_id,
+            item_name="Pad Thai",
+            quantity=2,
             selected_modifiers={"protein": "shrimp"},
         )
         db_with_roles.add(c1)
@@ -365,7 +390,9 @@ class TestShoppingCart:
 
         # Item 2: Mango Sticky Rice x1 no mods = 99
         c2 = ShoppingCart(
-            user_id=user.telegram_id, item_name="Mango Sticky Rice", quantity=1,
+            user_id=user.telegram_id,
+            item_name="Mango Sticky Rice",
+            quantity=1,
         )
         db_with_roles.add(c2)
         db_with_roles.commit()
@@ -384,6 +411,7 @@ class TestShoppingCart:
 # ===================================================================
 # 4. TestOrderCreation
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestOrderCreation:
@@ -428,7 +456,7 @@ class TestOrderCreation:
     def test_order_code_uniqueness(self, db_with_roles: Session):
         """Order codes must be unique."""
         self._setup(db_with_roles)
-        user = _create_user(db_with_roles, telegram_id=7002)
+        _create_user(db_with_roles, telegram_id=7002)
 
         codes = set()
         for _ in range(20):
@@ -458,7 +486,7 @@ class TestOrderCreation:
         db_with_roles.commit()
 
         items = [{"item_name": "Pad Thai", "quantity": 2}]
-        success, msg = reserve_inventory(order.id, items, payment_method="cash", session=db_with_roles)
+        success, _msg = reserve_inventory(order.id, items, payment_method="cash", session=db_with_roles)
         db_with_roles.commit()
 
         assert success is True
@@ -536,16 +564,14 @@ class TestOrderCreation:
 
         db_with_roles.commit()
 
-        methods = {
-            o.payment_method
-            for o in db_with_roles.query(Order).filter_by(buyer_id=user.telegram_id).all()
-        }
+        methods = {o.payment_method for o in db_with_roles.query(Order).filter_by(buyer_id=user.telegram_id).all()}
         assert methods == {"cash", "bitcoin", "promptpay"}
 
 
 # ===================================================================
 # 5. TestOrderStatusWorkflow
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestOrderStatusWorkflow:
@@ -627,6 +653,7 @@ class TestOrderStatusWorkflow:
 # 6. TestDeliveryFlow
 # ===================================================================
 
+
 @pytest.mark.e2e
 class TestDeliveryFlow:
     """Test delivery mechanics: zones, fees, drivers, photo proof."""
@@ -703,7 +730,7 @@ class TestDeliveryFlow:
 
         order.driver_id = driver.telegram_id
         order.delivery_photo = "file_id_delivery_proof"
-        order.delivery_photo_at = datetime.now(timezone.utc)
+        order.delivery_photo_at = datetime.now(UTC)
         order.delivery_photo_by = driver.telegram_id
         db_with_roles.commit()
         db_with_roles.refresh(order)
@@ -715,7 +742,7 @@ class TestDeliveryFlow:
         """Chat session open/close timestamps are recorded."""
         _, order = self._setup(db_with_roles)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         order.chat_opened_at = now
         order.chat_post_delivery_until = now + timedelta(minutes=30)
         db_with_roles.commit()
@@ -734,6 +761,7 @@ class TestDeliveryFlow:
 # ===================================================================
 # 7. TestPaymentMethods
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestPaymentMethods:
@@ -775,7 +803,7 @@ class TestPaymentMethods:
 
         order.payment_receipt_photo = "file_id_promptpay_slip"
         order.payment_verified_by = admin.telegram_id
-        order.payment_verified_at = datetime.now(timezone.utc)
+        order.payment_verified_at = datetime.now(UTC)
         db_with_roles.commit()
         db_with_roles.refresh(order)
 
@@ -793,7 +821,7 @@ class TestPaymentMethods:
         # Mark address as used
         btc.is_used = True
         btc.used_by = order.buyer_id
-        btc.used_at = datetime.now(timezone.utc)
+        btc.used_at = datetime.now(UTC)
         btc.order_id = order.id
         db_with_roles.commit()
 
@@ -806,6 +834,7 @@ class TestPaymentMethods:
 # ===================================================================
 # 8. TestAdminOperations
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestAdminOperations:
@@ -874,8 +903,9 @@ class TestAdminOperations:
         db_with_roles.add(cat)
         db_with_roles.flush()
 
-        goods = Goods(name="Stock Item", price=Decimal("10.00"), description="d",
-                      category_name="Stock Cat", stock_quantity=10)
+        goods = Goods(
+            name="Stock Item", price=Decimal("10.00"), description="d", category_name="Stock Cat", stock_quantity=10
+        )
         db_with_roles.add(goods)
         db_with_roles.commit()
 
@@ -929,7 +959,7 @@ class TestAdminOperations:
 
         # Ban
         user.is_banned = True
-        user.banned_at = datetime.now(timezone.utc)
+        user.banned_at = datetime.now(UTC)
         user.banned_by = admin.telegram_id
         user.ban_reason = "Spam"
         db_with_roles.commit()
@@ -952,6 +982,7 @@ class TestAdminOperations:
 # ===================================================================
 # 9. TestReferralSystem
 # ===================================================================
+
 
 @pytest.mark.e2e
 class TestReferralSystem:
@@ -1008,9 +1039,7 @@ class TestReferralSystem:
         db_with_roles.add(earning)
         db_with_roles.commit()
 
-        total = db_with_roles.query(
-            ReferralEarnings
-        ).filter_by(referrer_id=referrer.telegram_id).all()
+        total = db_with_roles.query(ReferralEarnings).filter_by(referrer_id=referrer.telegram_id).all()
 
         assert len(total) == 1
         assert total[0].amount == Decimal("25.00")
@@ -1021,20 +1050,31 @@ class TestReferralSystem:
         r1 = _create_user(db_with_roles, telegram_id=12021, referral_id=referrer.telegram_id)
         r2 = _create_user(db_with_roles, telegram_id=12022, referral_id=referrer.telegram_id)
 
-        db_with_roles.add(ReferralEarnings(
-            referrer_id=referrer.telegram_id, referral_id=r1.telegram_id,
-            amount=Decimal("10.00"), original_amount=Decimal("200.00"),
-        ))
-        db_with_roles.add(ReferralEarnings(
-            referrer_id=referrer.telegram_id, referral_id=r2.telegram_id,
-            amount=Decimal("30.00"), original_amount=Decimal("600.00"),
-        ))
+        db_with_roles.add(
+            ReferralEarnings(
+                referrer_id=referrer.telegram_id,
+                referral_id=r1.telegram_id,
+                amount=Decimal("10.00"),
+                original_amount=Decimal("200.00"),
+            )
+        )
+        db_with_roles.add(
+            ReferralEarnings(
+                referrer_id=referrer.telegram_id,
+                referral_id=r2.telegram_id,
+                amount=Decimal("30.00"),
+                original_amount=Decimal("600.00"),
+            )
+        )
         db_with_roles.commit()
 
         from sqlalchemy import func as sqlfunc
-        total_earned = db_with_roles.query(
-            sqlfunc.sum(ReferralEarnings.amount)
-        ).filter_by(referrer_id=referrer.telegram_id).scalar()
+
+        total_earned = (
+            db_with_roles.query(sqlfunc.sum(ReferralEarnings.amount))
+            .filter_by(referrer_id=referrer.telegram_id)
+            .scalar()
+        )
 
         assert total_earned == Decimal("40.00")
 
@@ -1073,6 +1113,7 @@ class TestReferralSystem:
 # 10. TestDeliveryChatAudit
 # ===================================================================
 
+
 @pytest.mark.e2e
 class TestDeliveryChatAudit:
     """Test delivery chat message recording and retrieval."""
@@ -1093,7 +1134,7 @@ class TestDeliveryChatAudit:
             order_status="out_for_delivery",
             order_code=generate_unique_order_code(session),
             driver_id=driver.telegram_id,
-            chat_opened_at=datetime.now(timezone.utc),
+            chat_opened_at=datetime.now(UTC),
         )
         session.add(order)
         session.flush()
@@ -1104,7 +1145,7 @@ class TestDeliveryChatAudit:
 
     def test_text_message_recording(self, db_with_roles: Session):
         """Record a text message from driver."""
-        order, customer, driver = self._setup_order_with_driver(db_with_roles)
+        order, _customer, driver = self._setup_order_with_driver(db_with_roles)
 
         msg = DeliveryChatMessage(
             order_id=order.id,
@@ -1123,7 +1164,7 @@ class TestDeliveryChatAudit:
 
     def test_photo_message_recording(self, db_with_roles: Session):
         """Record a photo message from customer."""
-        order, customer, driver = self._setup_order_with_driver(db_with_roles)
+        order, customer, _driver = self._setup_order_with_driver(db_with_roles)
 
         msg = DeliveryChatMessage(
             order_id=order.id,
@@ -1135,15 +1176,13 @@ class TestDeliveryChatAudit:
         db_with_roles.add(msg)
         db_with_roles.commit()
 
-        msgs = db_with_roles.query(DeliveryChatMessage).filter_by(
-            order_id=order.id, sender_role="customer"
-        ).all()
+        msgs = db_with_roles.query(DeliveryChatMessage).filter_by(order_id=order.id, sender_role="customer").all()
         assert len(msgs) == 1
         assert msgs[0].photo_file_id is not None
 
     def test_location_message_recording(self, db_with_roles: Session):
         """Record a static location share."""
-        order, customer, driver = self._setup_order_with_driver(db_with_roles)
+        order, _customer, driver = self._setup_order_with_driver(db_with_roles)
 
         msg = DeliveryChatMessage(
             order_id=order.id,
@@ -1158,13 +1197,13 @@ class TestDeliveryChatAudit:
         db_with_roles.commit()
 
         msgs = db_with_roles.query(DeliveryChatMessage).filter_by(order_id=order.id).all()
-        loc_msg = [m for m in msgs if m.location_lat is not None][0]
+        loc_msg = next(m for m in msgs if m.location_lat is not None)
         assert loc_msg.location_lat == pytest.approx(13.7563, abs=1e-4)
         assert loc_msg.is_live_location is False
 
     def test_live_location_tracking(self, db_with_roles: Session):
         """Record live location updates with update counter."""
-        order, customer, driver = self._setup_order_with_driver(db_with_roles)
+        order, _customer, driver = self._setup_order_with_driver(db_with_roles)
 
         for i in range(3):
             msg = DeliveryChatMessage(
@@ -1181,9 +1220,12 @@ class TestDeliveryChatAudit:
 
         db_with_roles.commit()
 
-        live_msgs = db_with_roles.query(DeliveryChatMessage).filter_by(
-            order_id=order.id, is_live_location=True
-        ).order_by(DeliveryChatMessage.live_location_update_count).all()
+        live_msgs = (
+            db_with_roles.query(DeliveryChatMessage)
+            .filter_by(order_id=order.id, is_live_location=True)
+            .order_by(DeliveryChatMessage.live_location_update_count)
+            .all()
+        )
 
         assert len(live_msgs) == 3
         assert live_msgs[0].live_location_update_count == 1
@@ -1214,9 +1256,9 @@ class TestDeliveryChatAudit:
 
         db_with_roles.commit()
 
-        history = db_with_roles.query(DeliveryChatMessage).filter_by(
-            order_id=order.id
-        ).order_by(DeliveryChatMessage.id).all()
+        history = (
+            db_with_roles.query(DeliveryChatMessage).filter_by(order_id=order.id).order_by(DeliveryChatMessage.id).all()
+        )
 
         assert len(history) == 4
         assert history[0].sender_role == "driver"
@@ -1226,9 +1268,9 @@ class TestDeliveryChatAudit:
 
     def test_post_delivery_window(self, db_with_roles: Session):
         """Chat window remains open for a period after delivery."""
-        order, customer, driver = self._setup_order_with_driver(db_with_roles)
+        order, _customer, _driver = self._setup_order_with_driver(db_with_roles)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         order.order_status = "delivered"
         order.completed_at = now
         order.chat_post_delivery_until = now + timedelta(minutes=30)

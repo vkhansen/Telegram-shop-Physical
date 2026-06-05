@@ -7,6 +7,7 @@ Pass --run-e2e (via scripts/test/run.ps1 -Suite e2e/all) to opt in.
 
 Unit/integration fixtures live in tests/conftest.py and are untouched.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -21,9 +22,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
-def pytest_collection_modifyitems(
-    config: pytest.Config, items: list[pytest.Item]
-) -> None:
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     if config.getoption("--run-e2e"):
         return
 

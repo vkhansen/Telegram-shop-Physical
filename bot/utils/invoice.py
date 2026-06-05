@@ -1,9 +1,8 @@
 from decimal import Decimal
-from datetime import datetime
+
+from bot.config import EnvKeys
 from bot.database import Database
 from bot.database.models.main import Order, OrderItem
-from bot.config import EnvKeys
-from bot.i18n import localize
 
 
 def generate_invoice_text(order_id: int) -> str | None:
@@ -29,6 +28,7 @@ def generate_invoice_text(order_id: int) -> str | None:
         lines.append(f"Payment: {order.payment_method.upper()}")
         if order.store_id:
             from bot.database.models.main import Store
+
             store = session.query(Store).filter_by(id=order.store_id).first()
             if store:
                 lines.append(f"Store: {store.name}")
@@ -61,7 +61,7 @@ def generate_invoice_text(order_id: int) -> str | None:
         lines.append("-" * 32)
         lines.append(f"Delivery: {order.delivery_address}")
         lines.append(f"Phone: {order.phone_number}")
-        if order.delivery_type != 'door':
+        if order.delivery_type != "door":
             lines.append(f"Type: {order.delivery_type}")
         lines.append("")
         lines.append("=" * 32)

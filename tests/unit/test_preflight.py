@@ -1,11 +1,13 @@
 """Tests for the preflight check system."""
-import os
+
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
 
 from bot.preflight import (
-    PreflightReport, CheckResult,
-    _check_env_vars, _check_database, _check_redis, _check_monitoring_port,
+    PreflightReport,
+    _check_database,
+    _check_env_vars,
+    _check_monitoring_port,
+    _check_redis,
 )
 
 
@@ -137,7 +139,13 @@ class TestPreflightIntegration:
 
     @pytest.mark.asyncio
     async def test_run_preflight(self):
-        from bot.preflight import run_preflight, _check_env_vars, _check_database, _check_redis, _check_monitoring_port, PreflightReport
+        from bot.preflight import (
+            PreflightReport,
+            _check_database,
+            _check_env_vars,
+            _check_monitoring_port,
+            _check_redis,
+        )
 
         # Run only sync checks (Telegram API needs real token)
         report = PreflightReport()

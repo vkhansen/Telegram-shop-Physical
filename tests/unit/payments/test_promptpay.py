@@ -1,10 +1,13 @@
 """Tests for PromptPay QR generation and parsing (Card 1)"""
-import pytest
+
+from datetime import UTC
 from decimal import Decimal
 
+import pytest
+
 from bot.payments.promptpay import (
-    generate_promptpay_payload,
     _crc16,
+    generate_promptpay_payload,
     parse_emvco_tlv,
     parse_promptpay_payload,
 )
@@ -94,11 +97,12 @@ class TestPromptPayQRGeneration:
         """Should generate valid PNG bytes"""
         try:
             from bot.payments.promptpay import generate_promptpay_qr
+
             qr_bytes = generate_promptpay_qr("0812345678", Decimal("450.00"))
             assert isinstance(qr_bytes, bytes)
             assert len(qr_bytes) > 100  # Non-trivial image
             # PNG magic bytes
-            assert qr_bytes[:4] == b'\x89PNG'
+            assert qr_bytes[:4] == b"\x89PNG"
         except ImportError:
             pytest.skip("qrcode library not installed")
 
@@ -106,6 +110,7 @@ class TestPromptPayQRGeneration:
         """QR generation with invalid amount should raise"""
         try:
             from bot.payments.promptpay import generate_promptpay_qr
+
             with pytest.raises(ValueError):
                 generate_promptpay_qr("0812345678", Decimal("0"))
         except ImportError:
@@ -119,10 +124,11 @@ class TestPromptPayOrderFields:
 
     def test_order_payment_receipt_fields_nullable(self, db_with_roles, db_session):
         """Payment receipt fields should default to None"""
-        from bot.database.models.main import Order, User
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        user = User(telegram_id=700001, registration_date=datetime.now(timezone.utc))
+        from bot.database.models.main import Order, User
+
+        user = User(telegram_id=700001, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
@@ -131,7 +137,7 @@ class TestPromptPayOrderFields:
             total_price=Decimal("100.00"),
             payment_method="promptpay",
             delivery_address="Test",
-            phone_number="0812345678"
+            phone_number="0812345678",
         )
         db_session.add(order)
         db_session.commit()
@@ -142,10 +148,11 @@ class TestPromptPayOrderFields:
 
     def test_order_promptpay_payment_method(self, db_with_roles, db_session):
         """Order with promptpay payment method persists"""
-        from bot.database.models.main import Order, User
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        user = User(telegram_id=700002, registration_date=datetime.now(timezone.utc))
+        from bot.database.models.main import Order, User
+
+        user = User(telegram_id=700002, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
@@ -154,7 +161,7 @@ class TestPromptPayOrderFields:
             total_price=Decimal("450.00"),
             payment_method="promptpay",
             delivery_address="Bangkok",
-            phone_number="0898765432"
+            phone_number="0898765432",
         )
         db_session.add(order)
         db_session.commit()
@@ -164,10 +171,11 @@ class TestPromptPayOrderFields:
 
     def test_save_receipt_photo(self, db_with_roles, db_session):
         """Can save receipt photo file_id to order"""
-        from bot.database.models.main import Order, User
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        user = User(telegram_id=700003, registration_date=datetime.now(timezone.utc))
+        from bot.database.models.main import Order, User
+
+        user = User(telegram_id=700003, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
@@ -176,7 +184,7 @@ class TestPromptPayOrderFields:
             total_price=Decimal("300.00"),
             payment_method="promptpay",
             delivery_address="Test",
-            phone_number="0812345678"
+            phone_number="0812345678",
         )
         db_session.add(order)
         db_session.commit()
@@ -189,11 +197,12 @@ class TestPromptPayOrderFields:
 
     def test_verify_payment(self, db_with_roles, db_session):
         """Can mark payment as verified with admin ID and timestamp"""
-        from bot.database.models.main import Order, User
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        user = User(telegram_id=700004, registration_date=datetime.now(timezone.utc))
-        admin = User(telegram_id=700005, registration_date=datetime.now(timezone.utc), role_id=2)
+        from bot.database.models.main import Order, User
+
+        user = User(telegram_id=700004, registration_date=datetime.now(UTC))
+        admin = User(telegram_id=700005, registration_date=datetime.now(UTC), role_id=2)
         db_session.add_all([user, admin])
         db_session.commit()
 
@@ -203,13 +212,13 @@ class TestPromptPayOrderFields:
             payment_method="promptpay",
             delivery_address="Test",
             phone_number="0812345678",
-            order_status="reserved"
+            order_status="reserved",
         )
         db_session.add(order)
         db_session.commit()
 
         # Simulate admin verification
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         order.payment_receipt_photo = "AgACAgIAAxk_receipt"
         order.payment_verified_by = 700005
         order.payment_verified_at = now

@@ -40,7 +40,7 @@ async def _get_image_session() -> aiohttp.ClientSession:
 def _build_prompt(item_name: str, description: str, category: str) -> str:
     """Build an image generation prompt from item details."""
     return (
-        f"Professional food photography of \"{item_name}\": {description}. "
+        f'Professional food photography of "{item_name}": {description}. '
         f"Category: {category}. "
         f"Shot from above on a clean plate, restaurant quality, "
         f"natural lighting, appetizing presentation, no text or watermarks."
@@ -116,9 +116,7 @@ async def generate_and_save_item_image(
 
     # Save to media array in database (run sync DB call in executor)
     loop = asyncio.get_event_loop()
-    await loop.run_in_executor(
-        None, partial(_add_media_entry, item_name, file_id, True, media_id)
-    )
+    await loop.run_in_executor(None, partial(_add_media_entry, item_name, file_id, True, media_id))
 
     logger.info("Generated and saved AI image for '%s' (media_id=%s)", item_name, media_id)
     return {"success": True, "item": item_name, "file_id": file_id, "media_id": media_id}
@@ -127,21 +125,28 @@ async def generate_and_save_item_image(
 def get_items_missing_images() -> list[dict]:
     """Return all active menu items that have no images (neither image_file_id nor media)."""
     with Database().session() as s:
-        items = s.query(Goods).filter(
-            Goods.is_active.is_(True),
-            Goods.image_file_id.is_(None),
-        ).order_by(Goods.category_name, Goods.name).all()
+        items = (
+            s.query(Goods)
+            .filter(
+                Goods.is_active.is_(True),
+                Goods.image_file_id.is_(None),
+            )
+            .order_by(Goods.category_name, Goods.name)
+            .all()
+        )
 
         result = []
         for g in items:
             # Also skip items that already have media entries
             if g.media and isinstance(g.media, list) and len(g.media) > 0:
                 continue
-            result.append({
-                "name": g.name,
-                "description": g.description,
-                "category_name": g.category_name,
-            })
+            result.append(
+                {
+                    "name": g.name,
+                    "description": g.description,
+                    "category_name": g.category_name,
+                }
+            )
         return result
 
 
@@ -234,12 +239,14 @@ def list_item_media(item_name: str) -> dict:
 
         entries = []
         for entry in media_list:
-            entries.append({
-                "id": entry.get("id", "legacy"),
-                "type": entry.get("type", "photo"),
-                "is_ai_generated": entry.get("is_ai_generated", False),
-                "caption": entry.get("caption"),
-            })
+            entries.append(
+                {
+                    "id": entry.get("id", "legacy"),
+                    "type": entry.get("type", "photo"),
+                    "is_ai_generated": entry.get("is_ai_generated", False),
+                    "caption": entry.get("caption"),
+                }
+            )
 
         return {
             "item": item_name,

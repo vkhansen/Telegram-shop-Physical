@@ -1,14 +1,13 @@
-from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message
+from aiogram import F, Router
+from aiogram.filters.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
-from aiogram.filters.state import StatesGroup, State
+from aiogram.types import CallbackQuery, Message
 from sqlalchemy import func
 
 from bot.database import Database
-from bot.database.models.main import Review, Order, OrderItem, Goods
+from bot.database.models.main import Order, OrderItem, Review
 from bot.i18n import localize
 from bot.keyboards import back, simple_buttons
-from bot.config import EnvKeys
 
 router = Router()
 
@@ -21,16 +20,21 @@ class ReviewStates(StatesGroup):
 # Helper
 # ---------------------------------------------------------------------------
 
+
 def get_item_rating(item_name: str) -> tuple[float | None, int]:
     """Return (average_rating, review_count) for the given item name.
 
     Returns ``(None, 0)`` when there are no reviews yet.
     """
     with Database().session() as session:
-        row = session.query(
-            func.avg(Review.rating),
-            func.count(Review.id),
-        ).filter(Review.item_name == item_name).one()
+        row = (
+            session.query(
+                func.avg(Review.rating),
+                func.count(Review.id),
+            )
+            .filter(Review.item_name == item_name)
+            .one()
+        )
 
         avg_rating = round(float(row[0]), 1) if row[0] is not None else None
         count = row[1]
@@ -41,26 +45,35 @@ def get_item_rating(item_name: str) -> tuple[float | None, int]:
 # 1. Prompt the user to leave a review for a delivered order
 # ---------------------------------------------------------------------------
 
+
 @router.callback_query(F.data.startswith("review_prompt_"))
 async def review_prompt(call: CallbackQuery, state: FSMContext):
     order_id = int(call.data.split("review_prompt_")[1])
 
     with Database().session() as session:
         # Check the order exists and belongs to the user
-        order = session.query(Order).filter(
-            Order.id == order_id,
-            Order.buyer_id == call.from_user.id,
-        ).first()
+        order = (
+            session.query(Order)
+            .filter(
+                Order.id == order_id,
+                Order.buyer_id == call.from_user.id,
+            )
+            .first()
+        )
 
         if order is None:
             await call.answer()
             return
 
         # Check if user already reviewed this order
-        existing = session.query(Review).filter(
-            Review.order_id == order_id,
-            Review.user_id == call.from_user.id,
-        ).first()
+        existing = (
+            session.query(Review)
+            .filter(
+                Review.order_id == order_id,
+                Review.user_id == call.from_user.id,
+            )
+            .first()
+        )
 
     if existing:
         await call.message.edit_text(
@@ -71,10 +84,7 @@ async def review_prompt(call: CallbackQuery, state: FSMContext):
         return
 
     # Build star-rating buttons (1-5)
-    buttons = [
-        ("⭐" * i, f"review_rate_{order_id}_{i}")
-        for i in range(1, 6)
-    ]
+    buttons = [("⭐" * i, f"review_rate_{order_id}_{i}") for i in range(1, 6)]
 
     await call.message.edit_text(
         localize("review.rate_title"),
@@ -86,6 +96,7 @@ async def review_prompt(call: CallbackQuery, state: FSMContext):
 # ---------------------------------------------------------------------------
 # 2. Save rating, then ask for an optional comment
 # ---------------------------------------------------------------------------
+
 
 @router.callback_query(F.data.regexp(r"^review_rate_\d+_\d+$"))
 async def review_rate(call: CallbackQuery, state: FSMContext):
@@ -99,20 +110,28 @@ async def review_rate(call: CallbackQuery, state: FSMContext):
         return
 
     with Database().session() as session:
-        order = session.query(Order).filter(
-            Order.id == order_id,
-            Order.buyer_id == call.from_user.id,
-        ).first()
+        order = (
+            session.query(Order)
+            .filter(
+                Order.id == order_id,
+                Order.buyer_id == call.from_user.id,
+            )
+            .first()
+        )
 
         if order is None:
             await call.answer()
             return
 
         # Prevent duplicate reviews
-        existing = session.query(Review).filter(
-            Review.order_id == order_id,
-            Review.user_id == call.from_user.id,
-        ).first()
+        existing = (
+            session.query(Review)
+            .filter(
+                Review.order_id == order_id,
+                Review.user_id == call.from_user.id,
+            )
+            .first()
+        )
 
         if existing:
             await call.message.edit_text(
@@ -123,9 +142,13 @@ async def review_rate(call: CallbackQuery, state: FSMContext):
             return
 
         # Determine item_name from the first order item
-        order_item = session.query(OrderItem).filter(
-            OrderItem.order_id == order_id,
-        ).first()
+        order_item = (
+            session.query(OrderItem)
+            .filter(
+                OrderItem.order_id == order_id,
+            )
+            .first()
+        )
         item_name = order_item.item_name if order_item else None
 
     # Persist rating info in FSM so we can attach a comment later
@@ -148,6 +171,7 @@ async def review_rate(call: CallbackQuery, state: FSMContext):
 # ---------------------------------------------------------------------------
 # 3a. User sends a text comment
 # ---------------------------------------------------------------------------
+
 
 @router.message(ReviewStates.waiting_comment, F.text)
 async def review_save_comment(message: Message, state: FSMContext):
@@ -184,6 +208,7 @@ async def review_save_comment(message: Message, state: FSMContext):
 # 3b. User presses "skip comment"
 # ---------------------------------------------------------------------------
 
+
 @router.callback_query(F.data == "review_skip_comment", ReviewStates.waiting_comment)
 async def review_skip_comment(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -217,6 +242,7 @@ async def review_skip_comment(call: CallbackQuery, state: FSMContext):
 # ---------------------------------------------------------------------------
 # 4. View reviews for a product
 # ---------------------------------------------------------------------------
+
 
 @router.callback_query(F.data.startswith("view_reviews_"))
 async def view_reviews(call: CallbackQuery, state: FSMContext):

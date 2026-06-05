@@ -4,11 +4,13 @@ Menu modifier utilities for restaurant items (Card 8).
 Handles modifier validation and price calculation for items
 with customization options (spice level, extras, removals).
 """
+
 from decimal import Decimal
 
 
-def calculate_item_price(base_price: Decimal, modifiers_schema: dict | None,
-                         selected_modifiers: dict | None) -> Decimal:
+def calculate_item_price(
+    base_price: Decimal, modifiers_schema: dict | None, selected_modifiers: dict | None
+) -> Decimal:
     """
     Calculate total item price including modifier adjustments.
 
@@ -49,8 +51,7 @@ def calculate_item_price(base_price: Decimal, modifiers_schema: dict | None,
     return base_price + modifier_total
 
 
-def validate_modifier_selection(modifiers_schema: dict | None,
-                                selected_modifiers: dict | None) -> tuple[bool, str]:
+def validate_modifier_selection(modifiers_schema: dict | None, selected_modifiers: dict | None) -> tuple[bool, str]:
     """
     Validate that selected modifiers match the schema.
 

@@ -5,20 +5,21 @@ Tests cover TxResult, get_verifier, and all 4 verifiers (BTC, LTC, SOL, USDT-SOL
 with mocked HTTP responses.
 """
 
-import pytest
 from decimal import Decimal
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from bot.payments.chain_verify import TxResult, get_verifier, VERIFIERS
+import pytest
+
+from bot.payments.chain_verify import VERIFIERS, TxResult, get_verifier
 from bot.payments.verifiers.btc import BTCVerifier
 from bot.payments.verifiers.ltc import LTCVerifier
 from bot.payments.verifiers.sol import SOLVerifier
-from bot.payments.verifiers.usdt_sol import USDTSolVerifier, USDT_MINT
-
+from bot.payments.verifiers.usdt_sol import USDT_MINT, USDTSolVerifier
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _mock_response(json_data=None, text_data=None, status_code=200, raise_error=False):
     """Build a mock httpx.Response."""
@@ -50,10 +51,10 @@ def _make_async_client(**kwargs):
 # 1. TxResult dataclass defaults
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 @pytest.mark.payments
 class TestTxResult:
-
     def test_defaults_found_false(self):
         result = TxResult(found=False)
         assert result.found is False
@@ -87,10 +88,10 @@ class TestTxResult:
 # 2. get_verifier
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 @pytest.mark.payments
 class TestGetVerifier:
-
     def test_valid_coins(self):
         for coin in ("btc", "ltc", "sol", "usdt_sol"):
             verifier = get_verifier(coin)
@@ -120,10 +121,10 @@ class TestGetVerifier:
 # 3-7. BTC Verifier
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 @pytest.mark.payments
 class TestBTCVerifier:
-
     ADDR = "bc1qexampleaddress"
 
     def _btc_tx(self, value_sat, confirmed=True, block_height=800000, block_time=1700000000):
@@ -297,10 +298,10 @@ class TestBTCVerifier:
 # 8-10. LTC Verifier
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 @pytest.mark.payments
 class TestLTCVerifier:
-
     ADDR = "ltc1qexampleaddress"
 
     def _blockcypher_response(self, txrefs=None, unconfirmed_txrefs=None):
@@ -413,10 +414,10 @@ class TestLTCVerifier:
 # 11-13. SOL Verifier
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 @pytest.mark.payments
 class TestSOLVerifier:
-
     ADDR = "SoLAddressExample1111111111111111111111"
     SENDER = "SoLSenderExample22222222222222222222222"
 
@@ -562,79 +563,91 @@ class TestSOLVerifier:
 # 14-16. USDT (Solana) Verifier
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 @pytest.mark.payments
 class TestUSDTSolVerifier:
-
     OWNER = "UsdtOwnerAddr1111111111111111111111111"
     TOKEN_ACCOUNT = "TokenAcct222222222222222222222222222222"
     SENDER = "UsdtSenderAddr333333333333333333333333"
 
     def _token_accounts_response(self, accounts):
         value = [{"pubkey": acc} for acc in accounts]
-        return _mock_response(json_data={
-            "jsonrpc": "2.0",
-            "result": {"value": value},
-        })
+        return _mock_response(
+            json_data={
+                "jsonrpc": "2.0",
+                "result": {"value": value},
+            }
+        )
 
     def _empty_token_accounts_response(self):
-        return _mock_response(json_data={
-            "jsonrpc": "2.0",
-            "result": {"value": []},
-        })
+        return _mock_response(
+            json_data={
+                "jsonrpc": "2.0",
+                "result": {"value": []},
+            }
+        )
 
     def _sigs_response(self, signatures):
         return _mock_response(json_data={"jsonrpc": "2.0", "result": signatures})
 
-    def _usdt_tx_response(self, pre_amount_raw, post_amount_raw,
-                          sender_pre_raw="100000000", sender_post_raw="90000000",
-                          slot=260000000, block_time=1700100000):
-        return _mock_response(json_data={
-            "jsonrpc": "2.0",
-            "result": {
-                "slot": slot,
-                "blockTime": block_time,
-                "meta": {
-                    "err": None,
-                    "preTokenBalances": [
-                        {
-                            "accountIndex": 1,
-                            "mint": USDT_MINT,
-                            "owner": self.OWNER,
-                            "uiTokenAmount": {"amount": pre_amount_raw},
-                        },
-                        {
-                            "accountIndex": 0,
-                            "mint": USDT_MINT,
-                            "owner": self.SENDER,
-                            "uiTokenAmount": {"amount": sender_pre_raw},
-                        },
-                    ],
-                    "postTokenBalances": [
-                        {
-                            "accountIndex": 1,
-                            "mint": USDT_MINT,
-                            "owner": self.OWNER,
-                            "uiTokenAmount": {"amount": post_amount_raw},
-                        },
-                        {
-                            "accountIndex": 0,
-                            "mint": USDT_MINT,
-                            "owner": self.SENDER,
-                            "uiTokenAmount": {"amount": sender_post_raw},
-                        },
-                    ],
+    def _usdt_tx_response(
+        self,
+        pre_amount_raw,
+        post_amount_raw,
+        sender_pre_raw="100000000",
+        sender_post_raw="90000000",
+        slot=260000000,
+        block_time=1700100000,
+    ):
+        return _mock_response(
+            json_data={
+                "jsonrpc": "2.0",
+                "result": {
+                    "slot": slot,
+                    "blockTime": block_time,
+                    "meta": {
+                        "err": None,
+                        "preTokenBalances": [
+                            {
+                                "accountIndex": 1,
+                                "mint": USDT_MINT,
+                                "owner": self.OWNER,
+                                "uiTokenAmount": {"amount": pre_amount_raw},
+                            },
+                            {
+                                "accountIndex": 0,
+                                "mint": USDT_MINT,
+                                "owner": self.SENDER,
+                                "uiTokenAmount": {"amount": sender_pre_raw},
+                            },
+                        ],
+                        "postTokenBalances": [
+                            {
+                                "accountIndex": 1,
+                                "mint": USDT_MINT,
+                                "owner": self.OWNER,
+                                "uiTokenAmount": {"amount": post_amount_raw},
+                            },
+                            {
+                                "accountIndex": 0,
+                                "mint": USDT_MINT,
+                                "owner": self.SENDER,
+                                "uiTokenAmount": {"amount": sender_post_raw},
+                            },
+                        ],
+                    },
+                    "transaction": {
+                        "message": {
+                            "accountKeys": [
+                                {"pubkey": self.SENDER},
+                                {"pubkey": self.TOKEN_ACCOUNT},
+                            ]
+                        }
+                    },
                 },
-                "transaction": {
-                    "message": {
-                        "accountKeys": [
-                            {"pubkey": self.SENDER},
-                            {"pubkey": self.TOKEN_ACCOUNT},
-                        ]
-                    }
-                },
-            },
-        })
+            }
+        )
 
     @pytest.mark.asyncio
     async def test_successful_usdt_detection(self):
@@ -729,10 +742,10 @@ class TestUSDTSolVerifier:
 # 17. Network errors — all verifiers return TxResult(found=False)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 @pytest.mark.payments
 class TestNetworkErrors:
-
     @pytest.mark.asyncio
     async def test_btc_network_error(self):
         """BTC: network failure on all APIs returns not found."""

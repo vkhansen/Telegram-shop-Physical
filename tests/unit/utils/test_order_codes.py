@@ -1,8 +1,10 @@
 """
 Tests for order code generation
 """
+
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from bot.utils.order_codes import generate_order_code, generate_unique_order_code
 
@@ -41,7 +43,7 @@ class TestOrderCodeGeneration:
     def test_generate_unique_order_code_avoids_collision(self, db_session, test_order):
         """Test that unique code avoids existing codes"""
         # Mock to return test_order.order_code first, then a new code
-        with patch('bot.utils.order_codes.generate_order_code') as mock_gen:
+        with patch("bot.utils.order_codes.generate_order_code") as mock_gen:
             mock_gen.side_effect = [test_order.order_code, "UNIQUE"]
 
             code = generate_unique_order_code(session=db_session)
@@ -52,19 +54,20 @@ class TestOrderCodeGeneration:
 
     def test_generate_unique_order_code_max_attempts(self, db_session, test_user):
         """Test that RuntimeError is raised after max attempts"""
-        with patch('bot.utils.order_codes.generate_order_code') as mock_gen:
+        with patch("bot.utils.order_codes.generate_order_code") as mock_gen:
             # Always return same code (will always collide after first)
             mock_gen.return_value = "COLLISION"
 
             # Pre-create order with this code
             from bot.database.models.main import Order
+
             order = Order(
                 buyer_id=test_user.telegram_id,
                 total_price=100,
                 payment_method="cash",
                 delivery_address="Test",
                 phone_number="123",
-                order_code="COLLISION"
+                order_code="COLLISION",
             )
             db_session.add(order)
             db_session.commit()
@@ -87,7 +90,9 @@ class TestGenerateUniqueOrderCodeNoSession:
     def test_avoids_collision_no_session(self, db_session, test_user):
         """Ensures duplicate detection works via the no-session code path."""
         from unittest.mock import patch
+
         from bot.database.models.main import Order
+
         existing = Order(
             buyer_id=test_user.telegram_id,
             total_price=100,
@@ -108,7 +113,9 @@ class TestGenerateUniqueOrderCodeNoSession:
     def test_raises_after_max_attempts_no_session(self, db_session, test_user):
         """Exceeding 100 attempts raises RuntimeError via the no-session path."""
         from unittest.mock import patch
+
         from bot.database.models.main import Order
+
         existing = Order(
             buyer_id=test_user.telegram_id,
             total_price=100,
@@ -120,6 +127,8 @@ class TestGenerateUniqueOrderCodeNoSession:
         db_session.add(existing)
         db_session.commit()
 
-        with patch("bot.utils.order_codes.generate_order_code", return_value="ALWAYS1"):
-            with pytest.raises(RuntimeError, match="Failed to generate unique order code"):
-                generate_unique_order_code(session=None)
+        with (
+            patch("bot.utils.order_codes.generate_order_code", return_value="ALWAYS1"),
+            pytest.raises(RuntimeError, match="Failed to generate unique order code"),
+        ):
+            generate_unique_order_code(session=None)

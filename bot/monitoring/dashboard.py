@@ -1,15 +1,16 @@
 import base64
-import os
-from aiohttp import web
+import contextlib
 import json
+import os
+
+from aiohttp import web
 from sqlalchemy import func, select
 
 from bot.config import EnvKeys
-from bot.monitoring.metrics import get_metrics
 from bot.database import Database
-from bot.database.models.main import Order, ShoppingCart, Goods, BitcoinAddress
+from bot.database.models.main import BitcoinAddress, Goods, Order, ShoppingCart
 from bot.logger_mesh import logger
-
+from bot.monitoring.metrics import get_metrics
 
 # SEC-03 fix: API key middleware for monitoring dashboard
 MONITORING_API_KEY = os.getenv("MONITORING_API_KEY", "")
@@ -20,12 +21,9 @@ async def auth_middleware(request, handler):
     """Require API key or basic auth for all monitoring endpoints."""
     if not MONITORING_API_KEY:
         # No key configured — allow health check only, block rest
-        if request.path == '/health':
+        if request.path == "/health":
             return await handler(request)
-        return web.json_response(
-            {"error": "MONITORING_API_KEY not configured"},
-            status=503
-        )
+        return web.json_response({"error": "MONITORING_API_KEY not configured"}, status=503)
 
     # Check X-API-Key header
     api_key = request.headers.get("X-API-Key", "")
@@ -39,13 +37,12 @@ async def auth_middleware(request, handler):
     # Check Basic Auth (username ignored, password = API key)
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Basic "):
-        try:
+        # Malformed/undecodable auth headers fall through to the 401 below
+        with contextlib.suppress(Exception):
             decoded = base64.b64decode(auth_header[6:]).decode()
             _, password = decoded.split(":", 1)
             if password == MONITORING_API_KEY:
                 return await handler(request)
-        except Exception:
-            pass
 
     return web.json_response({"error": "Unauthorized"}, status=401)
 
@@ -53,7 +50,7 @@ async def auth_middleware(request, handler):
 class MonitoringServer:
     """monitoring server with UI"""
 
-    def __init__(self, host: str = None, port: int = None):
+    def __init__(self, host: str | None = None, port: int | None = None):
         self.host = host or EnvKeys.MONITORING_HOST
         self.port = port or EnvKeys.MONITORING_PORT
         self.app = web.Application(middlewares=[auth_middleware])
@@ -62,29 +59,29 @@ class MonitoringServer:
 
     def _setup_routes(self):
         """Setup routes"""
-        self.app.router.add_get('/health', self.health_check)
-        self.app.router.add_get('/metrics', self.metrics_json)
-        self.app.router.add_get('/metrics/prometheus', self.prometheus_handler)
-        self.app.router.add_get('/dashboard', self.dashboard_handler)
-        self.app.router.add_get('/events', self.events_handler)
-        self.app.router.add_get('/performance', self.performance_handler)
-        self.app.router.add_get('/errors', self.errors_handler)
-        self.app.router.add_get('/business-metrics', self.business_metrics_handler)
-        self.app.router.add_get('/background-tasks', self.background_tasks_handler)
-        self.app.router.add_get('/', self.index_handler)
+        self.app.router.add_get("/health", self.health_check)
+        self.app.router.add_get("/metrics", self.metrics_json)
+        self.app.router.add_get("/metrics/prometheus", self.prometheus_handler)
+        self.app.router.add_get("/dashboard", self.dashboard_handler)
+        self.app.router.add_get("/events", self.events_handler)
+        self.app.router.add_get("/performance", self.performance_handler)
+        self.app.router.add_get("/errors", self.errors_handler)
+        self.app.router.add_get("/business-metrics", self.business_metrics_handler)
+        self.app.router.add_get("/background-tasks", self.background_tasks_handler)
+        self.app.router.add_get("/", self.index_handler)
 
     def _get_base_html(self, title: str, content: str, active_page: str = "") -> str:
         """Generate base HTML with navigation"""
         nav_items = [
-            ('/', 'Overview', 'overview'),
-            ('/dashboard', 'Dashboard', 'dashboard'),
-            ('/business-metrics', 'Business', 'business'),
-            ('/background-tasks', 'Tasks', 'tasks'),
-            ('/events', 'Events', 'events'),
-            ('/performance', 'Performance', 'performance'),
-            ('/errors', 'Errors', 'errors'),
-            ('/metrics', 'Raw JSON', 'json'),
-            ('/metrics/prometheus', 'Prometheus', 'prometheus'),
+            ("/", "Overview", "overview"),
+            ("/dashboard", "Dashboard", "dashboard"),
+            ("/business-metrics", "Business", "business"),
+            ("/background-tasks", "Tasks", "tasks"),
+            ("/events", "Events", "events"),
+            ("/performance", "Performance", "performance"),
+            ("/errors", "Errors", "errors"),
+            ("/metrics", "Raw JSON", "json"),
+            ("/metrics/prometheus", "Prometheus", "prometheus"),
         ]
 
         nav_html = ""
@@ -100,7 +97,7 @@ class MonitoringServer:
             <meta http-equiv="refresh" content="10">
             <style>
                 * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-                body {{ 
+                body {{
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                     min-height: 100vh;
@@ -120,7 +117,7 @@ class MonitoringServer:
                     padding: 30px;
                     text-align: center;
                 }}
-                h1 {{ 
+                h1 {{
                     font-size: 2.5em;
                     margin-bottom: 10px;
                     text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
@@ -267,11 +264,11 @@ class MonitoringServer:
             return web.Response(text="Metrics not initialized", status=503)
 
         summary = metrics.get_metrics_summary()
-        uptime_hours = summary.get('uptime_seconds', 0) / 3600
+        uptime_hours = summary.get("uptime_seconds", 0) / 3600
 
         # Calculate some overview stats
-        total_events = sum(summary.get('events', {}).values())
-        total_errors = sum(summary.get('errors', {}).values())
+        total_events = sum(summary.get("events", {}).values())
+        total_errors = sum(summary.get("errors", {}).values())
         error_rate = (total_errors / total_events * 100) if total_events > 0 else 0
 
         content = f"""
@@ -290,7 +287,7 @@ class MonitoringServer:
             </div>
             <div class="metric-card">
                 <div class="metric-label">Error Rate</div>
-                <div class="metric-value {'status-ok' if error_rate < 1 else 'status-warning' if error_rate < 5 else 'status-error'}">
+                <div class="metric-value {"status-ok" if error_rate < 1 else "status-warning" if error_rate < 5 else "status-error"}">
                     {error_rate:.2f}%
                 </div>
             </div>
@@ -299,12 +296,12 @@ class MonitoringServer:
         <div class="chart">
             <h2>Quick Stats</h2>
             <p>System is running smoothly with {total_events} processed events and {total_errors} errors.</p>
-            <p>Last update: {summary.get('timestamp', 'N/A')}</p>
+            <p>Last update: {summary.get("timestamp", "N/A")}</p>
         </div>
         """
 
         html = self._get_base_html("Overview", content, "overview")
-        return web.Response(text=html, content_type='text/html')
+        return web.Response(text=html, content_type="text/html")
 
     async def events_handler(self, request):
         """Events page"""
@@ -313,7 +310,7 @@ class MonitoringServer:
             return web.Response(text="Metrics not initialized", status=503)
 
         summary = metrics.get_metrics_summary()
-        events = summary.get('events', {})
+        events = summary.get("events", {})
 
         content = "<h2>📊 Event Statistics</h2>"
         content += '<div class="metric-grid">'
@@ -321,7 +318,7 @@ class MonitoringServer:
         for event, count in sorted(events.items(), key=lambda x: x[1], reverse=True):
             content += f"""
             <div class="metric-card">
-                <div class="metric-label">{event.replace('_', ' ').title()}</div>
+                <div class="metric-label">{event.replace("_", " ").title()}</div>
                 <div class="metric-value">{count:,}</div>
                 <div class="progress-bar">
                     <div class="progress-fill" style="width: {min(count / max(events.values()) * 100, 100)}%">
@@ -331,10 +328,10 @@ class MonitoringServer:
             </div>
             """
 
-        content += '</div>'
+        content += "</div>"
 
         html = self._get_base_html("Events", content, "events")
-        return web.Response(text=html, content_type='text/html')
+        return web.Response(text=html, content_type="text/html")
 
     async def performance_handler(self, request):
         """Performance metrics page"""
@@ -343,7 +340,7 @@ class MonitoringServer:
             return web.Response(text="Metrics not initialized", status=503)
 
         summary = metrics.get_metrics_summary()
-        timings = summary.get('timings', {})
+        timings = summary.get("timings", {})
 
         content = "<h2>⚡ Performance Metrics</h2>"
 
@@ -363,14 +360,14 @@ class MonitoringServer:
             """
 
             for op, data in sorted(timings.items()):
-                avg_class = 'status-ok' if data['avg'] < 1 else 'status-warning' if data['avg'] < 3 else 'status-error'
+                avg_class = "status-ok" if data["avg"] < 1 else "status-warning" if data["avg"] < 3 else "status-error"
                 content += f"""
                 <tr>
-                    <td><strong>{op.replace('_', ' ').title()}</strong></td>
-                    <td class="{avg_class}">{data['avg']:.3f}</td>
-                    <td>{data['min']:.3f}</td>
-                    <td>{data['max']:.3f}</td>
-                    <td>{data['count']}</td>
+                    <td><strong>{op.replace("_", " ").title()}</strong></td>
+                    <td class="{avg_class}">{data["avg"]:.3f}</td>
+                    <td>{data["min"]:.3f}</td>
+                    <td>{data["max"]:.3f}</td>
+                    <td>{data["count"]}</td>
                 </tr>
                 """
 
@@ -379,7 +376,7 @@ class MonitoringServer:
             content += "<p>No performance data available yet.</p>"
 
         html = self._get_base_html("Performance", content, "performance")
-        return web.Response(text=html, content_type='text/html')
+        return web.Response(text=html, content_type="text/html")
 
     async def errors_handler(self, request):
         """Errors page"""
@@ -388,26 +385,26 @@ class MonitoringServer:
             return web.Response(text="Metrics not initialized", status=503)
 
         summary = metrics.get_metrics_summary()
-        errors = summary.get('errors', {})
+        errors = summary.get("errors", {})
 
         content = "<h2>❌ Error Tracking</h2>"
 
         if errors:
             content += '<div class="metric-grid">'
             for error, count in sorted(errors.items(), key=lambda x: x[1], reverse=True):
-                severity_class = 'status-warning' if count < 10 else 'status-error'
+                severity_class = "status-warning" if count < 10 else "status-error"
                 content += f"""
                 <div class="metric-card">
                     <div class="metric-label">{error}</div>
                     <div class="metric-value {severity_class}">{count}</div>
                 </div>
                 """
-            content += '</div>'
+            content += "</div>"
         else:
             content += '<div class="metric-card"><p class="status-ok">✅ No errors detected!</p></div>'
 
         html = self._get_base_html("Errors", content, "errors")
-        return web.Response(text=html, content_type='text/html')
+        return web.Response(text=html, content_type="text/html")
 
     async def dashboard_handler(self, request):
         """Main dashboard"""
@@ -419,23 +416,23 @@ class MonitoringServer:
 
         # Events summary
         events_html = ""
-        if summary.get('events'):
-            for event, count in list(summary['events'].items())[:5]:
+        if summary.get("events"):
+            for event, count in list(summary["events"].items())[:5]:
                 events_html += f"<li>{event}: <strong>{count}</strong></li>"
 
         # Errors summary
         errors_html = ""
-        if summary.get('errors'):
-            for error, count in summary['errors'].items():
+        if summary.get("errors"):
+            for error, count in summary["errors"].items():
                 errors_html += f"<li class='status-error'>{error}: <strong>{count}</strong></li>"
 
         # Conversions
         conversions_html = ""
-        if summary.get('conversions'):
-            for funnel, rates in summary['conversions'].items():
+        if summary.get("conversions"):
+            for funnel, rates in summary["conversions"].items():
                 conversions_html += f"""
                 <div class="metric-card">
-                    <div class="metric-label">{funnel.replace('_', ' ').title()}</div>
+                    <div class="metric-label">{funnel.replace("_", " ").title()}</div>
                     {rates}
                 </div>
                 """
@@ -446,19 +443,19 @@ class MonitoringServer:
         <div class="metric-grid">
             <div class="metric-card">
                 <div class="metric-label">System Uptime</div>
-                <div class="metric-value">{summary.get('uptime_seconds', 0):.0f}s</div>
+                <div class="metric-value">{summary.get("uptime_seconds", 0):.0f}s</div>
             </div>
             <div class="metric-card">
                 <div class="metric-label">Last Update</div>
                 <div class="metric-value" style="font-size: 1em;">
-                    {summary.get('timestamp', 'N/A')}
+                    {summary.get("timestamp", "N/A")}
                 </div>
             </div>
         </div>
 
         <div class="chart">
             <h3>Top Events</h3>
-            <ul>{events_html or '<li>No events yet</li>'}</ul>
+            <ul>{events_html or "<li>No events yet</li>"}</ul>
         </div>
 
         <div class="chart">
@@ -466,11 +463,11 @@ class MonitoringServer:
             <ul>{errors_html or '<li class="status-ok">No errors</li>'}</ul>
         </div>
 
-        {('<div class="chart"><h3>Conversion Funnels</h3>' + conversions_html + '</div>') if conversions_html else ''}
+        {('<div class="chart"><h3>Conversion Funnels</h3>' + conversions_html + "</div>") if conversions_html else ""}
         """
 
         html = self._get_base_html("Dashboard", content, "dashboard")
-        return web.Response(text=html, content_type='text/html')
+        return web.Response(text=html, content_type="text/html")
 
     async def metrics_json(self, request):
         """Return metrics as formatted JSON"""
@@ -489,15 +486,15 @@ class MonitoringServer:
         <head>
             <title>Metrics JSON</title>
             <style>
-                body {{ 
-                    background: #1e1e1e; 
-                    color: #d4d4d4; 
+                body {{
+                    background: #1e1e1e;
+                    color: #d4d4d4;
                     font-family: 'Courier New', monospace;
                     padding: 20px;
                 }}
-                pre {{ 
-                    background: #2d2d2d; 
-                    padding: 20px; 
+                pre {{
+                    background: #2d2d2d;
+                    padding: 20px;
                     border-radius: 10px;
                     overflow: auto;
                 }}
@@ -514,7 +511,7 @@ class MonitoringServer:
         </html>
         """
 
-        return web.Response(text=html, content_type='text/html')
+        return web.Response(text=html, content_type="text/html")
 
     async def prometheus_handler(self, request):
         """Prometheus metrics"""
@@ -530,14 +527,14 @@ class MonitoringServer:
         <head>
             <title>Prometheus Metrics</title>
             <style>
-                body {{ 
-                    background: #f5f5f5; 
+                body {{
+                    background: #f5f5f5;
                     font-family: 'Courier New', monospace;
                     padding: 20px;
                 }}
-                pre {{ 
-                    background: white; 
-                    padding: 20px; 
+                pre {{
+                    background: white;
+                    padding: 20px;
                     border: 1px solid #ddd;
                     border-radius: 5px;
                     overflow: auto;
@@ -552,14 +549,11 @@ class MonitoringServer:
         </html>
         """
 
-        return web.Response(text=html, content_type='text/html')
+        return web.Response(text=html, content_type="text/html")
 
     async def health_check(self, request):
         """Enhanced health check endpoint"""
-        health_status = {
-            "status": "healthy",
-            "checks": {}
-        }
+        health_status = {"status": "healthy", "checks": {}}
 
         # Database check with connection pool info
         try:
@@ -571,15 +565,12 @@ class MonitoringServer:
             # Get pool stats with safe attribute access
             pool = db.engine.pool
             pool_stats = {
-                "size": getattr(pool, 'size', lambda: 0)(),
-                "checked_in": getattr(pool, 'checkedin', lambda: 0)(),
-                "checked_out": getattr(pool, 'checkedout', lambda: 0)(),
-                "overflow": getattr(pool, 'overflow', lambda: 0)() if hasattr(pool, 'overflow') else 0
+                "size": getattr(pool, "size", lambda: 0)(),
+                "checked_in": getattr(pool, "checkedin", lambda: 0)(),
+                "checked_out": getattr(pool, "checkedout", lambda: 0)(),
+                "overflow": getattr(pool, "overflow", lambda: 0)() if hasattr(pool, "overflow") else 0,
             }
-            health_status["checks"]["database"] = {
-                "status": "ok",
-                "pool": pool_stats
-            }
+            health_status["checks"]["database"] = {"status": "ok", "pool": pool_stats}
 
             # Check if pool is near exhaustion
             if pool_stats["checked_out"] > pool_stats["size"] * 0.9:
@@ -587,11 +578,12 @@ class MonitoringServer:
                 health_status["status"] = "degraded"
 
         except Exception as e:
-            health_status["checks"]["database"] = f"error: {str(e)}"
+            health_status["checks"]["database"] = f"error: {e!s}"
             health_status["status"] = "unhealthy"
 
         # Redis/Cache check (lazy import to avoid circular dependency)
         from bot.caching.cache import get_cache_manager
+
         cache = get_cache_manager()
         if cache:
             try:
@@ -599,7 +591,7 @@ class MonitoringServer:
                 await cache.get("health_check_test")
                 health_status["checks"]["redis"] = "ok"
             except Exception as e:
-                health_status["checks"]["redis"] = f"error: {str(e)}"
+                health_status["checks"]["redis"] = f"error: {e!s}"
                 health_status["status"] = "degraded"
         else:
             health_status["checks"]["redis"] = "not configured"
@@ -616,36 +608,34 @@ class MonitoringServer:
         # Bitcoin address pool check - using SQLAlchemy ORM
         try:
             with Database().session() as s:
-                result = s.query(func.count(BitcoinAddress.address)).filter(
-                    BitcoinAddress.is_used == False
-                ).scalar()
+                result = s.query(func.count(BitcoinAddress.address)).filter(not BitcoinAddress.is_used).scalar()
 
                 health_status["checks"]["bitcoin_pool"] = {
                     "available": result,
-                    "status": "ok" if result >= 10 else "warning" if result >= 5 else "critical"
+                    "status": "ok" if result >= 10 else "warning" if result >= 5 else "critical",
                 }
 
                 if result < 5:
                     health_status["status"] = "degraded"
 
         except Exception as e:
-            health_status["checks"]["bitcoin_pool"] = f"error: {str(e)}"
+            health_status["checks"]["bitcoin_pool"] = f"error: {e!s}"
 
         # Background tasks check
         try:
-            import bot.tasks.reservation_cleaner as cleaner_task
             import bot.tasks.file_watcher as watcher_task
+            import bot.tasks.reservation_cleaner as cleaner_task
 
             bg_tasks = {}
 
             # Check reservation cleaner
-            if hasattr(cleaner_task, 'task') and cleaner_task.task:
+            if hasattr(cleaner_task, "task") and cleaner_task.task:
                 bg_tasks["reservation_cleaner"] = "running"
             else:
                 bg_tasks["reservation_cleaner"] = "not started"
 
             # Check file watcher
-            if hasattr(watcher_task, 'watcher') and watcher_task.watcher:
+            if hasattr(watcher_task, "watcher") and watcher_task.watcher:
                 bg_tasks["file_watcher"] = "running"
             else:
                 bg_tasks["file_watcher"] = "not started"
@@ -653,7 +643,7 @@ class MonitoringServer:
             health_status["checks"]["background_tasks"] = bg_tasks
 
         except Exception as e:
-            health_status["checks"]["background_tasks"] = f"error: {str(e)}"
+            health_status["checks"]["background_tasks"] = f"error: {e!s}"
 
         status_code = 200 if health_status["status"] == "healthy" else 503
         return web.json_response(health_status, status=status_code)
@@ -668,34 +658,29 @@ class MonitoringServer:
         customer_journey = metrics.get_customer_journey_analytics()
         referral_analytics = metrics.get_referral_analytics()
         payment_analytics = metrics.get_payment_analytics()
-        inventory_analytics = metrics.get_inventory_analytics()
+        metrics.get_inventory_analytics()
 
         # Query database for current business state
         try:
             with Database().session() as s:
                 # Orders by status - using SQLAlchemy ORM
-                order_stats = s.query(
-                    Order.order_status,
-                    func.count().label('count')
-                ).group_by(Order.order_status).all()
+                order_stats = (
+                    s.query(Order.order_status, func.count().label("count")).group_by(Order.order_status).all()
+                )
 
                 # Active carts count - using SQLAlchemy ORM
-                active_carts = s.query(
-                    func.count(func.distinct(ShoppingCart.user_id))
-                ).scalar() or 0
+                active_carts = s.query(func.count(func.distinct(ShoppingCart.user_id))).scalar() or 0
 
                 # Low inventory items - using SQLAlchemy ORM with computed column
-                available_stock = (Goods.stock_quantity - Goods.reserved_quantity).label('available')
+                available_stock = (Goods.stock_quantity - Goods.reserved_quantity).label("available")
 
-                low_inventory = s.query(
-                    Goods.name,
-                    available_stock,
-                    Goods.reserved_quantity.label('reserved')
-                ).filter(
-                    (Goods.stock_quantity - Goods.reserved_quantity) < 5
-                ).order_by(
-                    available_stock.asc()
-                ).limit(10).all()
+                low_inventory = (
+                    s.query(Goods.name, available_stock, Goods.reserved_quantity.label("reserved"))
+                    .filter((Goods.stock_quantity - Goods.reserved_quantity) < 5)
+                    .order_by(available_stock.asc())
+                    .limit(10)
+                    .all()
+                )
 
         except Exception as e:
             logger.error(f"Error fetching business metrics: {e}")
@@ -709,14 +694,14 @@ class MonitoringServer:
         for status, count in order_stats:
             order_totals[status] = count
             status_class = {
-                'delivered': 'status-ok',
-                'completed': 'status-ok',
-                'confirmed': 'status-ok',
-                'reserved': 'status-warning',
-                'pending': 'status-warning',
-                'cancelled': 'status-error',
-                'expired': 'status-error'
-            }.get(status, '')
+                "delivered": "status-ok",
+                "completed": "status-ok",
+                "confirmed": "status-ok",
+                "reserved": "status-warning",
+                "pending": "status-warning",
+                "cancelled": "status-error",
+                "expired": "status-error",
+            }.get(status, "")
 
             orders_html += f"""
             <div class="metric-card">
@@ -724,7 +709,7 @@ class MonitoringServer:
                 <div class="metric-value {status_class}">{count}</div>
             </div>
             """
-        orders_html += '</div>'
+        orders_html += "</div>"
 
         # Customer Journey section
         journey_html = f"""
@@ -737,15 +722,15 @@ class MonitoringServer:
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">Cart → Checkout Rate</div>
-                    <div class="metric-value">{customer_journey['cart_metrics']['cart_to_checkout_rate']:.1f}%</div>
+                    <div class="metric-value">{customer_journey["cart_metrics"]["cart_to_checkout_rate"]:.1f}%</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">Abandoned Carts</div>
-                    <div class="metric-value status-warning">{customer_journey['cart_metrics']['abandoned_carts']}</div>
+                    <div class="metric-value status-warning">{customer_journey["cart_metrics"]["abandoned_carts"]}</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">Order Completion Rate</div>
-                    <div class="metric-value">{customer_journey['order_metrics']['completion_rate']:.1f}%</div>
+                    <div class="metric-value">{customer_journey["order_metrics"]["completion_rate"]:.1f}%</div>
                 </div>
             </div>
         </div>
@@ -758,21 +743,21 @@ class MonitoringServer:
             <div class="metric-grid">
                 <div class="metric-card">
                     <div class="metric-label">Bitcoin Payments</div>
-                    <div class="metric-value">{payment_analytics['payment_methods']['bitcoin']['count']}</div>
-                    <small>{payment_analytics['payment_methods']['bitcoin']['percentage']:.1f}% of total</small>
+                    <div class="metric-value">{payment_analytics["payment_methods"]["bitcoin"]["count"]}</div>
+                    <small>{payment_analytics["payment_methods"]["bitcoin"]["percentage"]:.1f}% of total</small>
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">Cash Payments</div>
-                    <div class="metric-value">{payment_analytics['payment_methods']['cash']['count']}</div>
-                    <small>{payment_analytics['payment_methods']['cash']['percentage']:.1f}% of total</small>
+                    <div class="metric-value">{payment_analytics["payment_methods"]["cash"]["count"]}</div>
+                    <small>{payment_analytics["payment_methods"]["cash"]["percentage"]:.1f}% of total</small>
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">Bonus Usage Rate</div>
-                    <div class="metric-value">{payment_analytics['bonus_usage']['bonus_usage_rate']:.1f}%</div>
+                    <div class="metric-value">{payment_analytics["bonus_usage"]["bonus_usage_rate"]:.1f}%</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">Payment Completion</div>
-                    <div class="metric-value">{payment_analytics['completion']['completion_rate']:.1f}%</div>
+                    <div class="metric-value">{payment_analytics["completion"]["completion_rate"]:.1f}%</div>
                 </div>
             </div>
         </div>
@@ -785,19 +770,19 @@ class MonitoringServer:
             <div class="metric-grid">
                 <div class="metric-card">
                     <div class="metric-label">Codes Created</div>
-                    <div class="metric-value">{referral_analytics['codes_created']}</div>
+                    <div class="metric-value">{referral_analytics["codes_created"]}</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">Codes Used</div>
-                    <div class="metric-value">{referral_analytics['codes_used']}</div>
+                    <div class="metric-value">{referral_analytics["codes_used"]}</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">Usage Rate</div>
-                    <div class="metric-value">{referral_analytics['usage_rate']:.1f}%</div>
+                    <div class="metric-value">{referral_analytics["usage_rate"]:.1f}%</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-label">Bonuses Paid</div>
-                    <div class="metric-value">{referral_analytics['bonuses_paid']}</div>
+                    <div class="metric-value">{referral_analytics["bonuses_paid"]}</div>
                 </div>
             </div>
         </div>
@@ -806,9 +791,9 @@ class MonitoringServer:
         # Inventory section
         inventory_html = '<div class="chart"><h3>📦 Low Inventory Alert</h3>'
         if low_inventory:
-            inventory_html += '<table><thead><tr><th>Item</th><th>Available</th><th>Reserved</th></tr></thead><tbody>'
+            inventory_html += "<table><thead><tr><th>Item</th><th>Available</th><th>Reserved</th></tr></thead><tbody>"
             for name, available, reserved in low_inventory:
-                alert_class = 'status-error' if available == 0 else 'status-warning'
+                alert_class = "status-error" if available == 0 else "status-warning"
                 inventory_html += f"""
                 <tr>
                     <td><strong>{name}</strong></td>
@@ -816,10 +801,10 @@ class MonitoringServer:
                     <td>{reserved}</td>
                 </tr>
                 """
-            inventory_html += '</tbody></table>'
+            inventory_html += "</tbody></table>"
         else:
             inventory_html += '<p class="status-ok">✅ All items have sufficient stock</p>'
-        inventory_html += '</div>'
+        inventory_html += "</div>"
 
         content = f"""
         <h2>📊 Business Metrics Dashboard</h2>
@@ -836,7 +821,7 @@ class MonitoringServer:
         """
 
         html = self._get_base_html("Business Metrics", content, "business")
-        return web.Response(text=html, content_type='text/html')
+        return web.Response(text=html, content_type="text/html")
 
     async def background_tasks_handler(self, request):
         """Background tasks monitoring page"""
@@ -849,32 +834,29 @@ class MonitoringServer:
         try:
             # Check if any asyncio task named 'run_reservation_cleaner' is running
             import asyncio
+
             current_tasks = asyncio.all_tasks()
-            cleaner_running = any(
-                'run_reservation_cleaner' in str(task.get_coro())
-                for task in current_tasks
-            )
+            cleaner_running = any("run_reservation_cleaner" in str(task.get_coro()) for task in current_tasks)
 
             cleaner_status = {
                 "name": "Reservation Cleaner",
                 "status": "running" if cleaner_running else "not started",
                 "description": "Cleans up expired inventory reservations every 60 seconds",
                 "metrics": {
-                    "orders_expired": summary.get('events', {}).get('order_expired', 0),
-                    "inventory_released": summary.get('events', {}).get('inventory_released', 0)
-                }
+                    "orders_expired": summary.get("events", {}).get("order_expired", 0),
+                    "inventory_released": summary.get("events", {}).get("inventory_released", 0),
+                },
             }
             tasks_status.append(cleaner_status)
         except Exception as e:
-            tasks_status.append({
-                "name": "Reservation Cleaner",
-                "status": f"error: {str(e)}",
-                "description": "Could not load task module"
-            })
+            tasks_status.append(
+                {"name": "Reservation Cleaner", "status": f"error: {e!s}", "description": "Could not load task module"}
+            )
 
         # File Watcher
         try:
             from bot.tasks.file_watcher import get_file_watcher
+
             watcher_instance = get_file_watcher()
             is_running = watcher_instance.is_running() if watcher_instance else False
 
@@ -882,69 +864,70 @@ class MonitoringServer:
                 "name": "Bitcoin Address File Watcher",
                 "status": "running" if is_running else "not started",
                 "description": "Monitors btc_addresses.txt for changes and reloads addresses",
-                "metrics": {}
+                "metrics": {},
             }
             tasks_status.append(watcher_status)
         except Exception as e:
-            tasks_status.append({
-                "name": "File Watcher",
-                "status": f"error: {str(e)}",
-                "description": "Could not load task module"
-            })
+            tasks_status.append(
+                {"name": "File Watcher", "status": f"error: {e!s}", "description": "Could not load task module"}
+            )
 
         # Cache Scheduler
         try:
-            from bot.caching.scheduler import CacheScheduler
             cache_status = {
                 "name": "Cache Scheduler",
                 "status": "configured",
                 "description": "Invalidates stats cache hourly, full cleanup at 3 AM daily",
-                "metrics": {}
+                "metrics": {},
             }
             tasks_status.append(cache_status)
         except Exception as e:
-            tasks_status.append({
-                "name": "Cache Scheduler",
-                "status": f"error: {str(e)}",
-                "description": "Could not load cache scheduler"
-            })
+            tasks_status.append(
+                {"name": "Cache Scheduler", "status": f"error: {e!s}", "description": "Could not load cache scheduler"}
+            )
 
         # Build HTML
-        content = '<h2>⚙️ Background Tasks Monitor</h2>'
+        content = "<h2>⚙️ Background Tasks Monitor</h2>"
 
         for task in tasks_status:
-            status_class = 'status-ok' if task['status'] == 'running' or task[
-                'status'] == 'configured' else 'status-error' if 'error' in task['status'] else 'status-warning'
+            status_class = (
+                "status-ok"
+                if task["status"] == "running" or task["status"] == "configured"
+                else "status-error"
+                if "error" in task["status"]
+                else "status-warning"
+            )
 
-            metrics_html = ''
-            if task.get('metrics'):
-                metrics_html = '<ul>'
-                for key, value in task['metrics'].items():
-                    metrics_html += f'<li>{key.replace("_", " ").title()}: <strong>{value}</strong></li>'
-                metrics_html += '</ul>'
+            metrics_html = ""
+            if task.get("metrics"):
+                metrics_html = "<ul>"
+                for key, value in task["metrics"].items():
+                    metrics_html += f"<li>{key.replace('_', ' ').title()}: <strong>{value}</strong></li>"
+                metrics_html += "</ul>"
 
             content += f"""
             <div class="chart">
-                <h3>{task['name']}</h3>
-                <p><strong>Status:</strong> <span class="{status_class}">{task['status'].upper()}</span></p>
-                <p>{task['description']}</p>
+                <h3>{task["name"]}</h3>
+                <p><strong>Status:</strong> <span class="{status_class}">{task["status"].upper()}</span></p>
+                <p>{task["description"]}</p>
                 {metrics_html}
             </div>
             """
 
         html = self._get_base_html("Background Tasks", content, "tasks")
-        return web.Response(text=html, content_type='text/html')
+        return web.Response(text=html, content_type="text/html")
 
     async def start(self):
         """Start monitoring server without access logs"""
         try:
             # Disable access logs
             import logging
-            logging.getLogger('aiohttp.access').setLevel(logging.WARNING)
+
+            logging.getLogger("aiohttp.access").setLevel(logging.WARNING)
 
             self.runner = web.AppRunner(
                 self.app,
-                access_log=None  # Disable access logs
+                access_log=None,  # Disable access logs
             )
             await self.runner.setup()
             site = web.TCPSite(self.runner, self.host, self.port)

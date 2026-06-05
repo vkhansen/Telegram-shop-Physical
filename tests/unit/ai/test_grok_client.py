@@ -1,9 +1,9 @@
 """Tests for Grok API client session management (Card 17)."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import aiohttp
+import pytest
 
 import bot.ai.grok_client as client_module
 from bot.ai.grok_client import close_grok_session

@@ -19,6 +19,7 @@ Usage:
 
 For e2e tests, import generate_fuzz_data() / inject_chaos() and pass a session.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -31,24 +32,54 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: E402
 
-from bot.database.main import Database
-from bot.database.integrity import check_integrity, summarize, Severity
-from bot.database.models.main import (
-    Brand, BotConfig, BranchInventory, BrandStaff, Categories, Goods, Role, Store, User,
+from bot.database.integrity import Severity, check_integrity, summarize  # noqa: E402
+from bot.database.main import Database  # noqa: E402
+from bot.database.models.main import (  # noqa: E402
+    BotConfig,
+    BranchInventory,
+    Brand,
+    BrandStaff,
+    Categories,
+    Goods,
+    Role,
+    Store,
+    User,
 )
 
 FUZZ_SLUG_PREFIX = "fuzz-"
 FUZZ_USER_BASE = 8_100_000_000
 FUZZ_USER_SPAN = 1_000_000
-FUZZ_TOKEN_PREFIX = "FUZZ:"
+FUZZ_TOKEN_PREFIX = "FUZZ:"  # noqa: S105 — placeholder/marker string, not a secret
 
 _CUISINES = ["Thai", "Afghan", "Italian", "Cafe", "Sushi", "Burger", "Vegan", "BBQ"]
-_CATEGORY_WORDS = ["Starters", "Mains", "Curries", "Salads", "Drinks", "Desserts",
-                   "Breakfast", "Sides", "Specials", "Grill"]
-_ITEM_WORDS = ["Pad Thai", "Green Curry", "Mango Sticky Rice", "Iced Latte", "Spring Roll",
-               "Tom Yum", "Fried Rice", "Lemonade", "Cheesecake", "Espresso", "Kebab", "Soup"]
+_CATEGORY_WORDS = [
+    "Starters",
+    "Mains",
+    "Curries",
+    "Salads",
+    "Drinks",
+    "Desserts",
+    "Breakfast",
+    "Sides",
+    "Specials",
+    "Grill",
+]
+_ITEM_WORDS = [
+    "Pad Thai",
+    "Green Curry",
+    "Mango Sticky Rice",
+    "Iced Latte",
+    "Spring Roll",
+    "Tom Yum",
+    "Fried Rice",
+    "Lemonade",
+    "Cheesecake",
+    "Espresso",
+    "Kebab",
+    "Soup",
+]
 _ROLES = ["admin", "kitchen", "rider"]
 
 
@@ -68,7 +99,9 @@ def _maybe_modifiers(rng: random.Random) -> dict | None:
         return None
     return {
         "spice_level": {
-            "label": "Spice Level", "type": "single", "required": True,
+            "label": "Spice Level",
+            "type": "single",
+            "required": True,
             "options": [
                 {"id": "mild", "label": "Mild", "price": 0},
                 {"id": "hot", "label": "Hot", "price": 0},
@@ -80,8 +113,7 @@ def _maybe_modifiers(rng: random.Random) -> dict | None:
 def generate_fuzz_data(session: Session, rng: random.Random, num_brands: int = 3) -> dict:
     """Create `num_brands` fully-valid fuzzed brands. Returns a counts summary."""
     role_id = _base_role_id(session)
-    counts = {"brands": 0, "stores": 0, "categories": 0, "items": 0,
-              "staff": 0, "branch_inventory": 0, "users": 0}
+    counts = {"brands": 0, "stores": 0, "categories": 0, "items": 0, "staff": 0, "branch_inventory": 0, "users": 0}
     cat_counter = item_counter = 0
 
     for b in range(num_brands):
@@ -98,14 +130,16 @@ def generate_fuzz_data(session: Session, rng: random.Random, num_brands: int = 3
         session.flush()  # assign brand.id
         counts["brands"] += 1
 
-        session.add(BotConfig(
-            brand_id=brand.id,
-            bot_token=f"{FUZZ_TOKEN_PREFIX}{brand.id}:{token}",
-            bot_username=f"fuzz_{brand.id}_bot",
-            default_language=rng.choice(["th", "en"]),
-            default_currency="THB",
-            payments_enabled=rng.sample(["promptpay", "cash", "bitcoin"], k=rng.randint(1, 3)),
-        ))
+        session.add(
+            BotConfig(
+                brand_id=brand.id,
+                bot_token=f"{FUZZ_TOKEN_PREFIX}{brand.id}:{token}",
+                bot_username=f"fuzz_{brand.id}_bot",
+                default_language=rng.choice(["th", "en"]),
+                default_currency="THB",
+                payments_enabled=rng.sample(["promptpay", "cash", "bitcoin"], k=rng.randint(1, 3)),
+            )
+        )
 
         # Stores / branches — exactly one default.
         num_stores = rng.randint(1, 4)
@@ -129,10 +163,14 @@ def generate_fuzz_data(session: Session, rng: random.Random, num_brands: int = 3
         for _ in range(rng.randint(2, 5)):
             cat_name = f"{brand.slug}:{rng.choice(_CATEGORY_WORDS)}-{cat_counter}"
             cat_counter += 1
-            session.add(Categories(
-                name=cat_name, brand_id=brand.id, sort_order=rng.randint(0, 20),
-                description="Fuzz category",
-            ))
+            session.add(
+                Categories(
+                    name=cat_name,
+                    brand_id=brand.id,
+                    sort_order=rng.randint(0, 20),
+                    description="Fuzz category",
+                )
+            )
             session.flush()
             counts["categories"] += 1
 
@@ -144,7 +182,7 @@ def generate_fuzz_data(session: Session, rng: random.Random, num_brands: int = 3
                 reserved = rng.randint(0, stock) if stock else 0
                 item = Goods(
                     name=item_name,
-                    brand_id=brand.id,           # MUST match the category's brand
+                    brand_id=brand.id,  # MUST match the category's brand
                     category_name=cat_name,
                     price=round(rng.uniform(20, 500), 2),
                     description="Fuzz item",
@@ -162,10 +200,14 @@ def generate_fuzz_data(session: Session, rng: random.Random, num_brands: int = 3
                 if is_product and rng.random() < 0.5:
                     bstore = rng.choice(stores)
                     bstock = rng.randint(0, 100)
-                    session.add(BranchInventory(
-                        store_id=bstore.id, item_name=item_name,
-                        stock_quantity=bstock, reserved_quantity=rng.randint(0, bstock) if bstock else 0,
-                    ))
+                    session.add(
+                        BranchInventory(
+                            store_id=bstore.id,
+                            item_name=item_name,
+                            stock_quantity=bstock,
+                            reserved_quantity=rng.randint(0, bstock) if bstock else 0,
+                        )
+                    )
                     counts["branch_inventory"] += 1
 
         # Staff: an owner plus a random subset of operational roles.
@@ -203,10 +245,10 @@ def inject_chaos(session: Session, rng: random.Random) -> set[str]:
             items[0].brand_id = other  # cross-brand item vs its category
             expected.add("item_category_cross_brand")
     if cats:
-        cats[0].brand_id = None        # unbranded category
+        cats[0].brand_id = None  # unbranded category
         expected.add("unbranded")
     if len(items) > 1:
-        items[1].price = 0             # bad price
+        items[1].price = 0  # bad price
         expected.add("item_bad_price")
     if brands:
         # second default store for a brand
@@ -221,12 +263,10 @@ def inject_chaos(session: Session, rng: random.Random) -> set[str]:
 
 def clean_fuzz_data(session: Session) -> dict:
     """Remove all previously generated fuzz data (idempotent)."""
-    fuzz_brand_ids = [bid for (bid,) in session.query(Brand.id)
-                      .filter(Brand.slug.like(f"{FUZZ_SLUG_PREFIX}%")).all()]
+    fuzz_brand_ids = [bid for (bid,) in session.query(Brand.id).filter(Brand.slug.like(f"{FUZZ_SLUG_PREFIX}%")).all()]
     fuzz_store_ids = []
     if fuzz_brand_ids:
-        fuzz_store_ids = [sid for (sid,) in session.query(Store.id)
-                          .filter(Store.brand_id.in_(fuzz_brand_ids)).all()]
+        fuzz_store_ids = [sid for (sid,) in session.query(Store.id).filter(Store.brand_id.in_(fuzz_brand_ids)).all()]
     removed = {}
 
     def _del(model, cond):
@@ -241,8 +281,7 @@ def clean_fuzz_data(session: Session) -> dict:
         removed["bot_configs"] = _del(BotConfig, BotConfig.brand_id.in_(fuzz_brand_ids))
         removed["stores"] = _del(Store, Store.brand_id.in_(fuzz_brand_ids))
         removed["brands"] = _del(Brand, Brand.id.in_(fuzz_brand_ids))
-    removed["users"] = _del(
-        User, User.telegram_id.between(FUZZ_USER_BASE, FUZZ_USER_BASE + FUZZ_USER_SPAN))
+    removed["users"] = _del(User, User.telegram_id.between(FUZZ_USER_BASE, FUZZ_USER_BASE + FUZZ_USER_SPAN))
     session.flush()
     return removed
 
@@ -250,7 +289,8 @@ def clean_fuzz_data(session: Session) -> dict:
 def _now():
     # Imported lazily so this module stays import-light.
     import datetime as _dt
-    return _dt.datetime.now(_dt.timezone.utc)
+
+    return _dt.datetime.now(_dt.UTC)
 
 
 def _run_cli(args) -> int:
@@ -299,8 +339,11 @@ def main() -> int:
     p.add_argument("--brands", type=int, default=3, help="Number of brands to generate.")
     p.add_argument("--clean", action="store_true", help="Wipe existing fuzz data first, then generate.")
     p.add_argument("--clean-only", action="store_true", help="Only wipe existing fuzz data; generate nothing.")
-    p.add_argument("--chaos", action="store_true",
-                   help="Inject broken configs and verify the validator catches them (rolled back).")
+    p.add_argument(
+        "--chaos",
+        action="store_true",
+        help="Inject broken configs and verify the validator catches them (rolled back).",
+    )
     return _run_cli(p.parse_args())
 
 

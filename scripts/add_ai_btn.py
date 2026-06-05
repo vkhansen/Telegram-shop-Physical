@@ -1,4 +1,5 @@
 """One-shot script: insert btn.ai_assistant after btn.my_tickets in strings.py"""
+
 import pathlib
 
 path = pathlib.Path("bot/i18n/strings.py")

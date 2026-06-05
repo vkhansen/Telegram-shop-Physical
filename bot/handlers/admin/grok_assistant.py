@@ -54,7 +54,7 @@ def _trim_history(history: list[dict]) -> list[dict]:
     if len(history) <= max_history + 1:
         return history
     # Always keep system prompt (index 0)
-    return [history[0]] + history[-(max_history):]
+    return [history[0], *history[-max_history:]]
 
 
 # Per-admin rate limit: 100 Grok API calls per 3600 seconds
@@ -86,6 +86,7 @@ def _exit_keyboard():
 
 
 # ── Entry Point ──────────────────────────────────────────────────────
+
 
 @router.callback_query(
     F.data == "ai_assistant",
@@ -125,6 +126,7 @@ async def start_assistant(callback: CallbackQuery, state: FSMContext):
 
 # ── Exit ─────────────────────────────────────────────────────────────
 
+
 @router.message(GrokAssistantStates.chatting, F.text == "/exit_ai", HasPermissionFilter(permission=16))
 @router.message(GrokAssistantStates.awaiting_confirmation, F.text == "/exit_ai", HasPermissionFilter(permission=16))
 @router.message(GrokAssistantStates.awaiting_file, F.text == "/exit_ai", HasPermissionFilter(permission=16))
@@ -142,6 +144,7 @@ async def exit_assistant_cb(callback: CallbackQuery, state: FSMContext):
 
 
 # ── Main Chat Loop ───────────────────────────────────────────────────
+
 
 @router.message(GrokAssistantStates.chatting, HasPermissionFilter(permission=16))
 async def handle_chat_message(message: Message, state: FSMContext):
@@ -195,14 +198,19 @@ async def handle_chat_message(message: Message, state: FSMContext):
     if assistant_msg.get("tool_calls"):
         for tool_call in assistant_msg["tool_calls"]:
             result = await _process_tool_call(
-                tool_call, message.from_user.id, photo_file_id,
-                bot=message.bot, chat_id=message.chat.id,
+                tool_call,
+                message.from_user.id,
+                photo_file_id,
+                bot=message.bot,
+                chat_id=message.chat.id,
             )
-            history.append({
-                "role": "tool",
-                "tool_call_id": tool_call["id"],
-                "content": json.dumps(result, default=str),
-            })
+            history.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tool_call["id"],
+                    "content": json.dumps(result, default=str),
+                }
+            )
 
         # Get Grok's follow-up response with tool results
         try:
@@ -217,14 +225,19 @@ async def handle_chat_message(message: Message, state: FSMContext):
                 depth += 1
                 for tc in followup_msg["tool_calls"]:
                     res = await _process_tool_call(
-                        tc, message.from_user.id, photo_file_id,
-                        bot=message.bot, chat_id=message.chat.id,
+                        tc,
+                        message.from_user.id,
+                        photo_file_id,
+                        bot=message.bot,
+                        chat_id=message.chat.id,
                     )
-                    history.append({
-                        "role": "tool",
-                        "tool_call_id": tc["id"],
-                        "content": json.dumps(res, default=str),
-                    })
+                    history.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tc["id"],
+                            "content": json.dumps(res, default=str),
+                        }
+                    )
                 await message.bot.send_chat_action(message.chat.id, "typing")
                 followup = await call_grok(messages=history, tools=ALL_TOOLS)
                 followup_msg = followup["choices"][0]["message"]
@@ -289,8 +302,7 @@ async def _process_tool_call(
     # Execute
     if func_name in MUTATION_TOOLS:
         return await execute_mutation(validated, admin_id)
-    else:
-        return await execute_query(validated)
+    return await execute_query(validated)
 
 
 async def _handle_generate_images(action, admin_id: int, bot, chat_id: int) -> dict:
@@ -309,11 +321,13 @@ async def _handle_generate_images(action, admin_id: int, bot, chat_id: int) -> d
             for name in action.item_names:
                 goods = s.query(Goods).filter(Goods.name == name).first()
                 if goods:
-                    items.append({
-                        "name": goods.name,
-                        "description": goods.description,
-                        "category_name": goods.category_name,
-                    })
+                    items.append(
+                        {
+                            "name": goods.name,
+                            "description": goods.description,
+                            "category_name": goods.category_name,
+                        }
+                    )
                 else:
                     return {"error": f"Item '{name}' not found"}
 
@@ -340,8 +354,7 @@ async def _handle_generate_images(action, admin_id: int, bot, chat_id: int) -> d
         except Exception as e:
             failed.append({"item": item["name"], "error": str(e)})
 
-    logger.info("AI admin %s generated %d images (%d failed)",
-                admin_id, len(generated), len(failed))
+    logger.info("AI admin %s generated %d images (%d failed)", admin_id, len(generated), len(failed))
     return {
         "success": True,
         "generated": len(generated),

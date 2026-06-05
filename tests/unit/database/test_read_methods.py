@@ -1,6 +1,7 @@
 """
 Tests for bot/database/methods/read.py - comprehensive coverage of all read functions.
 """
+
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from unittest.mock import patch
@@ -84,7 +85,7 @@ class TestCheckUser:
     def test_check_user_exists(self, db_with_roles, test_user):
         result = check_user(test_user.telegram_id)
         assert result is not None
-        assert result['telegram_id'] == test_user.telegram_id
+        assert result["telegram_id"] == test_user.telegram_id
 
     def test_check_user_not_found(self, db_with_roles):
         result = check_user(999999999)
@@ -206,8 +207,8 @@ class TestItemInfo:
     def test_get_item_info_exists(self, db_session, test_goods):
         result = get_item_info(test_goods.name)
         assert result is not None
-        assert result['name'] == test_goods.name
-        assert Decimal(str(result['price'])) == test_goods.price
+        assert result["name"] == test_goods.name
+        assert Decimal(str(result["price"])) == test_goods.price
 
     def test_get_item_info_not_found(self, db_session):
         result = get_item_info("Nonexistent Product")
@@ -217,18 +218,18 @@ class TestItemInfo:
         """get_goods_info should be same as get_item_info"""
         result = get_goods_info(test_goods.name)
         assert result is not None
-        assert result['name'] == test_goods.name
+        assert result["name"] == test_goods.name
 
     def test_check_item_is_alias(self, db_session, test_goods):
         """check_item should be same as get_item_info"""
         result = check_item(test_goods.name)
         assert result is not None
-        assert result['name'] == test_goods.name
+        assert result["name"] == test_goods.name
 
     def test_check_category_exists(self, db_session, test_category):
         result = check_category(test_category.name)
         assert result is not None
-        assert result['name'] == test_category.name
+        assert result["name"] == test_category.name
 
     def test_check_category_not_found(self, db_session):
         result = check_category("Nonexistent Category")
@@ -251,7 +252,7 @@ class TestItemStock:
             description="Has reserved stock",
             category_name=test_category.name,
             stock_quantity=100,
-            reserved_quantity=30
+            reserved_quantity=30,
         )
         db_session.add(goods)
         db_session.commit()
@@ -309,14 +310,14 @@ class TestBoughtItems:
             price=test_goods.price,
             buyer_id=test_user.telegram_id,
             bought_datetime=datetime.now(UTC),
-            unique_id=111111
+            unique_id=111111,
         )
         db_with_roles.add(bought)
         db_with_roles.commit()
 
         result = get_bought_item_info(bought.id)
         assert result is not None
-        assert result['item_name'] == test_goods.name
+        assert result["item_name"] == test_goods.name
 
     def test_select_bought_item_by_unique_id(self, db_with_roles, test_user, test_goods):
         bought = BoughtGoods(
@@ -325,14 +326,14 @@ class TestBoughtItems:
             price=Decimal("99.99"),
             buyer_id=test_user.telegram_id,
             bought_datetime=datetime.now(UTC),
-            unique_id=222222
+            unique_id=222222,
         )
         db_with_roles.add(bought)
         db_with_roles.commit()
 
         result = select_bought_item(222222)
         assert result is not None
-        assert result['unique_id'] == 222222
+        assert result["unique_id"] == 222222
 
     def test_select_bought_item_not_found(self, db_session):
         result = select_bought_item(999999)
@@ -346,7 +347,7 @@ class TestBoughtItems:
                 price=Decimal("10.00"),
                 buyer_id=test_user.telegram_id,
                 bought_datetime=datetime.now(UTC),
-                unique_id=300000 + i
+                unique_id=300000 + i,
             )
             db_with_roles.add(bought)
         db_with_roles.commit()
@@ -365,7 +366,7 @@ class TestBoughtItems:
             price=Decimal("10.00"),
             buyer_id=test_user.telegram_id,
             bought_datetime=datetime.now(UTC),
-            unique_id=400000
+            unique_id=400000,
         )
         db_with_roles.add(bought)
         db_with_roles.commit()
@@ -395,7 +396,7 @@ class TestOrderRevenue:
             price=Decimal("50.00"),
             buyer_id=test_user.telegram_id,
             bought_datetime=now,
-            unique_id=500000
+            unique_id=500000,
         )
         db_with_roles.add(bought)
         db_with_roles.commit()
@@ -416,7 +417,7 @@ class TestOrderRevenue:
                 price=Decimal("25.00"),
                 buyer_id=test_user.telegram_id,
                 bought_datetime=datetime.now(UTC),
-                unique_id=600000 + i
+                unique_id=600000 + i,
             )
             db_with_roles.add(bought)
         db_with_roles.commit()
@@ -436,11 +437,7 @@ class TestOperations:
 
     def test_select_today_operations_with_data(self, db_with_roles, test_user):
         now = datetime.now(UTC)
-        op = Operations(
-            user_id=test_user.telegram_id,
-            operation_value=Decimal("100.00"),
-            operation_time=now
-        )
+        op = Operations(user_id=test_user.telegram_id, operation_value=Decimal("100.00"), operation_time=now)
         db_with_roles.add(op)
         db_with_roles.commit()
 
@@ -454,9 +451,7 @@ class TestOperations:
 
     def test_select_all_operations_with_data(self, db_with_roles, test_user):
         op = Operations(
-            user_id=test_user.telegram_id,
-            operation_value=Decimal("200.00"),
-            operation_time=datetime.now(UTC)
+            user_id=test_user.telegram_id, operation_value=Decimal("200.00"), operation_time=datetime.now(UTC)
         )
         db_with_roles.add(op)
         db_with_roles.commit()
@@ -466,11 +461,7 @@ class TestOperations:
 
     def test_select_user_operations(self, db_with_roles, test_user):
         for val in [Decimal("10.00"), Decimal("20.00"), Decimal("30.00")]:
-            op = Operations(
-                user_id=test_user.telegram_id,
-                operation_value=val,
-                operation_time=datetime.now(UTC)
-            )
+            op = Operations(user_id=test_user.telegram_id, operation_value=val, operation_time=datetime.now(UTC))
             db_with_roles.add(op)
         db_with_roles.commit()
 
@@ -498,7 +489,7 @@ class TestReferrals:
                 telegram_id=700000 + i,
                 role_id=1,
                 registration_date=datetime.now(UTC),
-                referral_id=test_user.telegram_id
+                referral_id=test_user.telegram_id,
             )
             db_with_roles.add(ref_user)
         db_with_roles.commit()
@@ -512,10 +503,7 @@ class TestReferrals:
 
     def test_get_user_referral_exists(self, db_with_roles, test_user):
         referred = User(
-            telegram_id=750000,
-            role_id=1,
-            registration_date=datetime.now(UTC),
-            referral_id=test_user.telegram_id
+            telegram_id=750000, role_id=1, registration_date=datetime.now(UTC), referral_id=test_user.telegram_id
         )
         db_with_roles.add(referred)
         db_with_roles.commit()
@@ -535,26 +523,26 @@ class TestReferralEarnings:
 
     def test_get_referral_earnings_stats_empty(self, db_with_roles, test_user):
         stats = get_referral_earnings_stats(test_user.telegram_id)
-        assert stats['total_earnings_count'] == 0
-        assert stats['total_amount'] == Decimal(0)
-        assert stats['total_original_amount'] == Decimal(0)
-        assert stats['active_referrals_count'] == 0
+        assert stats["total_earnings_count"] == 0
+        assert stats["total_amount"] == Decimal(0)
+        assert stats["total_original_amount"] == Decimal(0)
+        assert stats["active_referrals_count"] == 0
 
     def test_get_referral_earnings_stats_with_data(self, db_with_roles, test_user, test_admin):
         earning = ReferralEarnings(
             referrer_id=test_user.telegram_id,
             referral_id=test_admin.telegram_id,
             amount=Decimal("5.00"),
-            original_amount=Decimal("100.00")
+            original_amount=Decimal("100.00"),
         )
         db_with_roles.add(earning)
         db_with_roles.commit()
 
         stats = get_referral_earnings_stats(test_user.telegram_id)
-        assert stats['total_earnings_count'] == 1
-        assert stats['total_amount'] == Decimal("5.00")
-        assert stats['total_original_amount'] == Decimal("100.00")
-        assert stats['active_referrals_count'] == 1
+        assert stats["total_earnings_count"] == 1
+        assert stats["total_amount"] == Decimal("5.00")
+        assert stats["total_original_amount"] == Decimal("100.00")
+        assert stats["active_referrals_count"] == 1
 
     def test_get_one_referral_earning_not_found(self, db_session):
         result = get_one_referral_earning(999)
@@ -565,14 +553,14 @@ class TestReferralEarnings:
             referrer_id=test_user.telegram_id,
             referral_id=test_admin.telegram_id,
             amount=Decimal("10.00"),
-            original_amount=Decimal("200.00")
+            original_amount=Decimal("200.00"),
         )
         db_with_roles.add(earning)
         db_with_roles.commit()
 
         result = get_one_referral_earning(earning.id)
         assert result is not None
-        assert Decimal(str(result['amount'])) == Decimal("10.00")
+        assert Decimal(str(result["amount"])) == Decimal("10.00")
 
 
 @pytest.mark.unit
@@ -589,40 +577,40 @@ class TestBotSettings:
         assert result == Decimal("5")
 
     def test_get_bot_setting_string(self, db_session, test_bot_settings):
-        result = get_bot_setting('timezone')
-        assert result == 'Asia/Bangkok'
+        result = get_bot_setting("timezone")
+        assert result == "Asia/Bangkok"
 
     def test_get_bot_setting_int(self, db_session, test_bot_settings):
-        result = get_bot_setting('cash_order_timeout_hours', value_type=int)
+        result = get_bot_setting("cash_order_timeout_hours", value_type=int)
         assert result == 24
         assert isinstance(result, int)
 
     def test_get_bot_setting_decimal(self, db_session, test_bot_settings):
-        result = get_bot_setting('reference_bonus_percent', value_type=Decimal)
+        result = get_bot_setting("reference_bonus_percent", value_type=Decimal)
         assert result == Decimal("5")
 
     def test_get_bot_setting_float(self, db_session, test_bot_settings):
-        result = get_bot_setting('reference_bonus_percent', value_type=float)
+        result = get_bot_setting("reference_bonus_percent", value_type=float)
         assert result == 5.0
 
     def test_get_bot_setting_not_found_with_default(self, db_session):
-        result = get_bot_setting('nonexistent', default='fallback')
-        assert result == 'fallback'
+        result = get_bot_setting("nonexistent", default="fallback")
+        assert result == "fallback"
 
     def test_get_bot_setting_not_found_no_default(self, db_session):
-        result = get_bot_setting('nonexistent')
+        result = get_bot_setting("nonexistent")
         assert result is None
 
     def test_get_bot_setting_int_default_conversion(self, db_session):
-        result = get_bot_setting('nonexistent', default='42', value_type=int)
+        result = get_bot_setting("nonexistent", default="42", value_type=int)
         assert result == 42
 
     def test_get_bot_setting_invalid_value_returns_default(self, db_session):
-        setting = BotSettings(setting_key='bad_int', setting_value='not_a_number')
+        setting = BotSettings(setting_key="bad_int", setting_value="not_a_number")
         db_session.add(setting)
         db_session.commit()
 
-        result = get_bot_setting('bad_int', default='0', value_type=int)
+        result = get_bot_setting("bad_int", default="0", value_type=int)
         assert result == 0
 
 
@@ -635,11 +623,11 @@ class TestCartItems:
     async def test_get_cart_items_with_items(self, db_session, test_shopping_cart, test_goods):
         items = await get_cart_items(test_shopping_cart.user_id)
         assert len(items) == 1
-        assert items[0]['item_name'] == test_goods.name
-        assert items[0]['quantity'] == 2
-        assert 'price' in items[0]
-        assert 'total' in items[0]
-        assert 'cart_id' in items[0]
+        assert items[0]["item_name"] == test_goods.name
+        assert items[0]["quantity"] == 2
+        assert "price" in items[0]
+        assert "total" in items[0]
+        assert "cart_id" in items[0]
 
     @pytest.mark.asyncio
     async def test_get_cart_items_empty_cart(self, db_with_roles, test_user):
@@ -667,9 +655,9 @@ class TestUserOrders:
     async def test_query_user_orders_with_orders(self, db_session, test_order, test_user):
         orders = await query_user_orders(test_user.telegram_id)
         assert len(orders) == 1
-        assert orders[0]['order_code'] == "TEST01"
-        assert orders[0]['order_status'] == "pending"
-        assert len(orders[0]['items']) >= 1
+        assert orders[0]["order_code"] == "TEST01"
+        assert orders[0]["order_status"] == "pending"
+        assert len(orders[0]["items"]) >= 1
 
     @pytest.mark.asyncio
     async def test_query_user_orders_no_orders(self, db_with_roles, test_user):
@@ -693,7 +681,7 @@ class TestUserOrders:
             price=Decimal("10.00"),
             description="desc",
             category_name=test_category.name,
-            stock_quantity=100
+            stock_quantity=100,
         )
         db_with_roles.add(goods)
         db_with_roles.commit()
@@ -707,7 +695,7 @@ class TestUserOrders:
                 delivery_address="Test",
                 phone_number="0812345678",
                 order_status="pending",
-                order_code=f"PG{i:04d}"
+                order_code=f"PG{i:04d}",
             )
             db_with_roles.add(order)
         db_with_roles.commit()
@@ -746,19 +734,19 @@ class TestCachedFunctions:
 
     @pytest.mark.asyncio
     async def test_check_user_cached(self, db_with_roles, test_user):
-        with patch('bot.database.methods.read.get_cache_manager', return_value=None):
+        with patch("bot.database.methods.read.get_cache_manager", return_value=None):
             result = await check_user_cached(test_user.telegram_id)
             assert result is not None
-            assert result['telegram_id'] == test_user.telegram_id
+            assert result["telegram_id"] == test_user.telegram_id
 
     @pytest.mark.asyncio
     async def test_check_role_cached(self, db_with_roles, test_user):
-        with patch('bot.database.methods.read.get_cache_manager', return_value=None):
+        with patch("bot.database.methods.read.get_cache_manager", return_value=None):
             result = await check_role_cached(test_user.telegram_id)
             assert result == 1
 
     @pytest.mark.asyncio
     async def test_select_item_values_amount_cached(self, db_session, test_goods):
-        with patch('bot.database.methods.read.get_cache_manager', return_value=None):
+        with patch("bot.database.methods.read.get_cache_manager", return_value=None):
             result = await select_item_values_amount_cached(test_goods.name)
             assert result == 100

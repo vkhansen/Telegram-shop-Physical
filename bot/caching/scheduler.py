@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timedelta
+
 from bot.caching.cache import get_cache_manager
 from bot.logger_mesh import logger
 
@@ -63,19 +64,13 @@ class CacheScheduler:
     async def start(self):
         """Starting the scheduler"""
         # Invalidate statistics every hour
-        self.tasks.append(
-            asyncio.create_task(invalidate_stats_periodically())
-        )
+        self.tasks.append(asyncio.create_task(invalidate_stats_periodically()))
 
         # Log cache statistics every 15 minutes
-        self.tasks.append(
-            asyncio.create_task(log_cache_stats_periodically())
-        )
+        self.tasks.append(asyncio.create_task(log_cache_stats_periodically()))
 
         # Invalidation of outdated data once a day
-        self.tasks.append(
-            asyncio.create_task(daily_cleanup())
-        )
+        self.tasks.append(asyncio.create_task(daily_cleanup()))
 
         logger.info("Cache scheduler started")
 

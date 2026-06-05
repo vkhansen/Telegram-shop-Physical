@@ -1,9 +1,11 @@
 """Tests for i18n string translations (Cards 5 & 11)"""
-import pytest
+
 import re
 
-from bot.i18n.strings import TRANSLATIONS
+import pytest
+
 from bot.i18n.main import validate_translations
+from bot.i18n.strings import TRANSLATIONS
 
 
 @pytest.mark.unit
@@ -33,7 +35,7 @@ class TestThaiTranslations:
         en = TRANSLATIONS.get("en", {})
         th = TRANSLATIONS.get("th", {})
 
-        placeholder_pattern = re.compile(r'\{(\w+)\}')
+        placeholder_pattern = re.compile(r"\{(\w+)\}")
         mismatches = []
 
         for key in en:
@@ -45,7 +47,7 @@ class TestThaiTranslations:
             if en_placeholders != th_placeholders:
                 mismatches.append(f"{key}: en={en_placeholders}, th={th_placeholders}")
 
-        assert not mismatches, f"Placeholder mismatches:\n" + "\n".join(mismatches[:10])
+        assert not mismatches, "Placeholder mismatches:\n" + "\n".join(mismatches[:10])
 
     def test_cod_thai_label(self):
         """COD should have Thai label (Card 11)"""
@@ -58,12 +60,13 @@ class TestThaiTranslations:
     def test_locale_switch_to_th(self):
         """localize() should return Thai when BOT_LOCALE=th"""
         from unittest.mock import patch
-        from bot.i18n.main import localize, get_locale
+
+        from bot.i18n.main import get_locale, localize
 
         # Clear LRU cache
         get_locale.cache_clear()
 
-        with patch('bot.i18n.main.EnvKeys') as mock_env:
+        with patch("bot.i18n.main.EnvKeys") as mock_env:
             mock_env.BOT_LOCALE = "th"
             get_locale.cache_clear()
             result = localize("btn.shop")
@@ -80,7 +83,4 @@ class TestTranslationCompleteness:
     def test_validate_translations_no_warnings(self):
         """All locales should have the same set of translation keys."""
         warnings = validate_translations()
-        assert warnings == [], (
-            f"Translation validation failed with {len(warnings)} warning(s):\n"
-            + "\n".join(warnings)
-        )
+        assert warnings == [], f"Translation validation failed with {len(warnings)} warning(s):\n" + "\n".join(warnings)

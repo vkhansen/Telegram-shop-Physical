@@ -1,9 +1,10 @@
 """Tests for language picker and per-user locale (Card 14)"""
-import pytest
-from datetime import datetime, timezone
-from unittest.mock import patch
 
-from bot.i18n.strings import AVAILABLE_LOCALES, TRANSLATIONS, LANGUAGE_CHANGED_MESSAGES
+from datetime import UTC, datetime
+
+import pytest
+
+from bot.i18n.strings import AVAILABLE_LOCALES, LANGUAGE_CHANGED_MESSAGES, TRANSLATIONS
 
 
 @pytest.mark.unit
@@ -45,7 +46,8 @@ class TestPerUserLocale:
     def test_user_locale_field_nullable(self, db_with_roles, db_session):
         """User.locale defaults to None"""
         from bot.database.models.main import User
-        user = User(telegram_id=140001, registration_date=datetime.now(timezone.utc))
+
+        user = User(telegram_id=140001, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
         assert user.locale is None
@@ -53,7 +55,8 @@ class TestPerUserLocale:
     def test_user_locale_stores_value(self, db_with_roles, db_session):
         """Can set and persist locale on user"""
         from bot.database.models.main import User
-        user = User(telegram_id=140002, registration_date=datetime.now(timezone.utc), locale="en")
+
+        user = User(telegram_id=140002, registration_date=datetime.now(UTC), locale="en")
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)
@@ -62,7 +65,8 @@ class TestPerUserLocale:
     def test_user_locale_update(self, db_with_roles, db_session):
         """Can change locale after creation"""
         from bot.database.models.main import User
-        user = User(telegram_id=140003, registration_date=datetime.now(timezone.utc), locale="th")
+
+        user = User(telegram_id=140003, registration_date=datetime.now(UTC), locale="th")
         db_session.add(user)
         db_session.commit()
         assert user.locale == "th"
@@ -75,8 +79,9 @@ class TestPerUserLocale:
     def test_user_locale_all_codes(self, db_with_roles, db_session):
         """All available locale codes can be stored"""
         from bot.database.models.main import User
+
         for i, code in enumerate(AVAILABLE_LOCALES.keys()):
-            user = User(telegram_id=140100 + i, registration_date=datetime.now(timezone.utc), locale=code)
+            user = User(telegram_id=140100 + i, registration_date=datetime.now(UTC), locale=code)
             db_session.add(user)
         db_session.commit()
 
@@ -92,6 +97,7 @@ class TestLocalizeWithUserLocale:
     def test_localize_with_explicit_locale(self):
         """localize() with locale param uses that locale"""
         from bot.i18n.main import localize
+
         # btn.shop exists in en as "🏪 Shop"
         result = localize("btn.shop", locale="en")
         assert "Shop" in result
@@ -99,12 +105,14 @@ class TestLocalizeWithUserLocale:
     def test_localize_with_th_locale(self):
         """localize() with th locale returns Thai"""
         from bot.i18n.main import localize
+
         result = localize("btn.shop", locale="th")
         assert any(ord(c) > 127 for c in result)  # Contains Thai chars
 
     def test_localize_falls_back_to_default(self):
         """Unknown locale falls back to DEFAULT_LOCALE"""
         from bot.i18n.main import localize
+
         result = localize("btn.shop", locale="xx_unknown")
         # Should return something (not the raw key)
         assert result != "btn.shop" or result == "btn.shop"  # Either translated or key
@@ -112,12 +120,14 @@ class TestLocalizeWithUserLocale:
     def test_localize_missing_key_returns_key(self):
         """Missing key returns the key string itself"""
         from bot.i18n.main import localize
+
         result = localize("this.key.does.not.exist", locale="en")
         assert result == "this.key.does.not.exist"
 
     def test_request_locale_override(self):
         """set_request_locale() overrides global locale"""
-        from bot.i18n.main import localize, set_request_locale, get_locale
+        from bot.i18n.main import get_locale, localize, set_request_locale
+
         get_locale.cache_clear()
 
         set_request_locale("en")
@@ -135,6 +145,7 @@ class TestLanguagePickerKeyboard:
     def test_picker_has_all_locales(self):
         """Keyboard has one button per AVAILABLE_LOCALES entry"""
         from bot.keyboards.inline import language_picker_keyboard
+
         kb = language_picker_keyboard()
         buttons = []
         for row in kb.inline_keyboard:
@@ -146,6 +157,7 @@ class TestLanguagePickerKeyboard:
     def test_picker_callback_data_format(self):
         """Each button has callback_data = set_locale_{code}"""
         from bot.keyboards.inline import language_picker_keyboard
+
         kb = language_picker_keyboard()
         callbacks = set()
         for row in kb.inline_keyboard:
@@ -158,6 +170,7 @@ class TestLanguagePickerKeyboard:
     def test_picker_labels_match_available_locales(self):
         """Button text matches AVAILABLE_LOCALES values"""
         from bot.keyboards.inline import language_picker_keyboard
+
         kb = language_picker_keyboard()
         labels = set()
         for row in kb.inline_keyboard:

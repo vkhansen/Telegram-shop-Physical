@@ -1,18 +1,19 @@
-from aiogram import Router, F
-from aiogram.types import CallbackQuery
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from bot.database import Database
-from bot.database.models.main import CustomerInfo, Goods
-from bot.database.methods import get_cart_items, calculate_cart_total, add_to_cart, remove_from_cart, clear_cart
-from bot.keyboards import back, simple_buttons, modifier_group_keyboard
-from bot.i18n import localize
+from aiogram.types import CallbackQuery
+
 from bot.config import EnvKeys
-from bot.states import CartStates, OrderStates, ModifierSelectionFSM
+from bot.database import Database
+from bot.database.methods import add_to_cart, clear_cart, get_cart_items, remove_from_cart
+from bot.database.models.main import CustomerInfo, Goods
 from bot.handlers.other import is_safe_item_name
+from bot.i18n import localize
+from bot.keyboards import back, modifier_group_keyboard, simple_buttons
+from bot.states import CartStates, ModifierSelectionFSM
+from bot.utils.cart_stub import async_build_cart_stub, flash_cart_added, inject_cart_stub
 from bot.utils.message_utils import safe_edit_text
-from bot.utils.tracking import track_event, track_conversion
-from bot.utils.modifiers import validate_modifier_selection, calculate_item_price
-from bot.utils.cart_stub import async_build_cart_stub, inject_cart_stub, flash_cart_added
+from bot.utils.modifiers import calculate_item_price, validate_modifier_selection
+from bot.utils.tracking import track_conversion, track_event
 
 router = Router()
 
@@ -44,14 +45,14 @@ def _get_modifier_group_keys(modifiers_schema: dict) -> list[str]:
     return list(modifiers_schema.keys()) if modifiers_schema else []
 
 
-async def _show_modifier_group(call: CallbackQuery, state: FSMContext,
-                                item_name: str, group_key: str,
-                                modifiers_schema: dict, selected: dict):
+async def _show_modifier_group(
+    call: CallbackQuery, state: FSMContext, item_name: str, group_key: str, modifiers_schema: dict, selected: dict
+):
     """Show a single modifier group's options to the user."""
     group = modifiers_schema[group_key]
     label = group.get("label", group_key)
     required = group.get("required", False)
-    group_type = group.get("type", "single")
+    group.get("type", "single")
 
     req_text = localize("modifier.required") if required else localize("modifier.optional")
     title = localize("modifier.select_title", label=label) + f" {req_text}"
@@ -66,14 +67,14 @@ async def _show_modifier_group(call: CallbackQuery, state: FSMContext,
     await safe_edit_text(call.message, title, reply_markup=markup)
 
 
-@router.callback_query(F.data.startswith('add_to_cart_'))
+@router.callback_query(F.data.startswith("add_to_cart_"))
 async def add_to_cart_handler(call: CallbackQuery, state: FSMContext):
     """
     Handle adding item to cart from item details page.
     If item has modifiers, start modifier selection flow (Card 8).
     """
     # Extract item name from callback data: add_to_cart_{item_name}
-    item_name = call.data[len('add_to_cart_'):]
+    item_name = call.data[len("add_to_cart_") :]
 
     # Validate item name
     if not is_safe_item_name(item_name):
@@ -105,8 +106,7 @@ async def add_to_cart_handler(call: CallbackQuery, state: FSMContext):
 
     # No modifiers - add directly
     _cart_data = await state.get_data()
-    success, message = await add_to_cart(user_id, item_name, quantity=1,
-                                          brand_id=_cart_data.get('current_brand_id'))
+    success, message = await add_to_cart(user_id, item_name, quantity=1, brand_id=_cart_data.get("current_brand_id"))
 
     if success:
         track_event("cart_add", user_id, {"item": item_name, "quantity": 1})
@@ -120,8 +120,13 @@ async def add_to_cart_handler(call: CallbackQuery, state: FSMContext):
                 item_total = good.price if good else 0
             settle_text = inject_cart_stub(call.message.text or "", await async_build_cart_stub(user_id))
             await flash_cart_added(
-                call.message, item_name, 1, item_total,
-                settle_text, call.message.reply_markup, user_id,
+                call.message,
+                item_name,
+                1,
+                item_total,
+                settle_text,
+                call.message.reply_markup,
+                user_id,
             )
     else:
         await call.answer(localize("cart.add_error", message=message), show_alert=True)
@@ -215,10 +220,7 @@ async def modifier_cancel(call: CallbackQuery, state: FSMContext):
     """Cancel modifier selection flow (Card 8)."""
     await state.clear()
     await call.answer(localize("cart.add_cancelled"))
-    await call.message.edit_text(
-        localize("modifier.cancelled"),
-        reply_markup=back("back_to_menu")
-    )
+    await call.message.edit_text(localize("modifier.cancelled"), reply_markup=back("back_to_menu"))
 
 
 async def _finish_modifier_selection(call: CallbackQuery, state: FSMContext, selected: dict):
@@ -244,9 +246,9 @@ async def _finish_modifier_selection(call: CallbackQuery, state: FSMContext, sel
     await state.clear()
 
     # Add to cart with modifiers
-    success, message = await add_to_cart(user_id, item_name, quantity=1,
-                                          selected_modifiers=clean_selected or None,
-                                          brand_id=data.get('current_brand_id'))
+    success, message = await add_to_cart(
+        user_id, item_name, quantity=1, selected_modifiers=clean_selected or None, brand_id=data.get("current_brand_id")
+    )
 
     if success:
         track_event("cart_add", user_id, {"item": item_name, "quantity": 1, "modifiers": clean_selected})
@@ -254,17 +256,19 @@ async def _finish_modifier_selection(call: CallbackQuery, state: FSMContext, sel
         await call.answer(localize("cart.add_success", item_name=item_name), show_alert=False)
         with Database().session() as session:
             good = session.query(Goods).filter_by(name=item_name).first()
-            unit_price = (
-                calculate_item_price(good.price, good.modifiers, clean_selected or None)
-                if good else 0
-            )
+            unit_price = calculate_item_price(good.price, good.modifiers, clean_selected or None) if good else 0
         settle_text = inject_cart_stub(
             localize("cart.add_success", item_name=item_name),
             await async_build_cart_stub(user_id),
         )
         await flash_cart_added(
-            call.message, item_name, 1, unit_price,
-            settle_text, back("back_to_menu"), user_id,
+            call.message,
+            item_name,
+            1,
+            unit_price,
+            settle_text,
+            back("back_to_menu"),
+            user_id,
         )
     else:
         await call.answer(localize("cart.add_error", message=message), show_alert=True)
@@ -279,14 +283,11 @@ async def view_cart_handler(call: CallbackQuery, state: FSMContext):
     cart_items = await get_cart_items(user_id)
 
     if not cart_items:
-        await call.message.edit_text(
-            localize("cart.empty"),
-            reply_markup=back("back_to_menu")
-        )
+        await call.message.edit_text(localize("cart.empty"), reply_markup=back("back_to_menu"))
         return
 
     # Calculate total once (avoid duplicate DB query)
-    total = sum(item['total'] for item in cart_items)
+    total = sum(item["total"] for item in cart_items)
 
     track_event("cart_view", user_id, {"items_count": len(cart_items), "total": float(total)})
 
@@ -296,25 +297,32 @@ async def view_cart_handler(call: CallbackQuery, state: FSMContext):
     for item in cart_items:
         text += f"<b>{item['item_name']}</b>\n"
         # Show selected modifiers if present (Card 8)
-        if item.get('selected_modifiers') and item.get('modifiers_schema'):
-            mod_text = _format_selected_modifiers(item['selected_modifiers'], item['modifiers_schema'])
+        if item.get("selected_modifiers") and item.get("modifiers_schema"):
+            mod_text = _format_selected_modifiers(item["selected_modifiers"], item["modifiers_schema"])
             if mod_text:
                 text += localize("cart.item.modifiers", modifiers=mod_text) + "\n"
-        text += localize("cart.item.price_format", price=item['price'], currency=EnvKeys.PAY_CURRENCY, quantity=item['quantity']) + "\n"
-        text += localize("cart.item.subtotal_format", subtotal=item['total'], currency=EnvKeys.PAY_CURRENCY) + "\n\n"
+        text += (
+            localize(
+                "cart.item.price_format", price=item["price"], currency=EnvKeys.PAY_CURRENCY, quantity=item["quantity"]
+            )
+            + "\n"
+        )
+        text += localize("cart.item.subtotal_format", subtotal=item["total"], currency=EnvKeys.PAY_CURRENCY) + "\n\n"
 
     text += localize("cart.total_format", total=total, currency=EnvKeys.PAY_CURRENCY)
 
     # Build keyboard
     buttons = []
     for item in cart_items:
-        buttons.append((localize("btn.remove_item", item_name=item['item_name']), f"remove_cart_{item['cart_id']}"))
+        buttons.append((localize("btn.remove_item", item_name=item["item_name"]), f"remove_cart_{item['cart_id']}"))
 
-    buttons.extend([
-        (localize("btn.clear_cart"), "clear_cart"),
-        (localize("btn.proceed_checkout"), "checkout_cart"),
-        (localize("btn.back"), "back_to_menu")
-    ])
+    buttons.extend(
+        [
+            (localize("btn.clear_cart"), "clear_cart"),
+            (localize("btn.proceed_checkout"), "checkout_cart"),
+            (localize("btn.back"), "back_to_menu"),
+        ]
+    )
 
     markup = simple_buttons(buttons, per_row=1)
 
@@ -322,12 +330,12 @@ async def view_cart_handler(call: CallbackQuery, state: FSMContext):
     await state.set_state(CartStates.viewing_cart)
 
 
-@router.callback_query(F.data.startswith('remove_cart_'))
+@router.callback_query(F.data.startswith("remove_cart_"))
 async def remove_cart_item_handler(call: CallbackQuery, state: FSMContext):
     """
     Remove specific item from cart
     """
-    cart_id = int(call.data[len('remove_cart_'):])
+    cart_id = int(call.data[len("remove_cart_") :])
     user_id = call.from_user.id
 
     success, message = await remove_from_cart(cart_id, user_id)
@@ -352,10 +360,7 @@ async def clear_cart_handler(call: CallbackQuery):
 
     if success:
         track_event("cart_clear", user_id)
-        await call.message.edit_text(
-            localize("cart.cleared_success"),
-            reply_markup=back("back_to_menu")
-        )
+        await call.message.edit_text(localize("cart.cleared_success"), reply_markup=back("back_to_menu"))
         await call.answer()
     else:
         await call.answer(localize("cart.add_error", message=message), show_alert=True)
@@ -382,9 +387,7 @@ async def checkout_cart_handler(call: CallbackQuery, state: FSMContext):
     saved_phone = None
     saved_note = None
     with Database().session() as session:
-        customer_info = session.query(CustomerInfo).filter_by(
-            telegram_id=user_id
-        ).first()
+        customer_info = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
         if customer_info:
             saved_address = customer_info.delivery_address
             saved_phone = customer_info.phone_number
@@ -393,10 +396,10 @@ async def checkout_cart_handler(call: CallbackQuery, state: FSMContext):
     if saved_address and saved_phone:
         # User has saved info, show summary and ask to confirm or edit
         text = (
-            localize("cart.summary_title") +
-            localize("cart.saved_delivery_info") +
-            localize("cart.delivery_address", address=saved_address) +
-            localize("cart.delivery_phone", phone=saved_phone)
+            localize("cart.summary_title")
+            + localize("cart.saved_delivery_info")
+            + localize("cart.delivery_address", address=saved_address)
+            + localize("cart.delivery_phone", phone=saved_phone)
         )
         if saved_note:
             text += localize("cart.delivery_note", note=saved_note)
@@ -406,13 +409,14 @@ async def checkout_cart_handler(call: CallbackQuery, state: FSMContext):
         buttons = [
             (localize("btn.use_saved_info"), "confirm_delivery_info"),
             (localize("btn.update_info"), "update_delivery_info"),
-            (localize("btn.back_to_cart"), "view_cart")
+            (localize("btn.back_to_cart"), "view_cart"),
         ]
 
         await call.message.edit_text(text, reply_markup=simple_buttons(buttons, per_row=1))
     else:
         # No saved info, start collecting — show location method choice
         from bot.handlers.user.order_handler import show_location_method_choice
+
         await show_location_method_choice(call.message, state, edit=True)
 
 
@@ -420,6 +424,7 @@ async def checkout_cart_handler(call: CallbackQuery, state: FSMContext):
 async def update_delivery_info_handler(call: CallbackQuery, state: FSMContext):
     """Start flow to update delivery information"""
     from bot.handlers.user.order_handler import show_location_method_choice
+
     await show_location_method_choice(call.message, state, edit=True)
 
 
@@ -453,4 +458,5 @@ async def confirm_delivery_info_handler(call: CallbackQuery, state: FSMContext):
 
     # Import here to avoid circular imports
     from bot.handlers.user.order_handler import check_and_ask_about_bonus
+
     await check_and_ask_about_bonus(call.message, state, user_id=user_id, from_callback=True)

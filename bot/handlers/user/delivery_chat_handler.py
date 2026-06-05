@@ -17,12 +17,13 @@ Flow:
 - Driver can share live location -> forwarded to customer for tracking
 - Customer can share static or live location -> forwarded to rider group for driver
 """
-from datetime import datetime, timedelta, timezone
 
-from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from datetime import UTC, datetime, timedelta
+
+from aiogram import F, Router
 from aiogram.enums.chat_type import ChatType
 from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message
 
 from bot.config.env import EnvKeys
 from bot.database import Database
@@ -39,16 +40,17 @@ router = Router()
 # Chat session lifecycle (Card 15)
 # ---------------------------------------------------------------------------
 
+
 def is_chat_active(order: Order) -> bool:
     """Check if the chat session is still active for this order."""
-    if order.order_status in ('confirmed', 'preparing', 'ready', 'out_for_delivery'):
+    if order.order_status in ("confirmed", "preparing", "ready", "out_for_delivery"):
         return True
-    if order.order_status == 'delivered' and order.chat_post_delivery_until:
-        now = datetime.now(timezone.utc)
+    if order.order_status == "delivered" and order.chat_post_delivery_until:
+        now = datetime.now(UTC)
         deadline = order.chat_post_delivery_until
         # Handle naive datetimes (e.g. from SQLite) by assuming UTC
         if deadline.tzinfo is None:
-            deadline = deadline.replace(tzinfo=timezone.utc)
+            deadline = deadline.replace(tzinfo=UTC)
         return now < deadline
     return False
 
@@ -57,14 +59,14 @@ def open_chat_session(session, order: Order):
     """Mark the chat session as opened on the order."""
     db_order = session.query(Order).filter_by(id=order.id).first()
     if db_order and not db_order.chat_opened_at:
-        db_order.chat_opened_at = datetime.now(timezone.utc)
+        db_order.chat_opened_at = datetime.now(UTC)
 
 
 def close_chat_session(session, order: Order):
     """Mark the chat session as closed."""
     db_order = session.query(Order).filter_by(id=order.id).first()
     if db_order and not db_order.chat_closed_at:
-        db_order.chat_closed_at = datetime.now(timezone.utc)
+        db_order.chat_closed_at = datetime.now(UTC)
 
 
 def set_post_delivery_window(session, order: Order):
@@ -72,14 +74,15 @@ def set_post_delivery_window(session, order: Order):
     db_order = session.query(Order).filter_by(id=order.id).first()
     if db_order:
         minutes = EnvKeys.POST_DELIVERY_CHAT_MINUTES
-        db_order.chat_post_delivery_until = datetime.now(timezone.utc) + timedelta(minutes=minutes)
+        db_order.chat_post_delivery_until = datetime.now(UTC) + timedelta(minutes=minutes)
 
 
 # ---------------------------------------------------------------------------
 # Customer GPS prompt (Card 15)
 # ---------------------------------------------------------------------------
 
-async def prompt_customer_gps(bot, order: Order, locale: str = None):
+
+async def prompt_customer_gps(bot, order: Order, locale: str | None = None):
     """
     Send GPS choice prompt to customer when order goes out_for_delivery.
     Customer can choose: static location, live location, or skip.
@@ -105,15 +108,8 @@ async def handle_customer_static_location(bot, order: Order, message: Message):
     loc_lng = message.location.longitude
 
     # Forward to rider group
-    await bot.send_location(
-        int(rider_group_id),
-        latitude=loc_lat,
-        longitude=loc_lng
-    )
-    await bot.send_message(
-        int(rider_group_id),
-        f"📍 <b>Customer location ({order.order_code})</b>"
-    )
+    await bot.send_location(int(rider_group_id), latitude=loc_lat, longitude=loc_lng)
+    await bot.send_message(int(rider_group_id), f"📍 <b>Customer location ({order.order_code})</b>")
 
     # Log in audit trail
     with Database().session() as session:
@@ -144,15 +140,9 @@ async def handle_customer_live_location(bot, order: Order, message: Message):
     loc_lng = message.location.longitude
 
     # Forward live location to rider group
-    await bot.forward_message(
-        int(rider_group_id),
-        message.chat.id,
-        message.message_id
-    )
+    await bot.forward_message(int(rider_group_id), message.chat.id, message.message_id)
     await bot.send_message(
-        int(rider_group_id),
-        f"📡 <b>Customer LIVE location ({order.order_code})</b>\n"
-        f"This pin updates in real-time."
+        int(rider_group_id), f"📡 <b>Customer LIVE location ({order.order_code})</b>\nThis pin updates in real-time."
     )
 
     # Store live location message ID on order
@@ -186,11 +176,15 @@ async def handle_live_location_update(bot, order: Order, message: Message, sende
 
     with Database().session() as session:
         # Count previous updates for this live location session
-        prev_count = session.query(DeliveryChatMessage).filter_by(
-            order_id=order.id,
-            sender_id=message.from_user.id,
-            is_live_location=True,
-        ).count()
+        prev_count = (
+            session.query(DeliveryChatMessage)
+            .filter_by(
+                order_id=order.id,
+                sender_id=message.from_user.id,
+                is_live_location=True,
+            )
+            .count()
+        )
 
         chat_msg = DeliveryChatMessage(
             order_id=order.id,
@@ -210,10 +204,17 @@ async def handle_live_location_update(bot, order: Order, message: Message, sende
 # Shared relay helper (Card 13, enhanced Card 15)
 # ---------------------------------------------------------------------------
 
-async def _relay_message(bot, order: Order, message: Message,
-                         target_chat_id: int, sender_role: str,
-                         sender_label: str, sender_emoji: str,
-                         live_location_field: str):
+
+async def _relay_message(
+    bot,
+    order: Order,
+    message: Message,
+    target_chat_id: int,
+    sender_role: str,
+    sender_label: str,
+    sender_emoji: str,
+    live_location_field: str,
+):
     """
     Relay a message (text/photo/location) to target_chat_id and record it.
 
@@ -239,8 +240,7 @@ async def _relay_message(bot, order: Order, message: Message,
         if message.text:
             msg_text = message.text
             await bot.send_message(
-                target_chat_id,
-                f"{sender_emoji} <b>{sender_label} ({order.order_code}):</b>\n{msg_text}"
+                target_chat_id, f"{sender_emoji} <b>{sender_label} ({order.order_code}):</b>\n{msg_text}"
             )
 
         elif message.photo:
@@ -257,29 +257,17 @@ async def _relay_message(bot, order: Order, message: Message,
 
             if message.location.live_period:
                 is_live = True
-                await bot.forward_message(
-                    target_chat_id,
-                    message.chat.id,
-                    message.message_id
-                )
+                await bot.forward_message(target_chat_id, message.chat.id, message.message_id)
                 await bot.send_message(
                     target_chat_id,
-                    f"📡 <b>{sender_label} LIVE location ({order.order_code})</b>\n"
-                    f"This pin updates in real-time."
+                    f"📡 <b>{sender_label} LIVE location ({order.order_code})</b>\nThis pin updates in real-time.",
                 )
                 db_order = session.query(Order).filter_by(id=order.id).first()
                 if db_order:
                     setattr(db_order, live_location_field, message.message_id)
             else:
-                await bot.send_location(
-                    target_chat_id,
-                    latitude=loc_lat,
-                    longitude=loc_lng
-                )
-                await bot.send_message(
-                    target_chat_id,
-                    f"📍 <b>{sender_label} location ({order.order_code})</b>"
-                )
+                await bot.send_location(target_chat_id, latitude=loc_lat, longitude=loc_lng)
+                await bot.send_message(target_chat_id, f"📍 <b>{sender_label} location ({order.order_code})</b>")
 
         # Record in audit log
         chat_msg = DeliveryChatMessage(
@@ -302,13 +290,16 @@ async def _relay_message(bot, order: Order, message: Message,
 # Driver -> Customer relay (Card 13, enhanced Card 15)
 # ---------------------------------------------------------------------------
 
+
 async def relay_driver_to_customer(bot, order: Order, message: Message):
     """Relay a message from driver to customer and record it."""
     if not is_chat_active(order):
         return
 
     await _relay_message(
-        bot, order, message,
+        bot,
+        order,
+        message,
         target_chat_id=order.buyer_id,
         sender_role="driver",
         sender_label="Driver",
@@ -320,6 +311,7 @@ async def relay_driver_to_customer(bot, order: Order, message: Message):
 # ---------------------------------------------------------------------------
 # Customer -> Driver relay (Card 13, enhanced Card 15)
 # ---------------------------------------------------------------------------
+
 
 async def relay_customer_to_driver(bot, order: Order, message: Message):
     """Relay a message from customer to driver/rider group and record it."""
@@ -345,7 +337,9 @@ async def relay_customer_to_driver(bot, order: Order, message: Message):
         return
 
     await _relay_message(
-        bot, order, message,
+        bot,
+        order,
+        message,
         target_chat_id=int(rider_group_id),
         sender_role="customer",
         sender_label="Customer",
@@ -357,6 +351,7 @@ async def relay_customer_to_driver(bot, order: Order, message: Message):
 # ---------------------------------------------------------------------------
 # Driver live location prompt (Card 13)
 # ---------------------------------------------------------------------------
+
 
 async def start_driver_live_location(bot, order: Order, driver_id: int):
     """
@@ -373,13 +368,14 @@ async def start_driver_live_location(bot, order: Order, driver_id: int):
         int(rider_group_id),
         f"📍 <b>Order {order.order_code}</b>\n"
         f"Please share your live location for this delivery.\n"
-        f"Tap 📎 → Location → Share Live Location"
+        f"Tap 📎 → Location → Share Live Location",
     )
 
 
 # ---------------------------------------------------------------------------
 # Chat history (Card 13, enhanced Card 15)
 # ---------------------------------------------------------------------------
+
 
 async def get_chat_history(order_id: int) -> list[dict]:
     """
@@ -390,9 +386,12 @@ async def get_chat_history(order_id: int) -> list[dict]:
         location data, live location flags, and timestamps.
     """
     with Database().session() as session:
-        messages = session.query(DeliveryChatMessage).filter_by(
-            order_id=order_id
-        ).order_by(DeliveryChatMessage.created_at).all()
+        messages = (
+            session.query(DeliveryChatMessage)
+            .filter_by(order_id=order_id)
+            .order_by(DeliveryChatMessage.created_at)
+            .all()
+        )
 
         return [
             {
@@ -410,7 +409,7 @@ async def get_chat_history(order_id: int) -> list[dict]:
         ]
 
 
-async def get_location_trail(order_id: int, sender_role: str = None) -> list[dict]:
+async def get_location_trail(order_id: int, sender_role: str | None = None) -> list[dict]:
     """
     Get all GPS points for an order, optionally filtered by sender role (Card 15).
     Useful for rendering a delivery route or customer movement on a map.
@@ -444,6 +443,7 @@ async def get_location_trail(order_id: int, sender_role: str = None) -> list[dic
 # WIRED HANDLER: Rider Group Message Listener (Card 13)
 # ===========================================================================
 
+
 @router.message(
     F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP}),
     F.chat.id == int(EnvKeys.RIDER_GROUP_ID) if EnvKeys.RIDER_GROUP_ID else F.text == "__never_match__",
@@ -459,7 +459,7 @@ async def rider_group_message_listener(message: Message):
         return
 
     # Ignore commands
-    if message.text and message.text.startswith('/'):
+    if message.text and message.text.startswith("/"):
         return
 
     sender_id = message.from_user.id
@@ -467,16 +467,26 @@ async def rider_group_message_listener(message: Message):
     # Find an active order for this driver
     with Database().session() as session:
         # First try: order assigned to this driver
-        order = session.query(Order).filter(
-            Order.driver_id == sender_id,
-            Order.order_status == 'out_for_delivery',
-        ).order_by(Order.created_at.desc()).first()
+        order = (
+            session.query(Order)
+            .filter(
+                Order.driver_id == sender_id,
+                Order.order_status == "out_for_delivery",
+            )
+            .order_by(Order.created_at.desc())
+            .first()
+        )
 
         if not order:
             # Fallback: any active out_for_delivery order (driver_id not yet assigned)
-            order = session.query(Order).filter(
-                Order.order_status == 'out_for_delivery',
-            ).order_by(Order.created_at.desc()).first()
+            order = (
+                session.query(Order)
+                .filter(
+                    Order.order_status == "out_for_delivery",
+                )
+                .order_by(Order.created_at.desc())
+                .first()
+            )
 
         if not order:
             return
@@ -496,6 +506,7 @@ async def rider_group_message_listener(message: Message):
 # WIRED HANDLER: Customer Chat Initiation (Card 13)
 # ===========================================================================
 
+
 @router.callback_query(F.data.startswith("chat_with_driver_"))
 async def start_customer_chat(call: CallbackQuery, state: FSMContext):
     """
@@ -505,24 +516,22 @@ async def start_customer_chat(call: CallbackQuery, state: FSMContext):
     order_id = int(call.data.replace("chat_with_driver_", ""))
 
     with Database().session() as session:
-        order = session.query(Order).filter(
-            Order.id == order_id,
-            Order.buyer_id == call.from_user.id,
-        ).first()
+        order = (
+            session.query(Order)
+            .filter(
+                Order.id == order_id,
+                Order.buyer_id == call.from_user.id,
+            )
+            .first()
+        )
 
         if not order or not is_chat_active(order):
-            await call.answer(
-                localize("order.delivery.chat_no_active_delivery"),
-                show_alert=True
-            )
+            await call.answer(localize("order.delivery.chat_no_active_delivery"), show_alert=True)
             return
 
         rider_group_id = EnvKeys.RIDER_GROUP_ID
         if not rider_group_id:
-            await call.answer(
-                localize("order.delivery.chat_unavailable"),
-                show_alert=True
-            )
+            await call.answer(localize("order.delivery.chat_unavailable"), show_alert=True)
             return
 
         await state.update_data(chat_order_id=order.id)
@@ -535,6 +544,7 @@ async def start_customer_chat(call: CallbackQuery, state: FSMContext):
 # ===========================================================================
 # WIRED HANDLER: Customer Reply Detection in Chat Mode (Card 13)
 # ===========================================================================
+
 
 @router.message(DeliveryChatStates.chatting_with_driver, F.text == "/endchat")
 async def end_customer_chat(message: Message, state: FSMContext):
@@ -558,9 +568,13 @@ async def customer_chat_message(message: Message, state: FSMContext):
         return
 
     with Database().session() as session:
-        order = session.query(Order).filter(
-            Order.id == order_id,
-        ).first()
+        order = (
+            session.query(Order)
+            .filter(
+                Order.id == order_id,
+            )
+            .first()
+        )
 
         if not order or not is_chat_active(order):
             await state.clear()
@@ -579,6 +593,7 @@ async def customer_chat_message(message: Message, state: FSMContext):
 # WIRED HANDLER: GPS Choice Callbacks (Card 15)
 # ===========================================================================
 
+
 @router.callback_query(F.data == "delivery_gps_static")
 async def gps_choice_static(call: CallbackQuery, state: FSMContext):
     """Customer chose to send a single static location."""
@@ -590,9 +605,7 @@ async def gps_choice_static(call: CallbackQuery, state: FSMContext):
     await state.update_data(gps_mode="static")
 
     # Prompt user to tap the attachment -> location
-    await call.message.answer(
-        "📎 Tap the attachment icon → Location → Send your current location"
-    )
+    await call.message.answer("📎 Tap the attachment icon → Location → Send your current location")
 
 
 @router.callback_query(F.data == "delivery_gps_live")
@@ -604,9 +617,7 @@ async def gps_choice_live(call: CallbackQuery, state: FSMContext):
     await state.set_state(DeliveryChatStates.waiting_customer_gps_choice)
     await state.update_data(gps_mode="live")
 
-    await call.message.answer(
-        "📎 Tap the attachment icon → Location → Share Live Location"
-    )
+    await call.message.answer("📎 Tap the attachment icon → Location → Share Live Location")
 
 
 @router.callback_query(F.data == "delivery_gps_skip")
@@ -657,6 +668,7 @@ async def handle_gps_choice_location(message: Message, state: FSMContext):
 # WIRED HANDLER: Live Location Edit Events (Card 15)
 # ===========================================================================
 
+
 @router.edited_message(
     F.location,
     F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP}),
@@ -675,10 +687,15 @@ async def edited_location_rider_group(message: Message):
     sender_id = message.from_user.id
 
     with Database().session() as session:
-        order = session.query(Order).filter(
-            Order.driver_id == sender_id,
-            Order.order_status.in_(['out_for_delivery', 'delivered']),
-        ).order_by(Order.created_at.desc()).first()
+        order = (
+            session.query(Order)
+            .filter(
+                Order.driver_id == sender_id,
+                Order.order_status.in_(["out_for_delivery", "delivered"]),
+            )
+            .order_by(Order.created_at.desc())
+            .first()
+        )
 
         if not order:
             return
@@ -699,11 +716,16 @@ async def edited_location_customer(message: Message):
     sender_id = message.from_user.id
 
     with Database().session() as session:
-        order = session.query(Order).filter(
-            Order.buyer_id == sender_id,
-            Order.customer_live_location_message_id.isnot(None),
-            Order.order_status.in_(['out_for_delivery', 'confirmed', 'preparing', 'ready']),
-        ).order_by(Order.created_at.desc()).first()
+        order = (
+            session.query(Order)
+            .filter(
+                Order.buyer_id == sender_id,
+                Order.customer_live_location_message_id.isnot(None),
+                Order.order_status.in_(["out_for_delivery", "confirmed", "preparing", "ready"]),
+            )
+            .order_by(Order.created_at.desc())
+            .first()
+        )
 
         if not order:
             return

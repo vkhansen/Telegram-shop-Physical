@@ -1,6 +1,5 @@
 """System prompt templates for Grok AI admin assistant (Card 17)."""
 
-
 GROK_SYSTEM_PROMPT = """\
 You are a shop management assistant for a Telegram delivery shop.
 You help the admin manage their menu, check orders, and import data.
@@ -34,14 +33,15 @@ def build_system_prompt(
     currency: str = "THB",
 ) -> str:
     """Build the system prompt with live menu data."""
-    cat_lines = "\n".join(
-        f"- {c['name']}" for c in categories
-    ) if categories else "(no categories)"
+    cat_lines = "\n".join(f"- {c['name']}" for c in categories) if categories else "(no categories)"
 
-    item_lines = "\n".join(
-        f"- {it['name']} | {it['price']} | {it['category_name']} | stock: {it['stock_quantity']}"
-        for it in items
-    ) if items else "(no items)"
+    item_lines = (
+        "\n".join(
+            f"- {it['name']} | {it['price']} | {it['category_name']} | stock: {it['stock_quantity']}" for it in items
+        )
+        if items
+        else "(no items)"
+    )
 
     return GROK_SYSTEM_PROMPT.format(
         currency=currency,

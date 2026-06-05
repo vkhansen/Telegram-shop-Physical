@@ -1,8 +1,10 @@
-from typing import Callable, Iterable, Tuple
+from collections.abc import Callable, Iterable
+
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 from bot.i18n import localize
-from bot.utils import LazyPaginator # noqa: F401
+from bot.utils import LazyPaginator
 
 
 def main_menu(role: int, channel: str | None = None, helper: str | None = None) -> InlineKeyboardMarkup:
@@ -28,8 +30,7 @@ def main_menu(role: int, channel: str | None = None, helper: str | None = None) 
     return kb.as_markup()
 
 
-def profile_keyboard(referral_percent: int, user_items: int = 0,
-                     saved_carts: int = 0) -> InlineKeyboardMarkup:
+def profile_keyboard(referral_percent: int, user_items: int = 0, saved_carts: int = 0) -> InlineKeyboardMarkup:
     """
     Profile keyboard.
     """
@@ -122,6 +123,7 @@ def language_picker_keyboard() -> InlineKeyboardMarkup:
     Language picker with flag buttons — built from AVAILABLE_LOCALES (Card 14).
     """
     from bot.i18n.strings import AVAILABLE_LOCALES
+
     kb = InlineKeyboardBuilder()
     for code, label in AVAILABLE_LOCALES.items():
         kb.button(text=label, callback_data=f"set_locale_{code}")
@@ -129,29 +131,20 @@ def language_picker_keyboard() -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def delivery_gps_choice_keyboard(locale: str = None) -> InlineKeyboardMarkup:
+def delivery_gps_choice_keyboard(locale: str | None = None) -> InlineKeyboardMarkup:
     """
     GPS choice for customer during active delivery (Card 15).
     Options: send static location, share live location, or skip.
     """
     kb = InlineKeyboardBuilder()
-    kb.button(
-        text=localize("delivery.gps.btn_static", locale=locale),
-        callback_data="delivery_gps_static"
-    )
-    kb.button(
-        text=localize("delivery.gps.btn_live", locale=locale),
-        callback_data="delivery_gps_live"
-    )
-    kb.button(
-        text=localize("delivery.gps.btn_skip", locale=locale),
-        callback_data="delivery_gps_skip"
-    )
+    kb.button(text=localize("delivery.gps.btn_static", locale=locale), callback_data="delivery_gps_static")
+    kb.button(text=localize("delivery.gps.btn_live", locale=locale), callback_data="delivery_gps_live")
+    kb.button(text=localize("delivery.gps.btn_skip", locale=locale), callback_data="delivery_gps_skip")
     kb.adjust(2, 1)
     return kb.as_markup()
 
 
-def simple_buttons(buttons: Iterable[Tuple[str, str]], per_row: int = 1) -> InlineKeyboardMarkup:
+def simple_buttons(buttons: Iterable[tuple[str, str]], per_row: int = 1) -> InlineKeyboardMarkup:
     """
     Universal button assembly from (text, callback_data)
     """
@@ -199,13 +192,13 @@ def store_switch_confirm_keyboard(pending_store_id: int) -> InlineKeyboardMarkup
 
 
 async def lazy_paginated_keyboard(
-        paginator: 'LazyPaginator',
-        item_text: Callable[[object], str],
-        item_callback: Callable[[object], str],
-        page: int = 0,
-        back_cb: str | None = None,
-        nav_cb_prefix: str = "",
-        back_text: str | None = None,
+    paginator: "LazyPaginator",
+    item_text: Callable[[object], str],
+    item_callback: Callable[[object], str],
+    page: int = 0,
+    back_cb: str | None = None,
+    nav_cb_prefix: str = "",
+    back_text: str | None = None,
 ) -> InlineKeyboardMarkup:
     """
     Lazy pagination keyboard with data loading on demand
@@ -318,6 +311,7 @@ def admin_order_status_keyboard(order_id: int, current_status: str) -> InlineKey
     Admin order management: shows all valid next statuses as buttons.
     """
     from bot.utils.order_status import get_allowed_transitions
+
     kb = InlineKeyboardBuilder()
     allowed = get_allowed_transitions(current_status)
     for status in sorted(allowed):
@@ -327,8 +321,9 @@ def admin_order_status_keyboard(order_id: int, current_status: str) -> InlineKey
     return kb.as_markup()
 
 
-def modifier_group_keyboard(item_name: str, group_key: str, group: dict,
-                             selected: list = None) -> InlineKeyboardMarkup:
+def modifier_group_keyboard(
+    item_name: str, group_key: str, group: dict, selected: list | None = None
+) -> InlineKeyboardMarkup:
     """
     Show options for a single modifier group (Card 8).
 
@@ -360,16 +355,10 @@ def modifier_group_keyboard(item_name: str, group_key: str, group: dict,
 
     # Multi-choice groups get a "Done" button to advance
     if group_type == "multi":
-        kb.row(InlineKeyboardButton(
-            text=localize("modifier.done"),
-            callback_data=f"mod_done:{item_name}:{group_key}"
-        ))
+        kb.row(InlineKeyboardButton(text=localize("modifier.done"), callback_data=f"mod_done:{item_name}:{group_key}"))
 
     # Cancel button
-    kb.row(InlineKeyboardButton(
-        text=localize("btn.back"),
-        callback_data="mod_cancel"
-    ))
+    kb.row(InlineKeyboardButton(text=localize("btn.back"), callback_data="mod_cancel"))
 
     return kb.as_markup()
 

@@ -7,10 +7,11 @@ Tests for middleware modules:
   - bot.middleware.locale     (LocaleMiddleware)
   - bot.middleware.brand_context (BrandContextMiddleware)
 """
+
 from __future__ import annotations
 
-import hmac
 import hashlib
+import hmac
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -26,10 +27,10 @@ from bot.middleware.security import (
     check_suspicious_patterns,
 )
 
-
 # ===========================================================================
 # check_suspicious_patterns
 # ===========================================================================
+
 
 @pytest.mark.unit
 class TestCheckSuspiciousPatterns:
@@ -104,6 +105,7 @@ class TestCheckSuspiciousPatterns:
 # SecurityMiddleware — token methods
 # ===========================================================================
 
+
 @pytest.mark.unit
 class TestSecurityMiddlewareGenerateVerifyToken:
     """Tests for generate_token / verify_token."""
@@ -168,13 +170,14 @@ class TestSecurityMiddlewareGenerateVerifyToken:
     def test_cross_token_fails(self):
         sm = SecurityMiddleware(secret_key="fixed")
         t1 = sm.generate_token(1, "a")
-        t2 = sm.generate_token(2, "b")
+        sm.generate_token(2, "b")
         assert sm.verify_token(t1, 2, "b") is False
 
 
 # ===========================================================================
 # SecurityMiddleware — is_critical_action
 # ===========================================================================
+
 
 @pytest.mark.unit
 class TestSecurityMiddlewareIsCriticalAction:
@@ -221,6 +224,7 @@ class TestSecurityMiddlewareIsCriticalAction:
 # AuthenticationMiddleware — block / unblock
 # ===========================================================================
 
+
 @pytest.mark.unit
 class TestAuthenticationMiddlewareBlockUnblock:
     """Tests for block_user / unblock_user."""
@@ -260,6 +264,7 @@ class TestAuthenticationMiddlewareBlockUnblock:
 # RateLimitConfig
 # ===========================================================================
 
+
 @pytest.mark.unit
 class TestRateLimitConfig:
     """Tests for RateLimitConfig defaults and overrides."""
@@ -292,6 +297,7 @@ class TestRateLimitConfig:
 # ===========================================================================
 # RateLimiter
 # ===========================================================================
+
 
 @pytest.mark.unit
 class TestRateLimiterBan:
@@ -469,6 +475,7 @@ class TestRateLimiterPeriodicCleanup:
 # RateLimitMiddleware — action detection
 # ===========================================================================
 
+
 @pytest.mark.unit
 class TestRateLimitMiddlewareGetAction:
     """_get_action_from_event maps events to action names."""
@@ -523,6 +530,7 @@ class TestRateLimitMiddlewareGetAction:
 # LocaleMiddleware
 # ===========================================================================
 
+
 @pytest.mark.unit
 class TestLocaleMiddleware:
     """Tests for LocaleMiddleware.__call__."""
@@ -535,8 +543,10 @@ class TestLocaleMiddleware:
         event.from_user.id = 42
         handler = AsyncMock(return_value="ok")
 
-        with patch("bot.middleware.locale.get_user_locale", return_value="en"), \
-             patch("bot.middleware.locale.set_request_locale") as mock_set:
+        with (
+            patch("bot.middleware.locale.get_user_locale", return_value="en"),
+            patch("bot.middleware.locale.set_request_locale") as mock_set,
+        ):
             result = await middleware(handler, event, {})
 
         mock_set.assert_any_call("en")
@@ -551,8 +561,10 @@ class TestLocaleMiddleware:
         event.from_user.id = 99
         handler = AsyncMock(return_value="ok")
 
-        with patch("bot.middleware.locale.get_user_locale", return_value=None), \
-             patch("bot.middleware.locale.set_request_locale") as mock_set:
+        with (
+            patch("bot.middleware.locale.get_user_locale", return_value=None),
+            patch("bot.middleware.locale.set_request_locale") as mock_set,
+        ):
             await middleware(handler, event, {})
 
         # Only the reset call should happen
@@ -566,8 +578,10 @@ class TestLocaleMiddleware:
         event.from_user.id = 7
         handler = AsyncMock(return_value="cb_ok")
 
-        with patch("bot.middleware.locale.get_user_locale", return_value="th"), \
-             patch("bot.middleware.locale.set_request_locale") as mock_set:
+        with (
+            patch("bot.middleware.locale.get_user_locale", return_value="th"),
+            patch("bot.middleware.locale.set_request_locale") as mock_set,
+        ):
             result = await middleware(handler, event, {})
 
         mock_set.assert_any_call("th")
@@ -582,10 +596,12 @@ class TestLocaleMiddleware:
         event.from_user.id = 5
         handler = AsyncMock(side_effect=RuntimeError("fail"))
 
-        with patch("bot.middleware.locale.get_user_locale", return_value="th"), \
-             patch("bot.middleware.locale.set_request_locale") as mock_set:
-            with pytest.raises(RuntimeError):
-                await middleware(handler, event, {})
+        with (
+            patch("bot.middleware.locale.get_user_locale", return_value="th"),
+            patch("bot.middleware.locale.set_request_locale") as mock_set,
+            pytest.raises(RuntimeError),
+        ):
+            await middleware(handler, event, {})
 
         mock_set.assert_any_call(None)
 
@@ -593,6 +609,7 @@ class TestLocaleMiddleware:
 # ===========================================================================
 # BrandContextMiddleware
 # ===========================================================================
+
 
 @pytest.mark.unit
 class TestBrandContextMiddleware:

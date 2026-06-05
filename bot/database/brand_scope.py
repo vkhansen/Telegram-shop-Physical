@@ -8,14 +8,15 @@ Usage:
     with Database().session() as s:
         goods = brand_query(s, Goods, brand_id).filter(Goods.is_active.is_(True)).all()
 """
+
 from __future__ import annotations
 
-from typing import Any, Optional, Type
+from typing import Any
 
 from sqlalchemy.orm import Session
 
 
-def brand_query(session: Session, model: Type[Any], brand_id: Optional[int]):
+def brand_query(session: Session, model: type[Any], brand_id: int | None):
     """Return a query on *model* pre-filtered by brand_id if the model has that column.
 
     If brand_id is None (single-brand legacy mode) or the model has no brand_id

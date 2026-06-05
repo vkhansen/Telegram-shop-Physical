@@ -34,8 +34,7 @@ _CRYPTO_METHODS = {"bitcoin", "litecoin", "solana", "usdt_sol"}
 _PAID_STATES = {"confirmed", "preparing", "ready", "out_for_delivery", "delivered"}
 
 
-def reverse_payment(order, session, *, reason: str = "Order cancelled",
-                    created_by: int = None) -> Refund:
+def reverse_payment(order, session, *, reason: str = "Order cancelled", created_by: int | None = None) -> Refund:
     """Reverse a payment for ``order`` within an open ``session``.
 
     The caller owns the transaction (this function does not commit), so the
@@ -48,7 +47,8 @@ def reverse_payment(order, session, *, reason: str = "Order cancelled",
     if existing is not None:
         logger.info(
             "reverse_payment: order %s already reversed (refund #%s) — no-op",
-            order.id, existing.id,
+            order.id,
+            existing.id,
         )
         return existing
 
@@ -56,11 +56,7 @@ def reverse_payment(order, session, *, reason: str = "Order cancelled",
     bonus = order.bonus_applied or Decimal("0")
     bonus_restored = Decimal("0")
     if bonus and bonus > 0:
-        customer = (
-            session.query(CustomerInfo)
-            .filter_by(telegram_id=order.buyer_id)
-            .first()
-        )
+        customer = session.query(CustomerInfo).filter_by(telegram_id=order.buyer_id).first()
         if customer is not None:
             if customer.bonus_balance is None:
                 customer.bonus_balance = Decimal("0")
@@ -68,9 +64,10 @@ def reverse_payment(order, session, *, reason: str = "Order cancelled",
             bonus_restored = bonus
         else:
             logger.warning(
-                "reverse_payment: no CustomerInfo for buyer %s (order %s); "
-                "bonus %s not restored",
-                order.buyer_id, order.id, bonus,
+                "reverse_payment: no CustomerInfo for buyer %s (order %s); bonus %s not restored",
+                order.buyer_id,
+                order.id,
+                bonus,
             )
 
     method = order.payment_method or "unknown"
@@ -104,16 +101,14 @@ def reverse_payment(order, session, *, reason: str = "Order cancelled",
     # Surface the crypto payment row in the same 'awaiting admin' sense by
     # leaving a clear log marker; there is no on-chain auto-reversal.
     if method in _CRYPTO_METHODS and needs_manual:
-        crypto = (
-            session.query(CryptoPayment)
-            .filter_by(order_id=order.id)
-            .first()
-        )
+        crypto = session.query(CryptoPayment).filter_by(order_id=order.id).first()
         if crypto is not None:
             logger.info(
-                "reverse_payment: crypto payment for order %s (%s, tx=%s) "
-                "flagged for manual refund of %s",
-                order.id, method, crypto.tx_hash, external_amount,
+                "reverse_payment: crypto payment for order %s (%s, tx=%s) flagged for manual refund of %s",
+                order.id,
+                method,
+                crypto.tx_hash,
+                external_amount,
             )
 
     # (c) Audit trail.
@@ -130,8 +125,11 @@ def reverse_payment(order, session, *, reason: str = "Order cancelled",
     )
 
     logger.info(
-        "reverse_payment: order %s reversed (method=%s, bonus_restored=%s, "
-        "manual_amount=%s, status=%s)",
-        order.id, method, bonus_restored, external_amount, status,
+        "reverse_payment: order %s reversed (method=%s, bonus_restored=%s, manual_amount=%s, status=%s)",
+        order.id,
+        method,
+        bonus_restored,
+        external_amount,
+        status,
     )
     return refund

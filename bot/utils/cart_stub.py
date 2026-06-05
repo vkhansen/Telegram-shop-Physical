@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from bot.config import EnvKeys
@@ -32,7 +32,7 @@ def _as_aware_utc(dt: datetime | None) -> datetime | None:
     if dt is None:
         return None
     if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
+        return dt.replace(tzinfo=UTC)
     return dt
 
 
@@ -51,7 +51,7 @@ def get_cart_stub_data(user_id: int) -> dict | None:
 
         # Lazy expiry check: if any item has expires_at in the past, clear all.
         # Normalize to tz-aware UTC for backend-agnostic comparison.
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         first = cart_items[0]
         first_expires = _as_aware_utc(first.expires_at)
         if first_expires and first_expires < now:
@@ -64,9 +64,7 @@ def get_cart_stub_data(user_id: int) -> dict | None:
         for ci in cart_items:
             good = session.query(Goods).filter_by(name=ci.item_name).first()
             if good:
-                unit_price = calculate_item_price(
-                    good.price, good.modifiers, ci.selected_modifiers
-                )
+                unit_price = calculate_item_price(good.price, good.modifiers, ci.selected_modifiers)
                 total += unit_price * ci.quantity
 
         brand_name = ""
@@ -84,12 +82,12 @@ def get_cart_stub_data(user_id: int) -> dict | None:
                 store_name = store.name
 
         return {
-            'brand_name': brand_name,
-            'store_name': store_name,
-            'total': total,
-            'item_count': len(cart_items),
-            'brand_id': brand_id,
-            'store_id': store_id,
+            "brand_name": brand_name,
+            "store_name": store_name,
+            "total": total,
+            "item_count": len(cart_items),
+            "brand_id": brand_id,
+            "store_id": store_id,
         }
 
 
@@ -101,7 +99,7 @@ def build_cart_stub(user_id: int) -> str:
     data = get_cart_stub_data(user_id)
     if not data:
         return ""
-    return format_cart_stub(data['brand_name'], data['store_name'], data['total'])
+    return format_cart_stub(data["brand_name"], data["store_name"], data["total"])
 
 
 def format_cart_stub(brand_name: str, store_name: str, total) -> str:
@@ -141,9 +139,9 @@ def inject_cart_stub(text: str, stub: str) -> str:
     return f"{stub}\n{'─' * 20}\n{text}"
 
 
-async def flash_cart_added(message, item_name: str, quantity: int,
-                           item_total, settle_text: str, settle_markup,
-                           user_id: int):
+async def flash_cart_added(
+    message, item_name: str, quantity: int, item_total, settle_text: str, settle_markup, user_id: int
+):
     """Two-step flash: show 'Added' line, then settle to normal stub + menu.
 
     Args:

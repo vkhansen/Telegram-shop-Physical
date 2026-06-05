@@ -4,6 +4,7 @@ JSON Menu Loader for E2E tests.
 Loads a restaurant menu from a JSON file and populates the database
 with Categories and Goods (including modifiers).
 """
+
 import json
 import logging
 from decimal import Decimal
@@ -107,9 +108,8 @@ def validate_menu_schema(data: dict) -> list[str]:
 
             # Stock must be a non-negative integer
             stock = item.get("stock_quantity")
-            if stock is not None:
-                if not isinstance(stock, int) or stock < 0:
-                    errors.append(f"{item_label}: 'stock_quantity' must be a non-negative integer")
+            if stock is not None and (not isinstance(stock, int) or stock < 0):
+                errors.append(f"{item_label}: 'stock_quantity' must be a non-negative integer")
 
             # Validate modifiers if present
             modifiers = item.get("modifiers")
@@ -185,8 +185,7 @@ def load_menu_from_dict(data: dict, session: Session, *, clear_existing: bool = 
     errors = validate_menu_schema(data)
     if errors:
         raise MenuValidationError(
-            f"Menu JSON validation failed with {len(errors)} error(s):\n" +
-            "\n".join(f"  - {e}" for e in errors)
+            f"Menu JSON validation failed with {len(errors)} error(s):\n" + "\n".join(f"  - {e}" for e in errors)
         )
 
     if clear_existing:
@@ -239,8 +238,7 @@ def load_menu_from_dict(data: dict, session: Session, *, clear_existing: bool = 
     }
 
 
-def load_menu_from_file(file_path: str | Path, session: Session,
-                        *, clear_existing: bool = False) -> dict[str, Any]:
+def load_menu_from_file(file_path: str | Path, session: Session, *, clear_existing: bool = False) -> dict[str, Any]:
     """
     Load a menu from a JSON file path.
 
@@ -256,7 +254,7 @@ def load_menu_from_file(file_path: str | Path, session: Session,
     if not path.exists():
         raise FileNotFoundError(f"Menu file not found: {path}")
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         data = json.load(f)
 
     return load_menu_from_dict(data, session, clear_existing=clear_existing)

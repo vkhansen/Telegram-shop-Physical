@@ -1,9 +1,10 @@
 """Tests for bot.utils.tracking — metrics wrappers."""
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from bot.utils.tracking import track_event, track_conversion, track_payment
+import pytest
+
+from bot.utils.tracking import track_conversion, track_event, track_payment
 
 
 @pytest.mark.unit

@@ -11,8 +11,7 @@ address we've already recycled.
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import List, Tuple
+from datetime import UTC, datetime, timedelta
 
 from bot.database.main import Database
 from bot.database.models.main import CryptoAddress, Order
@@ -27,7 +26,7 @@ RECLAIM_INTERVAL_SECONDS = 3600  # hourly
 _RECLAIMABLE_STATES = ("expired", "cancelled")
 
 
-def reclaim_expired_addresses(ttl_hours: int = DEFAULT_TTL_HOURS) -> Tuple[int, List[str]]:
+def reclaim_expired_addresses(ttl_hours: int = DEFAULT_TTL_HOURS) -> tuple[int, list[str]]:
     """Release addresses held by expired/cancelled orders past the TTL.
 
     Args:
@@ -37,8 +36,8 @@ def reclaim_expired_addresses(ttl_hours: int = DEFAULT_TTL_HOURS) -> Tuple[int, 
     Returns:
         Tuple of (count released, list of released address strings).
     """
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=ttl_hours)
-    reclaimed: List[str] = []
+    cutoff = datetime.now(UTC) - timedelta(hours=ttl_hours)
+    reclaimed: list[str] = []
 
     with Database().session() as session:
         candidates = (
@@ -62,16 +61,18 @@ def reclaim_expired_addresses(ttl_hours: int = DEFAULT_TTL_HOURS) -> Tuple[int, 
     if reclaimed:
         logger.info(
             "Reclaimed %d expired/cancelled crypto address(es): %s",
-            len(reclaimed), ", ".join(reclaimed),
+            len(reclaimed),
+            ", ".join(reclaimed),
         )
     return len(reclaimed), reclaimed
 
 
-async def run_address_reclaimer(ttl_hours: int = DEFAULT_TTL_HOURS,
-                                interval: int = RECLAIM_INTERVAL_SECONDS):
+async def run_address_reclaimer(ttl_hours: int = DEFAULT_TTL_HOURS, interval: int = RECLAIM_INTERVAL_SECONDS):
     """Background loop: reclaim stale addresses every *interval* seconds."""
     logger.info(
-        "Address reclaimer started (ttl=%dh, interval=%ds)", ttl_hours, interval,
+        "Address reclaimer started (ttl=%dh, interval=%ds)",
+        ttl_hours,
+        interval,
     )
     while True:
         try:
@@ -81,8 +82,9 @@ async def run_address_reclaimer(ttl_hours: int = DEFAULT_TTL_HOURS,
         await asyncio.sleep(interval)
 
 
-def start_address_reclaimer(ttl_hours: int = DEFAULT_TTL_HOURS,
-                            interval: int = RECLAIM_INTERVAL_SECONDS):
+def start_address_reclaimer(ttl_hours: int = DEFAULT_TTL_HOURS, interval: int = RECLAIM_INTERVAL_SECONDS):
     """Schedule the address reclaimer as a background task."""
-    asyncio.create_task(run_address_reclaimer(ttl_hours, interval))
+    from bot.utils.background import track_task
+
+    track_task(asyncio.create_task(run_address_reclaimer(ttl_hours, interval)))
     logger.info("Address reclaimer task scheduled")

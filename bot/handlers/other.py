@@ -1,9 +1,9 @@
 import hashlib
 import re
 
-from aiogram import Router, F
-from aiogram.types import CallbackQuery
+from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
+from aiogram.types import CallbackQuery
 
 from bot.logger_mesh import logger
 
@@ -11,7 +11,7 @@ router = Router()
 
 
 # Close message
-@router.callback_query(F.data == 'close')
+@router.callback_query(F.data == "close")
 async def close_callback_handler(call: CallbackQuery):
     """processing of message closure (deletion)"""
     try:
@@ -20,7 +20,7 @@ async def close_callback_handler(call: CallbackQuery):
         logger.warning(f"Failed to delete message: {e}")
 
 
-@router.callback_query(F.data == 'dummy_button')
+@router.callback_query(F.data == "dummy_button")
 async def dummy_button(call: CallbackQuery):
     """“Empty” (dummy) button"""
     await call.answer("")
@@ -28,7 +28,7 @@ async def dummy_button(call: CallbackQuery):
 
 async def check_sub_channel(chat_member) -> bool:
     """channel subscription check"""
-    return str(chat_member.status) != 'left'
+    return str(chat_member.status) != "left"
 
 
 async def get_bot_info(event) -> str:
@@ -40,7 +40,8 @@ async def get_bot_info(event) -> str:
 
 def generate_short_hash(text: str, length: int = 8) -> str:
     """Generate a short hash for long strings to fit in callback_data"""
-    return hashlib.md5(text.encode()).hexdigest()[:length]
+    # Not security-sensitive — md5 is used only to shorten callback_data keys.
+    return hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()[:length]
 
 
 def is_safe_item_name(name: str) -> bool:
@@ -58,7 +59,4 @@ def is_safe_item_name(name: str) -> bool:
         r"\.\.\/",  # Path traversal
     ]
 
-    for pattern in dangerous_patterns:
-        if re.search(pattern, name, re.IGNORECASE):
-            return False
-    return True
+    return all(not re.search(pattern, name, re.IGNORECASE) for pattern in dangerous_patterns)

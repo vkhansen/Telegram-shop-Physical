@@ -8,10 +8,10 @@ PDPA-compliant Privacy Notice handler.
 
 import datetime
 
-from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram import F, Router
 from aiogram.enums.chat_type import ChatType
 from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot.config import EnvKeys
@@ -76,7 +76,7 @@ async def privacy_accept_callback(call: CallbackQuery, state: FSMContext):
     user_id = call.from_user.id
     await call.answer()
 
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
 
     with Database().session() as session:
         user = session.query(User).filter_by(telegram_id=user_id).first()
@@ -94,6 +94,7 @@ async def privacy_accept_callback(call: CallbackQuery, state: FSMContext):
     if data.get("after_privacy") == "register":
         # Continue to main menu after privacy acceptance
         from bot.handlers.user.main import show_main_menu
+
         await show_main_menu(call.message, state)
 
 

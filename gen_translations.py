@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Generate fa, ps, fr translation sections for strings.py"""
-import json
-import sys
 
-with open('C:/github/Telegram-shop-Physical/en_keys.json', 'r', encoding='utf-8') as f:
+import json
+
+with open("C:/github/Telegram-shop-Physical/en_keys.json", encoding="utf-8") as f:
     en = json.load(f)
 
 fa = {

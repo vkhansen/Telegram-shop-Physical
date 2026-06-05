@@ -1,10 +1,11 @@
-from bot.database import Database
-from bot.database.models.main import Order, OrderItem, Goods, Categories
-from sqlalchemy import func, case
-from decimal import Decimal
 import csv
 import io
-from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+
+from sqlalchemy import func
+
+from bot.database import Database
+from bot.database.models.main import Goods, Order, OrderItem
 
 
 def _apply_date_filter(query, from_date=None, to_date=None):
@@ -30,10 +31,18 @@ def generate_sales_csv(from_date=None, to_date=None) -> str:
     """
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow([
-        "Order Code", "Date", "Items", "Total", "Payment Method",
-        "Delivery Fee", "Coupon Discount", "Bonus Applied",
-    ])
+    writer.writerow(
+        [
+            "Order Code",
+            "Date",
+            "Items",
+            "Total",
+            "Payment Method",
+            "Delivery Fee",
+            "Coupon Discount",
+            "Bonus Applied",
+        ]
+    )
 
     with Database().session() as session:
         query = session.query(Order).filter(Order.order_status == "delivered")
@@ -42,19 +51,19 @@ def generate_sales_csv(from_date=None, to_date=None) -> str:
 
         for order in query.all():
             items = session.query(OrderItem).filter_by(order_id=order.id).all()
-            items_desc = "; ".join(
-                f"{item.item_name} x{item.quantity}" for item in items
+            items_desc = "; ".join(f"{item.item_name} x{item.quantity}" for item in items)
+            writer.writerow(
+                [
+                    order.order_code,
+                    order.created_at.strftime("%Y-%m-%d %H:%M"),
+                    items_desc,
+                    str(order.total_price),
+                    order.payment_method,
+                    str(order.delivery_fee or 0),
+                    str(order.coupon_discount or 0),
+                    str(order.bonus_applied or 0),
+                ]
             )
-            writer.writerow([
-                order.order_code,
-                order.created_at.strftime("%Y-%m-%d %H:%M"),
-                items_desc,
-                str(order.total_price),
-                order.payment_method,
-                str(order.delivery_fee or 0),
-                str(order.coupon_discount or 0),
-                str(order.bonus_applied or 0),
-            ])
 
     return output.getvalue()
 
@@ -98,13 +107,15 @@ def generate_revenue_by_product_csv(from_date=None, to_date=None) -> str:
                 category_name = good.category_name
 
             avg_price = Decimal(str(row.avg_price)).quantize(Decimal("0.01")) if row.avg_price else Decimal(0)
-            writer.writerow([
-                row.item_name,
-                category_name,
-                row.units_sold,
-                str(row.revenue),
-                str(avg_price),
-            ])
+            writer.writerow(
+                [
+                    row.item_name,
+                    category_name,
+                    row.units_sold,
+                    str(row.revenue),
+                    str(avg_price),
+                ]
+            )
 
     return output.getvalue()
 
@@ -125,27 +136,26 @@ def generate_payment_reconciliation_csv(from_date=None, to_date=None) -> str:
     writer.writerow(["Payment Method", "Order Count", "Total Revenue", "Avg Order Value"])
 
     with Database().session() as session:
-        query = (
-            session.query(
-                Order.payment_method,
-                func.count(Order.id).label("order_count"),
-                func.sum(Order.total_price).label("total_revenue"),
-                func.avg(Order.total_price).label("avg_order_value"),
-            )
-            .filter(Order.order_status == "delivered")
-        )
+        query = session.query(
+            Order.payment_method,
+            func.count(Order.id).label("order_count"),
+            func.sum(Order.total_price).label("total_revenue"),
+            func.avg(Order.total_price).label("avg_order_value"),
+        ).filter(Order.order_status == "delivered")
         query = _apply_date_filter(query, from_date, to_date)
         query = query.group_by(Order.payment_method)
         query = query.order_by(func.sum(Order.total_price).desc())
 
         for row in query.all():
             avg_val = Decimal(str(row.avg_order_value)).quantize(Decimal("0.01")) if row.avg_order_value else Decimal(0)
-            writer.writerow([
-                row.payment_method,
-                row.order_count,
-                str(row.total_revenue),
-                str(avg_val),
-            ])
+            writer.writerow(
+                [
+                    row.payment_method,
+                    row.order_count,
+                    str(row.total_revenue),
+                    str(avg_val),
+                ]
+            )
 
     return output.getvalue()
 
@@ -168,33 +178,25 @@ def get_revenue_summary(from_date=None, to_date=None) -> dict:
     """
     with Database().session() as session:
         # --- Aggregate totals ---
-        totals_query = (
-            session.query(
-                func.count(Order.id).label("total_orders"),
-                func.coalesce(func.sum(Order.total_price), 0).label("total_revenue"),
-                func.avg(Order.total_price).label("avg_order_value"),
-            )
-            .filter(Order.order_status == "delivered")
-        )
+        totals_query = session.query(
+            func.count(Order.id).label("total_orders"),
+            func.coalesce(func.sum(Order.total_price), 0).label("total_revenue"),
+            func.avg(Order.total_price).label("avg_order_value"),
+        ).filter(Order.order_status == "delivered")
         totals_query = _apply_date_filter(totals_query, from_date, to_date)
         totals = totals_query.one()
 
         total_orders = totals.total_orders or 0
         total_revenue = Decimal(str(totals.total_revenue)) if totals.total_revenue else Decimal(0)
         avg_order_value = (
-            Decimal(str(totals.avg_order_value)).quantize(Decimal("0.01"))
-            if totals.avg_order_value
-            else Decimal(0)
+            Decimal(str(totals.avg_order_value)).quantize(Decimal("0.01")) if totals.avg_order_value else Decimal(0)
         )
 
         # --- Revenue by payment method ---
-        payment_query = (
-            session.query(
-                Order.payment_method,
-                func.sum(Order.total_price).label("revenue"),
-            )
-            .filter(Order.order_status == "delivered")
-        )
+        payment_query = session.query(
+            Order.payment_method,
+            func.sum(Order.total_price).label("revenue"),
+        ).filter(Order.order_status == "delivered")
         payment_query = _apply_date_filter(payment_query, from_date, to_date)
         payment_query = payment_query.group_by(Order.payment_method)
 
@@ -214,19 +216,20 @@ def get_revenue_summary(from_date=None, to_date=None) -> dict:
         )
         products_query = _apply_date_filter(products_query, from_date, to_date)
         products_query = (
-            products_query
-            .group_by(OrderItem.item_name)
+            products_query.group_by(OrderItem.item_name)
             .order_by(func.sum(OrderItem.price * OrderItem.quantity).desc())
             .limit(5)
         )
 
         top_products = []
         for row in products_query.all():
-            top_products.append({
-                "name": row.item_name,
-                "units_sold": row.units_sold,
-                "revenue": Decimal(str(row.revenue)) if row.revenue else Decimal(0),
-            })
+            top_products.append(
+                {
+                    "name": row.item_name,
+                    "units_sold": row.units_sold,
+                    "revenue": Decimal(str(row.revenue)) if row.revenue else Decimal(0),
+                }
+            )
 
     return {
         "total_revenue": total_revenue,

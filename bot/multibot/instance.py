@@ -1,5 +1,6 @@
 """BotInstance dataclass — wraps a single Bot + Dispatcher pair (Card 19)."""
-from dataclasses import dataclass, field
+
+from dataclasses import dataclass
 
 from aiogram import Bot, Dispatcher
 
@@ -14,6 +15,7 @@ class BotInstance:
     config_id — DB BotConfig.id
     bot_username — @handle from Telegram, e.g. "BrandXBot"
     """
+
     bot: Bot
     dp: Dispatcher
     brand_id: int

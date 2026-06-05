@@ -2,10 +2,9 @@ import logging
 import threading
 import time
 from pathlib import Path
-from typing import Optional
 
-from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
 from bot.payments.bitcoin import load_bitcoin_addresses_from_file
 
@@ -107,8 +106,8 @@ class BitcoinAddressFileWatcher:
         self.debounce_seconds = debounce_seconds
 
         # Create watchdog observer and event handler
-        self.observer: Optional[Observer] = None
-        self.event_handler: Optional[BitcoinAddressFileHandler] = None
+        self.observer: Observer | None = None
+        self.event_handler: BitcoinAddressFileHandler | None = None
 
         self._started = False
         self._start_lock = threading.Lock()
@@ -135,27 +134,17 @@ class BitcoinAddressFileWatcher:
                 )
 
             # Create event handler and observer
-            self.event_handler = BitcoinAddressFileHandler(
-                str(self.file_path),
-                self.debounce_seconds
-            )
+            self.event_handler = BitcoinAddressFileHandler(str(self.file_path), self.debounce_seconds)
             self.observer = Observer()
 
             # Schedule the observer to watch the directory containing the file
-            self.observer.schedule(
-                self.event_handler,
-                str(self.watch_directory),
-                recursive=False
-            )
+            self.observer.schedule(self.event_handler, str(self.watch_directory), recursive=False)
 
             # Start the observer thread
             self.observer.start()
             self._started = True
 
-            logger.info(
-                f"🔍 File watcher started for {self.file_path.name} "
-                f"(debounce: {self.debounce_seconds}s)"
-            )
+            logger.info(f"🔍 File watcher started for {self.file_path.name} (debounce: {self.debounce_seconds}s)")
             return True
 
     def stop(self, timeout: float = 5.0):
@@ -180,9 +169,7 @@ class BitcoinAddressFileWatcher:
 
                 # Check if thread stopped
                 if self.observer.is_alive():
-                    logger.warning(
-                        f"File watcher thread did not stop within {timeout}s timeout"
-                    )
+                    logger.warning(f"File watcher thread did not stop within {timeout}s timeout")
                 else:
                     logger.info("✅ File watcher stopped successfully")
 
@@ -213,7 +200,7 @@ class BitcoinAddressFileWatcher:
 
 
 # Global singleton instance
-_watcher_instance: Optional[BitcoinAddressFileWatcher] = None
+_watcher_instance: BitcoinAddressFileWatcher | None = None
 _watcher_lock = threading.Lock()
 
 

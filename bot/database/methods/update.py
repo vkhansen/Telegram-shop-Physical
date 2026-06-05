@@ -1,19 +1,22 @@
-from sqlalchemy import exc
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from bot.database.methods import invalidate_user_cache, invalidate_item_cache, invalidate_category_cache
-from bot.database.methods.cache_utils import safe_create_task
-from bot.database.models import User, Goods, Categories, BoughtGoods
+from sqlalchemy import exc
+
 from bot.database import Database
+from bot.database.methods.cache_utils import safe_create_task
+from bot.database.methods.read import (
+    invalidate_category_cache,
+    invalidate_item_cache,
+    invalidate_user_cache,
+)
+from bot.database.models import BoughtGoods, Categories, Goods, User
 from bot.i18n import localize
 
 
 def set_role(telegram_id: int, role: int) -> None:
     """Set user's role (by Telegram ID) and commit."""
     with Database().session() as s:
-        s.query(User).filter(User.telegram_id == telegram_id).update(
-            {User.role_id: role}
-        )
+        s.query(User).filter(User.telegram_id == telegram_id).update({User.role_id: role})
 
     # Invalidate the user cache
     safe_create_task(invalidate_user_cache(telegram_id))
@@ -26,9 +29,7 @@ def update_item(item_name: str, new_name: str, description: str, price, category
     try:
         with Database().session() as session:
             # Blocking goods for updating
-            goods = session.query(Goods).filter(
-                Goods.name == item_name
-            ).with_for_update().one_or_none()
+            goods = session.query(Goods).filter(Goods.name == item_name).with_for_update().one_or_none()
 
             if not goods:
                 return False, localize("admin.goods.update.position.invalid")
@@ -70,13 +71,16 @@ def update_item(item_name: str, new_name: str, description: str, price, category
             session.flush()
 
             # Update linked records
-            session.query(BoughtGoods).filter(BoughtGoods.item_name == item_name) \
-                .update({BoughtGoods.item_name: new_name}, synchronize_session=False)
+            session.query(BoughtGoods).filter(BoughtGoods.item_name == item_name).update(
+                {BoughtGoods.item_name: new_name}, synchronize_session=False
+            )
 
             # Update inventory log references
             from bot.database.models.main import InventoryLog
-            session.query(InventoryLog).filter(InventoryLog.item_name == item_name) \
-                .update({InventoryLog.item_name: new_name}, synchronize_session=False)
+
+            session.query(InventoryLog).filter(InventoryLog.item_name == item_name).update(
+                {InventoryLog.item_name: new_name}, synchronize_session=False
+            )
 
             # Remove the old merchandise
             session.query(Goods).filter(Goods.name == item_name).delete(synchronize_session=False)
@@ -96,9 +100,7 @@ def update_category(category_name: str, new_name: str) -> None:
     to propagate the new name to related rows."""
     with Database().session() as s:
         try:
-            category = s.query(Categories).filter(
-                Categories.name == category_name
-            ).with_for_update().one_or_none()
+            category = s.query(Categories).filter(Categories.name == category_name).with_for_update().one_or_none()
 
             if not category:
                 s.rollback()
@@ -116,7 +118,7 @@ def update_category(category_name: str, new_name: str) -> None:
             raise
 
 
-def ban_user(telegram_id: int, banned_by: int, reason: str = None) -> bool:
+def ban_user(telegram_id: int, banned_by: int, reason: str | None = None) -> bool:
     """
     Ban a user.
 
@@ -138,7 +140,7 @@ def ban_user(telegram_id: int, banned_by: int, reason: str = None) -> bool:
             return False  # Already banned
 
         user.is_banned = True
-        user.banned_at = datetime.now(timezone.utc)
+        user.banned_at = datetime.now(UTC)
         user.banned_by = banned_by
         user.ban_reason = reason
 
@@ -185,6 +187,7 @@ def unban_user(telegram_id: int) -> bool:
 def bulk_update_cart_store(user_id: int, store_id: int) -> None:
     """Card 21: Move all cart items for a user to a new store (after availability check)."""
     from bot.database.models.main import ShoppingCart
+
     try:
         with Database().session() as s:
             s.query(ShoppingCart).filter_by(user_id=user_id).update(
@@ -194,4 +197,5 @@ def bulk_update_cart_store(user_id: int, store_id: int) -> None:
             s.commit()
     except Exception as e:
         from bot.logger_mesh import logger
+
         logger.error(f"bulk_update_cart_store error: {e}")

@@ -1,19 +1,22 @@
-from aiogram.filters.state import StatesGroup, State
+from aiogram.filters.state import State, StatesGroup
 
 
 class UserMgmtStates(StatesGroup):
     """FSM for user management flow."""
+
     waiting_user_id_for_check = State()
     waiting_user_bonus = State()
 
 
 class LanguageStates(StatesGroup):
     """FSM for language selection flow (Card 14)."""
+
     waiting_language = State()
 
 
 class ReferenceCodeStates(StatesGroup):
     """FSM for reference code validation flow."""
+
     waiting_reference_code = State()
     waiting_refcode_note = State()
     waiting_refcode_expires = State()
@@ -22,6 +25,7 @@ class ReferenceCodeStates(StatesGroup):
 
 class OrderStates(StatesGroup):
     """FSM for order placement flow."""
+
     waiting_location_method = State()  # Choose: GPS / Live GPS / Google Maps link / Type address
     waiting_delivery_address = State()
     waiting_address_confirm = State()  # Confirm searched address
@@ -41,37 +45,43 @@ class OrderStates(StatesGroup):
 
 class DeliveryChatStates(StatesGroup):
     """FSM for delivery chat flow (Card 13 + Card 15)."""
+
     chatting_with_driver = State()  # Customer is in active chat relay mode (Card 13)
     waiting_customer_gps_choice = State()  # GPS choice prompt (Card 15)
 
 
 class HelpStates(StatesGroup):
     """FSM for help/support flow."""
+
     waiting_help_message = State()
 
 
 class SupportStates(StatesGroup):
     """FSM for support ticket system."""
-    choosing_type = State()        # bug_report / feedback / live_chat
-    waiting_subject = State()      # Ticket subject line
+
+    choosing_type = State()  # bug_report / feedback / live_chat
+    waiting_subject = State()  # Ticket subject line
     waiting_description = State()  # Detailed description
-    waiting_screenshot = State()   # Optional screenshot
-    live_chatting = State()        # Active live chat with maintainer
+    waiting_screenshot = State()  # Optional screenshot
+    live_chatting = State()  # Active live chat with maintainer
 
 
 class CartStates(StatesGroup):
     """FSM for shopping cart checkout flow."""
+
     viewing_cart = State()
     waiting_quantity = State()
 
 
 class AdminOrderStates(StatesGroup):
     """FSM for admin order management (Card 4)."""
+
     waiting_delivery_photo = State()
 
 
 class SettingsFSM(StatesGroup):
     """FSM for bot settings management."""
+
     waiting_referral_percent = State()
     waiting_order_timeout = State()
     waiting_timezone = State()
@@ -81,20 +91,23 @@ class SettingsFSM(StatesGroup):
 
 class GrokCustomerStates(StatesGroup):
     """FSM for customer Grok AI assistant (Card 22)."""
-    chatting = State()         # Active AI conversation
-    app_live_chat = State()    # Live relay to platform maintainers
+
+    chatting = State()  # Active AI conversation
+    app_live_chat = State()  # Live relay to platform maintainers
     store_live_chat = State()  # Live relay to store support staff
 
 
 class GrokAssistantStates(StatesGroup):
     """FSM for Grok AI admin assistant (Card 17)."""
-    chatting = State()               # Main conversation loop
+
+    chatting = State()  # Main conversation loop
     awaiting_confirmation = State()  # Waiting for yes/no on mutation
-    awaiting_file = State()          # Waiting for CSV/data upload
+    awaiting_file = State()  # Waiting for CSV/data upload
 
 
 class DriverRegistrationStates(StatesGroup):
     """FSM for driver self-registration / onboarding (Card 26)."""
+
     waiting_name = State()
     waiting_phone = State()
     waiting_vehicle = State()

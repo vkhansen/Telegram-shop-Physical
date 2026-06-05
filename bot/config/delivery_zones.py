@@ -3,16 +3,31 @@ Delivery zone pricing and time slot management (Card 10).
 
 Simple distance-based zone pricing using Haversine formula.
 """
+
 import os
 from decimal import Decimal
 from math import atan2, cos, radians, sin, sqrt
+from typing import TypedDict
 
 # Restaurant location (configurable via env)
 RESTAURANT_LAT = float(os.getenv("RESTAURANT_LAT", "13.7563"))
 RESTAURANT_LNG = float(os.getenv("RESTAURANT_LNG", "100.5018"))
 
+
+class DeliveryZone(TypedDict):
+    name: str
+    max_km: int
+    fee: Decimal
+
+
+class TimeSlot(TypedDict):
+    id: str
+    label: str
+    available: bool
+
+
 # Default delivery zones (distance in km, fee in THB)
-DEFAULT_DELIVERY_ZONES = [
+DEFAULT_DELIVERY_ZONES: list[DeliveryZone] = [
     {"name": "Zone 1 - Central", "max_km": 3, "fee": Decimal("0")},
     {"name": "Zone 2 - Inner", "max_km": 7, "fee": Decimal("30")},
     {"name": "Zone 3 - Mid", "max_km": 12, "fee": Decimal("50")},
@@ -21,7 +36,7 @@ DEFAULT_DELIVERY_ZONES = [
 ]
 
 # Default time slots
-DEFAULT_TIME_SLOTS = [
+DEFAULT_TIME_SLOTS: list[TimeSlot] = [
     {"id": "lunch_early", "label": "11:00-12:00", "available": True},
     {"id": "lunch_peak", "label": "12:00-13:00", "available": True},
     {"id": "lunch_late", "label": "13:00-14:00", "available": True},
@@ -47,9 +62,9 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     return R * 2 * atan2(sqrt(a), sqrt(1 - a))
 
 
-def get_delivery_zone(lat: float, lon: float,
-                      restaurant_lat: float | None = None,
-                      restaurant_lon: float | None = None) -> dict | None:
+def get_delivery_zone(
+    lat: float, lon: float, restaurant_lat: float | None = None, restaurant_lon: float | None = None
+) -> DeliveryZone | None:
     """
     Determine delivery zone based on distance from restaurant.
 
@@ -72,6 +87,6 @@ def get_delivery_zone(lat: float, lon: float,
     return DEFAULT_DELIVERY_ZONES[-1]
 
 
-def get_available_time_slots() -> list[dict]:
+def get_available_time_slots() -> list[TimeSlot]:
     """Get list of currently available time slots."""
     return [slot for slot in DEFAULT_TIME_SLOTS if slot["available"]]

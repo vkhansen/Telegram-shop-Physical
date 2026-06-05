@@ -1,10 +1,8 @@
+import contextlib
 import json
 import os
-import shutil
-from pathlib import Path
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 
 from bot.database.main import Database
 from bot.database.models.main import Categories, Goods
@@ -13,13 +11,14 @@ from bot.logger_mesh import logger
 
 class DecimalEncoder(json.JSONEncoder):
     """JSON encoder that handles Decimal types."""
+
     def default(self, obj):
         if isinstance(obj, Decimal):
             return float(obj)
         return super().default(obj)
 
 
-def export_menu_to_json(output_dir: str = None) -> str:
+def export_menu_to_json(output_dir: str | None = None) -> str:
     """
     Export entire menu (categories + items) to JSON + images folder.
 
@@ -41,11 +40,12 @@ def export_menu_to_json(output_dir: str = None) -> str:
         "exported_at": datetime.now().isoformat(),
         "currency": None,  # Will be set from EnvKeys
         "categories": [],
-        "items": []
+        "items": [],
     }
 
     # Set currency
     from bot.config.env import EnvKeys
+
     menu_data["currency"] = EnvKeys.PAY_CURRENCY
 
     with Database().session() as session:
@@ -99,20 +99,24 @@ def export_menu_to_json(output_dir: str = None) -> str:
                 for idx, m in enumerate(item.media):
                     ext = "mp4" if m.get("type") == "video" else "jpg"
                     filename = f"item_{_safe_filename(item.name)}_{idx}.{ext}"
-                    item_data["gallery"].append({
-                        "file": f"images/{filename}",
-                        "type": m.get("type", "photo"),
-                        "_file_id": m.get("file_id"),
-                    })
+                    item_data["gallery"].append(
+                        {
+                            "file": f"images/{filename}",
+                            "type": m.get("type", "photo"),
+                            "_file_id": m.get("file_id"),
+                        }
+                    )
 
             menu_data["items"].append(item_data)
 
     # Write JSON
     json_path = os.path.join(output_dir, "menu.json")
-    with open(json_path, 'w', encoding='utf-8') as f:
+    with open(json_path, "w", encoding="utf-8") as f:
         json.dump(menu_data, f, cls=DecimalEncoder, indent=2, ensure_ascii=False)
 
-    logger.info(f"Menu exported to {output_dir}: {len(menu_data['categories'])} categories, {len(menu_data['items'])} items")
+    logger.info(
+        f"Menu exported to {output_dir}: {len(menu_data['categories'])} categories, {len(menu_data['items'])} items"
+    )
     return output_dir
 
 
@@ -129,7 +133,7 @@ async def download_menu_images(bot, export_dir: str) -> int:
         Number of images downloaded
     """
     json_path = os.path.join(export_dir, "menu.json")
-    with open(json_path, 'r', encoding='utf-8') as f:
+    with open(json_path, encoding="utf-8") as f:
         menu_data = json.load(f)
 
     images_dir = os.path.join(export_dir, "images")
@@ -178,15 +182,14 @@ async def download_menu_images(bot, export_dir: str) -> int:
 
     # Remove _file_id keys from JSON (they're bot-specific)
     _strip_file_ids(menu_data)
-    with open(json_path, 'w', encoding='utf-8') as f:
+    with open(json_path, "w", encoding="utf-8") as f:
         json.dump(menu_data, f, cls=DecimalEncoder, indent=2, ensure_ascii=False)
 
     logger.info(f"Downloaded {downloaded} images for menu export")
     return downloaded
 
 
-def import_menu_from_json(json_path: str, mode: str = "merge",
-                          default_stock: int = 0) -> dict:
+def import_menu_from_json(json_path: str, mode: str = "merge", default_stock: int = 0) -> dict:
     """
     Import menu from JSON file. Does NOT handle images (use upload_menu_images for that).
 
@@ -198,7 +201,7 @@ def import_menu_from_json(json_path: str, mode: str = "merge",
     Returns:
         dict with counts: {"categories_created", "categories_updated", "items_created", "items_updated", "errors"}
     """
-    with open(json_path, 'r', encoding='utf-8') as f:
+    with open(json_path, encoding="utf-8") as f:
         menu_data = json.load(f)
 
     stats = {
@@ -312,7 +315,7 @@ async def upload_menu_images(bot, json_path: str, chat_id: int) -> int:
     from aiogram.types import FSInputFile
 
     base_dir = os.path.dirname(json_path)
-    with open(json_path, 'r', encoding='utf-8') as f:
+    with open(json_path, encoding="utf-8") as f:
         menu_data = json.load(f)
 
     uploaded = 0
@@ -335,10 +338,8 @@ async def upload_menu_images(bot, json_path: str, chat_id: int) -> int:
                     cat.image_file_id = file_id
                 uploaded += 1
                 # Delete the uploaded message to keep chat clean
-                try:
+                with contextlib.suppress(Exception):
                     await bot.delete_message(chat_id, msg.message_id)
-                except Exception:
-                    pass
             except Exception as e:
                 logger.warning(f"Failed to upload category image {cat_data['name']}: {e}")
 
@@ -357,10 +358,8 @@ async def upload_menu_images(bot, json_path: str, chat_id: int) -> int:
                         msg = await bot.send_photo(chat_id, FSInputFile(full_path))
                         item.image_file_id = msg.photo[-1].file_id
                         uploaded += 1
-                        try:
+                        with contextlib.suppress(Exception):
                             await bot.delete_message(chat_id, msg.message_id)
-                        except Exception:
-                            pass
                     except Exception as e:
                         logger.warning(f"Failed to upload item image {item_data['name']}: {e}")
 
@@ -385,10 +384,8 @@ async def upload_menu_images(bot, json_path: str, chat_id: int) -> int:
 
                     new_media.append({"file_id": file_id, "type": media_type})
                     uploaded += 1
-                    try:
+                    with contextlib.suppress(Exception):
                         await bot.delete_message(chat_id, msg.message_id)
-                    except Exception:
-                        pass
                 except Exception as e:
                     logger.warning(f"Failed to upload gallery media {item_data['name']}: {e}")
 
@@ -411,7 +408,7 @@ def validate_menu_json(json_path: str) -> tuple[bool, list[str]]:
     errors = []
 
     try:
-        with open(json_path, 'r', encoding='utf-8') as f:
+        with open(json_path, encoding="utf-8") as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
         return False, [f"Invalid JSON: {e}"]
@@ -490,8 +487,9 @@ def validate_menu_json(json_path: str) -> tuple[bool, list[str]]:
 def _safe_filename(name: str) -> str:
     """Convert a name to a safe filename."""
     import re
-    safe = re.sub(r'[^\w\s-]', '', name.lower())
-    safe = re.sub(r'[-\s]+', '_', safe).strip('_')
+
+    safe = re.sub(r"[^\w\s-]", "", name.lower())
+    safe = re.sub(r"[-\s]+", "_", safe).strip("_")
     return safe[:50]  # Limit length
 
 

@@ -1,9 +1,11 @@
 """Tests for GPS location fields on Order and CustomerInfo (Card 2)"""
-import pytest
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 from decimal import Decimal
 
-from bot.database.models.main import Order, CustomerInfo, User
+import pytest
+
+from bot.database.models.main import CustomerInfo, Order, User
 
 
 @pytest.mark.unit
@@ -13,7 +15,7 @@ class TestGPSLocationFields:
 
     def test_order_gps_fields_nullable(self, db_with_roles, db_session):
         """GPS fields on Order should be nullable (optional)"""
-        user = User(telegram_id=900001, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=900001, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
@@ -23,7 +25,7 @@ class TestGPSLocationFields:
             payment_method="cash",
             delivery_address="123 Test St",
             phone_number="0812345678",
-            order_status="pending"
+            order_status="pending",
         )
         db_session.add(order)
         db_session.commit()
@@ -34,7 +36,7 @@ class TestGPSLocationFields:
 
     def test_order_gps_fields_stored(self, db_with_roles, db_session):
         """GPS coordinates and maps link persist on Order"""
-        user = User(telegram_id=900002, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=900002, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
@@ -47,7 +49,7 @@ class TestGPSLocationFields:
             order_status="pending",
             latitude=13.7563,
             longitude=100.5018,
-            google_maps_link="https://www.google.com/maps?q=13.7563,100.5018"
+            google_maps_link="https://www.google.com/maps?q=13.7563,100.5018",
         )
         db_session.add(order)
         db_session.commit()
@@ -59,15 +61,11 @@ class TestGPSLocationFields:
 
     def test_customer_info_gps_fields(self, db_with_roles, db_session):
         """CustomerInfo stores lat/lng for reuse across orders"""
-        user = User(telegram_id=900003, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=900003, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
-        customer = CustomerInfo(
-            telegram_id=900003,
-            phone_number="0812345678",
-            delivery_address="789 Bangkok"
-        )
+        customer = CustomerInfo(telegram_id=900003, phone_number="0812345678", delivery_address="789 Bangkok")
         customer.latitude = 13.7400
         customer.longitude = 100.5200
         db_session.add(customer)
@@ -79,15 +77,11 @@ class TestGPSLocationFields:
 
     def test_customer_info_gps_nullable(self, db_with_roles, db_session):
         """CustomerInfo GPS fields default to None"""
-        user = User(telegram_id=900004, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=900004, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
-        customer = CustomerInfo(
-            telegram_id=900004,
-            phone_number="0812345678",
-            delivery_address="Test address"
-        )
+        customer = CustomerInfo(telegram_id=900004, phone_number="0812345678", delivery_address="Test address")
         db_session.add(customer)
         db_session.commit()
 
@@ -96,7 +90,7 @@ class TestGPSLocationFields:
 
     def test_order_without_location_still_valid(self, db_with_roles, db_session):
         """Order with text address only (no GPS) should be fully valid"""
-        user = User(telegram_id=900005, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=900005, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
@@ -106,7 +100,7 @@ class TestGPSLocationFields:
             payment_method="cash",
             delivery_address="Text-only address, no GPS",
             phone_number="0898765432",
-            order_status="pending"
+            order_status="pending",
         )
         db_session.add(order)
         db_session.commit()
@@ -120,7 +114,7 @@ class TestGPSLocationFields:
         lat, lng = 13.7563, 100.5018
         maps_link = f"https://www.google.com/maps?q={lat},{lng}"
 
-        user = User(telegram_id=900006, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=900006, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
@@ -130,7 +124,7 @@ class TestGPSLocationFields:
             payment_method="cash",
             delivery_address="Test",
             phone_number="0812345678",
-            google_maps_link=maps_link
+            google_maps_link=maps_link,
         )
         db_session.add(order)
         db_session.commit()
@@ -147,7 +141,7 @@ class TestGPSEdgeCases:
 
     def test_zero_coordinates_gulf_of_guinea(self, db_with_roles, db_session):
         """Zero coordinates (0.0, 0.0) are valid — Gulf of Guinea"""
-        user = User(telegram_id=910001, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=910001, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
@@ -159,7 +153,7 @@ class TestGPSEdgeCases:
             phone_number="0812345678",
             latitude=0.0,
             longitude=0.0,
-            google_maps_link="https://www.google.com/maps?q=0.0,0.0"
+            google_maps_link="https://www.google.com/maps?q=0.0,0.0",
         )
         db_session.add(order)
         db_session.commit()
@@ -170,7 +164,7 @@ class TestGPSEdgeCases:
 
     def test_negative_coordinates_sydney(self, db_with_roles, db_session):
         """Negative latitude (Southern hemisphere) — Sydney, Australia"""
-        user = User(telegram_id=910002, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=910002, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
@@ -192,7 +186,7 @@ class TestGPSEdgeCases:
 
     def test_extreme_latitude_north_pole(self, db_with_roles, db_session):
         """Extreme latitude boundary: North Pole (90.0)"""
-        user = User(telegram_id=910003, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=910003, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
@@ -213,7 +207,7 @@ class TestGPSEdgeCases:
 
     def test_extreme_latitude_south_pole(self, db_with_roles, db_session):
         """Extreme latitude boundary: South Pole (-90.0)"""
-        user = User(telegram_id=910004, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=910004, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
@@ -234,7 +228,7 @@ class TestGPSEdgeCases:
 
     def test_extreme_longitude_positive_180(self, db_with_roles, db_session):
         """Extreme longitude boundary: +180.0 (International Date Line)"""
-        user = User(telegram_id=910005, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=910005, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
@@ -255,7 +249,7 @@ class TestGPSEdgeCases:
 
     def test_extreme_longitude_negative_180(self, db_with_roles, db_session):
         """Extreme longitude boundary: -180.0 (International Date Line)"""
-        user = User(telegram_id=910006, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=910006, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
@@ -276,7 +270,7 @@ class TestGPSEdgeCases:
 
     def test_partial_coordinates_latitude_only(self, db_with_roles, db_session):
         """Latitude set but longitude is None — both stored independently"""
-        user = User(telegram_id=910007, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=910007, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
@@ -298,15 +292,11 @@ class TestGPSEdgeCases:
 
     def test_update_gps_from_none_to_coordinates(self, db_with_roles, db_session):
         """Update GPS: initially None, then update to coordinates"""
-        user = User(telegram_id=910008, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=910008, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 
-        customer = CustomerInfo(
-            telegram_id=910008,
-            phone_number="0812345678",
-            delivery_address="Initial no GPS"
-        )
+        customer = CustomerInfo(telegram_id=910008, phone_number="0812345678", delivery_address="Initial no GPS")
         db_session.add(customer)
         db_session.commit()
 
@@ -324,7 +314,7 @@ class TestGPSEdgeCases:
 
     def test_order_with_gps_but_no_text_address(self, db_with_roles, db_session):
         """Order with GPS but delivery_address set to 'pickup' — still valid"""
-        user = User(telegram_id=910009, registration_date=datetime.now(timezone.utc))
+        user = User(telegram_id=910009, registration_date=datetime.now(UTC))
         db_session.add(user)
         db_session.commit()
 

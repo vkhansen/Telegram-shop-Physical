@@ -7,15 +7,17 @@ Provides:
 - Reply to tickets as admin
 - Mark tickets as resolved
 """
-from datetime import datetime, timezone
 
-from aiogram import Router, F
-from aiogram.filters.state import StatesGroup, State
+import contextlib
+from datetime import UTC, datetime
+
+from aiogram import F, Router
+from aiogram.filters.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from bot.database import Database
-from bot.database.models.main import SupportTicket, TicketMessage, Permission
+from bot.database.models.main import Permission, SupportTicket, TicketMessage
 from bot.filters import HasPermissionFilter
 from bot.i18n import localize
 from bot.keyboards.inline import back, simple_buttons
@@ -30,6 +32,7 @@ class AdminTicketStates(StatesGroup):
 
 
 # -- Ticket list ---------------------------------------------------------------
+
 
 @router.callback_query(F.data == "admin_tickets", HasPermissionFilter(permission=Permission.USERS_MANAGE))
 async def admin_tickets(call: CallbackQuery, state: FSMContext):
@@ -56,9 +59,7 @@ async def admin_tickets(call: CallbackQuery, state: FSMContext):
 
     buttons = []
     for ticket in tickets:
-        priority_icon = {"urgent": "🔴", "high": "🟠", "normal": "🟡", "low": "⚪"}.get(
-            ticket.priority, ""
-        )
+        priority_icon = {"urgent": "🔴", "high": "🟠", "normal": "🟡", "low": "⚪"}.get(ticket.priority, "")
         status_icon = {"open": "🟢", "in_progress": "🔵"}.get(ticket.status, "")
         label = f"{priority_icon}{status_icon} [{ticket.ticket_code}] {ticket.subject}"
         buttons.append((label, f"admin_view_ticket_{ticket.id}"))
@@ -72,6 +73,7 @@ async def admin_tickets(call: CallbackQuery, state: FSMContext):
 
 
 # -- View ticket ---------------------------------------------------------------
+
 
 @router.callback_query(
     F.data.startswith("admin_view_ticket_"),
@@ -88,10 +90,7 @@ async def admin_view_ticket(call: CallbackQuery, state: FSMContext):
             return
 
         messages = (
-            session.query(TicketMessage)
-            .filter_by(ticket_id=ticket.id)
-            .order_by(TicketMessage.created_at.asc())
-            .all()
+            session.query(TicketMessage).filter_by(ticket_id=ticket.id).order_by(TicketMessage.created_at.asc()).all()
         )
 
         text = (
@@ -111,10 +110,7 @@ async def admin_view_ticket(call: CallbackQuery, state: FSMContext):
         text += "\n--- Messages ---\n\n"
         for msg in messages:
             role_label = "User" if msg.sender_role == "user" else "Admin"
-            text += (
-                f"<b>[{role_label}]</b> {msg.created_at.strftime('%Y-%m-%d %H:%M')}\n"
-                f"{msg.message_text}\n\n"
-            )
+            text += f"<b>[{role_label}]</b> {msg.created_at.strftime('%Y-%m-%d %H:%M')}\n{msg.message_text}\n\n"
 
     buttons = []
     if ticket.status in ("open", "in_progress"):
@@ -129,6 +125,7 @@ async def admin_view_ticket(call: CallbackQuery, state: FSMContext):
 
 
 # -- Reply to ticket -----------------------------------------------------------
+
 
 @router.callback_query(
     F.data.startswith("admin_reply_ticket_"),
@@ -169,7 +166,7 @@ async def process_admin_reply(message: Message, state: FSMContext):
             sender_id=admin_id,
             sender_role="admin",
             message_text=msg_text,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         session.add(ticket_message)
 
@@ -177,19 +174,17 @@ async def process_admin_reply(message: Message, state: FSMContext):
         if ticket.status == "open":
             ticket.status = "in_progress"
         ticket.assigned_to = admin_id
-        ticket.updated_at = datetime.now(timezone.utc)
+        ticket.updated_at = datetime.now(UTC)
         session.commit()
 
         # Notify the user about the admin reply
-        try:
+        with contextlib.suppress(Exception):
             await message.bot.send_message(
                 ticket.user_id,
                 localize("ticket.view") + f"\n\n"
                 f"[{ticket.ticket_code}] {ticket.subject}\n\n"
                 f"<b>New reply from support:</b>\n{msg_text}",
             )
-        except Exception:
-            pass
 
     await state.clear()
     await message.answer(
@@ -199,6 +194,7 @@ async def process_admin_reply(message: Message, state: FSMContext):
 
 
 # -- Resolve ticket ------------------------------------------------------------
+
 
 @router.callback_query(
     F.data.startswith("admin_resolve_ticket_"),
@@ -215,19 +211,16 @@ async def admin_resolve_ticket(call: CallbackQuery, state: FSMContext):
             return
 
         ticket.status = "resolved"
-        ticket.updated_at = datetime.now(timezone.utc)
-        ticket.resolved_at = datetime.now(timezone.utc)
+        ticket.updated_at = datetime.now(UTC)
+        ticket.resolved_at = datetime.now(UTC)
         session.commit()
 
         # Notify the user
-        try:
+        with contextlib.suppress(Exception):
             await call.bot.send_message(
                 ticket.user_id,
-                localize("admin.ticket.resolved") + f"\n\n"
-                f"[{ticket.ticket_code}] {ticket.subject}",
+                localize("admin.ticket.resolved") + f"\n\n[{ticket.ticket_code}] {ticket.subject}",
             )
-        except Exception:
-            pass
 
     await call.message.edit_text(
         localize("admin.ticket.resolved"),

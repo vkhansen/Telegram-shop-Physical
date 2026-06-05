@@ -3,41 +3,31 @@ Regression tests for all fixes from Codebase-DRY-report.md
 
 Covers: SEC-01..SEC-12, LOGIC-01..LOGIC-39, PERF-01..PERF-13, DRY-01..DRY-09, MISC-01..MISC-03
 """
+
 import json
 import threading
-import time
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from sqlalchemy.orm import Session
 
 from bot.database.models.main import (
-    BitcoinAddress,
-    Categories,
-    CustomerInfo,
     Goods,
     InventoryLog,
-    Order,
-    OrderItem,
-    Review,
-    Role,
-    ShoppingCart,
-    User,
 )
-
 
 # =============================================================================
 # SEC-01: No pickle deserialization in cache
 # =============================================================================
 
+
 class TestSEC01NoPikle:
     """Verify cache never uses pickle for serialization or deserialization."""
 
     def test_cache_module_has_no_pickle_import(self):
-        import bot.caching.cache as cache_mod
         import inspect
+
+        import bot.caching.cache as cache_mod
+
         source = inspect.getsource(cache_mod)
         assert "import pickle" not in source, "cache.py must not import pickle"
         assert "pickle.loads" not in source, "cache.py must not use pickle.loads"
@@ -47,6 +37,7 @@ class TestSEC01NoPikle:
     async def test_cache_set_get_json(self):
         """Ensure values round-trip through JSON only."""
         from bot.caching.cache import CacheManager
+
         mock_redis = AsyncMock()
         cm = CacheManager(mock_redis)
 
@@ -63,6 +54,7 @@ class TestSEC01NoPikle:
     async def test_cache_get_rejects_non_json(self):
         """Ensure non-JSON binary data returns None, not pickle-deserialized."""
         from bot.caching.cache import CacheManager
+
         mock_redis = AsyncMock()
         cm = CacheManager(mock_redis)
 
@@ -76,9 +68,11 @@ class TestSEC01NoPikle:
 # SEC-02: No hardcoded credentials
 # =============================================================================
 
+
 class TestSEC02NoHardcodedCreds:
     def test_database_url_not_hardcoded(self):
         from bot.config.env import EnvKeys
+
         # If env var is not set, should be None (not a hardcoded string with user:password)
         if EnvKeys.DATABASE_URL is not None:
             assert "user:password" not in EnvKeys.DATABASE_URL
@@ -88,9 +82,11 @@ class TestSEC02NoHardcodedCreds:
 # SEC-05 / SEC-10: SQL wildcard escape
 # =============================================================================
 
+
 class TestSQLWildcardEscape:
     def test_escape_like_function_exists(self):
         from bot.ai.executor import _escape_like
+
         assert _escape_like("%test_value%") == "\\%test\\_value\\%"
         assert _escape_like("normal") == "normal"
         assert _escape_like("100%") == "100\\%"
@@ -100,11 +96,14 @@ class TestSQLWildcardEscape:
 # LOGIC-01: Cart race condition — with_for_update on stock check
 # =============================================================================
 
+
 class TestLOGIC01CartLocking:
     def test_add_to_cart_uses_for_update(self):
         """Verify add_to_cart uses with_for_update for stock check."""
         import inspect
+
         from bot.database.methods.create import add_to_cart
+
         source = inspect.getsource(add_to_cart)
         assert "with_for_update" in source, "add_to_cart must use with_for_update"
 
@@ -113,10 +112,12 @@ class TestLOGIC01CartLocking:
 # LOGIC-02: create_brand catches IntegrityError
 # =============================================================================
 
+
 class TestLOGIC02BrandRace:
     def test_create_brand_returns_none_on_duplicate(self):
         """First create should succeed, second with same slug should return None."""
         from bot.database.methods.create import create_brand
+
         result1 = create_brand("Brand1", "brand-1")
         result2 = create_brand("Brand2", "brand-1")  # Same slug
         assert result1 is not None
@@ -127,21 +128,18 @@ class TestLOGIC02BrandRace:
 # LOGIC-04: log_inventory_change with session=None
 # =============================================================================
 
+
 class TestLOGIC04LogInventoryChange:
     def test_log_inventory_change_standalone(self, db_session, test_goods):
         """log_inventory_change should work without an external session."""
         from bot.database.methods.inventory import log_inventory_change
+
         # Should not raise AttributeError
         log_inventory_change(
-            item_name=test_goods.name,
-            change_type="add",
-            quantity_change=10,
-            comment="Test standalone log"
+            item_name=test_goods.name, change_type="add", quantity_change=10, comment="Test standalone log"
         )
         # Verify it was saved
-        log = db_session.query(InventoryLog).filter_by(
-            item_name=test_goods.name
-        ).first()
+        log = db_session.query(InventoryLog).filter_by(item_name=test_goods.name).first()
         assert log is not None
         assert log.quantity_change == 10
 
@@ -149,6 +147,7 @@ class TestLOGIC04LogInventoryChange:
 # =============================================================================
 # LOGIC-05: update_item copies all fields on rename
 # =============================================================================
+
 
 class TestLOGIC05UpdateItemCopiesAllFields:
     def test_rename_preserves_all_fields(self, db_session, test_goods):
@@ -162,10 +161,13 @@ class TestLOGIC05UpdateItemCopiesAllFields:
         db_session.commit()
 
         from bot.database.methods.update import update_item
-        success, error = update_item(
-            test_goods.name, "Renamed Product",
-            test_goods.description, float(test_goods.price),
-            test_goods.category_name
+
+        success, _error = update_item(
+            test_goods.name,
+            "Renamed Product",
+            test_goods.description,
+            float(test_goods.price),
+            test_goods.category_name,
         )
         assert success is True
 
@@ -183,10 +185,12 @@ class TestLOGIC05UpdateItemCopiesAllFields:
 # LOGIC-06: Permission import in read.py
 # =============================================================================
 
+
 class TestLOGIC06PermissionImport:
     def test_permission_is_importable_from_read(self):
         """Permission should be importable in read.py without NameError."""
         from bot.database.methods.read import Permission
+
         assert hasattr(Permission, "SUPER")
 
 
@@ -194,10 +198,13 @@ class TestLOGIC06PermissionImport:
 # LOGIC-07: Path objects for log files
 # =============================================================================
 
+
 class TestLOGIC07PathObjects:
     def test_shop_management_uses_path(self):
         import inspect
+
         from bot.handlers.admin import shop_management_states
+
         source = inspect.getsource(shop_management_states.logs_callback_handler)
         assert "Path(" in source, "Should use Path() for file paths"
 
@@ -206,11 +213,14 @@ class TestLOGIC07PathObjects:
 # LOGIC-08: daily_cleanup month boundary
 # =============================================================================
 
+
 class TestLOGIC08MonthBoundary:
     def test_daily_cleanup_uses_timedelta(self):
         """Verify daily_cleanup uses timedelta(days=1) not replace(day=day+1)."""
         import inspect
+
         from bot.caching.scheduler import daily_cleanup
+
         source = inspect.getsource(daily_cleanup)
         assert "timedelta(days=1)" in source
         # The old buggy pattern: next_run.replace(day=next_run.day + 1)
@@ -221,11 +231,14 @@ class TestLOGIC08MonthBoundary:
 # LOGIC-09: Order.order_status in sales reports
 # =============================================================================
 
+
 class TestLOGIC09OrderStatus:
     def test_sales_report_uses_order_status(self):
         """Verify sales report uses Order.order_status, not Order.status."""
         import inspect
+
         from bot.export import sales_report
+
         source = inspect.getsource(sales_report)
         assert "Order.status" not in source or "order_status" in source
         assert "order_status" in source
@@ -235,17 +248,21 @@ class TestLOGIC09OrderStatus:
 # LOGIC-10: Context-safe locale
 # =============================================================================
 
+
 class TestLOGIC10ContextVarLocale:
     def test_locale_uses_contextvars(self):
         """Verify locale uses contextvars, not global variable."""
         import contextvars
+
         from bot.i18n.main import _request_locale
+
         assert isinstance(_request_locale, contextvars.ContextVar)
 
     def test_locale_is_async_safe(self):
         """Setting locale in one context shouldn't affect another."""
-        from bot.i18n.main import set_request_locale, get_request_locale
         import contextvars
+
+        from bot.i18n.main import get_request_locale, set_request_locale
 
         # Set in one context
         ctx1 = contextvars.copy_context()
@@ -261,11 +278,14 @@ class TestLOGIC10ContextVarLocale:
 # LOGIC-11: deduct_inventory checks before mutation
 # =============================================================================
 
+
 class TestLOGIC11DeductCheck:
     def test_deduct_checks_before_mutation(self):
         """Verify stock check happens before quantity deduction."""
         import inspect
+
         from bot.database.methods.inventory import deduct_inventory
+
         source = inspect.getsource(deduct_inventory)
         # The check should come before the deduction line
         check_pos = source.find("stock_quantity < order_item.quantity")
@@ -277,15 +297,18 @@ class TestLOGIC11DeductCheck:
 # LOGIC-12: No explicit s.begin() in update_category
 # =============================================================================
 
+
 class TestLOGIC12NoExplicitBegin:
     def test_update_category_no_begin(self):
         """Verify update_category doesn't call s.begin() (managed by context manager)."""
         import inspect
+
         from bot.database.methods.update import update_category
+
         source = inspect.getsource(update_category)
         # Should not have an active s.begin() call (comments ok)
-        lines = [l.strip() for l in source.split('\n') if l.strip() and not l.strip().startswith('#')]
-        code_only = '\n'.join(lines)
+        lines = [line.strip() for line in source.split("\n") if line.strip() and not line.strip().startswith("#")]
+        code_only = "\n".join(lines)
         assert "s.begin()" not in code_only
 
 
@@ -293,10 +316,11 @@ class TestLOGIC12NoExplicitBegin:
 # LOGIC-13: InventoryLog preserved on delete
 # =============================================================================
 
+
 class TestLOGIC13AuditTrailPreserved:
     def test_inventory_log_nullable_item_name(self):
         """InventoryLog.item_name should be nullable (SET NULL on delete)."""
-        col = InventoryLog.__table__.columns['item_name']
+        col = InventoryLog.__table__.columns["item_name"]
         assert col.nullable is True
 
 
@@ -304,10 +328,13 @@ class TestLOGIC13AuditTrailPreserved:
 # LOGIC-14: No double shutdown
 # =============================================================================
 
+
 class TestLOGIC14NoDoubleShutdown:
     def test_main_no_double_shutdown(self):
         import inspect
+
         from bot import main
+
         source = inspect.getsource(main)
         # Count occurrences of __on_shutdown in the polling section
         # Should appear exactly once after the try/except/finally
@@ -323,25 +350,31 @@ class TestLOGIC14NoDoubleShutdown:
 # LOGIC-17: Correct status values in bot_cli
 # =============================================================================
 
+
 class TestLOGIC17CorrectStatuses:
     def test_bot_cli_uses_correct_statuses(self):
         import inspect
+
         import bot_cli
+
         source = inspect.getsource(bot_cli.complete_order_by_code)
-        assert "'delivered'" in source
-        assert "'cancelled'" in source
+        # Quote-style-agnostic so `ruff format` normalization doesn't break this.
+        assert "delivered" in source
+        assert "cancelled" in source
         # Old wrong values should not be present in the function
-        assert "== 'completed'" not in source
-        assert "== 'canceled'" not in source
+        assert '== "completed"' not in source and "== 'completed'" not in source
+        assert '== "canceled"' not in source and "== 'canceled'" not in source
 
 
 # =============================================================================
 # LOGIC-19: check_user returns clean dict
 # =============================================================================
 
+
 class TestLOGIC19CleanDict:
     def test_check_user_no_sa_state(self, test_user):
         from bot.database.methods.read import check_user
+
         result = check_user(test_user.telegram_id)
         assert result is not None
         assert "_sa_instance_state" not in result
@@ -351,6 +384,7 @@ class TestLOGIC19CleanDict:
 # =============================================================================
 # LOGIC-22: Decimal price validation
 # =============================================================================
+
 
 class TestLOGIC22DecimalPrices:
     def test_decimal_price_accepted(self):
@@ -368,11 +402,14 @@ class TestLOGIC22DecimalPrices:
 # LOGIC-23: None results cached with sentinel
 # =============================================================================
 
+
 class TestLOGIC23NoneResultsCached:
     def test_async_cached_caches_none(self):
         """Verify async_cached decorator handles None results."""
         import inspect
+
         from bot.database.methods.read import async_cached
+
         source = inspect.getsource(async_cached)
         assert "__NONE__" in source, "Should use sentinel for None caching"
 
@@ -381,10 +418,13 @@ class TestLOGIC23NoneResultsCached:
 # LOGIC-26: category_name not category_id in sales report
 # =============================================================================
 
+
 class TestLOGIC26CategoryName:
     def test_sales_report_uses_category_name(self):
         import inspect
+
         from bot.export import sales_report
+
         source = inspect.getsource(sales_report)
         # The buggy pattern was: good.category_id
         assert "good.category_id" not in source, "Should use category_name, not category_id"
@@ -394,16 +434,19 @@ class TestLOGIC26CategoryName:
 # LOGIC-29: check_role uses single join
 # =============================================================================
 
+
 class TestLOGIC29SingleJoinCheckRole:
     def test_check_role_returns_permissions(self, test_user, db_with_roles):
         """check_role should return the correct permission bitmask."""
         from bot.database.methods.read import check_role
+
         result = check_role(test_user.telegram_id)
         # test_user has role_id=1 (USER role with permissions=1)
         assert result == 1
 
     def test_check_role_nonexistent_user(self):
         from bot.database.methods.read import check_role
+
         result = check_role(999999999)
         assert result == 0
 
@@ -412,21 +455,26 @@ class TestLOGIC29SingleJoinCheckRole:
 # LOGIC-31: is_safe_item_name allows quotes
 # =============================================================================
 
+
 class TestLOGIC31SafeItemName:
     def test_allows_single_quotes(self):
         from bot.handlers.other import is_safe_item_name
+
         assert is_safe_item_name("Mom's Cookies") is True
 
     def test_allows_double_quotes(self):
         from bot.handlers.other import is_safe_item_name
+
         assert is_safe_item_name('12" Pizza') is True
 
     def test_blocks_angle_brackets(self):
         from bot.handlers.other import is_safe_item_name
+
         assert is_safe_item_name("<script>alert(1)</script>") is False
 
     def test_blocks_sql_keywords(self):
         from bot.handlers.other import is_safe_item_name
+
         assert is_safe_item_name("'; DROP TABLE goods; --") is False
 
 
@@ -434,13 +482,13 @@ class TestLOGIC31SafeItemName:
 # LOGIC-35: No duplicate rows in CSV preview
 # =============================================================================
 
+
 class TestLOGIC35NoDuplicatePreview:
     def test_csv_preview_no_duplicates(self):
         """First rows should not appear twice."""
         from bot.ai.data_parser import _parse_csv_to_text
-        csv_data = "name,price\n" + "\n".join(
-            f"item{i},{i*10}" for i in range(10)
-        )
+
+        csv_data = "name,price\n" + "\n".join(f"item{i},{i * 10}" for i in range(10))
         result = _parse_csv_to_text(csv_data.encode())
         # Count occurrences of first item
         assert result.count("item0") == 1, "First row should appear exactly once"
@@ -450,10 +498,13 @@ class TestLOGIC35NoDuplicatePreview:
 # LOGIC-38: media_done and media_skip merged
 # =============================================================================
 
+
 class TestLOGIC38MediaHandlerMerged:
     def test_single_handler_for_media_done_skip(self):
         import inspect
+
         from bot.handlers.admin import adding_position_states
+
         source = inspect.getsource(adding_position_states)
         # Should have one handler matching both
         assert "media_done_or_skip" in source or 'in_({"media_done", "media_skip"})' in source
@@ -463,15 +514,19 @@ class TestLOGIC38MediaHandlerMerged:
 # LOGIC-39: FSM handlers have F.text filter
 # =============================================================================
 
+
 class TestLOGIC39FTextFilter:
     def test_coupon_handlers_have_text_filter(self):
         import inspect
+
         from bot.handlers.admin import coupon_management
+
         source = inspect.getsource(coupon_management)
         # All CouponAdminStates message handlers should include F.text
         import re
+
         # Find all @router.message(CouponAdminStates...) lines
-        handler_lines = re.findall(r'@router\.message\(CouponAdminStates\.\w+.*?\)', source)
+        handler_lines = re.findall(r"@router\.message\(CouponAdminStates\.\w+.*?\)", source)
         for line in handler_lines:
             assert "F.text" in line, f"Handler missing F.text filter: {line}"
 
@@ -480,11 +535,14 @@ class TestLOGIC39FTextFilter:
 # PERF-12: Review rating has CheckConstraint
 # =============================================================================
 
+
 class TestPERF12RatingConstraint:
     def test_review_rating_has_check_constraint(self):
         """Rating column should have a CheckConstraint in the model."""
         import inspect
+
         from bot.database.models import main as models_mod
+
         source = inspect.getsource(models_mod)
         assert "CheckConstraint" in source
         # Verify it's on rating specifically
@@ -495,10 +553,12 @@ class TestPERF12RatingConstraint:
 # MISC-01: Thread-safe singleton
 # =============================================================================
 
+
 class TestMISC01ThreadSafeSingleton:
     def test_singleton_has_lock(self):
         from bot.utils.singleton import SingletonMeta
-        assert hasattr(SingletonMeta, '_lock')
+
+        assert hasattr(SingletonMeta, "_lock")
         assert isinstance(SingletonMeta._lock, type(threading.Lock()))
 
 
@@ -506,12 +566,15 @@ class TestMISC01ThreadSafeSingleton:
 # MISC-02: Delivery zone handles 0.0 coordinates
 # =============================================================================
 
+
 class TestMISC02ZeroCoordinates:
     def test_zero_lat_not_treated_as_falsy(self):
         """0.0 latitude should be used, not the default."""
-        from bot.config.delivery_zones import get_delivery_zone
         # When passing 0.0 as restaurant_lat, it should use 0.0, not the default
         import inspect
+
+        from bot.config.delivery_zones import get_delivery_zone
+
         source = inspect.getsource(get_delivery_zone)
         assert "is None" in source, "Should use 'is None' check, not truthiness"
 
@@ -520,36 +583,42 @@ class TestMISC02ZeroCoordinates:
 # MISC-03: Timezone cache has TTL
 # =============================================================================
 
+
 class TestMISC03TimezoneCacheTTL:
     def test_timezone_cache_has_ttl(self):
         import bot.config.timezone as tz_mod
-        assert hasattr(tz_mod, '_TIMEZONE_CACHE_TTL')
+
+        assert hasattr(tz_mod, "_TIMEZONE_CACHE_TTL")
         assert tz_mod._TIMEZONE_CACHE_TTL > 0
-        assert hasattr(tz_mod, '_cache_timestamp')
+        assert hasattr(tz_mod, "_cache_timestamp")
 
 
 # =============================================================================
 # SEC-03: Monitoring dashboard authentication
 # =============================================================================
 
+
 class TestSEC03DashboardAuth:
     def test_dashboard_has_auth_middleware(self):
         from bot.monitoring.dashboard import MonitoringServer, auth_middleware
-        server = MonitoringServer.__new__(MonitoringServer)
+
+        MonitoringServer.__new__(MonitoringServer)
         # Verify auth_middleware exists
         assert callable(auth_middleware)
 
     @pytest.mark.asyncio
     async def test_auth_middleware_rejects_without_key(self):
-        from bot.monitoring.dashboard import auth_middleware
         import os
+
         # Temporarily set a key
         old_key = os.environ.get("MONITORING_API_KEY")
         os.environ["MONITORING_API_KEY"] = "test-secret-key"
 
         try:
             import importlib
+
             import bot.monitoring.dashboard as dashboard_mod
+
             importlib.reload(dashboard_mod)
 
             mock_request = MagicMock()
@@ -571,11 +640,14 @@ class TestSEC03DashboardAuth:
 # SEC-04: Bitcoin address atomic claiming
 # =============================================================================
 
+
 class TestSEC04BitcoinAtomicClaim:
     def test_get_available_address_uses_for_update(self):
         """get_available_bitcoin_address should use FOR UPDATE SKIP LOCKED."""
         import inspect
+
         from bot.payments.bitcoin import get_available_bitcoin_address
+
         source = inspect.getsource(get_available_bitcoin_address)
         assert "with_for_update" in source
         assert "skip_locked" in source
@@ -583,7 +655,9 @@ class TestSEC04BitcoinAtomicClaim:
     def test_get_available_address_marks_used_atomically(self):
         """Function should mark address as used in the same transaction."""
         import inspect
+
         from bot.payments.bitcoin import get_available_bitcoin_address
+
         source = inspect.getsource(get_available_bitcoin_address)
         assert "is_used = True" in source
         assert "session.commit()" in source
@@ -593,9 +667,12 @@ class TestSEC04BitcoinAtomicClaim:
 # LOGIC-33: Broadcast doesn't return user_ids
 # =============================================================================
 
+
 class TestLOGIC33NoBroadcastUserIds:
     def test_broadcast_response_has_no_user_ids(self):
         import inspect
+
         from bot.ai import executor
+
         source = inspect.getsource(executor._exec_send_broadcast)
         assert '"user_ids"' not in source, "Should not return user_ids to AI"

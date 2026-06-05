@@ -8,6 +8,7 @@ when ERROR-level violations exist (so it can gate CI / deploys). Use
     python scripts/validate_data.py
     python scripts/validate_data.py --strict
 """
+
 import argparse
 import logging
 import os
@@ -17,8 +18,8 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-from bot.database.main import Database
-from bot.database.integrity import check_integrity, summarize, Severity
+from bot.database.integrity import Severity, check_integrity, summarize  # noqa: E402
+from bot.database.main import Database  # noqa: E402
 
 
 def main() -> int:

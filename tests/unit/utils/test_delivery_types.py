@@ -1,8 +1,10 @@
 """
 Tests for bot/utils/delivery_types.py - needs_delivery_photo() function.
 """
-import pytest
+
 from unittest.mock import MagicMock
+
+import pytest
 
 from bot.utils.delivery_types import needs_delivery_photo
 

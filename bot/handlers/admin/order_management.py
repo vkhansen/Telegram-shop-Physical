@@ -8,9 +8,11 @@ Provides:
 - Kitchen/rider group notifications on status change
 - Delivery photo enforcement for dead drop orders
 """
+
+import contextlib
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Awaitable, Callable
 
 from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
@@ -25,9 +27,9 @@ from bot.i18n import localize
 from bot.keyboards.inline import back, simple_buttons
 from bot.logger_mesh import audit_logger
 from bot.states.user_state import AdminOrderStates
+from bot.utils.constants import STATUS_EMOJI
 from bot.utils.delivery_types import needs_delivery_photo
 from bot.utils.order_status import get_allowed_transitions, is_valid_transition
-from bot.utils.constants import STATUS_EMOJI
 
 router = Router()
 
@@ -35,6 +37,7 @@ PAGE_SIZE = 8
 
 
 # ── Order list ────────────────────────────────────────────────────────
+
 
 @router.callback_query(F.data == "order_management", HasPermissionFilter(permission=Permission.SHOP_MANAGE))
 async def order_management_handler(call: CallbackQuery, state: FSMContext):
@@ -67,9 +70,9 @@ async def orders_filter_handler(call: CallbackQuery, state: FSMContext):
         query = session.query(Order).order_by(Order.created_at.desc())
 
         if filter_key == "active":
-            query = query.filter(Order.order_status.in_([
-                "pending", "reserved", "confirmed", "preparing", "ready", "out_for_delivery"
-            ]))
+            query = query.filter(
+                Order.order_status.in_(["pending", "reserved", "confirmed", "preparing", "ready", "out_for_delivery"])
+            )
         elif filter_key != "all":
             query = query.filter(Order.order_status == filter_key)
 
@@ -98,6 +101,7 @@ async def orders_filter_handler(call: CallbackQuery, state: FSMContext):
 
 # ── Order detail ──────────────────────────────────────────────────────
 
+
 @router.callback_query(F.data.startswith("admin_order_"), HasPermissionFilter(permission=Permission.SHOP_MANAGE))
 async def order_detail_handler(call: CallbackQuery, state: FSMContext):
     """Show detailed order view with status change options."""
@@ -110,10 +114,12 @@ async def order_detail_handler(call: CallbackQuery, state: FSMContext):
             return
 
         items = session.query(OrderItem).filter_by(order_id=order.id).all()
-        items_text = "\n".join(
-            f"  - {it.item_name} x{it.quantity} = {it.price * it.quantity} {EnvKeys.PAY_CURRENCY}"
-            for it in items
-        ) or "N/A"
+        items_text = (
+            "\n".join(
+                f"  - {it.item_name} x{it.quantity} = {it.price * it.quantity} {EnvKeys.PAY_CURRENCY}" for it in items
+            )
+            or "N/A"
+        )
 
         detail = (
             f"<b>Order {order.order_code}</b>\n\n"
@@ -137,10 +143,12 @@ async def order_detail_handler(call: CallbackQuery, state: FSMContext):
         allowed = get_allowed_transitions(order.order_status)
         for next_status in sorted(allowed):
             emoji = STATUS_EMOJI.get(next_status, "")
-            buttons.append((
-                f"{emoji} → {next_status}",
-                f"order_status_{order.id}_{next_status}",
-            ))
+            buttons.append(
+                (
+                    f"{emoji} → {next_status}",
+                    f"order_status_{order.id}_{next_status}",
+                )
+            )
 
         buttons.append((localize("btn.back"), "order_management"))
 
@@ -151,6 +159,7 @@ async def order_detail_handler(call: CallbackQuery, state: FSMContext):
 
 
 # ── Status change ─────────────────────────────────────────────────────
+
 
 @router.callback_query(F.data.startswith("order_status_"), HasPermissionFilter(permission=Permission.SHOP_MANAGE))
 async def order_status_change_handler(call: CallbackQuery, state: FSMContext):
@@ -170,8 +179,7 @@ async def order_status_change_handler(call: CallbackQuery, state: FSMContext):
         # Validate transition
         if not is_valid_transition(order.order_status, new_status):
             await call.answer(
-                localize("admin.orders.invalid_transition",
-                         current=order.order_status, new=new_status),
+                localize("admin.orders.invalid_transition", current=order.order_status, new=new_status),
                 show_alert=True,
             )
             return
@@ -194,21 +202,20 @@ async def order_status_change_handler(call: CallbackQuery, state: FSMContext):
             order.completed_at = datetime.now(UTC)
             # Set post-delivery chat window (Card 15)
             from bot.handlers.user.delivery_chat_handler import set_post_delivery_window
+
             set_post_delivery_window(session, order)
 
         session.commit()
 
         audit_logger.info(
-            f"Admin {call.from_user.id} changed order {order.order_code} "
-            f"status: {old_status} → {new_status}"
+            f"Admin {call.from_user.id} changed order {order.order_code} status: {old_status} → {new_status}"
         )
 
         # Send notifications
         await _send_status_notifications(call.bot, order, new_status, session)
 
         await call.answer(
-            localize("admin.orders.status_changed",
-                     order_id=order.order_code, new_status=new_status),
+            localize("admin.orders.status_changed", order_id=order.order_code, new_status=new_status),
         )
 
         # Re-show order detail
@@ -216,6 +223,7 @@ async def order_status_change_handler(call: CallbackQuery, state: FSMContext):
 
 
 # ── Delivery photo upload (Card 4) ───────────────────────────────────
+
 
 @router.message(AdminOrderStates.waiting_delivery_photo, F.photo)
 async def delivery_photo_received(message: Message, state: FSMContext):
@@ -245,17 +253,18 @@ async def delivery_photo_received(message: Message, state: FSMContext):
         order.completed_at = datetime.now(UTC)
 
         from bot.handlers.user.delivery_chat_handler import set_post_delivery_window
+
         set_post_delivery_window(session, order)
 
         session.commit()
 
         audit_logger.info(
-            f"Admin {message.from_user.id} uploaded delivery photo and "
-            f"marked order {order.order_code} as delivered"
+            f"Admin {message.from_user.id} uploaded delivery photo and marked order {order.order_code} as delivered"
         )
 
         # Send delivery photo to customer
         from bot.payments.notifications import send_delivery_photo_to_customer
+
         await send_delivery_photo_to_customer(order)
 
         # Send status notifications
@@ -263,8 +272,9 @@ async def delivery_photo_received(message: Message, state: FSMContext):
 
     await state.clear()
     await message.answer(
-        localize("delivery.photo.received") + "\n" +
-        localize("admin.orders.status_changed", order_id=order.order_code, new_status="delivered"),
+        localize("delivery.photo.received")
+        + "\n"
+        + localize("admin.orders.status_changed", order_id=order.order_code, new_status="delivered"),
         reply_markup=back("order_management"),
     )
 
@@ -285,12 +295,15 @@ async def _assign_driver_hook(call: CallbackQuery, order: Order, session) -> Non
 async def _mark_completed_hook(call: CallbackQuery, order: Order, session) -> None:
     order.completed_at = datetime.now(UTC)
     from bot.handlers.user.delivery_chat_handler import set_post_delivery_window
+
     set_post_delivery_window(session, order)
     # Card 26: free the driver's capacity and drop the live-ETA cache.
     if order.driver_id:
         from bot.database.methods import adjust_active_orders
+
         adjust_active_orders(order.driver_id, -1)
     from bot.handlers.driver.availability import clear_eta_cache
+
     clear_eta_cache(order.id)
 
 
@@ -302,12 +315,14 @@ async def _notify_rider_hook(call: CallbackQuery, order: Order, session) -> None
     # Card 26: when auto-dispatch is on, offer to nearby drivers instead of (or
     # before falling back to) the manual rider-group post. Flag-gated inside.
     from bot.dispatch.dispatcher import on_order_ready
+
     await on_order_ready(call.bot, order.id, session=session)
 
 
 async def _prompt_gps_hook(call: CallbackQuery, order: Order, session) -> None:
     try:
         from bot.handlers.user.delivery_chat_handler import prompt_customer_gps
+
         await prompt_customer_gps(call.bot, order)
     except Exception as e:
         audit_logger.warning(f"prompt_customer_gps failed for order {order.order_code}: {e}")
@@ -404,6 +419,7 @@ async def rider_mark_delivered(call: CallbackQuery):
 
 # ── Internal notification helpers ─────────────────────────────────────
 
+
 async def _send_status_notifications(bot: Bot, order: Order, new_status: str, session):
     """Send notifications based on status change."""
     try:
@@ -412,14 +428,15 @@ async def _send_status_notifications(bot: Bot, order: Order, new_status: str, se
         elif new_status == "ready":
             # Card 26: route through the dispatcher (auto-dispatch or manual).
             from bot.dispatch.dispatcher import on_order_ready
+
             await on_order_ready(bot, order.id, session=session)
         elif new_status == "out_for_delivery":
             await _notify_customer_status(bot, order)
-            try:
+            # Best-effort GPS prompt; never block the status update on it
+            with contextlib.suppress(Exception):
                 from bot.handlers.user.delivery_chat_handler import prompt_customer_gps
+
                 await prompt_customer_gps(bot, order)
-            except Exception:
-                pass
         elif new_status == "delivered" or new_status in ("preparing", "ready"):
             await _notify_customer_status(bot, order)
     except Exception as e:
@@ -478,11 +495,9 @@ async def _send_kitchen_notification(bot: Bot, order: Order, session):
     prep_info = ""
     if max_prep_time is not None:
         from datetime import timedelta
+
         estimated_ready = now + timedelta(minutes=max_prep_time)
-        prep_info = (
-            f"\n⏱ Prep time: {max_prep_time} min\n"
-            f"🕐 Est. ready: {estimated_ready.strftime('%H:%M UTC')}"
-        )
+        prep_info = f"\n⏱ Prep time: {max_prep_time} min\n🕐 Est. ready: {estimated_ready.strftime('%H:%M UTC')}"
         # Update order with prep estimates
         order.total_prep_time_minutes = max_prep_time
         order.estimated_ready_at = estimated_ready
@@ -497,16 +512,23 @@ async def _send_kitchen_notification(bot: Bot, order: Order, session):
     )
 
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(
-            text=localize("kitchen.btn.start_preparing"),
-            callback_data=f"kitchen_preparing_{order.id}",
-        )],
-        [InlineKeyboardButton(
-            text=localize("kitchen.btn.mark_ready"),
-            callback_data=f"kitchen_ready_{order.id}",
-        )],
-    ])
+
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=localize("kitchen.btn.start_preparing"),
+                    callback_data=f"kitchen_preparing_{order.id}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=localize("kitchen.btn.mark_ready"),
+                    callback_data=f"kitchen_ready_{order.id}",
+                )
+            ],
+        ]
+    )
 
     try:
         sent = await bot.send_message(int(kitchen_group_id), text, reply_markup=kb)
@@ -548,16 +570,23 @@ async def _send_rider_notification(bot: Bot, order: Order, session):
         text += f"Note: {order.delivery_note}\n"
 
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(
-            text=localize("rider.btn.picked_up"),
-            callback_data=f"rider_picked_{order.id}",
-        )],
-        [InlineKeyboardButton(
-            text=localize("rider.btn.delivered"),
-            callback_data=f"rider_delivered_{order.id}",
-        )],
-    ])
+
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=localize("rider.btn.picked_up"),
+                    callback_data=f"rider_picked_{order.id}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=localize("rider.btn.delivered"),
+                    callback_data=f"rider_delivered_{order.id}",
+                )
+            ],
+        ]
+    )
 
     try:
         sent = await bot.send_message(int(rider_group_id), text, reply_markup=kb)

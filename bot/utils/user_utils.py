@@ -1,3 +1,5 @@
+import contextlib
+
 from aiogram import Bot
 
 
@@ -12,12 +14,10 @@ async def get_telegram_username(telegram_id: int, bot: Bot) -> str:
     Returns:
         Username (without @ prefix if available) or fallback user_{telegram_id}
     """
-    try:
+    # If we can't get username from Telegram, use the fallback below
+    with contextlib.suppress(Exception):
         chat = await bot.get_chat(telegram_id)
         if chat.username:
             return chat.username
-    except Exception:
-        # If we can't get username from Telegram, use fallback
-        pass
 
     return f"user_{telegram_id}"

@@ -18,7 +18,6 @@ LITOSHI = Decimal("100000000")
 
 
 class LTCVerifier(ChainVerifier):
-
     def required_confirmations(self) -> int:
         return 3
 
@@ -30,14 +29,13 @@ class LTCVerifier(ChainVerifier):
         try:
             return await self._query(address, expected_amount)
         except Exception:
-            logger.error(
-                "LTC verifier: failed to check address %s", address, exc_info=True
-            )
+            logger.error("LTC verifier: failed to check address %s", address, exc_info=True)
             return TxResult(found=False)
 
     async def _query(self, address: str, expected_amount: Decimal) -> TxResult:
         params: dict[str, Any] = {"limit": 10}
         from bot.config.env import EnvKeys
+
         api_key = EnvKeys.BLOCKCYPHER_API_KEY
         if api_key:
             params["token"] = api_key
@@ -48,9 +46,7 @@ class LTCVerifier(ChainVerifier):
             data: dict[str, Any] = resp.json()
 
         txrefs: list[dict[str, Any]] = data.get("txrefs", [])
-        unconfirmed_txrefs: list[dict[str, Any]] = data.get(
-            "unconfirmed_txrefs", []
-        )
+        unconfirmed_txrefs: list[dict[str, Any]] = data.get("unconfirmed_txrefs", [])
 
         # Check confirmed transactions first, then unconfirmed
         for txref in txrefs + unconfirmed_txrefs:

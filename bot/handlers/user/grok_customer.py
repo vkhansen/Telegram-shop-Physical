@@ -31,7 +31,7 @@ from bot.ai.customer_schemas import CUSTOMER_TOOL_SCHEMA_MAP
 from bot.ai.customer_tool_defs import CUSTOMER_TOOLS
 from bot.ai.grok_client import call_grok
 from bot.config.env import EnvKeys
-from bot.handlers.user.ticket_handler import TicketStates, _get_maintainer_ids
+from bot.handlers.user.ticket_handler import _get_maintainer_ids
 from bot.keyboards.inline import back, simple_buttons
 from bot.states.user_state import GrokCustomerStates
 
@@ -88,7 +88,7 @@ def _trim_history(history: list[dict]) -> list[dict]:
     max_history = EnvKeys.GROK_MAX_HISTORY
     if len(history) <= max_history + 1:
         return history
-    return [history[0]] + history[-(max_history):]
+    return [history[0], *history[-max_history:]]
 
 
 def _exit_keyboard():
@@ -113,12 +113,11 @@ def _split_message(text: str, max_len: int = 4000) -> list[str]:
 
 # ── Entry points ──────────────────────────────────────────────────────────────
 
+
 async def _start_customer_assistant(message: Message, state: FSMContext):
     """Shared setup for all entry points."""
     if not EnvKeys.GROK_API_KEY:
-        await message.answer(
-            "AI Assistant is not available right now. Please try again later."
-        )
+        await message.answer("AI Assistant is not available right now. Please try again later.")
         return
 
     await state.set_state(GrokCustomerStates.chatting)
@@ -153,6 +152,7 @@ async def ai_assistant_button(call: CallbackQuery, state: FSMContext):
 
 # ── Exit ──────────────────────────────────────────────────────────────────────
 
+
 @router.callback_query(F.data == "exit_ai_customer")
 async def exit_ai_customer(call: CallbackQuery, state: FSMContext):
     await state.clear()
@@ -167,6 +167,7 @@ async def exit_ai_command(message: Message, state: FSMContext):
 
 
 # ── Live chat relay ───────────────────────────────────────────────────────────
+
 
 @router.message(GrokCustomerStates.app_live_chat, F.chat.type == ChatType.PRIVATE)
 @router.message(GrokCustomerStates.store_live_chat, F.chat.type == ChatType.PRIVATE)
@@ -189,14 +190,17 @@ async def live_chat_relay(message: Message, state: FSMContext):
     photo_id = message.photo[-1].file_id if message.photo else None
 
     from bot.database import Database
-    from bot.database.models.main import TicketMessage as TM
+    from bot.database.models.main import TicketMessage
+
     with Database().session() as s:
-        s.add(TM(
-            ticket_id=ticket_id,
-            sender_id=user_id,
-            sender_role="user",
-            message_text=msg_text,
-        ))
+        s.add(
+            TicketMessage(
+                ticket_id=ticket_id,
+                sender_id=user_id,
+                sender_role="user",
+                message_text=msg_text,
+            )
+        )
         s.commit()
 
     relay = f"💬 [{ticket_code}] <b>User {user_id}:</b>\n{msg_text}"
@@ -223,6 +227,7 @@ async def live_chat_relay(message: Message, state: FSMContext):
 
 
 # ── Main chat loop ────────────────────────────────────────────────────────────
+
 
 @router.message(GrokCustomerStates.chatting, F.chat.type == ChatType.PRIVATE)
 async def handle_customer_message(message: Message, state: FSMContext):
@@ -275,11 +280,13 @@ async def handle_customer_message(message: Message, state: FSMContext):
     if assistant_msg.get("tool_calls"):
         for tool_call in assistant_msg["tool_calls"]:
             result = await _process_tool_call(tool_call, message.from_user.id, message.bot, state)
-            history.append({
-                "role": "tool",
-                "tool_call_id": tool_call["id"],
-                "content": json.dumps(result, default=str),
-            })
+            history.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tool_call["id"],
+                    "content": json.dumps(result, default=str),
+                }
+            )
 
             # Check if we entered live chat — stop the AI loop
             if result.get("_enter_live_chat"):
@@ -302,11 +309,13 @@ async def handle_customer_message(message: Message, state: FSMContext):
                 depth += 1
                 for tc in followup_msg["tool_calls"]:
                     res = await _process_tool_call(tc, message.from_user.id, message.bot, state)
-                    history.append({
-                        "role": "tool",
-                        "tool_call_id": tc["id"],
-                        "content": json.dumps(res, default=str),
-                    })
+                    history.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tc["id"],
+                            "content": json.dumps(res, default=str),
+                        }
+                    )
                     if res.get("_enter_live_chat"):
                         history = _trim_history(history)
                         await state.update_data(

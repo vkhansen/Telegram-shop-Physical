@@ -12,6 +12,7 @@ class HasPermissionFilter(BaseFilter):
     """
     Filter for the presence of a certain permission for the user (bit mask).
     """
+
     permission: int
 
     async def __call__(self, event: Message | CallbackQuery) -> bool:
@@ -27,7 +28,8 @@ class BrandPermissionFilter(BaseFilter):
     Filter that checks if user can manage the brand currently in FSM state.
     Passes for SUPERADMIN or brand staff with owner/admin role.
     """
-    require_role: list[str] = field(default_factory=lambda: ['owner', 'admin'])
+
+    require_role: list[str] = field(default_factory=lambda: ["owner", "admin"])
 
     async def __call__(self, event: Message | CallbackQuery, state: FSMContext) -> bool:
         from bot.database.methods.read import can_manage_brand, is_superadmin
@@ -40,7 +42,7 @@ class BrandPermissionFilter(BaseFilter):
 
         # Get brand_id from FSM state
         data = await state.get_data()
-        brand_id = data.get('current_brand_id')
+        brand_id = data.get("current_brand_id")
         if not brand_id:
             return False
 

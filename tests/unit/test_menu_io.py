@@ -5,6 +5,7 @@ menu_io is the source of bugs M7 (Decimal→float precision loss on round-trip)
 and H8 (photo IndexError on empty media lists). These tests pin current
 behavior and guard against regressions in the pure-function paths.
 """
+
 import json
 import os
 from decimal import Decimal
@@ -13,7 +14,6 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from bot.database.models.main import Categories, Goods
-from bot.utils import menu_io
 from bot.utils.menu_io import (
     DecimalEncoder,
     _safe_filename,
@@ -25,10 +25,10 @@ from bot.utils.menu_io import (
     validate_menu_json,
 )
 
-
 # ---------------------------------------------------------------------------
 # Pure helpers
 # ---------------------------------------------------------------------------
+
 
 class TestSafeFilename:
     def test_lowercases_and_replaces_spaces(self):
@@ -127,6 +127,7 @@ class TestDecimalEncoder:
 # validate_menu_json
 # ---------------------------------------------------------------------------
 
+
 def _write_json(tmp_path, payload):
     p = tmp_path / "menu.json"
     p.write_text(json.dumps(payload), encoding="utf-8")
@@ -135,10 +136,13 @@ def _write_json(tmp_path, payload):
 
 class TestValidateMenuJson:
     def test_valid_minimal_menu(self, tmp_path):
-        path = _write_json(tmp_path, {
-            "categories": [{"name": "Drinks"}],
-            "items": [{"name": "Coke", "category": "Drinks", "price": "1.50"}],
-        })
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"name": "Drinks"}],
+                "items": [{"name": "Coke", "category": "Drinks", "price": "1.50"}],
+            },
+        )
         ok, errors = validate_menu_json(path)
         assert ok is True
         assert errors == []
@@ -175,111 +179,156 @@ class TestValidateMenuJson:
         assert any("items" in e for e in errors)
 
     def test_category_missing_name(self, tmp_path):
-        path = _write_json(tmp_path, {
-            "categories": [{"sort_order": 1}],
-            "items": [],
-        })
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"sort_order": 1}],
+                "items": [],
+            },
+        )
         ok, errors = validate_menu_json(path)
         assert ok is False
         assert any("missing 'name'" in e for e in errors)
 
     def test_category_not_object(self, tmp_path):
-        path = _write_json(tmp_path, {
-            "categories": ["not a dict"],
-            "items": [],
-        })
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": ["not a dict"],
+                "items": [],
+            },
+        )
         ok, errors = validate_menu_json(path)
         assert ok is False
         assert any("must be an object" in e for e in errors)
 
     def test_item_missing_name(self, tmp_path):
-        path = _write_json(tmp_path, {
-            "categories": [{"name": "A"}],
-            "items": [{"category": "A"}],
-        })
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"name": "A"}],
+                "items": [{"category": "A"}],
+            },
+        )
         ok, errors = validate_menu_json(path)
         assert ok is False
         assert any("missing 'name'" in e for e in errors)
 
     def test_item_missing_category(self, tmp_path):
-        path = _write_json(tmp_path, {
-            "categories": [{"name": "A"}],
-            "items": [{"name": "X"}],
-        })
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"name": "A"}],
+                "items": [{"name": "X"}],
+            },
+        )
         ok, errors = validate_menu_json(path)
         assert ok is False
         assert any("missing 'category'" in e for e in errors)
 
     def test_item_references_unknown_category(self, tmp_path):
-        path = _write_json(tmp_path, {
-            "categories": [{"name": "A"}],
-            "items": [{"name": "X", "category": "Nonexistent"}],
-        })
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"name": "A"}],
+                "items": [{"name": "X", "category": "Nonexistent"}],
+            },
+        )
         ok, errors = validate_menu_json(path)
         assert ok is False
         assert any("unknown category" in e for e in errors)
 
     def test_item_invalid_price(self, tmp_path):
-        path = _write_json(tmp_path, {
-            "categories": [{"name": "A"}],
-            "items": [{"name": "X", "category": "A", "price": "not-a-number"}],
-        })
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"name": "A"}],
+                "items": [{"name": "X", "category": "A", "price": "not-a-number"}],
+            },
+        )
         ok, errors = validate_menu_json(path)
         assert ok is False
         assert any("invalid price" in e for e in errors)
 
     def test_item_price_numeric_string_ok(self, tmp_path):
-        path = _write_json(tmp_path, {
-            "categories": [{"name": "A"}],
-            "items": [{"name": "X", "category": "A", "price": "99.99"}],
-        })
-        ok, errors = validate_menu_json(path)
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"name": "A"}],
+                "items": [{"name": "X", "category": "A", "price": "99.99"}],
+            },
+        )
+        ok, _errors = validate_menu_json(path)
         assert ok is True
 
     def test_modifier_group_not_object(self, tmp_path):
-        path = _write_json(tmp_path, {
-            "categories": [{"name": "A"}],
-            "items": [{
-                "name": "X", "category": "A",
-                "modifiers": {"size": "not-an-object"},
-            }],
-        })
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"name": "A"}],
+                "items": [
+                    {
+                        "name": "X",
+                        "category": "A",
+                        "modifiers": {"size": "not-an-object"},
+                    }
+                ],
+            },
+        )
         ok, errors = validate_menu_json(path)
         assert ok is False
         assert any("must be an object" in e for e in errors)
 
     def test_modifier_group_missing_options(self, tmp_path):
-        path = _write_json(tmp_path, {
-            "categories": [{"name": "A"}],
-            "items": [{
-                "name": "X", "category": "A",
-                "modifiers": {"size": {"label": "Size"}},
-            }],
-        })
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"name": "A"}],
+                "items": [
+                    {
+                        "name": "X",
+                        "category": "A",
+                        "modifiers": {"size": {"label": "Size"}},
+                    }
+                ],
+            },
+        )
         ok, errors = validate_menu_json(path)
         assert ok is False
         assert any("missing 'options'" in e for e in errors)
 
     def test_modifier_group_valid(self, tmp_path):
-        path = _write_json(tmp_path, {
-            "categories": [{"name": "A"}],
-            "items": [{
-                "name": "X", "category": "A",
-                "modifiers": {"size": {"options": [{"name": "S"}]}},
-            }],
-        })
-        ok, errors = validate_menu_json(path)
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"name": "A"}],
+                "items": [
+                    {
+                        "name": "X",
+                        "category": "A",
+                        "modifiers": {"size": {"options": [{"name": "S"}]}},
+                    }
+                ],
+            },
+        )
+        ok, _errors = validate_menu_json(path)
         assert ok is True
 
     def test_missing_image_files_reported(self, tmp_path):
-        path = _write_json(tmp_path, {
-            "categories": [{"name": "A"}],
-            "items": [{
-                "name": "X", "category": "A",
-                "image": "images/missing.jpg",
-                "gallery": [{"file": "images/also_missing.jpg"}],
-            }],
-        })
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"name": "A"}],
+                "items": [
+                    {
+                        "name": "X",
+                        "category": "A",
+                        "image": "images/missing.jpg",
+                        "gallery": [{"file": "images/also_missing.jpg"}],
+                    }
+                ],
+            },
+        )
         ok, errors = validate_menu_json(path)
         assert ok is False
         assert any("Missing" in e and "image" in e for e in errors)
@@ -288,20 +337,27 @@ class TestValidateMenuJson:
         images_dir = tmp_path / "images"
         images_dir.mkdir()
         (images_dir / "real.jpg").write_bytes(b"fake")
-        path = _write_json(tmp_path, {
-            "categories": [{"name": "A"}],
-            "items": [{
-                "name": "X", "category": "A",
-                "image": "images/real.jpg",
-            }],
-        })
-        ok, errors = validate_menu_json(path)
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"name": "A"}],
+                "items": [
+                    {
+                        "name": "X",
+                        "category": "A",
+                        "image": "images/real.jpg",
+                    }
+                ],
+            },
+        )
+        ok, _errors = validate_menu_json(path)
         assert ok is True
 
 
 # ---------------------------------------------------------------------------
 # export_menu_to_json
 # ---------------------------------------------------------------------------
+
 
 class TestExportMenuToJson:
     def test_export_empty_db(self, db_with_roles, tmp_path):
@@ -410,18 +466,24 @@ class TestExportMenuToJson:
 # import_menu_from_json
 # ---------------------------------------------------------------------------
 
+
 class TestImportMenuFromJson:
     def test_import_creates_new_categories_and_items(self, db_session, tmp_path):
-        path = _write_json(tmp_path, {
-            "categories": [{"name": "Drinks", "sort_order": 2}],
-            "items": [{
-                "name": "Soda",
-                "price": "25.00",
-                "description": "Fizzy",
-                "category": "Drinks",
-                "stock_quantity": 10,
-            }],
-        })
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"name": "Drinks", "sort_order": 2}],
+                "items": [
+                    {
+                        "name": "Soda",
+                        "price": "25.00",
+                        "description": "Fizzy",
+                        "category": "Drinks",
+                        "stock_quantity": 10,
+                    }
+                ],
+            },
+        )
         stats = import_menu_from_json(path)
         assert stats["categories_created"] == 1
         assert stats["items_created"] == 1
@@ -429,6 +491,7 @@ class TestImportMenuFromJson:
 
         # Verify via a fresh session
         from bot.database.main import Database
+
         with Database().session() as s:
             assert s.query(Categories).filter_by(name="Drinks").first() is not None
             g = s.query(Goods).filter_by(name="Soda").first()
@@ -438,21 +501,31 @@ class TestImportMenuFromJson:
     def test_import_updates_existing(self, db_session, tmp_path):
         db_session.add(Categories(name="Drinks", sort_order=1, description="old"))
         db_session.commit()
-        db_session.add(Goods(
-            name="Soda", price=Decimal("10"), description="old-desc",
-            category_name="Drinks", stock_quantity=5,
-        ))
+        db_session.add(
+            Goods(
+                name="Soda",
+                price=Decimal("10"),
+                description="old-desc",
+                category_name="Drinks",
+                stock_quantity=5,
+            )
+        )
         db_session.commit()
 
-        path = _write_json(tmp_path, {
-            "categories": [{"name": "Drinks", "sort_order": 9, "description": "new"}],
-            "items": [{
-                "name": "Soda",
-                "price": "99.00",
-                "description": "new-desc",
-                "category": "Drinks",
-            }],
-        })
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"name": "Drinks", "sort_order": 9, "description": "new"}],
+                "items": [
+                    {
+                        "name": "Soda",
+                        "price": "99.00",
+                        "description": "new-desc",
+                        "category": "Drinks",
+                    }
+                ],
+            },
+        )
         stats = import_menu_from_json(path)
         assert stats["categories_updated"] == 1
         assert stats["items_updated"] == 1
@@ -468,13 +541,20 @@ class TestImportMenuFromJson:
         assert item.description == "new-desc"
 
     def test_import_skips_item_with_unknown_category(self, db_session, tmp_path):
-        path = _write_json(tmp_path, {
-            "categories": [{"name": "Drinks"}],
-            "items": [{
-                "name": "Ghost", "price": "1", "description": "d",
-                "category": "Nonexistent",
-            }],
-        })
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"name": "Drinks"}],
+                "items": [
+                    {
+                        "name": "Ghost",
+                        "price": "1",
+                        "description": "d",
+                        "category": "Nonexistent",
+                    }
+                ],
+            },
+        )
         stats = import_menu_from_json(path)
         assert stats["items_skipped"] == 1
         assert stats["items_created"] == 0
@@ -483,19 +563,31 @@ class TestImportMenuFromJson:
     def test_import_replace_mode_deletes_existing(self, db_session, tmp_path):
         db_session.add(Categories(name="Old"))
         db_session.commit()
-        db_session.add(Goods(
-            name="OldItem", price=Decimal("1"), description="d",
-            category_name="Old", stock_quantity=0,
-        ))
+        db_session.add(
+            Goods(
+                name="OldItem",
+                price=Decimal("1"),
+                description="d",
+                category_name="Old",
+                stock_quantity=0,
+            )
+        )
         db_session.commit()
 
-        path = _write_json(tmp_path, {
-            "categories": [{"name": "New"}],
-            "items": [{
-                "name": "NewItem", "price": "2", "description": "n",
-                "category": "New",
-            }],
-        })
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"name": "New"}],
+                "items": [
+                    {
+                        "name": "NewItem",
+                        "price": "2",
+                        "description": "n",
+                        "category": "New",
+                    }
+                ],
+            },
+        )
         stats = import_menu_from_json(path, mode="replace")
         assert stats["errors"] == []
 
@@ -506,13 +598,20 @@ class TestImportMenuFromJson:
         assert db_session.query(Goods).filter_by(name="NewItem").first() is not None
 
     def test_import_applies_default_stock_to_new_items(self, db_session, tmp_path):
-        path = _write_json(tmp_path, {
-            "categories": [{"name": "C"}],
-            "items": [{
-                "name": "NoStockItem", "price": "1", "description": "d",
-                "category": "C",
-            }],
-        })
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"name": "C"}],
+                "items": [
+                    {
+                        "name": "NoStockItem",
+                        "price": "1",
+                        "description": "d",
+                        "category": "C",
+                    }
+                ],
+            },
+        )
         import_menu_from_json(path, default_stock=77)
         db_session.expire_all()
         item = db_session.query(Goods).filter_by(name="NoStockItem").one()
@@ -520,13 +619,21 @@ class TestImportMenuFromJson:
 
     def test_import_with_modifiers(self, db_session, tmp_path):
         mods = {"size": {"options": [{"name": "S", "price_delta": 0}]}}
-        path = _write_json(tmp_path, {
-            "categories": [{"name": "C"}],
-            "items": [{
-                "name": "Modded", "price": "5", "description": "d",
-                "category": "C", "modifiers": mods,
-            }],
-        })
+        path = _write_json(
+            tmp_path,
+            {
+                "categories": [{"name": "C"}],
+                "items": [
+                    {
+                        "name": "Modded",
+                        "price": "5",
+                        "description": "d",
+                        "category": "C",
+                        "modifiers": mods,
+                    }
+                ],
+            },
+        )
         import_menu_from_json(path)
         db_session.expire_all()
         item = db_session.query(Goods).filter_by(name="Modded").one()
@@ -536,11 +643,18 @@ class TestImportMenuFromJson:
         # Export→import should preserve structural fields
         db_session.add(Categories(name="RT", sort_order=3, description="round-trip"))
         db_session.commit()
-        db_session.add(Goods(
-            name="RTItem", price=Decimal("12.50"), description="rt",
-            category_name="RT", stock_quantity=0, is_active=True,
-            prep_time_minutes=5, calories=200,
-        ))
+        db_session.add(
+            Goods(
+                name="RTItem",
+                price=Decimal("12.50"),
+                description="rt",
+                category_name="RT",
+                stock_quantity=0,
+                is_active=True,
+                prep_time_minutes=5,
+                calories=200,
+            )
+        )
         db_session.commit()
 
         out = str(tmp_path / "rt")
@@ -556,6 +670,7 @@ class TestImportMenuFromJson:
 # download_menu_images / upload_menu_images (async, mocked bot)
 # ---------------------------------------------------------------------------
 
+
 class TestDownloadMenuImages:
     @pytest.mark.asyncio
     async def test_download_strips_file_ids_from_json(self, tmp_path):
@@ -563,13 +678,21 @@ class TestDownloadMenuImages:
         export_dir.mkdir()
         (export_dir / "images").mkdir()
         payload = {
-            "categories": [{
-                "name": "C", "image": "images/cat.jpg", "_image_file_id": "cat_fid",
-            }],
-            "items": [{
-                "name": "I", "image": "images/item.jpg", "_image_file_id": "item_fid",
-                "gallery": [{"file": "images/g0.jpg", "_file_id": "g_fid", "type": "photo"}],
-            }],
+            "categories": [
+                {
+                    "name": "C",
+                    "image": "images/cat.jpg",
+                    "_image_file_id": "cat_fid",
+                }
+            ],
+            "items": [
+                {
+                    "name": "I",
+                    "image": "images/item.jpg",
+                    "_image_file_id": "item_fid",
+                    "gallery": [{"file": "images/g0.jpg", "_file_id": "g_fid", "type": "photo"}],
+                }
+            ],
         }
         json_path = export_dir / "menu.json"
         json_path.write_text(json.dumps(payload), encoding="utf-8")
@@ -614,9 +737,13 @@ class TestDownloadMenuImages:
         export_dir.mkdir()
         (export_dir / "images").mkdir()
         payload = {
-            "categories": [{
-                "name": "C", "image": "images/cat.jpg", "_image_file_id": "fid",
-            }],
+            "categories": [
+                {
+                    "name": "C",
+                    "image": "images/cat.jpg",
+                    "_image_file_id": "fid",
+                }
+            ],
             "items": [],
         }
         (export_dir / "menu.json").write_text(json.dumps(payload), encoding="utf-8")
@@ -634,10 +761,15 @@ class TestUploadMenuImages:
     async def test_upload_updates_db_file_ids(self, db_session, tmp_path):
         db_session.add(Categories(name="C"))
         db_session.commit()
-        db_session.add(Goods(
-            name="I", price=Decimal("1"), description="d",
-            category_name="C", stock_quantity=0,
-        ))
+        db_session.add(
+            Goods(
+                name="I",
+                price=Decimal("1"),
+                description="d",
+                category_name="C",
+                stock_quantity=0,
+            )
+        )
         db_session.commit()
 
         images_dir = tmp_path / "images"
@@ -647,13 +779,21 @@ class TestUploadMenuImages:
         (images_dir / "g0.jpg").write_bytes(b"z")
 
         json_path = tmp_path / "menu.json"
-        json_path.write_text(json.dumps({
-            "categories": [{"name": "C", "image": "images/cat.jpg"}],
-            "items": [{
-                "name": "I", "image": "images/item.jpg",
-                "gallery": [{"file": "images/g0.jpg", "type": "photo"}],
-            }],
-        }), encoding="utf-8")
+        json_path.write_text(
+            json.dumps(
+                {
+                    "categories": [{"name": "C", "image": "images/cat.jpg"}],
+                    "items": [
+                        {
+                            "name": "I",
+                            "image": "images/item.jpg",
+                            "gallery": [{"file": "images/g0.jpg", "type": "photo"}],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
 
         photo_msg = MagicMock()
         photo_msg.photo = [MagicMock(file_id="new_cat"), MagicMock(file_id="new_cat_big")]
@@ -686,22 +826,34 @@ class TestUploadMenuImages:
     async def test_upload_video_uses_send_video(self, db_session, tmp_path):
         db_session.add(Categories(name="C"))
         db_session.commit()
-        db_session.add(Goods(
-            name="I", price=Decimal("1"), description="d",
-            category_name="C", stock_quantity=0,
-        ))
+        db_session.add(
+            Goods(
+                name="I",
+                price=Decimal("1"),
+                description="d",
+                category_name="C",
+                stock_quantity=0,
+            )
+        )
         db_session.commit()
 
         (tmp_path / "images").mkdir()
         (tmp_path / "images" / "v.mp4").write_bytes(b"v")
         json_path = tmp_path / "menu.json"
-        json_path.write_text(json.dumps({
-            "categories": [],
-            "items": [{
-                "name": "I",
-                "gallery": [{"file": "images/v.mp4", "type": "video"}],
-            }],
-        }), encoding="utf-8")
+        json_path.write_text(
+            json.dumps(
+                {
+                    "categories": [],
+                    "items": [
+                        {
+                            "name": "I",
+                            "gallery": [{"file": "images/v.mp4", "type": "video"}],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
 
         video_msg = MagicMock()
         video_msg.video = MagicMock(file_id="vid_fid")
@@ -725,10 +877,15 @@ class TestUploadMenuImages:
         db_session.commit()
 
         json_path = tmp_path / "menu.json"
-        json_path.write_text(json.dumps({
-            "categories": [{"name": "C", "image": "images/does_not_exist.jpg"}],
-            "items": [],
-        }), encoding="utf-8")
+        json_path.write_text(
+            json.dumps(
+                {
+                    "categories": [{"name": "C", "image": "images/does_not_exist.jpg"}],
+                    "items": [],
+                }
+            ),
+            encoding="utf-8",
+        )
 
         bot = MagicMock()
         bot.send_photo = AsyncMock()
@@ -747,10 +904,15 @@ class TestUploadMenuImages:
         (tmp_path / "images").mkdir()
         (tmp_path / "images" / "cat.jpg").write_bytes(b"x")
         json_path = tmp_path / "menu.json"
-        json_path.write_text(json.dumps({
-            "categories": [{"name": "C", "image": "images/cat.jpg"}],
-            "items": [],
-        }), encoding="utf-8")
+        json_path.write_text(
+            json.dumps(
+                {
+                    "categories": [{"name": "C", "image": "images/cat.jpg"}],
+                    "items": [],
+                }
+            ),
+            encoding="utf-8",
+        )
 
         photo_msg = MagicMock()
         photo_msg.photo = [MagicMock(file_id="f")]

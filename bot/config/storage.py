@@ -1,7 +1,9 @@
 import logging
-from typing import Optional, Literal
-from redis.asyncio import Redis
+from typing import Literal
+
 from aiogram.fsm.storage.redis import RedisStorage, StorageKey
+from redis.asyncio import Redis
+
 from bot.config import EnvKeys
 
 
@@ -12,16 +14,16 @@ class CustomRedisStorage(RedisStorage):
     """
 
     def __init__(
-            self,
-            redis: Redis,
-            state_ttl: Optional[int] = 3600,  # 1 hour by default
-            data_ttl: Optional[int] = 3600,
+        self,
+        redis: Redis,
+        state_ttl: int | None = 3600,  # 1 hour by default
+        data_ttl: int | None = 3600,
     ):
         super().__init__(redis=redis)
         self.state_ttl = state_ttl
         self.data_ttl = data_ttl
 
-    async def set_state(self, key: StorageKey, state: str = None) -> None:
+    async def set_state(self, key: StorageKey, state: str | None = None) -> None:
         """Set state with TTL"""
         await super().set_state(key, state)
         if state and self.state_ttl:
@@ -41,7 +43,7 @@ class CustomRedisStorage(RedisStorage):
         return self.key_builder.build(key, part)
 
 
-def get_redis_storage() -> Optional[RedisStorage]:
+def get_redis_storage() -> RedisStorage | None:
     """
     Create Redis storage with proper configuration.
     Returns None if Redis is not available.

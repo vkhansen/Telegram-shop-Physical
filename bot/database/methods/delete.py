@@ -1,6 +1,6 @@
-from bot.database.methods import invalidate_item_cache, invalidate_category_cache
 from bot.database.methods.cache_utils import safe_create_task
-from bot.database.models import Database, Goods, Categories, ShoppingCart
+from bot.database.methods.read import invalidate_category_cache, invalidate_item_cache
+from bot.database.models import Categories, Database, Goods, ShoppingCart
 from bot.logger_mesh import logger
 
 
@@ -36,9 +36,7 @@ async def remove_from_cart(cart_id: int, user_id: int) -> tuple[bool, str]:
     """
     try:
         with Database().session() as session:
-            cart_item = session.query(ShoppingCart).filter_by(
-                id=cart_id, user_id=user_id
-            ).first()
+            cart_item = session.query(ShoppingCart).filter_by(id=cart_id, user_id=user_id).first()
 
             if not cart_item:
                 return False, "Item not found in cart"
@@ -92,10 +90,9 @@ def delete_saved_cart(user_id: int, saved_cart_id: int) -> bool:
     """Card 21: Delete one of the user's saved-cart snapshots. Returns True if a row was removed."""
     try:
         from bot.database.models.main import SavedCart
+
         with Database().session() as session:
-            row = session.query(SavedCart).filter_by(
-                id=saved_cart_id, user_id=user_id
-            ).first()
+            row = session.query(SavedCart).filter_by(id=saved_cart_id, user_id=user_id).first()
             if not row:
                 return False
             session.delete(row)

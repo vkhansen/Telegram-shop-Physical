@@ -1,12 +1,12 @@
-from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message
-from aiogram.filters.state import StatesGroup, State
+from aiogram import F, Router
+from aiogram.filters.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message
 
 from bot.database.main import Database
 from bot.database.models.main import Goods
-from bot.keyboards import back, simple_buttons
 from bot.i18n import localize
+from bot.keyboards import back, simple_buttons
 
 router = Router()
 
@@ -47,9 +47,7 @@ async def process_search_query(message: Message, state: FSMContext):
     with Database().session() as session:
         results = (
             session.query(Goods)
-            .filter(
-                Goods.name.ilike(pattern, escape="\\") | Goods.description.ilike(pattern, escape="\\")
-            )
+            .filter(Goods.name.ilike(pattern, escape="\\") | Goods.description.ilike(pattern, escape="\\"))
             .all()
         )
 

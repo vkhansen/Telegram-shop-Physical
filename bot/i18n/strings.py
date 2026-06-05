@@ -46,12 +46,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.check_subscription": "🔄 Проверить подписку",
         "btn.admin.ban_user": "🚫 Забанить пользователя",
         "btn.admin.unban_user": "✅ Разбанить пользователя",
-
         # === Admin Buttons (user management shortcuts) ===
         "btn.admin.promote": "⬆️ Назначить администратором",
         "btn.admin.demote": "⬇️ Снять администратора",
         "btn.admin.add_user_bonus": "🎁 Добавить реферальный бонус",
-
         # === Titles / Generic Texts ===
         "menu.title": "⛩️ Основное меню",
         "profile.caption": "👤 <b>Профиль</b> — <a href='tg://user?id={id}'>{name}</a>",
@@ -63,21 +61,17 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.users.unban.success": "✅ Пользователь {name} успешно разбанен",
         "admin.users.unban.failed": "❌ Не удалось разбанить пользователя",
         "admin.users.unban.notify": "✅ Вы были разбанены администратором",
-
         # === Subscription Flow ===
         "subscribe.prompt": "Для начала подпишитесь на новостной канал",
-
         # === Profile ===
         "profile.referral_id": "👤 <b>Реферал</b> — <code>{id}</code>",
         "btn.referral": "🎲 Реферальная система",
         "btn.purchased": "🎁 Купленные товары",
-
         # === Profile Info Lines ===
         "profile.id": "🆔 <b>ID</b> — <code>{id}</code>",
         "profile.bonus_balance": "💰 <b>Реферальный бонус:</b> ${bonus_balance}",
         "profile.purchased_count": "🎁 <b>Куплено товаров</b> — {count} шт",
         "profile.registration_date": "🕢 <b>Дата регистрации</b> — <code>{dt}</code>",
-
         # === Referral ===
         "referral.title": "💚 Реферальная система",
         "referral.count": "Количество рефералов: {count}",
@@ -88,29 +82,28 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
         "btn.view_referrals": "👥 Мои рефералы",
         "btn.view_earnings": "💰 Мои поступления",
-
         "referrals.list.title": "👥 Ваши рефералы:",
         "referrals.list.empty": "У вас пока нет активных рефералов",
         "referrals.item.format": "ID: {telegram_id} | Принёс: {total_earned} {currency}",
-
         "referral.earnings.title": "💰 Поступления от реферала <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>):",
         "referral.earnings.empty": "От данного реферала <code>{id}</code> (<a href='tg://user?id={id}'>{name}</a>) пока не было поступлений",
         "referral.earning.format": "{amount} {currency} | {date} | (с {original_amount} {currency})",
-        "referral.item.info": ("💰 Поступление номер: <code>{id}</code>\n"
-                               "👤 Реферал: <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>)\n"
-                               "🔢 Количество: {amount} {currency}\n"
-                               "🕘 Дата: <code>{date}</code>\n"
-                               "💵 С пополнения на {original_amount} {currency}"),
-
-        "referral.admin_bonus.info": ("💰 Поступление номер: <code>{id}</code>\n"
-                                      "🎁 <b>Бонус от администратора</b>\n"
-                                      "🔢 Количество: {amount} {currency}\n"
-                                      "🕘 Дата: <code>{date}</code>"),
-
+        "referral.item.info": (
+            "💰 Поступление номер: <code>{id}</code>\n"
+            "👤 Реферал: <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>)\n"
+            "🔢 Количество: {amount} {currency}\n"
+            "🕘 Дата: <code>{date}</code>\n"
+            "💵 С пополнения на {original_amount} {currency}"
+        ),
+        "referral.admin_bonus.info": (
+            "💰 Поступление номер: <code>{id}</code>\n"
+            "🎁 <b>Бонус от администратора</b>\n"
+            "🔢 Количество: {amount} {currency}\n"
+            "🕘 Дата: <code>{date}</code>"
+        ),
         "all.earnings.title": "💰 Все ваши реферальные поступления:",
         "all.earnings.empty": "У вас пока нет реферальных поступлений",
         "all.earning.format.admin": "{amount} {currency} от Админа | {date}",
-
         "referrals.stats.template": (
             "📊 Статистика реферальной системы:\n\n"
             "👥 Активных рефералов: {active_count}\n"
@@ -118,7 +111,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "📈 Общая сумма пополнений рефералов: {total_original} {currency}\n"
             "🔢 Количество начислений: {earnings_count}"
         ),
-
         # === Admin: Main Menu ===
         "admin.menu.main": "⛩️ Меню администратора",
         "admin.menu.shop": "🛒 Управление магазином",
@@ -127,7 +119,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.menu.users": "👥 Управление пользователями",
         "admin.menu.broadcast": "📝 Рассылка",
         "admin.menu.rights": "Недостаточно прав",
-
         # === Admin: User Management ===
         "admin.users.prompt_enter_id": "👤 Введите id пользователя,\nчтобы посмотреть | изменить его данные",
         "admin.users.invalid_id": "⚠️ Введите корректный числовой ID пользователя.",
@@ -146,14 +137,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.users.bonus.added": "✅ Реферальный бонус пользователя {name} пополнен на {amount} {currency}",
         "admin.users.bonus.added.notify": "🎁 Вам начислен реферальный бонус на {amount} {currency}",
         "admin.users.bonus.invalid": "❌ Неверная сумма. Введите число от {min_amount} до {max_amount} {currency}.",
-
         # === Admin: Shop Management Menu ===
         "admin.shop.menu.title": "⛩️ Меню управления магазином",
         "admin.shop.menu.statistics": "📊 Статистика",
         "admin.shop.menu.logs": "📁 Показать логи",
         "admin.shop.menu.admins": "👮 Администраторы",
         "admin.shop.menu.users": "👤 Пользователи",
-
         # === Admin: Categories Management ===
         "admin.categories.menu.title": "⛩️ Меню управления категориями",
         "admin.categories.add": "➕ Добавить категорию",
@@ -169,8 +158,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.categories.delete.success": "✅ Категория удалена",
         "admin.categories.rename.not_found": "❌ Категория не может быть обновлена (такой категории не существует)",
         "admin.categories.rename.exist": "❌ Переименование невозможно (категория с таким именем уже существует)",
-        "admin.categories.rename.success": "✅ Категория \"{old}\" переименована в \"{new}\"",
-
+        "admin.categories.rename.success": '✅ Категория "{old}" переименована в "{new}"',
         # === Admin: Goods / Items Management (Add / List / Item Info) ===
         "admin.goods.add_position": "➕ Добавить позицию",
         "admin.goods.manage_stock": "➕ Добавить товар в позицию",
@@ -192,7 +180,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.add.stock.invalid": "⚠️ Некорректное значение количества товара. Введите число.",
         "admin.goods.add.stock.negative": "⚠️ Некорректное значение количества товара. Введите положительно число.",
         "admin.goods.add.result.created_with_stock": "✅ Позиция {item_name} создана, добавлено {stock_quantity} в количество товара.",
-
         # === Admin: Goods / Items Update Flow ===
         "admin.goods.update.position.invalid": "Позиция не найдена.",
         "admin.goods.update.position.exists": "Позиция с таким именем уже существует.",
@@ -201,15 +188,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.update.prompt.new_name": "Введите новое имя для позиции:",
         "admin.goods.update.prompt.description": "Введите описание для позиции:",
         "admin.goods.update.success": "✅ Позиция обновлена",
-
         # === Admin: Goods / Items Delete Flow ===
         "admin.goods.delete.prompt.name": "Введите название позиции",
         "admin.goods.delete.position.not_found": "❌ Позиция не удалена (Такой позиции не существует)",
         "admin.goods.delete.position.success": "✅ Позиция удалена",
-
         # === Admin: Item Info ===
         "admin.goods.view_stock": "Посмотреть товары",
-
         # Admin Modifier Management (Card 8)
         "admin.goods.manage_modifiers": "🍳 Модификаторы",
         "admin.goods.modifiers.prompt": "Хотите добавить модификаторы (специи, добавки и т.д.)?",
@@ -222,16 +206,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.modifiers.set_new": "📝 Задать новые",
         "admin.goods.modifiers.clear": "🗑 Удалить все",
         "admin.goods.stock.status_title": "Статус товаров:",
-
         # === Admin: Logs ===
         "admin.shop.logs.caption": "Логи бота",
         "admin.shop.logs.empty": "❗️ Логов пока нет",
-
         # === Group Notifications ===
         "shop.group.new_upload": "Залив",
         "shop.group.item": "Товар",
         "shop.group.stock": "Количество",
-
         # === Admin: Statistics ===
         "admin.shop.stats.template": (
             "Статистика магазина:\n"
@@ -251,7 +232,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "◾Категорий: {categories} шт.\n"
             "◾Продано товаров: {sold_count} шт."
         ),
-
         # === Admin: Lists & Broadcast ===
         "admin.shop.admins.title": "👮 Администраторы бота:",
         "admin.shop.users.title": "Пользователи бота:",
@@ -262,7 +242,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "📊 Прогресс: {progress:.1f}%\n"
             "✅ Отправлено: {sent}/{total}\n"
             "❌ Ошибок: {failed}\n"
-            "⏱ Прошло времени: {time} сек"),
+            "⏱ Прошло времени: {time} сек"
+        ),
         "broadcast.done": (
             "✅ Рассылка завершена!\n\n"
             "📊 Статистика:\n"
@@ -275,7 +256,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
         "broadcast.cancel": "❌ Рассылка отменена",
         "broadcast.warning": "Нет активной рассылки",
-
         # === Brand / Store Selection ===
         "shop.brands.title": "🏪 Выберите ресторан",
         "shop.branches.title": "📍 Выберите филиал",
@@ -301,7 +281,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.delete_cart": "🗑 Удалить корзину",
         "btn.stay": "↩️ Остаться",
         "btn.switch_and_remove": "🔄 Переключить и убрать недоступное",
-
         # === Shop Browsing (Categories / Goods / Item Page) ===
         "shop.categories.title": "🏪 Категории магазина",
         "shop.goods.choose": "🏪 Выберите нужный товар",
@@ -312,7 +291,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "shop.item.quantity_unlimited": "Количество — неограниченно",
         "shop.item.quantity_left": "Количество — {count} шт.",
         "shop.item.quantity_detailed": "📦 Всего на складе: {total} шт.\n🔒 Зарезервировано: {reserved} шт.\n✅ Доступно для заказа: {available} шт.",
-
         # === Purchases ===
         "purchases.title": "Купленные товары:",
         "purchases.pagination.invalid": "Некорректные данные пагинации",
@@ -322,7 +300,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "purchases.item.datetime": "<b>🕒 Дата покупки</b>: <code>{dt}</code>",
         "purchases.item.unique_id": "<b>🧾 Уникальный ID</b>: <code>{uid}</code>",
         "purchases.item.value": "<b>🔑 Значение</b>:\n<code>{value}</code>",
-
         # === Middleware ===
         "middleware.ban": "⏳ Вы временно заблокированы. Подождите {time} секунд",
         "middleware.above_limits": "⚠️ Слишком много запросов! Вы временно заблокированы.",
@@ -334,7 +311,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "middleware.security.banned": "⛔ <b>Вы забанены</b>\n\nПричина: {reason}",
         "middleware.security.banned_no_reason": "⛔ <b>Вы забанены</b>\n\nОбратитесь к администратору для получения дополнительной информации.",
         "middleware.security.rate_limit": "⚠️ Слишком много запросов! Пожалуйста, подождите немного.",
-
         # === Errors ===
         "errors.not_subscribed": "Вы не подписались",
         "errors.pagination_invalid": "Некорректные данные пагинации",
@@ -346,7 +322,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "errors.invalid_language": "Неверный язык",
         "shop.error.brand_required": "Сначала выберите бренд",
         "shop.error.branch_unavailable": "Филиал недоступен",
-
         # === Orders ===
         "order.payment_method.choose": "💳 Выберите способ оплаты:",
         "order.payment_method.bitcoin": "💳 Bitcoin",
@@ -362,15 +337,11 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Ожидайте доставку!"
         ),
         "order.status.notify_order_delivered": (
-            "Заказ {order_code} доставлен! ✅\n\n"
-            "Спасибо за покупку! Будем рады видеть вас снова! 🙏"
+            "Заказ {order_code} доставлен! ✅\n\nСпасибо за покупку! Будем рады видеть вас снова! 🙏"
         ),
         "order.status.notify_order_modified": (
-            "Order {order_code} modified by admin 📝\n\n"
-            "Changes:\n{changes}\n\n"
-            "New total: {total}"
+            "Order {order_code} modified by admin 📝\n\nChanges:\n{changes}\n\nNew total: {total}"
         ),
-
         # === Additional Common Buttons ===
         "btn.cart": "🛒 Корзина",
         "btn.my_orders": "📦 Мои заказы",
@@ -393,7 +364,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.apply_bonus_no": "❌ Нет, сохранить на потом",
         "btn.cancel": "❌ Отменить",
         "btn.add_to_cart": "🛒 Добавить в корзину",
-
         # === Cart Management ===
         "cart.add_success": "✅ {item_name} добавлен в корзину!",
         "cart.add_error": "❌ {message}",
@@ -409,7 +379,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "cart.delivery_note": "📝 Примечание: {note}\n",
         "cart.use_info_question": "\n\nХотите использовать эту информацию или обновить ее?",
         "cart.no_saved_info": "❌ Сохраненная информация о доставке не найдена. Пожалуйста, введите вручную.",
-
         # === Order/Delivery Flow ===
         "order.delivery.address_prompt": "📍 Пожалуйста, введите ваш адрес доставки:",
         "order.delivery.address_invalid": "❌ Пожалуйста, укажите действительный адрес доставки (минимум 5 символов).",
@@ -417,7 +386,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.phone_invalid": "❌ Пожалуйста, укажите действительный номер телефона (минимум 8 цифр).",
         "order.delivery.note_prompt": "📝 Есть ли какие-то особые инструкции по доставке? (Необязательно)\n\nВы можете пропустить это, нажав на кнопку ниже.",
         "order.delivery.info_save_error": "❌ Ошибка сохранения информации о доставке. Пожалуйста, попробуйте еще раз.",
-
         # Location Method Choice
         "order.delivery.location_method_prompt": "📍 Как вы хотите указать адрес доставки?\n\nВыберите один из вариантов ниже:",
         "btn.location_method.gps": "📡 Отправить GPS через Telegram",
@@ -431,16 +399,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.live_gps_hint": "📍 Пожалуйста, отправьте живую геолокацию через меню вложений (📎 → Геолокация → Трансляция).",
         "order.delivery.google_link_prompt": "🗺 Вставьте ссылку Google Maps с вашим местоположением.\n\nОткройте Google Maps, найдите нужное место, нажмите «Поделиться» и скопируйте ссылку сюда.",
         "order.delivery.google_link_invalid": "❌ Не удалось распознать ссылку Google Maps. Убедитесь, что ссылка начинается с google.com/maps или goo.gl/maps.",
-        "order.delivery.address_confirm_prompt": "📍 Ваш адрес:\n<b>{address}</b>\n\n🔗 <a href=\"{maps_link}\">Посмотреть на карте</a>\n\nАдрес верный?",
+        "order.delivery.address_confirm_prompt": '📍 Ваш адрес:\n<b>{address}</b>\n\n🔗 <a href="{maps_link}">Посмотреть на карте</a>\n\nАдрес верный?',
         "btn.address_confirm_yes": "✅ Да, всё верно",
         "btn.address_confirm_retry": "✏️ Нет, ввести заново",
-
         # GPS Location (Card 2)
         "order.delivery.location_prompt": "📍 Хотите поделиться GPS-локацией для более точной доставки?\n\nНажмите кнопку ниже или пропустите этот шаг.",
         "order.delivery.location_saved": "✅ Локация сохранена!",
         "btn.share_location": "📍 Поделиться локацией",
         "btn.skip_location": "⏭ Пропустить",
-
         # Delivery Type (Card 3)
         "order.delivery.type_prompt": "🚚 Выберите тип доставки:",
         "btn.delivery.door": "🚪 Доставка к двери",
@@ -457,7 +423,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.drop_photo_prompt": "📸 Хотите отправить фото места? (необязательно)",
         "order.delivery.drop_photo_saved": "✅ Фото места сохранено!",
         "btn.skip_drop_photo": "⏭ Пропустить фото",
-
         # PromptPay (Card 1)
         "order.payment_method.promptpay": "💳 PromptPay QR",
         "order.payment.promptpay.title": "💳 <b>Оплата через PromptPay</b>",
@@ -480,7 +445,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.promptpay.duplicate_slip": "🚫 Эта квитанция уже использована для другого заказа. Каждую квитанцию можно использовать только один раз. Если вы считаете, что это ошибка, свяжитесь с поддержкой.",
         "admin.order.verify_payment": "✅ Подтвердить оплату",
         "admin.order.payment_verified": "✅ Оплата подтверждена",
-
         # Delivery Chat (Card 13)
         "order.delivery.chat_unavailable": "❌ Чат с водителем недоступен. Группа курьеров не настроена.",
         "order.delivery.chat_started": "💬 Вы можете отправить сообщение водителю. Отправьте текст, фото или локацию.\n\nОтправьте /endchat чтобы завершить чат.",
@@ -490,7 +454,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.chat_message_sent": "✅ Сообщение отправлено водителю.",
         "order.delivery.driver_no_active_order": "⚠️ Нет активного заказа для пересылки этого сообщения.",
         "btn.chat_with_driver": "💬 Чат с водителем",
-
         # GPS tracking & chat session (Card 15)
         "delivery.gps.prompt": "📍 Ваш заказ {order_code} в пути!\n\nПомогите водителю найти вас быстрее — поделитесь своим местоположением:",
         "delivery.gps.btn_static": "📍 Отправить локацию",
@@ -503,7 +466,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "delivery.chat.post_delivery_open": "✅ Доставлено! Чат остаётся открытым ещё {minutes} мин.",
         "delivery.chat.post_delivery_closed": "⏹ Окно чата после доставки закрыто.",
         "btn.end_chat": "❌ Завершить чат",
-
         # === Bonus/Referral Application ===
         "order.bonus.available": "💰 <b>У вас есть ${bonus_balance} в реферальных бонусах!</b>\n\n",
         "order.bonus.apply_question": "Хотите ли вы применить реферальный бонус к этому заказу?",
@@ -512,21 +474,17 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.bonus.invalid_amount": "❌ Неверная сумма. Пожалуйста, введите число (например, 5.50):",
         "order.bonus.insufficient": "❌ Недостаточный бонусный баланс. Пожалуйста, попробуйте снова.",
         "order.bonus.enter_amount": "Введите сумму бонуса, которую вы хотите применить (максимум ${max_applicable}):\n\nИли используйте все доступные бонусы, нажав кнопку ниже.",
-
         # === Payment Instructions ===
         "order.payment.system_unavailable": "❌ <b>Платежная система временно недоступна</b>\n\nНет доступных Bitcoin-адресов. Пожалуйста, свяжитесь с поддержкой.",
         "order.payment.customer_not_found": "❌ Информация о клиенте не найдена. Пожалуйста, попробуйте снова.",
         "order.payment.creation_error": "❌ Ошибка создания заказов. Пожалуйста, попробуйте снова или свяжитесь с поддержкой.",
-
         # === Order Summary/Total ===
         "order.summary.title": "📦 <b>Сводка заказа</b>\n\n",
         "order.summary.cart_total": "Итого корзины: ${cart_total}",
         "order.summary.bonus_applied": "Применен бонус: -${bonus_applied}",
         "order.summary.final_amount": "Итоговая сумма: ${final_amount}",
-
         # === Inventory/Reservation ===
         "order.inventory.unable_to_reserve": "❌ <b>Не удается зарезервировать товары</b>\n\nСледующие товары недоступны в запрошенных количествах:\n\n{unavailable_items}\n\nПожалуйста, скорректируйте вашу корзину и попробуйте снова.",
-
         # === My Orders View ===
         "myorders.title": "📦 <b>Мои заказы</b>\n\n",
         "myorders.total": "Всего заказов: {count}",
@@ -547,7 +505,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "myorders.back_to_menu": "◀️ Назад к меню заказов",
         "myorders.select_details": "Выберите заказ для просмотра деталей:",
         "myorders.order_not_found": "Заказ не найден",
-
         # === Order Details Display ===
         "myorders.detail.title": "📦 <b>Детали заказа #{order_code}</b>\n\n",
         "myorders.detail.status": "📊 <b>Статус:</b> {status}\n",
@@ -561,7 +518,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "myorders.detail.completed": "✅ <b>Завершено:</b> {date}\n",
         "myorders.detail.items": "\n📦 <b>Товары:</b>\n{items}\n",
         "myorders.detail.delivery_info": "\n📍 <b>Информация о доставке:</b>\n{address}\n{phone}\n{note}",
-
         # === Help System ===
         "help.prompt": "📧 <b>Нужна помощь?</b>\n\n",
         "help.describe_issue": "Пожалуйста, опишите вашу проблему или вопрос, и он будет отправлен напрямую администратору.\n\nВведите ваше сообщение ниже:",
@@ -572,10 +528,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "help.sent_success": "✅ {auto_message}",
         "help.sent_error": "❌ Не удалось отправить сообщение администратору: {error}\n\nПожалуйста, попробуйте позже.",
         "help.cancelled": "Запрос помощи отменен.",
-
         # === Admin Order Notifications ===
         "admin.goods.add.stock.error": "❌ Ошибка при добавлении начального запаса: {error}",
-        "admin.goods.stock.add_success": "✅ Добавлено {quantity} единиц к \"{item}\"",
+        "admin.goods.stock.add_success": '✅ Добавлено {quantity} единиц к "{item}"',
         "admin.goods.stock.add_units": "➕ Добавить единицы",
         "admin.goods.stock.current_status": "Текущий статус",
         "admin.goods.stock.error": "❌ Ошибка управления запасами: {error}",
@@ -589,11 +544,11 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.stock.prompt.remove_units": "Введите количество единиц для удаления:",
         "admin.goods.stock.prompt.set_exact": "Введите точное количество запасов:",
         "admin.goods.stock.redirect_message": "ℹ️ Управление запасами теперь доступно через меню «Управление запасами»",
-        "admin.goods.stock.remove_success": "✅ Удалено {quantity} единиц из \"{item}\"",
+        "admin.goods.stock.remove_success": '✅ Удалено {quantity} единиц из "{item}"',
         "admin.goods.stock.remove_units": "➖ Удалить единицы",
         "admin.goods.stock.select_action": "Выберите действие",
         "admin.goods.stock.set_exact": "⚖️ Установить точное количество",
-        "admin.goods.stock.set_success": "✅ Запас для \"{item}\" установлен на {quantity} единиц",
+        "admin.goods.stock.set_success": '✅ Запас для "{item}" установлен на {quantity} единиц',
         "admin.order.action_required_title": "⏳ <b>Требуется действие:</b>",
         "admin.order.address_label": "Адрес: {address}",
         "admin.order.amount_to_collect_label": "<b>Сумма к получению: ${amount} {currency}</b>",
@@ -612,7 +567,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.order.payment_method_label": "Способ оплаты: <b>{method}</b>",
         "admin.order.phone_label": "Телефон: {phone}",
         "admin.order.subtotal_label": "Подытог: <b>${amount} {currency}</b>",
-        "admin.order.use_cli_confirm": "Используйте CLI для подтверждения заказа и установки времени доставки:\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time \"YYYY-MM-DD HH:MM\"</code>",
+        "admin.order.use_cli_confirm": 'Используйте CLI для подтверждения заказа и установки времени доставки:\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time "YYYY-MM-DD HH:MM"</code>',
         "btn.admin.back_to_panel": "🔙 Назад в панель администратора",
         "btn.admin.create_refcode": "➕ Создать реферальный код",
         "btn.admin.list_refcodes": "📋 Список всех кодов",
@@ -672,7 +627,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.bitcoin.send_exact": "• Отправьте ТОЧНУЮ сумму, указанную выше",
         "order.payment.bitcoin.title": "💳 <b>Инструкции по оплате Bitcoin</b>",
         "order.payment.bitcoin.total_amount": "Сумма к оплате: <b>{amount} {currency}</b>",
-
         # Crypto payment (Card 18) — generic strings for all coins
         "crypto.payment.title": "💳 <b>{coin_name} Payment</b>",
         "crypto.payment.order_code": "Order: <b>{code}</b>",
@@ -700,7 +654,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Your order is now being processed."
         ),
         "crypto.payment_expired": "⏰ Payment window for your {coin} order ({order_code}) has expired. Please place a new order.",
-
         "order.payment.cash.admin_contact": "Администратор свяжется с вами в ближайшее время.",
         "order.payment.cash.after_confirm": "После подтверждения вы будете уведомлены о времени доставки.",
         "order.payment.cash.created": "Ваш заказ {code} создан и ожидает подтверждения администратора.",
@@ -718,7 +671,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.order_label": "📋 <b>Заказ: {code}</b>",
         "order.payment.subtotal_label": "Подытог: <b>{amount} {currency}</b>",
         "order.payment.total_amount_label": "<b>Сумма к оплате: {amount} {currency}</b>",
-
         # === Card 9: Kitchen & Delivery Workflow ===
         "admin.menu.orders": "📋 Заказы",
         "admin.orders.list_title": "📋 <b>Заказы</b>",
@@ -801,16 +753,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.driver.rejected_admin": "❌ Курьер отклонён.",
         "admin.driver.not_authorized": "Это может сделать только владелец.",
         "admin.driver.not_found": "Курьер не найден.",
-
         # Delivery Photo Proof (Card 4)
         "delivery.photo.required": "Для доставки с оставлением в указанном месте требуется фото",
         "delivery.photo.upload_prompt": "Пожалуйста, загрузите фото доставки",
         "delivery.photo.received": "Фото доставки сохранено",
         "delivery.photo.sent_to_customer": "Фото доставки отправлено клиенту",
         "delivery.photo.customer_notification": "Ваш заказ {order_code} доставлен! Вот фото подтверждения.",
-
         # === New Feature Strings ===
-
         # === Restaurant Feature Strings ===
         "admin.goods.add.allergen.dairy": "Dairy",
         "admin.goods.add.allergen.eggs": "Eggs",
@@ -873,140 +822,22 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "shop.item.type_prepared": "🍳 Тип: Приготовление на заказ",
         "shop.item.prep_time": "⏱ Prep: ~{minutes} min",
         "shop.item.sold_out": "❌ Sold out today",
-        "admin.accounting.export_payments": "📥 Payment Reconciliation",
-        "admin.accounting.export_products": "📥 Revenue by Product",
-        "admin.accounting.export_sales": "📥 Export Sales CSV",
-        "admin.accounting.export_sent": "✅ Report exported.",
-        "admin.accounting.no_data": "No data for this period.",
-        "admin.accounting.summary": "📊 <b>Revenue Summary ({period})</b>\n\n💰 Revenue: {total} {currency}\n📦 Orders: {orders}\n📈 Avg: {avg} {currency}\n\n<b>By Payment:</b>\n{payments}\n\n<b>Top Products:</b>\n{products}",
-        "admin.accounting.summary_all": "📊 All Time",
-        "admin.accounting.summary_month": "📊 This Month",
-        "admin.accounting.summary_today": "📊 Today",
-        "admin.accounting.summary_week": "📊 This Week",
-        "admin.accounting.title": "📊 <b>Accounting & Reports</b>",
-        "admin.coupon.create": "➕ Create Coupon",
-        "admin.coupon.created": "✅ Coupon <b>{code}</b> created!\nType: {type}\nValue: {value}\nMin order: {min_order}\nMax uses: {max_uses}\nExpires: {expiry}",
-        "admin.coupon.detail": "🎟 <b>{code}</b>\nType: {type}\nValue: {value}\nMin Order: {min_order}\nMax Uses: {max_uses}\nUsed: {used}\nStatus: {status}\nExpires: {expiry}",
-        "admin.coupon.empty": "No coupons found.",
-        "admin.coupon.enter_code": "Enter coupon code (or type <b>auto</b> for random):",
-        "admin.coupon.enter_expiry": "Enter expiry in days (or <b>skip</b> for no expiry):",
-        "admin.coupon.enter_max_uses": "Enter max total uses (or <b>skip</b> for unlimited):",
-        "admin.coupon.enter_min_order": "Enter minimum order amount (or <b>skip</b>):",
-        "admin.coupon.enter_value": "Enter discount value ({type}):",
-        "admin.coupon.invalid_value": "❌ Invalid value. Enter a number.",
-        "admin.coupon.list_active": "📋 Active Coupons",
-        "admin.coupon.list_all": "📋 All Coupons",
-        "admin.coupon.select_type": "Select discount type:",
-        "admin.coupon.title": "🎟 <b>Coupon Management</b>",
-        "admin.coupon.toggle_activate": "✅ Activate",
-        "admin.coupon.toggle_deactivate": "❌ Deactivate",
-        "admin.coupon.toggled": "✅ Coupon {code} is now {status}.",
-        "admin.coupon.type_fixed": "💰 Fixed Amount",
-        "admin.coupon.type_percent": "📊 Percentage (%)",
-        "admin.menu.accounting": "📊 Accounting",
-        "admin.menu.coupons": "🎟 Coupons",
-        "admin.menu.segment_broadcast": "📣 Targeted Broadcast",
-        "admin.menu.stores": "🏪 Stores",
-        "admin.menu.tickets": "🎫 Tickets",
-        "admin.menu.ai_assistant": "🤖 AI Assistant",
-        "admin.segment.all_users": "👥 All Users",
-        "admin.segment.count": "📊 Segment: <b>{segment}</b>\nUsers: <b>{count}</b>\n\nType your broadcast message:",
-        "admin.segment.empty": "No users in this segment.",
-        "admin.segment.high_spenders": "💰 High Spenders",
-        "admin.segment.inactive": "😴 Inactive (30+ days)",
-        "admin.segment.new_users": "🆕 New Users (7d)",
-        "admin.segment.recent_buyers": "🛒 Recent Buyers (7d)",
-        "admin.segment.sent": "✅ Sent to {sent}/{total} ({segment}).",
-        "admin.segment.title": "📣 <b>Targeted Broadcast</b>\n\nSelect segment:",
-        "admin.store.add": "➕ Add Store",
-        "admin.store.address_prompt": "Enter store address (or <b>skip</b>):",
-        "admin.store.btn_default": "⭐ Set as Default",
-        "admin.store.created": "✅ Store <b>{name}</b> created!",
-        "admin.store.detail": "🏪 <b>{name}</b>\nStatus: {status}\nDefault: {default}\nAddress: {address}\nLocation: {location}\nPhone: {phone}",
-        "admin.store.empty": "No stores configured.",
-        "admin.store.location_prompt": "Send GPS location (or type <b>skip</b>):",
-        "admin.store.name_exists": "Store with this name already exists.",
-        "admin.store.name_prompt": "Enter store name:",
-        "admin.store.set_default": "✅ {name} set as default store.",
-        "admin.store.title": "🏪 <b>Store Management</b>",
-        "admin.store.toggle_activate": "✅ Activate",
-        "admin.store.toggle_deactivate": "❌ Deactivate",
-        "admin.store.toggled": "✅ Store {name} is now {status}.",
-        "admin.ticket.detail": "🎫 <b>Ticket #{code}</b>\nUser: {user_id}\nStatus: {status}\nPriority: {priority}\nSubject: {subject}\nCreated: {date}",
-        "admin.ticket.empty": "No open tickets.",
-        "admin.ticket.list": "Open/In Progress Tickets:",
-        "admin.ticket.reply_prompt": "Reply to ticket #{code}:",
-        "admin.ticket.resolved": "✅ Ticket #{code} resolved.",
-        "admin.ticket.title": "🎫 <b>Support Tickets</b>",
-        "btn.admin.reply_ticket": "💬 Reply",
-        "btn.admin.resolve_ticket": "✅ Resolve",
-        "btn.apply_coupon": "🎟 Apply Coupon",
-        "btn.close_ticket": "✖ Close Ticket",
-        "btn.create_ticket": "➕ New Ticket",
-        "btn.create_ticket_for_order": "🎫 Support Ticket",
-        "btn.invoice": "🧾 Receipt",
-        "btn.my_tickets": "🎫 Support",
-        "btn.ai_assistant": "🤖 AI Assistant",
-        "btn.reorder": "🔄 Reorder",
-        "btn.reply_ticket": "💬 Reply",
-        "btn.review_order": "⭐ Leave Review",
-        "btn.search": "🔍 Search",
-        "btn.skip_coupon": "⏭ Skip Coupon",
-        "coupon.already_used": "❌ You already used this coupon.",
-        "coupon.applied": "✅ Coupon applied! Discount: -{discount} {currency}",
-        "coupon.enter_code": "🎟 Enter coupon code (or press Skip):",
-        "coupon.expired": "❌ This coupon has expired.",
-        "coupon.invalid": "❌ Invalid or expired coupon code.",
-        "coupon.max_uses_reached": "❌ Coupon usage limit reached.",
-        "coupon.min_order_not_met": "❌ Min order of {min_order} required.",
-        "coupon.not_yet_valid": "❌ This coupon is not yet valid.",
-        "invoice.not_available": "Receipt not available.",
-        "reorder.success": "✅ Added {added} item(s) to cart. {skipped} item(s) unavailable.",
-        "review.already_reviewed": "You have already reviewed this order.",
-        "review.comment_prompt": "You rated {rating}/5 ⭐\n\nAdd a comment? Type or press Skip:",
         "review.detail": "⭐{rating}/5 — {comment}",
-        "review.item_rating": "⭐ <b>{item}</b>: {avg:.1f}/5 ({count} reviews)",
-        "review.no_reviews": "No reviews yet.",
-        "review.prompt": "⭐ <b>Rate your order #{order_code}</b>\n\nSelect your rating:",
         "review.rate_1": "⭐",
         "review.rate_2": "⭐⭐",
         "review.rate_3": "⭐⭐⭐",
         "review.rate_4": "⭐⭐⭐⭐",
         "review.rate_5": "⭐⭐⭐⭐⭐",
-        "review.skip_comment": "⏭ Skip",
-        "review.thanks": "✅ Thank you for your review! ({rating}/5 ⭐)",
-        "search.no_results": "❌ No products found. Try different keywords.",
-        "search.prompt": "🔍 Enter product name or keyword to search:",
-        "search.result_count": "Found {count} product(s):\n",
-        "search.results_title": "🔍 <b>Search results for:</b> {query}\n\n",
-        "ticket.admin_replied": "💬 Admin replied to ticket #{code}:\n{text}",
-        "ticket.closed": "✅ Ticket closed.",
-        "ticket.created": "✅ Ticket <b>#{code}</b> created!",
         "ticket.message_format": "<b>{role}</b> ({date}):\n{text}\n",
-        "ticket.message_prompt": "Describe your issue:",
-        "ticket.no_tickets": "No support tickets.",
-        "ticket.reply_prompt": "Type your reply:",
-        "ticket.reply_sent": "✅ Reply sent.",
-        "ticket.resolved_notification": "✅ Ticket #{code} resolved!",
-        "ticket.status.closed": "⚫ Closed",
-        "ticket.status.in_progress": "🔵 In Progress",
-        "ticket.status.open": "🟢 Open",
-        "ticket.status.resolved": "✅ Resolved",
-        "ticket.subject_prompt": "Enter the subject:",
-        "ticket.title": "🎫 <b>Support Tickets</b>",
-        "ticket.view_title": "🎫 <b>Ticket #{code}</b>\nStatus: {status}\nSubject: {subject}\nCreated: {date}",
-
         # === Product Search ===
         "btn.search": "🔍 Поиск",
         "search.prompt": "🔍 Введите название или ключевое слово для поиска:",
         "search.results_title": "🔍 <b>Результаты поиска:</b> {query}\n\n",
         "search.no_results": "❌ Товары не найдены. Попробуйте другие ключевые слова.",
         "search.result_count": "Найдено {count} товар(ов):\n",
-
         # === Reorder ===
         "btn.reorder": "🔄 Повторить заказ",
         "reorder.success": "✅ Добавлено {added} товар(ов) в корзину. {skipped} товар(ов) недоступно.",
-
         # === Coupon / Promo Codes ===
         "admin.menu.coupons": "🎟 Купоны",
         "admin.coupon.title": "🎟 <b>Управление купонами</b>",
@@ -1038,27 +869,18 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "coupon.enter_code": "🎟 Введите код купона (или нажмите Пропустить):",
         "btn.skip_coupon": "⏭ Пропустить купон",
         "btn.apply_coupon": "🎟 Применить купон",
-
         # === Review / Rating System ===
         "btn.review_order": "⭐ Оставить отзыв",
         "review.prompt": "⭐ <b>Оцените заказ #{order_code}</b>\n\nВыберите оценку:",
-        "review.rate_1": "⭐",
-        "review.rate_2": "⭐⭐",
-        "review.rate_3": "⭐⭐⭐",
-        "review.rate_4": "⭐⭐⭐⭐",
-        "review.rate_5": "⭐⭐⭐⭐⭐",
         "review.comment_prompt": "Вы поставили {rating}/5 ⭐\n\nХотите добавить комментарий? Напишите или нажмите Пропустить:",
         "review.skip_comment": "⏭ Пропустить",
         "review.thanks": "✅ Спасибо за отзыв! ({rating}/5 ⭐)",
         "review.already_reviewed": "Вы уже оставили отзыв на этот заказ.",
         "review.item_rating": "⭐ <b>{item}</b>: {avg:.1f}/5 ({count} отзывов)",
         "review.no_reviews": "Отзывов пока нет.",
-        "review.detail": "⭐{rating}/5 — {comment}",
-
         # === Invoice / Receipt ===
         "btn.invoice": "🧾 Чек",
         "invoice.not_available": "Чек недоступен для этого заказа.",
-
         # === Support Ticketing ===
         "btn.my_tickets": "🎫 Поддержка",
         "btn.ai_assistant": "🤖 ИИ-помощник",
@@ -1073,7 +895,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "ticket.reply_prompt": "Напишите ваш ответ:",
         "ticket.reply_sent": "✅ Ответ отправлен.",
         "ticket.closed": "✅ Тикет закрыт.",
-        "ticket.message_format": "<b>{role}</b> ({date}):\n{text}\n",
         "btn.reply_ticket": "💬 Ответить",
         "btn.close_ticket": "✖ Закрыть тикет",
         "ticket.status.open": "🟢 Открыт",
@@ -1082,7 +903,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "ticket.status.closed": "⚫ Закрыт",
         "ticket.admin_replied": "💬 Администратор ответил на тикет #{code}:\n{text}",
         "ticket.resolved_notification": "✅ Ваш тикет #{code} решён!",
-
         # === Admin Tickets ===
         "admin.menu.tickets": "🎫 Тикеты",
         "admin.menu.ai_assistant": "🤖 AI Ассистент",
@@ -1094,7 +914,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.ticket.detail": "🎫 <b>Тикет #{code}</b>\nПользователь: {user_id}\nСтатус: {status}\nПриоритет: {priority}\nТема: {subject}\nСоздан: {date}",
         "btn.admin.resolve_ticket": "✅ Решить",
         "btn.admin.reply_ticket": "💬 Ответить",
-
         # === Accounting / Revenue Export ===
         "admin.menu.accounting": "📊 Бухгалтерия",
         "admin.accounting.title": "📊 <b>Бухгалтерия и отчёты</b>",
@@ -1108,7 +927,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.accounting.summary": "📊 <b>Сводка выручки ({period})</b>\n\n💰 Общая выручка: {total} {currency}\n📦 Заказов: {orders}\n📈 Средний чек: {avg} {currency}\n\n<b>По способу оплаты:</b>\n{payments}\n\n<b>Топ товаров:</b>\n{products}",
         "admin.accounting.export_sent": "✅ Отчёт экспортирован.",
         "admin.accounting.no_data": "Нет данных за этот период.",
-
         # === Customer Segmentation ===
         "admin.menu.segment_broadcast": "📣 Адресная рассылка",
         "admin.segment.title": "📣 <b>Адресная рассылка</b>\n\nВыберите сегмент:",
@@ -1120,7 +938,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.segment.count": "📊 Сегмент: <b>{segment}</b>\nПользователей: <b>{count}</b>\n\nВведите текст рассылки:",
         "admin.segment.empty": "Нет пользователей в этом сегменте.",
         "admin.segment.sent": "✅ Рассылка: {sent}/{total} ({segment}).",
-
         # === Multi-Store / Multi-Location ===
         "admin.menu.stores": "🏪 Точки продаж",
         "admin.store.title": "🏪 <b>Управление точками</b>",
@@ -1137,7 +954,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.store.btn_default": "⭐ По умолчанию",
         "admin.store.empty": "Точки не настроены.",
         "admin.store.name_exists": "Точка с таким названием уже существует.",
-
         # === PDPA Privacy Policy ===
         "btn.privacy": "🔒 Политика конфиденциальности",
         "privacy.notice": (
@@ -1169,7 +985,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "privacy.already_accepted": "✅ Вы уже приняли политику конфиденциальности.",
         "privacy.no_url": "Полная политика конфиденциальности пока не настроена.",
     },
-
     "en": {
         # === Common Buttons ===
         "btn.shop": "🏪 Shop",
@@ -1185,16 +1000,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.check_subscription": "🔄 Check subscription",
         "btn.admin.ban_user": "🚫 Ban user",
         "btn.admin.unban_user": "✅ Unban user",
-
         # === Admin Buttons (user management shortcuts) ===
         "btn.admin.promote": "⬆️ Make admin",
         "btn.admin.demote": "⬇️ Remove admin",
         "btn.admin.add_user_bonus": "🎁 Add referral bonus",
-
         # === Titles / Generic Texts ===
         "menu.title": "⛩️ Main menu",
         "admin.goods.add.stock.error": "❌ Error adding initial stock: {error}",
-        "admin.goods.stock.add_success": "✅ Added {quantity} units to \"{item}\"",
+        "admin.goods.stock.add_success": '✅ Added {quantity} units to "{item}"',
         "admin.goods.stock.add_units": "➕ Add units",
         "admin.goods.stock.current_status": "Current Status",
         "admin.goods.stock.error": "❌ Error managing stock: {error}",
@@ -1207,12 +1020,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.stock.prompt.item_name": "Enter the product name to manage stock:",
         "admin.goods.stock.prompt.remove_units": "Enter the number of units to remove:",
         "admin.goods.stock.prompt.set_exact": "Enter the exact stock quantity:",
-        "admin.goods.stock.redirect_message": "ℹ️ Stock management is now available through the \"Manage Stock\" menu",
-        "admin.goods.stock.remove_success": "✅ Removed {quantity} units from \"{item}\"",
+        "admin.goods.stock.redirect_message": 'ℹ️ Stock management is now available through the "Manage Stock" menu',
+        "admin.goods.stock.remove_success": '✅ Removed {quantity} units from "{item}"',
         "admin.goods.stock.remove_units": "➖ Remove units",
         "admin.goods.stock.select_action": "Select action",
         "admin.goods.stock.set_exact": "⚖️ Set exact quantity",
-        "admin.goods.stock.set_success": "✅ Stock for \"{item}\" set to {quantity} units",
+        "admin.goods.stock.set_success": '✅ Stock for "{item}" set to {quantity} units',
         "admin.goods.stock.status_title": "📊 Stock Status:",
         "errors.invalid_item_name": "❌ Invalid item name",
         "errors.invalid_language": "Invalid language",
@@ -1227,21 +1040,17 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.users.unban.success": "✅ User {name} has been successfully unbanned",
         "admin.users.unban.failed": "❌ Failed to unban user",
         "admin.users.unban.notify": "✅ You have been unbanned by an administrator",
-
         # === Profile ===
         "btn.referral": "🎲 Referral system",
         "btn.purchased": "🎁 Purchased goods",
         "profile.referral_id": "👤 <b>Referral</b> — <code>{id}</code>",
-
         # === Subscription Flow ===
         "subscribe.prompt": "First, subscribe to the news channel",
-
         # === Profile Info Lines ===
         "profile.id": "🆔 <b>ID</b> — <code>{id}</code>",
         "profile.bonus_balance": "💰 <b>Referral Bonus:</b> ${bonus_balance}",
         "profile.purchased_count": "🎁 <b>Purchased items</b> — {count} pcs",
         "profile.registration_date": "🕢 <b>Registered at</b> — <code>{dt}</code>",
-
         # === Referral ===
         "referral.title": "💚 Referral system",
         "referral.count": "Referrals count: {count}",
@@ -1252,29 +1061,28 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
         "btn.view_referrals": "👥 My referrals",
         "btn.view_earnings": "💰 My earnings",
-
         "referrals.list.title": "👥 Your referrals:",
         "referrals.list.empty": "You don't have any active referrals yet",
         "referrals.item.format": "ID: {telegram_id} | Earned: {total_earned} {currency}",
-
         "referral.earnings.title": "💰 Earnings from referral <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>):",
         "referral.earnings.empty": "No earnings from this referral <code>{id}</code> (<a href='tg://user?id={id}'>{name}</a>) yet",
         "referral.earning.format": "{amount} {currency} | {date} | (from {original_amount} {currency})",
-        "referral.item.info": ("💰 Earning number: <code>{id}</code>\n"
-                               "👤 Referral: <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>)\n"
-                               "🔢 Amount: {amount} {currency}\n"
-                               "🕘 Date: <code>{date}</code>\n"
-                               "💵 From a deposit to {original_amount} {currency}"),
-
-        "referral.admin_bonus.info": ("💰 Earning number: <code>{id}</code>\n"
-                                      "🎁 <b>Bonus from administrator</b>\n"
-                                      "🔢 Amount: {amount} {currency}\n"
-                                      "🕘 Date: <code>{date}</code>"),
-
+        "referral.item.info": (
+            "💰 Earning number: <code>{id}</code>\n"
+            "👤 Referral: <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>)\n"
+            "🔢 Amount: {amount} {currency}\n"
+            "🕘 Date: <code>{date}</code>\n"
+            "💵 From a deposit to {original_amount} {currency}"
+        ),
+        "referral.admin_bonus.info": (
+            "💰 Earning number: <code>{id}</code>\n"
+            "🎁 <b>Bonus from administrator</b>\n"
+            "🔢 Amount: {amount} {currency}\n"
+            "🕘 Date: <code>{date}</code>"
+        ),
         "all.earnings.title": "💰 All your referral earnings:",
         "all.earnings.empty": "You have no referral earnings yet",
         "all.earning.format.admin": "{amount} {currency} from Admin | {date}",
-
         "referrals.stats.template": (
             "📊 Referral system statistics:\n\n"
             "👥 Active referrals: {active_count}\n"
@@ -1282,7 +1090,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "📈 Total referrals top-ups: {total_original} {currency}\n"
             "🔢 Number of earnings: {earnings_count}"
         ),
-
         # === Admin: Main Menu ===
         "admin.menu.main": "⛩️ Admin Menu",
         "admin.menu.shop": "🛒 Shop management",
@@ -1291,7 +1098,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.menu.users": "👥 Users management",
         "admin.menu.broadcast": "📝 Broadcast",
         "admin.menu.rights": "Insufficient permissions",
-
         # === Admin: User Management ===
         "admin.users.prompt_enter_id": "👤 Enter the user ID to view / edit data",
         "admin.users.invalid_id": "⚠️ Please enter a valid numeric user ID.",
@@ -1310,14 +1116,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.users.bonus.added": "✅ {name}'s referral bonus has been topped up by {amount} {currency}",
         "admin.users.bonus.added.notify": "🎁 You have been credited with a referral bonus of {amount} {currency}",
         "admin.users.bonus.invalid": "❌ Invalid amount. Enter a number from {min_amount} to {max_amount} {currency}.",
-
         # === Admin: Shop Management Menu ===
         "admin.shop.menu.title": "⛩️ Shop management",
         "admin.shop.menu.statistics": "📊 Statistics",
         "admin.shop.menu.logs": "📁 Show logs",
         "admin.shop.menu.admins": "👮 Admins",
         "admin.shop.menu.users": "👤 Users",
-
         # === Admin: Categories Management ===
         "admin.categories.menu.title": "⛩️ Categories management",
         "admin.categories.add": "➕ Add category",
@@ -1333,8 +1137,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.categories.delete.success": "✅ Category deleted",
         "admin.categories.rename.not_found": "❌ Category cannot be updated (does not exist)",
         "admin.categories.rename.exist": "❌ Cannot rename (a category with this name already exists)",
-        "admin.categories.rename.success": "✅ Category \"{old}\" renamed to \"{new}\"",
-
+        "admin.categories.rename.success": '✅ Category "{old}" renamed to "{new}"',
         # === Admin: Goods / Items Management (Add / List / Item Info) ===
         "admin.goods.add_position": "➕ add item",
         "admin.goods.manage_stock": "➕ Add product to item",
@@ -1356,7 +1159,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.add.stock.invalid": "⚠️ Incorrect quantity value. Please enter a number.",
         "admin.goods.add.stock.negative": "⚠️ Incorrect quantity value. Enter a positive number.",
         "admin.goods.add.result.created_with_stock": "✅ Item {item_name} created, {stock_quantity} added to the quantity of goods.",
-
         # === Admin: Goods / Items Update Flow ===
         "admin.goods.update.position.invalid": "Item not found.",
         "admin.goods.update.position.exists": "An item with this name already exists.",
@@ -1365,15 +1167,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.update.prompt.new_name": "Enter a new item name:",
         "admin.goods.update.prompt.description": "Enter item description:",
         "admin.goods.update.success": "✅ Item updated",
-
         # === Admin: Goods / Items Delete Flow ===
         "admin.goods.delete.prompt.name": "Enter the item name",
         "admin.goods.delete.position.not_found": "❌ item not deleted (this item doesn't exist)",
         "admin.goods.delete.position.success": "✅ item deleted",
-
         # === Admin: Item Info ===
         "admin.goods.view_stock": "View items",
-
         # Admin Modifier Management (Card 8)
         "admin.goods.manage_modifiers": "🍳 Modifiers",
         "admin.goods.modifiers.prompt": "Would you like to add modifiers (spice, extras, etc.)?",
@@ -1385,16 +1184,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.modifiers.edit_instructions": "Choose an action:",
         "admin.goods.modifiers.set_new": "📝 Set New",
         "admin.goods.modifiers.clear": "🗑 Clear All",
-
         # === Admin: Logs ===
         "admin.shop.logs.caption": "Bot logs",
         "admin.shop.logs.empty": "❗️ No logs yet",
-
         # === Group Notifications ===
         "shop.group.new_upload": "New stock",
         "shop.group.item": "Item",
         "shop.group.stock": "Quantity",
-
         # === Admin: Statistics ===
         "admin.shop.stats.template": (
             "Shop statistics:\n"
@@ -1409,7 +1205,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "◾Positions: {goods} pcs\n"
             "◾Categories: {categories} pcs\n"
         ),
-
         # === Admin: Lists & Broadcast ===
         "admin.shop.admins.title": "👮 Bot admins:",
         "admin.shop.users.title": "Bot users:",
@@ -1420,7 +1215,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "📊 Progress: {progress:.1f}%{n}"
             "✅ Sent: {sent}/{total}\n"
             "❌ Errors: {failed}\n"
-            "⏱ Time elapsed: {time} sec"),
+            "⏱ Time elapsed: {time} sec"
+        ),
         "broadcast.done": (
             "✅ Broadcasting is complete! \n\n"
             "📊 Statistics:📊\n"
@@ -1433,7 +1229,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
         "broadcast.cancel": "❌ The broadcast has been canceled.",
         "broadcast.warning": "No active broadcast",
-
         # === Brand / Store Selection ===
         "shop.brands.title": "🏪 Choose a restaurant",
         "shop.branches.title": "📍 Choose a branch",
@@ -1459,7 +1254,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.delete_cart": "🗑 Delete Cart",
         "btn.stay": "↩️ Stay",
         "btn.switch_and_remove": "🔄 Switch & Remove Unavailable",
-
         # === Shop Browsing (Categories / Goods / Item Page) ===
         "shop.categories.title": "🏪 Shop categories",
         "shop.goods.choose": "🏪 Choose a product",
@@ -1470,7 +1264,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "shop.item.quantity_unlimited": "Quantity — unlimited",
         "shop.item.quantity_left": "Quantity — {count} pcs",
         "shop.item.quantity_detailed": "📦 Total in stock: {total} pcs\n🔒 Reserved: {reserved} pcs\n✅ Available to order: {available} pcs",
-
         # === Purchases ===
         "purchases.title": "Purchased items:",
         "purchases.pagination.invalid": "Invalid pagination data",
@@ -1480,7 +1273,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "purchases.item.datetime": "<b>🕒 Purchased at</b>: <code>{dt}</code>",
         "purchases.item.unique_id": "<b>🧾 Unique ID</b>: <code>{uid}</code>",
         "purchases.item.value": "<b>🔑 Value</b>:\n<code>{value}</code>",
-
         # === Middleware ===
         "middleware.ban": "⏳ You are temporarily blocked. Wait {time} seconds.",
         "middleware.above_limits": "⚠️ Too many requests! You are temporarily blocked.",
@@ -1492,7 +1284,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "middleware.security.banned": "⛔ <b>You have been banned</b>\n\nReason: {reason}",
         "middleware.security.banned_no_reason": "⛔ <b>You have been banned</b>\n\nPlease contact the administrator for more information.",
         "middleware.security.rate_limit": "⚠️ Too many requests! Please wait a moment.",
-
         # === Errors ===
         "errors.not_subscribed": "You are not subscribed",
         "errors.pagination_invalid": "Invalid pagination data",
@@ -1500,7 +1291,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "errors.channel.telegram_not_found": "I can't write to the channel. Add me as a channel admin for uploads @{channel} with the right to publish messages.",
         "errors.channel.telegram_forbidden_error": "Channel not found. Check the channel username for uploads @{channel}.",
         "errors.channel.telegram_bad_request": "Failed to send to the channel for uploads: {e}",
-
         # === Orders ===
         "order.payment_method.choose": "💳 Choose payment method:",
         "order.payment_method.bitcoin": "💳 Bitcoin",
@@ -1516,15 +1306,11 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Wait for delivery!"
         ),
         "order.status.notify_order_delivered": (
-            "Order {order_code} delivered! ✅\n\n"
-            "Thank you for your purchase! We look forward to seeing you again! 🙏"
+            "Order {order_code} delivered! ✅\n\nThank you for your purchase! We look forward to seeing you again! 🙏"
         ),
         "order.status.notify_order_modified": (
-            "Order {order_code} modified by admin 📝\n\n"
-            "Changes:\n{changes}\n\n"
-            "New total: {total}"
+            "Order {order_code} modified by admin 📝\n\nChanges:\n{changes}\n\nNew total: {total}"
         ),
-
         # === Additional Common Buttons ===
         "btn.cart": "🛒 Cart",
         "btn.my_orders": "📦 My Orders",
@@ -1547,7 +1333,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.apply_bonus_no": "❌ No, save for later",
         "btn.cancel": "❌ Cancel",
         "btn.add_to_cart": "🛒 Add to Cart",
-
         # === Cart Management ===
         "cart.add_success": "✅ {item_name} added to cart!",
         "cart.add_error": "❌ {message}",
@@ -1563,7 +1348,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "cart.delivery_note": "📝 Note: {note}\n",
         "cart.use_info_question": "\n\nWould you like to use this information or update it?",
         "cart.no_saved_info": "❌ No saved delivery information found. Please enter manually.",
-
         # === Order/Delivery Flow ===
         "order.delivery.address_prompt": "📍 Please enter your delivery address:",
         "order.delivery.address_invalid": "❌ Please provide a valid delivery address (at least 5 characters).",
@@ -1571,7 +1355,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.phone_invalid": "❌ Please provide a valid phone number (at least 8 digits).",
         "order.delivery.note_prompt": "📝 Any special delivery instructions? (Optional)\n\nYou can skip this by clicking the button below.",
         "order.delivery.info_save_error": "❌ Error saving delivery information. Please try again.",
-
         # Location Method Choice
         "order.delivery.location_method_prompt": "📍 How would you like to share your delivery location?\n\nChoose one of the options below:",
         "btn.location_method.gps": "📡 Send GPS via Telegram",
@@ -1585,16 +1368,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.live_gps_hint": "📍 Please share your live location via the attachment menu (📎 → Location → Share Live Location).",
         "order.delivery.google_link_prompt": "🗺 Paste a Google Maps link with your location.\n\nOpen Google Maps, find the location, tap 'Share' and copy the link here.",
         "order.delivery.google_link_invalid": "❌ Could not recognize the Google Maps link. Make sure it starts with google.com/maps or goo.gl/maps.",
-        "order.delivery.address_confirm_prompt": "📍 Your address:\n<b>{address}</b>\n\n🔗 <a href=\"{maps_link}\">View on map</a>\n\nIs this correct?",
+        "order.delivery.address_confirm_prompt": '📍 Your address:\n<b>{address}</b>\n\n🔗 <a href="{maps_link}">View on map</a>\n\nIs this correct?',
         "btn.address_confirm_yes": "✅ Yes, that's correct",
         "btn.address_confirm_retry": "✏️ No, re-enter address",
-
         # GPS Location (Card 2)
         "order.delivery.location_prompt": "📍 Would you like to share your GPS location for more accurate delivery?\n\nTap the button below or skip this step.",
         "order.delivery.location_saved": "✅ Location saved!",
         "btn.share_location": "📍 Share Location",
         "btn.skip_location": "⏭ Skip",
-
         # Delivery Type (Card 3)
         "order.delivery.type_prompt": "🚚 Choose delivery type:",
         "btn.delivery.door": "🚪 Deliver to Door",
@@ -1611,7 +1392,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.drop_photo_prompt": "📸 Want to send a photo of the drop location? (optional)",
         "order.delivery.drop_photo_saved": "✅ Drop location photo saved!",
         "btn.skip_drop_photo": "⏭ Skip Photo",
-
         # PromptPay (Card 1)
         "order.payment_method.promptpay": "💳 PromptPay QR",
         "order.payment.promptpay.title": "💳 <b>PromptPay Payment</b>",
@@ -1634,7 +1414,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.promptpay.duplicate_slip": "🚫 This payment slip has already been used for another order. Each slip can be used only once. Please contact support if you believe this is a mistake.",
         "admin.order.verify_payment": "✅ Verify Payment",
         "admin.order.payment_verified": "✅ Payment Verified",
-
         # Delivery Chat (Card 13)
         "order.delivery.chat_unavailable": "❌ Chat with driver unavailable. Rider group not configured.",
         "order.delivery.chat_started": "💬 You can message your driver. Send text, photo, or location.\n\nSend /endchat to end the chat.",
@@ -1644,7 +1423,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.chat_message_sent": "✅ Message sent to driver.",
         "order.delivery.driver_no_active_order": "⚠️ No active order to relay this message.",
         "btn.chat_with_driver": "💬 Chat with Driver",
-
         # GPS tracking & chat session (Card 15)
         "delivery.gps.prompt": "📍 Your order {order_code} is on the way!\n\nHelp your driver find you faster — share your location:",
         "delivery.gps.btn_static": "📍 Send Location",
@@ -1657,7 +1435,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "delivery.chat.post_delivery_open": "✅ Delivered! Chat stays open for {minutes} more minutes.",
         "delivery.chat.post_delivery_closed": "⏹ Post-delivery chat window has closed.",
         "btn.end_chat": "❌ End Chat",
-
         # === Bonus/Referral Application ===
         "order.bonus.available": "💰 <b>You have ${bonus_balance} in referral bonuses!</b>\n\n",
         "order.bonus.apply_question": "Would you like to apply referral bonus to this order?",
@@ -1666,21 +1443,17 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.bonus.invalid_amount": "❌ Invalid amount. Please enter a number (e.g., 5.50):",
         "order.bonus.insufficient": "❌ Insufficient bonus balance. Please try again.",
         "order.bonus.enter_amount": "Enter the bonus amount you want to apply (maximum ${max_applicable}):\n\nOr use all available bonuses by clicking the button below.",
-
         # === Payment Instructions ===
         "order.payment.system_unavailable": "❌ <b>Payment System Temporarily Unavailable</b>\n\nNo Bitcoin addresses available. Please contact support.",
         "order.payment.customer_not_found": "❌ Customer info not found. Please try again.",
         "order.payment.creation_error": "❌ Error creating orders. Please try again or contact support.",
-
         # === Order Summary/Total ===
         "order.summary.title": "📦 <b>Order Summary</b>\n\n",
         "order.summary.cart_total": "Cart Total: ${cart_total}",
         "order.summary.bonus_applied": "Bonus Applied: -${bonus_applied}",
         "order.summary.final_amount": "Final Amount: ${final_amount}",
-
         # === Inventory/Reservation ===
         "order.inventory.unable_to_reserve": "❌ <b>Unable to Reserve Items</b>\n\nThe following items are not available in the requested quantities:\n\n{unavailable_items}\n\nPlease adjust your cart and try again.",
-
         # === My Orders View ===
         "myorders.title": "📦 <b>My Orders</b>\n\n",
         "myorders.total": "Total Orders: {count}",
@@ -1701,7 +1474,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "myorders.back_to_menu": "◀️ Back to Orders Menu",
         "myorders.select_details": "Select an order to view details:",
         "myorders.order_not_found": "Order not found",
-
         # === Order Details Display ===
         "myorders.detail.title": "📦 <b>Order Details #{order_code}</b>\n\n",
         "myorders.detail.status": "📊 <b>Status:</b> {status}\n",
@@ -1715,7 +1487,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "myorders.detail.completed": "✅ <b>Completed:</b> {date}\n",
         "myorders.detail.items": "\n📦 <b>Items:</b>\n{items}\n",
         "myorders.detail.delivery_info": "\n📍 <b>Delivery Information:</b>\n{address}\n{phone}\n{note}",
-
         # === Help System ===
         "help.prompt": "📧 <b>Need help?</b>\n\n",
         "help.describe_issue": "Please describe your issue or question, and it will be sent directly to the administrator.\n\nType your message below:",
@@ -1726,7 +1497,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "help.sent_success": "✅ {auto_message}",
         "help.sent_error": "❌ Failed to send message to admin: {error}\n\nPlease try again later.",
         "help.cancelled": "Help request cancelled.",
-
         # === Admin Order Notifications ===
         "admin.order.action_required_title": "⏳ <b>Action Required:</b>",
         "admin.order.address_label": "Address: {address}",
@@ -1746,7 +1516,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.order.payment_method_label": "Payment Method: <b>{method}</b>",
         "admin.order.phone_label": "Phone: {phone}",
         "admin.order.subtotal_label": "Subtotal: <b>${amount} {currency}</b>",
-        "admin.order.use_cli_confirm": "Use CLI to confirm order and set delivery time:\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time \"YYYY-MM-DD HH:MM\"</code>",
+        "admin.order.use_cli_confirm": 'Use CLI to confirm order and set delivery time:\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time "YYYY-MM-DD HH:MM"</code>',
         "btn.admin.back_to_panel": "🔙 Back to Admin Panel",
         "btn.admin.create_refcode": "➕ Create Reference Code",
         "btn.admin.list_refcodes": "📋 List All Codes",
@@ -1806,7 +1576,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.bitcoin.send_exact": "• Send the EXACT amount shown above",
         "order.payment.bitcoin.title": "💳 <b>Bitcoin Payment Instructions</b>",
         "order.payment.bitcoin.total_amount": "Total Amount: <b>{amount} {currency}</b>",
-
         # Crypto payment (Card 18) — generic strings for all coins
         "crypto.payment.title": "💳 <b>{coin_name} Payment</b>",
         "crypto.payment.order_code": "Order: <b>{code}</b>",
@@ -1834,7 +1603,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Your order is now being processed."
         ),
         "crypto.payment_expired": "⏰ Payment window for your {coin} order ({order_code}) has expired. Please place a new order.",
-
         "order.payment.cash.admin_contact": "Admin will contact you shortly.",
         "order.payment.cash.after_confirm": "After confirmation, you will be notified of the delivery time.",
         "order.payment.cash.created": "Your order {code} has been created and is awaiting admin confirmation.",
@@ -1852,7 +1620,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.order_label": "📋 <b>Order: {code}</b>",
         "order.payment.subtotal_label": "Subtotal: <b>{amount} {currency}</b>",
         "order.payment.total_amount_label": "<b>Total Amount: {amount} {currency}</b>",
-
         # === Card 9: Kitchen & Delivery Workflow ===
         "admin.menu.orders": "📋 Orders",
         "admin.orders.list_title": "📋 <b>Orders</b>",
@@ -1935,16 +1702,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.driver.rejected_admin": "❌ Driver rejected.",
         "admin.driver.not_authorized": "Only the owner can do that.",
         "admin.driver.not_found": "Driver not found.",
-
         # Delivery Photo Proof (Card 4)
         "delivery.photo.required": "Photo required for dead drop delivery",
         "delivery.photo.upload_prompt": "Please upload delivery photo",
         "delivery.photo.received": "Delivery photo saved",
         "delivery.photo.sent_to_customer": "Delivery photo sent to customer",
         "delivery.photo.customer_notification": "Your order {order_code} has been delivered! Here is the delivery photo.",
-
         # === New Feature Strings ===
-
         # === Restaurant Feature Strings ===
         "admin.goods.add.allergen.dairy": "Dairy",
         "admin.goods.add.allergen.eggs": "Eggs",
@@ -2012,22 +1776,18 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.accounting.export_sales": "📥 Export Sales CSV",
         "admin.accounting.export_sent": "✅ Report exported.",
         "admin.accounting.no_data": "No data for this period.",
-        "admin.accounting.summary": "📊 <b>Revenue Summary ({period})</b>\n\n💰 Revenue: {total} {currency}\n📦 Orders: {orders}\n📈 Avg: {avg} {currency}\n\n<b>By Payment:</b>\n{payments}\n\n<b>Top Products:</b>\n{products}",
         "admin.accounting.summary_all": "📊 All Time",
         "admin.accounting.summary_month": "📊 This Month",
         "admin.accounting.summary_today": "📊 Today",
         "admin.accounting.summary_week": "📊 This Week",
         "admin.accounting.title": "📊 <b>Accounting & Reports</b>",
         "admin.coupon.create": "➕ Create Coupon",
-        "admin.coupon.created": "✅ Coupon <b>{code}</b> created!\nType: {type}\nValue: {value}\nMin order: {min_order}\nMax uses: {max_uses}\nExpires: {expiry}",
-        "admin.coupon.detail": "🎟 <b>{code}</b>\nType: {type}\nValue: {value}\nMin Order: {min_order}\nMax Uses: {max_uses}\nUsed: {used}\nStatus: {status}\nExpires: {expiry}",
         "admin.coupon.empty": "No coupons found.",
         "admin.coupon.enter_code": "Enter coupon code (or type <b>auto</b> for random):",
         "admin.coupon.enter_expiry": "Enter expiry in days (or <b>skip</b> for no expiry):",
         "admin.coupon.enter_max_uses": "Enter max total uses (or <b>skip</b> for unlimited):",
         "admin.coupon.enter_min_order": "Enter minimum order amount (or <b>skip</b>):",
         "admin.coupon.enter_value": "Enter discount value ({type}):",
-        "admin.coupon.invalid_value": "❌ Invalid value. Enter a number.",
         "admin.coupon.list_active": "📋 Active Coupons",
         "admin.coupon.list_all": "📋 All Coupons",
         "admin.coupon.select_type": "Select discount type:",
@@ -2048,18 +1808,11 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.segment.empty": "No users in this segment.",
         "admin.segment.high_spenders": "💰 High Spenders",
         "admin.segment.inactive": "😴 Inactive (30+ days)",
-        "admin.segment.new_users": "🆕 New Users (7d)",
-        "admin.segment.recent_buyers": "🛒 Recent Buyers (7d)",
-        "admin.segment.sent": "✅ Sent to {sent}/{total} ({segment}).",
-        "admin.segment.title": "📣 <b>Targeted Broadcast</b>\n\nSelect segment:",
         "admin.store.add": "➕ Add Store",
-        "admin.store.address_prompt": "Enter store address (or <b>skip</b>):",
         "admin.store.btn_default": "⭐ Set as Default",
         "admin.store.created": "✅ Store <b>{name}</b> created!",
         "admin.store.detail": "🏪 <b>{name}</b>\nStatus: {status}\nDefault: {default}\nAddress: {address}\nLocation: {location}\nPhone: {phone}",
         "admin.store.empty": "No stores configured.",
-        "admin.store.location_prompt": "Send GPS location (or type <b>skip</b>):",
-        "admin.store.name_exists": "Store with this name already exists.",
         "admin.store.name_prompt": "Enter store name:",
         "admin.store.set_default": "✅ {name} set as default store.",
         "admin.store.title": "🏪 <b>Store Management</b>",
@@ -2069,8 +1822,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.ticket.detail": "🎫 <b>Ticket #{code}</b>\nUser: {user_id}\nStatus: {status}\nPriority: {priority}\nSubject: {subject}\nCreated: {date}",
         "admin.ticket.empty": "No open tickets.",
         "admin.ticket.list": "Open/In Progress Tickets:",
-        "admin.ticket.reply_prompt": "Reply to ticket #{code}:",
-        "admin.ticket.resolved": "✅ Ticket #{code} resolved.",
         "admin.ticket.title": "🎫 <b>Support Tickets</b>",
         "btn.admin.reply_ticket": "💬 Reply",
         "btn.admin.resolve_ticket": "✅ Resolve",
@@ -2086,18 +1837,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.review_order": "⭐ Leave Review",
         "btn.search": "🔍 Search",
         "btn.skip_coupon": "⏭ Skip Coupon",
-        "coupon.already_used": "❌ You already used this coupon.",
         "coupon.applied": "✅ Coupon applied! Discount: -{discount} {currency}",
         "coupon.enter_code": "🎟 Enter coupon code (or press Skip):",
         "coupon.expired": "❌ This coupon has expired.",
         "coupon.invalid": "❌ Invalid or expired coupon code.",
-        "coupon.max_uses_reached": "❌ Coupon usage limit reached.",
-        "coupon.min_order_not_met": "❌ Min order of {min_order} required.",
         "coupon.not_yet_valid": "❌ This coupon is not yet valid.",
-        "invoice.not_available": "Receipt not available.",
         "reorder.success": "✅ Added {added} item(s) to cart. {skipped} item(s) unavailable.",
         "review.already_reviewed": "You have already reviewed this order.",
-        "review.comment_prompt": "You rated {rating}/5 ⭐\n\nAdd a comment? Type or press Skip:",
         "review.detail": "⭐{rating}/5 — {comment}",
         "review.item_rating": "⭐ <b>{item}</b>: {avg:.1f}/5 ({count} reviews)",
         "review.no_reviews": "No reviews yet.",
@@ -2115,163 +1861,38 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "search.results_title": "🔍 <b>Search results for:</b> {query}\n\n",
         "ticket.admin_replied": "💬 Admin replied to ticket #{code}:\n{text}",
         "ticket.closed": "✅ Ticket closed.",
-        "ticket.created": "✅ Ticket <b>#{code}</b> created!",
         "ticket.message_format": "<b>{role}</b> ({date}):\n{text}\n",
         "ticket.message_prompt": "Describe your issue:",
-        "ticket.no_tickets": "No support tickets.",
         "ticket.reply_prompt": "Type your reply:",
         "ticket.reply_sent": "✅ Reply sent.",
-        "ticket.resolved_notification": "✅ Ticket #{code} resolved!",
         "ticket.status.closed": "⚫ Closed",
         "ticket.status.in_progress": "🔵 In Progress",
         "ticket.status.open": "🟢 Open",
         "ticket.status.resolved": "✅ Resolved",
-        "ticket.subject_prompt": "Enter the subject:",
         "ticket.title": "🎫 <b>Support Tickets</b>",
         "ticket.view_title": "🎫 <b>Ticket #{code}</b>\nStatus: {status}\nSubject: {subject}\nCreated: {date}",
-
-        # === Product Search ===
-        "btn.search": "🔍 Search",
-        "search.prompt": "🔍 Enter product name or keyword to search:",
-        "search.results_title": "🔍 <b>Search results for:</b> {query}\n\n",
-        "search.no_results": "❌ No products found. Try different keywords.",
-        "search.result_count": "Found {count} product(s):\n",
-
-        # === Reorder ===
-        "btn.reorder": "🔄 Reorder",
-        "reorder.success": "✅ Added {added} item(s) to cart. {skipped} item(s) unavailable.",
-
-        # === Coupon / Promo Codes ===
-        "admin.menu.coupons": "🎟 Coupons",
-        "admin.coupon.title": "🎟 <b>Coupon Management</b>",
-        "admin.coupon.create": "➕ Create Coupon",
-        "admin.coupon.list_active": "📋 Active Coupons",
-        "admin.coupon.list_all": "📋 All Coupons",
-        "admin.coupon.enter_code": "Enter coupon code (or type <b>auto</b> for random):",
-        "admin.coupon.select_type": "Select discount type:",
-        "admin.coupon.type_percent": "📊 Percentage (%)",
-        "admin.coupon.type_fixed": "💰 Fixed Amount",
-        "admin.coupon.enter_value": "Enter discount value ({type}):",
-        "admin.coupon.enter_min_order": "Enter minimum order amount (or <b>skip</b>):",
-        "admin.coupon.enter_max_uses": "Enter max total uses (or <b>skip</b> for unlimited):",
-        "admin.coupon.enter_expiry": "Enter expiry in days (or <b>skip</b> for no expiry):",
         "admin.coupon.created": "✅ Coupon <b>{code}</b> created!\nType: {type}\nDiscount: {value}\nMin order: {min_order}\nMax uses: {max_uses}\nExpires: {expiry}",
         "admin.coupon.invalid_value": "❌ Invalid value. Please enter a number.",
-        "admin.coupon.empty": "No coupons found.",
         "admin.coupon.detail": "🎟 <b>{code}</b>\nType: {type}\nDiscount: {value}\nMin Order: {min_order}\nMax Uses: {max_uses}\nUsed: {used}\nStatus: {status}\nExpires: {expiry}",
-        "admin.coupon.toggled": "✅ Coupon {code} is now {status}.",
-        "admin.coupon.toggle_activate": "✅ Activate",
-        "admin.coupon.toggle_deactivate": "❌ Deactivate",
-        "coupon.invalid": "❌ Invalid or expired coupon code.",
         "coupon.min_order_not_met": "❌ Minimum order of {min_order} required for this coupon.",
         "coupon.already_used": "❌ You have already used this coupon.",
         "coupon.max_uses_reached": "❌ This coupon has reached its usage limit.",
-        "coupon.expired": "❌ This coupon has expired.",
-        "coupon.not_yet_valid": "❌ This coupon is not yet valid.",
-        "coupon.applied": "✅ Coupon applied! Discount: -{discount} {currency}",
-        "coupon.enter_code": "🎟 Enter coupon code (or press Skip):",
-        "btn.skip_coupon": "⏭ Skip Coupon",
-        "btn.apply_coupon": "🎟 Apply Coupon",
-
-        # === Review / Rating System ===
-        "btn.review_order": "⭐ Leave Review",
-        "review.prompt": "⭐ <b>Rate your order #{order_code}</b>\n\nSelect your rating:",
-        "review.rate_1": "⭐",
-        "review.rate_2": "⭐⭐",
-        "review.rate_3": "⭐⭐⭐",
-        "review.rate_4": "⭐⭐⭐⭐",
-        "review.rate_5": "⭐⭐⭐⭐⭐",
         "review.comment_prompt": "You rated {rating}/5 ⭐\n\nWould you like to add a comment? Type your comment or press Skip:",
-        "review.skip_comment": "⏭ Skip",
-        "review.thanks": "✅ Thank you for your review! ({rating}/5 ⭐)",
-        "review.already_reviewed": "You have already reviewed this order.",
-        "review.item_rating": "⭐ <b>{item}</b>: {avg:.1f}/5 ({count} reviews)",
-        "review.no_reviews": "No reviews yet.",
-        "review.detail": "⭐{rating}/5 — {comment}",
-
-        # === Invoice / Receipt ===
-        "btn.invoice": "🧾 Receipt",
         "invoice.not_available": "Receipt not available for this order.",
-
-        # === Support Ticketing ===
-        "btn.my_tickets": "🎫 Support",
-        "btn.ai_assistant": "🤖 AI Assistant",
-        "btn.create_ticket": "➕ New Ticket",
-        "btn.create_ticket_for_order": "🎫 Support Ticket",
-        "ticket.title": "🎫 <b>Support Tickets</b>",
         "ticket.no_tickets": "You have no support tickets.",
         "ticket.subject_prompt": "Enter the subject of your support request:",
-        "ticket.message_prompt": "Describe your issue:",
         "ticket.created": "✅ Ticket <b>#{code}</b> created! We'll get back to you soon.",
-        "ticket.view_title": "🎫 <b>Ticket #{code}</b>\nStatus: {status}\nSubject: {subject}\nCreated: {date}",
-        "ticket.reply_prompt": "Type your reply:",
-        "ticket.reply_sent": "✅ Reply sent.",
-        "ticket.closed": "✅ Ticket closed.",
-        "ticket.message_format": "<b>{role}</b> ({date}):\n{text}\n",
-        "btn.reply_ticket": "💬 Reply",
-        "btn.close_ticket": "✖ Close Ticket",
-        "ticket.status.open": "🟢 Open",
-        "ticket.status.in_progress": "🔵 In Progress",
-        "ticket.status.resolved": "✅ Resolved",
-        "ticket.status.closed": "⚫ Closed",
-        "ticket.admin_replied": "💬 Admin replied to ticket #{code}:\n{text}",
         "ticket.resolved_notification": "✅ Your ticket #{code} has been resolved!",
-
-        # === Admin Tickets ===
-        "admin.menu.tickets": "🎫 Tickets",
-        "admin.menu.ai_assistant": "🤖 AI Assistant",
-        "admin.ticket.title": "🎫 <b>Support Tickets</b>",
-        "admin.ticket.list": "Open/In Progress Tickets:",
-        "admin.ticket.empty": "No open tickets.",
         "admin.ticket.reply_prompt": "Type your reply to ticket #{code}:",
         "admin.ticket.resolved": "✅ Ticket #{code} marked as resolved.",
-        "admin.ticket.detail": "🎫 <b>Ticket #{code}</b>\nUser: {user_id}\nStatus: {status}\nPriority: {priority}\nSubject: {subject}\nCreated: {date}",
-        "btn.admin.resolve_ticket": "✅ Resolve",
-        "btn.admin.reply_ticket": "💬 Reply",
-
-        # === Accounting / Revenue Export ===
-        "admin.menu.accounting": "📊 Accounting",
-        "admin.accounting.title": "📊 <b>Accounting & Reports</b>",
-        "admin.accounting.summary_today": "📊 Today",
-        "admin.accounting.summary_week": "📊 This Week",
-        "admin.accounting.summary_month": "📊 This Month",
-        "admin.accounting.summary_all": "📊 All Time",
-        "admin.accounting.export_sales": "📥 Export Sales CSV",
-        "admin.accounting.export_products": "📥 Revenue by Product",
-        "admin.accounting.export_payments": "📥 Payment Reconciliation",
         "admin.accounting.summary": "📊 <b>Revenue Summary ({period})</b>\n\n💰 Total Revenue: {total} {currency}\n📦 Orders: {orders}\n📈 Avg Order: {avg} {currency}\n\n<b>By Payment:</b>\n{payments}\n\n<b>Top Products:</b>\n{products}",
-        "admin.accounting.export_sent": "✅ Report exported.",
-        "admin.accounting.no_data": "No data for this period.",
-
-        # === Customer Segmentation ===
-        "admin.menu.segment_broadcast": "📣 Targeted Broadcast",
         "admin.segment.title": "📣 <b>Targeted Broadcast</b>\n\nSelect customer segment:",
-        "admin.segment.all_users": "👥 All Users",
-        "admin.segment.high_spenders": "💰 High Spenders",
         "admin.segment.recent_buyers": "🛒 Recent Buyers (7 days)",
-        "admin.segment.inactive": "😴 Inactive (30+ days)",
         "admin.segment.new_users": "🆕 New Users (7 days)",
-        "admin.segment.count": "📊 Segment: <b>{segment}</b>\nUsers: <b>{count}</b>\n\nType your broadcast message:",
-        "admin.segment.empty": "No users in this segment.",
         "admin.segment.sent": "✅ Broadcast sent to {sent}/{total} users ({segment}).",
-
-        # === Multi-Store / Multi-Location ===
-        "admin.menu.stores": "🏪 Stores",
-        "admin.store.title": "🏪 <b>Store Management</b>",
-        "admin.store.add": "➕ Add Store",
-        "admin.store.name_prompt": "Enter store name:",
         "admin.store.address_prompt": "Enter store address (or type <b>skip</b>):",
         "admin.store.location_prompt": "Send GPS location for the store (or type <b>skip</b>):",
-        "admin.store.created": "✅ Store <b>{name}</b> created!",
-        "admin.store.detail": "🏪 <b>{name}</b>\nStatus: {status}\nDefault: {default}\nAddress: {address}\nLocation: {location}\nPhone: {phone}",
-        "admin.store.toggled": "✅ Store {name} is now {status}.",
-        "admin.store.set_default": "✅ {name} set as default store.",
-        "admin.store.toggle_activate": "✅ Activate",
-        "admin.store.toggle_deactivate": "❌ Deactivate",
-        "admin.store.btn_default": "⭐ Set as Default",
-        "admin.store.empty": "No stores configured.",
         "admin.store.name_exists": "A store with this name already exists.",
-
         # === PDPA Privacy Policy ===
         "btn.privacy": "🔒 Privacy Policy",
         "privacy.notice": (
@@ -2303,7 +1924,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "privacy.already_accepted": "✅ You have already accepted the privacy policy.",
         "privacy.no_url": "Full privacy policy page is not configured yet.",
     },
-
     "th": {
         # === Common Buttons ===
         "btn.shop": "🏪 ร้านค้า",
@@ -2319,16 +1939,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.check_subscription": "🔄 ตรวจสอบการสมัครสมาชิก",
         "btn.admin.ban_user": "🚫 แบนผู้ใช้",
         "btn.admin.unban_user": "✅ ปลดแบนผู้ใช้",
-
         # === Admin Buttons (user management shortcuts) ===
         "btn.admin.promote": "⬆️ แต่งตั้งเป็นแอดมิน",
         "btn.admin.demote": "⬇️ ถอดถอนแอดมิน",
         "btn.admin.add_user_bonus": "🎁 เพิ่มโบนัสการแนะนำ",
-
         # === Titles / Generic Texts ===
         "menu.title": "⛩️ เมนูหลัก",
         "admin.goods.add.stock.error": "❌ เกิดข้อผิดพลาดในการเพิ่มสต็อกเริ่มต้น: {error}",
-        "admin.goods.stock.add_success": "✅ เพิ่ม {quantity} หน่วยให้กับ \"{item}\"",
+        "admin.goods.stock.add_success": '✅ เพิ่ม {quantity} หน่วยให้กับ "{item}"',
         "admin.goods.stock.add_units": "➕ เพิ่มจำนวน",
         "admin.goods.stock.current_status": "สถานะปัจจุบัน",
         "admin.goods.stock.error": "❌ เกิดข้อผิดพลาดในการจัดการสต็อก: {error}",
@@ -2341,12 +1959,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.stock.prompt.item_name": "กรอกชื่อสินค้าเพื่อจัดการสต็อก:",
         "admin.goods.stock.prompt.remove_units": "กรอกจำนวนหน่วยที่ต้องการลบ:",
         "admin.goods.stock.prompt.set_exact": "กรอกจำนวนสต็อกที่แน่นอน:",
-        "admin.goods.stock.redirect_message": "ℹ️ การจัดการสต็อกพร้อมใช้งานแล้วผ่านเมนู \"จัดการสต็อก\"",
-        "admin.goods.stock.remove_success": "✅ ลบ {quantity} หน่วยออกจาก \"{item}\"",
+        "admin.goods.stock.redirect_message": 'ℹ️ การจัดการสต็อกพร้อมใช้งานแล้วผ่านเมนู "จัดการสต็อก"',
+        "admin.goods.stock.remove_success": '✅ ลบ {quantity} หน่วยออกจาก "{item}"',
         "admin.goods.stock.remove_units": "➖ ลบจำนวน",
         "admin.goods.stock.select_action": "เลือกการดำเนินการ",
         "admin.goods.stock.set_exact": "⚖️ ตั้งค่าจำนวนที่แน่นอน",
-        "admin.goods.stock.set_success": "✅ สต็อกของ \"{item}\" ถูกตั้งค่าเป็น {quantity} หน่วย",
+        "admin.goods.stock.set_success": '✅ สต็อกของ "{item}" ถูกตั้งค่าเป็น {quantity} หน่วย',
         "admin.goods.stock.status_title": "📊 สถานะสต็อก:",
         "errors.invalid_item_name": "❌ ชื่อสินค้าไม่ถูกต้อง",
         "errors.invalid_language": "ภาษาไม่ถูกต้อง",
@@ -2361,21 +1979,17 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.users.unban.success": "✅ ผู้ใช้ {name} ถูกปลดแบนเรียบร้อยแล้ว",
         "admin.users.unban.failed": "❌ ไม่สามารถปลดแบนผู้ใช้ได้",
         "admin.users.unban.notify": "✅ คุณถูกปลดแบนโดยผู้ดูแลระบบ",
-
         # === Profile ===
         "btn.referral": "🎲 ระบบการแนะนำ",
         "btn.purchased": "🎁 สินค้าที่ซื้อแล้ว",
         "profile.referral_id": "👤 <b>การแนะนำ</b> — <code>{id}</code>",
-
         # === Subscription Flow ===
         "subscribe.prompt": "กรุณาสมัครสมาชิกช่องข่าวก่อน",
-
         # === Profile Info Lines ===
         "profile.id": "🆔 <b>ID</b> — <code>{id}</code>",
         "profile.bonus_balance": "💰 <b>โบนัสการแนะนำ:</b> ${bonus_balance}",
         "profile.purchased_count": "🎁 <b>สินค้าที่ซื้อแล้ว</b> — {count} ชิ้น",
         "profile.registration_date": "🕢 <b>วันที่ลงทะเบียน</b> — <code>{dt}</code>",
-
         # === Referral ===
         "referral.title": "💚 ระบบการแนะนำ",
         "referral.count": "จำนวนผู้ถูกแนะนำ: {count}",
@@ -2386,29 +2000,28 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
         "btn.view_referrals": "👥 ผู้ถูกแนะนำของฉัน",
         "btn.view_earnings": "💰 รายได้ของฉัน",
-
         "referrals.list.title": "👥 ผู้ถูกแนะนำของคุณ:",
         "referrals.list.empty": "คุณยังไม่มีผู้ถูกแนะนำที่ใช้งานอยู่",
         "referrals.item.format": "ID: {telegram_id} | รายได้: {total_earned} {currency}",
-
         "referral.earnings.title": "💰 รายได้จากผู้ถูกแนะนำ <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>):",
         "referral.earnings.empty": "ยังไม่มีรายได้จากผู้ถูกแนะนำ <code>{id}</code> (<a href='tg://user?id={id}'>{name}</a>)",
         "referral.earning.format": "{amount} {currency} | {date} | (จาก {original_amount} {currency})",
-        "referral.item.info": ("💰 รายได้หมายเลข: <code>{id}</code>\n"
-                               "👤 ผู้ถูกแนะนำ: <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>)\n"
-                               "🔢 จำนวน: {amount} {currency}\n"
-                               "🕘 วันที่: <code>{date}</code>\n"
-                               "💵 จากยอดเติมเงิน {original_amount} {currency}"),
-
-        "referral.admin_bonus.info": ("💰 รายได้หมายเลข: <code>{id}</code>\n"
-                                      "🎁 <b>โบนัสจากผู้ดูแลระบบ</b>\n"
-                                      "🔢 จำนวน: {amount} {currency}\n"
-                                      "🕘 วันที่: <code>{date}</code>"),
-
+        "referral.item.info": (
+            "💰 รายได้หมายเลข: <code>{id}</code>\n"
+            "👤 ผู้ถูกแนะนำ: <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>)\n"
+            "🔢 จำนวน: {amount} {currency}\n"
+            "🕘 วันที่: <code>{date}</code>\n"
+            "💵 จากยอดเติมเงิน {original_amount} {currency}"
+        ),
+        "referral.admin_bonus.info": (
+            "💰 รายได้หมายเลข: <code>{id}</code>\n"
+            "🎁 <b>โบนัสจากผู้ดูแลระบบ</b>\n"
+            "🔢 จำนวน: {amount} {currency}\n"
+            "🕘 วันที่: <code>{date}</code>"
+        ),
         "all.earnings.title": "💰 รายได้จากการแนะนำทั้งหมดของคุณ:",
         "all.earnings.empty": "คุณยังไม่มีรายได้จากการแนะนำ",
         "all.earning.format.admin": "{amount} {currency} จาก Admin | {date}",
-
         "referrals.stats.template": (
             "📊 สถิติระบบการแนะนำ:\n\n"
             "👥 ผู้ถูกแนะนำที่ใช้งาน: {active_count}\n"
@@ -2416,7 +2029,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "📈 ยอดเติมเงินรวมของผู้ถูกแนะนำ: {total_original} {currency}\n"
             "🔢 จำนวนครั้งที่ได้รับ: {earnings_count}"
         ),
-
         # === Admin: Main Menu ===
         "admin.menu.main": "⛩️ เมนูแอดมิน",
         "admin.menu.shop": "🛒 จัดการร้านค้า",
@@ -2425,7 +2037,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.menu.users": "👥 จัดการผู้ใช้",
         "admin.menu.broadcast": "📝 ประกาศ",
         "admin.menu.rights": "สิทธิ์ไม่เพียงพอ",
-
         # === Admin: User Management ===
         "admin.users.prompt_enter_id": "👤 กรอก ID ผู้ใช้เพื่อดู / แก้ไขข้อมูล",
         "admin.users.invalid_id": "⚠️ กรุณากรอก ID ผู้ใช้ที่เป็นตัวเลขที่ถูกต้อง",
@@ -2444,14 +2055,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.users.bonus.added": "✅ โบนัสการแนะนำของ {name} ถูกเติมเงิน {amount} {currency}",
         "admin.users.bonus.added.notify": "🎁 คุณได้รับโบนัสการแนะนำจำนวน {amount} {currency}",
         "admin.users.bonus.invalid": "❌ จำนวนไม่ถูกต้อง กรุณากรอกตัวเลขตั้งแต่ {min_amount} ถึง {max_amount} {currency}",
-
         # === Admin: Shop Management Menu ===
         "admin.shop.menu.title": "⛩️ จัดการร้านค้า",
         "admin.shop.menu.statistics": "📊 สถิติ",
         "admin.shop.menu.logs": "📁 แสดงบันทึก",
         "admin.shop.menu.admins": "👮 แอดมิน",
         "admin.shop.menu.users": "👤 ผู้ใช้",
-
         # === Admin: Categories Management ===
         "admin.categories.menu.title": "⛩️ จัดการหมวดหมู่",
         "admin.categories.add": "➕ เพิ่มหมวดหมู่",
@@ -2467,8 +2076,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.categories.delete.success": "✅ ลบหมวดหมู่แล้ว",
         "admin.categories.rename.not_found": "❌ ไม่สามารถอัปเดตหมวดหมู่ได้ (ไม่มีหมวดหมู่นี้)",
         "admin.categories.rename.exist": "❌ ไม่สามารถเปลี่ยนชื่อได้ (มีหมวดหมู่ชื่อนี้อยู่แล้ว)",
-        "admin.categories.rename.success": "✅ หมวดหมู่ \"{old}\" เปลี่ยนชื่อเป็น \"{new}\"",
-
+        "admin.categories.rename.success": '✅ หมวดหมู่ "{old}" เปลี่ยนชื่อเป็น "{new}"',
         # === Admin: Goods / Items Management (Add / List / Item Info) ===
         "admin.goods.add_position": "➕ เพิ่มสินค้า",
         "admin.goods.manage_stock": "➕ เพิ่มสินค้าในรายการ",
@@ -2490,7 +2098,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.add.stock.invalid": "⚠️ จำนวนสินค้าไม่ถูกต้อง กรุณากรอกตัวเลข",
         "admin.goods.add.stock.negative": "⚠️ จำนวนสินค้าไม่ถูกต้อง กรุณากรอกจำนวนที่เป็นบวก",
         "admin.goods.add.result.created_with_stock": "✅ สินค้า {item_name} ถูกสร้างแล้ว เพิ่ม {stock_quantity} เข้าในจำนวนสินค้า",
-
         # === Admin: Goods / Items Update Flow ===
         "admin.goods.update.position.invalid": "ไม่พบสินค้า",
         "admin.goods.update.position.exists": "มีสินค้าชื่อนี้อยู่แล้ว",
@@ -2499,15 +2106,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.update.prompt.new_name": "กรอกชื่อสินค้าใหม่:",
         "admin.goods.update.prompt.description": "กรอกรายละเอียดสินค้า:",
         "admin.goods.update.success": "✅ อัปเดตสินค้าแล้ว",
-
         # === Admin: Goods / Items Delete Flow ===
         "admin.goods.delete.prompt.name": "กรอกชื่อสินค้า",
         "admin.goods.delete.position.not_found": "❌ ไม่สามารถลบสินค้าได้ (ไม่มีสินค้านี้)",
         "admin.goods.delete.position.success": "✅ ลบสินค้าแล้ว",
-
         # === Admin: Item Info ===
         "admin.goods.view_stock": "ดูสินค้า",
-
         # Admin Modifier Management (Card 8)
         "admin.goods.manage_modifiers": "🍳 ตัวเลือกเพิ่มเติม",
         "admin.goods.modifiers.prompt": "ต้องการเพิ่มตัวเลือก (ระดับเผ็ด เครื่องเคียง ฯลฯ) หรือไม่?",
@@ -2519,16 +2123,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.modifiers.edit_instructions": "เลือกการดำเนินการ:",
         "admin.goods.modifiers.set_new": "📝 ตั้งค่าใหม่",
         "admin.goods.modifiers.clear": "🗑 ล้างทั้งหมด",
-
         # === Admin: Logs ===
         "admin.shop.logs.caption": "บันทึกบอท",
         "admin.shop.logs.empty": "❗️ ยังไม่มีบันทึก",
-
         # === Group Notifications ===
         "shop.group.new_upload": "สต็อกใหม่",
         "shop.group.item": "สินค้า",
         "shop.group.stock": "จำนวน",
-
         # === Admin: Statistics ===
         "admin.shop.stats.template": (
             "สถิติร้านค้า:\n"
@@ -2543,7 +2144,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "◾รายการ: {goods} ชิ้น\n"
             "◾หมวดหมู่: {categories} ชิ้น\n"
         ),
-
         # === Admin: Lists & Broadcast ===
         "admin.shop.admins.title": "👮 แอดมินบอท:",
         "admin.shop.users.title": "ผู้ใช้บอท:",
@@ -2554,7 +2154,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "📊 ความคืบหน้า: {progress:.1f}%{n}"
             "✅ ส่งแล้ว: {sent}/{total}\n"
             "❌ ข้อผิดพลาด: {failed}\n"
-            "⏱ เวลาที่ผ่านไป: {time} วินาที"),
+            "⏱ เวลาที่ผ่านไป: {time} วินาที"
+        ),
         "broadcast.done": (
             "✅ การประกาศเสร็จสิ้น!\n\n"
             "📊 สถิติ:📊\n"
@@ -2567,7 +2168,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
         "broadcast.cancel": "❌ ยกเลิกการประกาศแล้ว",
         "broadcast.warning": "ไม่มีการประกาศที่กำลังดำเนินอยู่",
-
         # === Brand / Store Selection ===
         "shop.brands.title": "🏪 เลือกร้านอาหาร",
         "shop.branches.title": "📍 เลือกสาขา",
@@ -2593,7 +2193,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.delete_cart": "🗑 ลบตะกร้า",
         "btn.stay": "↩️ อยู่ที่เดิม",
         "btn.switch_and_remove": "🔄 เปลี่ยนและลบรายการที่ไม่มี",
-
         # === Shop Browsing (Categories / Goods / Item Page) ===
         "shop.categories.title": "🏪 หมวดหมู่ร้านค้า",
         "shop.goods.choose": "🏪 เลือกสินค้าที่ต้องการ",
@@ -2604,7 +2203,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "shop.item.quantity_unlimited": "จำนวน — ไม่จำกัด",
         "shop.item.quantity_left": "จำนวน — {count} ชิ้น",
         "shop.item.quantity_detailed": "📦 สต็อกทั้งหมด: {total} ชิ้น\n🔒 จองแล้ว: {reserved} ชิ้น\n✅ พร้อมสั่งซื้อ: {available} ชิ้น",
-
         # === Purchases ===
         "purchases.title": "สินค้าที่ซื้อแล้ว:",
         "purchases.pagination.invalid": "ข้อมูลการแบ่งหน้าไม่ถูกต้อง",
@@ -2614,7 +2212,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "purchases.item.datetime": "<b>🕒 วันที่ซื้อ</b>: <code>{dt}</code>",
         "purchases.item.unique_id": "<b>🧾 ID เฉพาะ</b>: <code>{uid}</code>",
         "purchases.item.value": "<b>🔑 ค่า</b>:\n<code>{value}</code>",
-
         # === Middleware ===
         "middleware.ban": "⏳ คุณถูกบล็อกชั่วคราว กรุณารอ {time} วินาที",
         "middleware.above_limits": "⚠️ คำขอมากเกินไป! คุณถูกบล็อกชั่วคราว",
@@ -2626,7 +2223,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "middleware.security.banned": "⛔ <b>คุณถูกแบน</b>\n\nเหตุผล: {reason}",
         "middleware.security.banned_no_reason": "⛔ <b>คุณถูกแบน</b>\n\nกรุณาติดต่อผู้ดูแลระบบเพื่อขอข้อมูลเพิ่มเติม",
         "middleware.security.rate_limit": "⚠️ คำขอมากเกินไป! กรุณารอสักครู่",
-
         # === Errors ===
         "errors.not_subscribed": "คุณยังไม่ได้สมัครสมาชิก",
         "errors.pagination_invalid": "ข้อมูลการแบ่งหน้าไม่ถูกต้อง",
@@ -2634,7 +2230,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "errors.channel.telegram_not_found": "ฉันไม่สามารถเขียนไปยังช่องได้ กรุณาเพิ่มฉันเป็นแอดมินช่อง @{channel} พร้อมสิทธิ์ในการเผยแพร่ข้อความ",
         "errors.channel.telegram_forbidden_error": "ไม่พบช่อง กรุณาตรวจสอบชื่อผู้ใช้ช่อง @{channel}",
         "errors.channel.telegram_bad_request": "ไม่สามารถส่งไปยังช่องได้: {e}",
-
         # === Orders ===
         "order.payment_method.choose": "💳 เลือกวิธีการชำระเงิน:",
         "order.payment_method.bitcoin": "💳 Bitcoin",
@@ -2650,15 +2245,11 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "รอรับสินค้า!"
         ),
         "order.status.notify_order_delivered": (
-            "คำสั่งซื้อ {order_code} จัดส่งแล้ว! ✅\n\n"
-            "ขอบคุณสำหรับการสั่งซื้อ! หวังว่าจะได้พบคุณอีก! 🙏"
+            "คำสั่งซื้อ {order_code} จัดส่งแล้ว! ✅\n\nขอบคุณสำหรับการสั่งซื้อ! หวังว่าจะได้พบคุณอีก! 🙏"
         ),
         "order.status.notify_order_modified": (
-            "คำสั่งซื้อ {order_code} ถูกแก้ไขโดยแอดมิน 📝\n\n"
-            "การเปลี่ยนแปลง:\n{changes}\n\n"
-            "ยอดรวมใหม่: {total}"
+            "คำสั่งซื้อ {order_code} ถูกแก้ไขโดยแอดมิน 📝\n\nการเปลี่ยนแปลง:\n{changes}\n\nยอดรวมใหม่: {total}"
         ),
-
         # === Additional Common Buttons ===
         "btn.cart": "🛒 ตะกร้า",
         "btn.my_orders": "📦 คำสั่งซื้อของฉัน",
@@ -2681,7 +2272,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.apply_bonus_no": "❌ ไม่ เก็บไว้ใช้ทีหลัง",
         "btn.cancel": "❌ ยกเลิก",
         "btn.add_to_cart": "🛒 เพิ่มลงตะกร้า",
-
         # === Cart Management ===
         "cart.add_success": "✅ เพิ่ม {item_name} ลงตะกร้าแล้ว!",
         "cart.add_error": "❌ {message}",
@@ -2697,7 +2287,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "cart.delivery_note": "📝 หมายเหตุ: {note}\n",
         "cart.use_info_question": "\n\nคุณต้องการใช้ข้อมูลนี้หรือต้องการอัปเดต?",
         "cart.no_saved_info": "❌ ไม่พบข้อมูลการจัดส่งที่บันทึกไว้ กรุณากรอกข้อมูลด้วยตนเอง",
-
         # === Order/Delivery Flow ===
         "order.delivery.address_prompt": "📍 กรุณากรอกที่อยู่จัดส่ง:",
         "order.delivery.address_invalid": "❌ กรุณากรอกที่อยู่จัดส่งที่ถูกต้อง (อย่างน้อย 5 ตัวอักษร)",
@@ -2705,7 +2294,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.phone_invalid": "❌ กรุณากรอกหมายเลขโทรศัพท์ที่ถูกต้อง (อย่างน้อย 8 หลัก)",
         "order.delivery.note_prompt": "📝 มีคำแนะนำพิเศษสำหรับการจัดส่งหรือไม่? (ไม่บังคับ)\n\nคุณสามารถข้ามขั้นตอนนี้โดยกดปุ่มด้านล่าง",
         "order.delivery.info_save_error": "❌ เกิดข้อผิดพลาดในการบันทึกข้อมูลการจัดส่ง กรุณาลองอีกครั้ง",
-
         # Location Method Choice
         "order.delivery.location_method_prompt": "📍 คุณต้องการแจ้งที่อยู่จัดส่งอย่างไร?\n\nเลือกวิธีด้านล่าง:",
         "btn.location_method.gps": "📡 ส่ง GPS ผ่าน Telegram",
@@ -2719,16 +2307,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.live_gps_hint": "📍 กรุณาแชร์ตำแหน่งสดผ่านเมนูแนบไฟล์ (📎 → ตำแหน่ง → แชร์ตำแหน่งสด)",
         "order.delivery.google_link_prompt": "🗺 วางลิงก์ Google Maps ที่มีตำแหน่งของคุณ\n\nเปิด Google Maps ค้นหาตำแหน่ง กด 'แชร์' แล้วคัดลอกลิงก์มาวางที่นี่",
         "order.delivery.google_link_invalid": "❌ ไม่สามารถรับรู้ลิงก์ Google Maps ได้ กรุณาตรวจสอบว่าลิงก์เริ่มต้นด้วย google.com/maps หรือ goo.gl/maps",
-        "order.delivery.address_confirm_prompt": "📍 ที่อยู่ของคุณ:\n<b>{address}</b>\n\n🔗 <a href=\"{maps_link}\">ดูบนแผนที่</a>\n\nถูกต้องหรือไม่?",
+        "order.delivery.address_confirm_prompt": '📍 ที่อยู่ของคุณ:\n<b>{address}</b>\n\n🔗 <a href="{maps_link}">ดูบนแผนที่</a>\n\nถูกต้องหรือไม่?',
         "btn.address_confirm_yes": "✅ ใช่ ถูกต้อง",
         "btn.address_confirm_retry": "✏️ ไม่ใช่ กรอกใหม่",
-
         # GPS Location (Card 2)
         "order.delivery.location_prompt": "📍 คุณต้องการแชร์ตำแหน่ง GPS เพื่อการจัดส่งที่แม่นยำยิ่งขึ้นหรือไม่?\n\nกดปุ่มด้านล่างหรือข้ามขั้นตอนนี้",
         "order.delivery.location_saved": "✅ บันทึกตำแหน่งแล้ว!",
         "btn.share_location": "📍 แชร์ตำแหน่ง",
         "btn.skip_location": "⏭ ข้าม",
-
         # Delivery Type (Card 3)
         "order.delivery.type_prompt": "🚚 เลือกประเภทการจัดส่ง:",
         "btn.delivery.door": "🚪 จัดส่งถึงหน้าประตู",
@@ -2745,7 +2331,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.drop_photo_prompt": "📸 ต้องการส่งรูปถ่ายจุดรับหรือไม่? (ไม่บังคับ)",
         "order.delivery.drop_photo_saved": "✅ บันทึกรูปถ่ายจุดรับแล้ว!",
         "btn.skip_drop_photo": "⏭ ข้ามรูปถ่าย",
-
         # PromptPay (Card 1)
         "order.payment_method.promptpay": "💳 PromptPay QR",
         "order.payment.promptpay.title": "💳 <b>ชำระเงินผ่าน PromptPay</b>",
@@ -2768,7 +2353,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.promptpay.duplicate_slip": "🚫 สลิปนี้ถูกใช้กับคำสั่งซื้ออื่นแล้ว แต่ละสลิปใช้ได้เพียงครั้งเดียว หากคุณคิดว่าเป็นข้อผิดพลาด กรุณาติดต่อฝ่ายสนับสนุน",
         "admin.order.verify_payment": "✅ ยืนยันการชำระเงิน",
         "admin.order.payment_verified": "✅ ยืนยันการชำระเงินแล้ว",
-
         # Delivery Chat (Card 13)
         "order.delivery.chat_unavailable": "❌ แชทกับคนขับไม่พร้อมใช้งาน กลุ่มไรเดอร์ยังไม่ได้ตั้งค่า",
         "order.delivery.chat_started": "💬 คุณสามารถส่งข้อความถึงคนขับได้ ส่งข้อความ รูปภาพ หรือตำแหน่ง\n\nส่ง /endchat เพื่อจบการสนทนา",
@@ -2778,7 +2362,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.chat_message_sent": "✅ ส่งข้อความถึงคนขับแล้ว",
         "order.delivery.driver_no_active_order": "⚠️ ไม่มีออเดอร์ที่กำลังจัดส่งสำหรับส่งต่อข้อความนี้",
         "btn.chat_with_driver": "💬 แชทกับคนขับ",
-
         # GPS tracking & chat session (Card 15)
         "delivery.gps.prompt": "📍 ออเดอร์ {order_code} ของคุณกำลังมา!\n\nช่วยให้คนขับหาคุณเจอเร็วขึ้น — แชร์ตำแหน่งของคุณ:",
         "delivery.gps.btn_static": "📍 ส่งตำแหน่ง",
@@ -2791,7 +2374,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "delivery.chat.post_delivery_open": "✅ จัดส่งแล้ว! แชทยังเปิดอีก {minutes} นาที",
         "delivery.chat.post_delivery_closed": "⏹ หน้าต่างแชทหลังจัดส่งปิดแล้ว",
         "btn.end_chat": "❌ จบการสนทนา",
-
         # === Bonus/Referral Application ===
         "order.bonus.available": "💰 <b>คุณมีโบนัสการแนะนำ ${bonus_balance}!</b>\n\n",
         "order.bonus.apply_question": "คุณต้องการใช้โบนัสการแนะนำกับคำสั่งซื้อนี้หรือไม่?",
@@ -2800,21 +2382,17 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.bonus.invalid_amount": "❌ จำนวนไม่ถูกต้อง กรุณากรอกตัวเลข (เช่น 5.50):",
         "order.bonus.insufficient": "❌ ยอดโบนัสไม่เพียงพอ กรุณาลองอีกครั้ง",
         "order.bonus.enter_amount": "กรอกจำนวนโบนัสที่ต้องการใช้ (สูงสุด ${max_applicable}):\n\nหรือใช้โบนัสทั้งหมดโดยกดปุ่มด้านล่าง",
-
         # === Payment Instructions ===
         "order.payment.system_unavailable": "❌ <b>ระบบชำระเงินไม่พร้อมใช้งานชั่วคราว</b>\n\nไม่มีที่อยู่ Bitcoin ที่พร้อมใช้งาน กรุณาติดต่อฝ่ายสนับสนุน",
         "order.payment.customer_not_found": "❌ ไม่พบข้อมูลลูกค้า กรุณาลองอีกครั้ง",
         "order.payment.creation_error": "❌ เกิดข้อผิดพลาดในการสร้างคำสั่งซื้อ กรุณาลองอีกครั้งหรือติดต่อฝ่ายสนับสนุน",
-
         # === Order Summary/Total ===
         "order.summary.title": "📦 <b>สรุปคำสั่งซื้อ</b>\n\n",
         "order.summary.cart_total": "ยอดรวมตะกร้า: ${cart_total}",
         "order.summary.bonus_applied": "โบนัสที่ใช้: -${bonus_applied}",
         "order.summary.final_amount": "ยอดรวมสุทธิ: ${final_amount}",
-
         # === Inventory/Reservation ===
         "order.inventory.unable_to_reserve": "❌ <b>ไม่สามารถจองสินค้าได้</b>\n\nสินค้าต่อไปนี้ไม่พร้อมจำหน่ายในจำนวนที่ต้องการ:\n\n{unavailable_items}\n\nกรุณาปรับตะกร้าของคุณและลองอีกครั้ง",
-
         # === My Orders View ===
         "myorders.title": "📦 <b>คำสั่งซื้อของฉัน</b>\n\n",
         "myorders.total": "คำสั่งซื้อทั้งหมด: {count}",
@@ -2835,7 +2413,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "myorders.back_to_menu": "◀️ กลับไปเมนูคำสั่งซื้อ",
         "myorders.select_details": "เลือกคำสั่งซื้อเพื่อดูรายละเอียด:",
         "myorders.order_not_found": "ไม่พบคำสั่งซื้อ",
-
         # === Order Details Display ===
         "myorders.detail.title": "📦 <b>รายละเอียดคำสั่งซื้อ #{order_code}</b>\n\n",
         "myorders.detail.status": "📊 <b>สถานะ:</b> {status}\n",
@@ -2849,7 +2426,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "myorders.detail.completed": "✅ <b>เสร็จสิ้น:</b> {date}\n",
         "myorders.detail.items": "\n📦 <b>สินค้า:</b>\n{items}\n",
         "myorders.detail.delivery_info": "\n📍 <b>ข้อมูลการจัดส่ง:</b>\n{address}\n{phone}\n{note}",
-
         # === Help System ===
         "help.prompt": "📧 <b>ต้องการความช่วยเหลือ?</b>\n\n",
         "help.describe_issue": "กรุณาอธิบายปัญหาหรือคำถามของคุณ แล้วจะถูกส่งตรงไปยังผู้ดูแลระบบ\n\nพิมพ์ข้อความด้านล่าง:",
@@ -2860,7 +2436,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "help.sent_success": "✅ {auto_message}",
         "help.sent_error": "❌ ไม่สามารถส่งข้อความถึงแอดมินได้: {error}\n\nกรุณาลองอีกครั้งภายหลัง",
         "help.cancelled": "ยกเลิกคำขอช่วยเหลือแล้ว",
-
         # === Admin Order Notifications ===
         "admin.order.action_required_title": "⏳ <b>ต้องดำเนินการ:</b>",
         "admin.order.address_label": "ที่อยู่: {address}",
@@ -2880,7 +2455,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.order.payment_method_label": "วิธีการชำระเงิน: <b>{method}</b>",
         "admin.order.phone_label": "โทรศัพท์: {phone}",
         "admin.order.subtotal_label": "ยอดรวมย่อย: <b>${amount} {currency}</b>",
-        "admin.order.use_cli_confirm": "ใช้ CLI เพื่อยืนยันคำสั่งซื้อและตั้งเวลาจัดส่ง:\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time \"YYYY-MM-DD HH:MM\"</code>",
+        "admin.order.use_cli_confirm": 'ใช้ CLI เพื่อยืนยันคำสั่งซื้อและตั้งเวลาจัดส่ง:\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time "YYYY-MM-DD HH:MM"</code>',
         "btn.admin.back_to_panel": "🔙 กลับไปแผงควบคุม",
         "btn.admin.create_refcode": "➕ สร้างรหัสอ้างอิง",
         "btn.admin.list_refcodes": "📋 รายการรหัสทั้งหมด",
@@ -2940,7 +2515,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.bitcoin.send_exact": "• ส่งจำนวนเงินที่แน่นอนตามที่แสดงด้านบน",
         "order.payment.bitcoin.title": "💳 <b>คำแนะนำการชำระเงิน Bitcoin</b>",
         "order.payment.bitcoin.total_amount": "ยอดรวม: <b>{amount} {currency}</b>",
-
         # Crypto payment (Card 18) — generic strings for all coins
         "crypto.payment.title": "💳 <b>{coin_name} Payment</b>",
         "crypto.payment.order_code": "Order: <b>{code}</b>",
@@ -2968,7 +2542,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Your order is now being processed."
         ),
         "crypto.payment_expired": "⏰ Payment window for your {coin} order ({order_code}) has expired. Please place a new order.",
-
         "order.payment.cash.admin_contact": "แอดมินจะติดต่อคุณในเร็วๆ นี้",
         "order.payment.cash.after_confirm": "หลังยืนยันแล้ว คุณจะได้รับแจ้งเวลาจัดส่ง",
         "order.payment.cash.created": "คำสั่งซื้อ {code} ของคุณถูกสร้างแล้วและรอการยืนยันจากแอดมิน",
@@ -2986,7 +2559,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.order_label": "📋 <b>คำสั่งซื้อ: {code}</b>",
         "order.payment.subtotal_label": "ยอดรวมย่อย: <b>{amount} {currency}</b>",
         "order.payment.total_amount_label": "<b>ยอดรวม: {amount} {currency}</b>",
-
         # === Card 9: Kitchen & Delivery Workflow ===
         "admin.menu.orders": "📋 คำสั่งซื้อ",
         "admin.orders.list_title": "📋 <b>คำสั่งซื้อ</b>",
@@ -3069,16 +2641,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.driver.rejected_admin": "❌ ปฏิเสธคนขับแล้ว",
         "admin.driver.not_authorized": "เฉพาะเจ้าของเท่านั้นที่ทำได้",
         "admin.driver.not_found": "ไม่พบคนขับ",
-
         # Delivery Photo Proof (Card 4)
         "delivery.photo.required": "ต้องถ่ายรูปสำหรับการจัดส่งแบบฝากไว้ที่จุดนัด",
         "delivery.photo.upload_prompt": "กรุณาอัปโหลดรูปถ่ายการจัดส่ง",
         "delivery.photo.received": "บันทึกรูปถ่ายการจัดส่งแล้ว",
         "delivery.photo.sent_to_customer": "ส่งรูปถ่ายการจัดส่งให้ลูกค้าแล้ว",
         "delivery.photo.customer_notification": "คำสั่งซื้อ {order_code} ของคุณถูกจัดส่งแล้ว! นี่คือรูปถ่ายยืนยันการจัดส่ง",
-
         # === New Feature Strings ===
-
         # === Restaurant Feature Strings ===
         "admin.goods.add.allergen.dairy": "Dairy",
         "admin.goods.add.allergen.eggs": "Eggs",
@@ -3263,7 +2832,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "ticket.subject_prompt": "Enter the subject:",
         "ticket.title": "🎫 <b>Support Tickets</b>",
         "ticket.view_title": "🎫 <b>Ticket #{code}</b>\nStatus: {status}\nSubject: {subject}\nCreated: {date}",
-
         # === PDPA Privacy Policy ===
         "btn.privacy": "🔒 นโยบายความเป็นส่วนตัว",
         "privacy.notice": (
@@ -3295,7 +2863,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "privacy.already_accepted": "✅ คุณยอมรับนโยบายความเป็นส่วนตัวแล้ว",
         "privacy.no_url": "ยังไม่ได้ตั้งค่าหน้านโยบายความเป็นส่วนตัวฉบับเต็ม",
     },
-
     "ar": {
         # === Common Buttons ===
         "btn.shop": "🏪 المتجر",
@@ -3311,16 +2878,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.check_subscription": "🔄 التحقق من الاشتراك",
         "btn.admin.ban_user": "🚫 حظر المستخدم",
         "btn.admin.unban_user": "✅ إلغاء حظر المستخدم",
-
         # === Admin Buttons (user management shortcuts) ===
         "btn.admin.promote": "⬆️ ترقية إلى مشرف",
         "btn.admin.demote": "⬇️ إزالة صلاحيات المشرف",
         "btn.admin.add_user_bonus": "🎁 إضافة مكافأة إحالة",
-
         # === Titles / Generic Texts ===
         "menu.title": "⛩️ القائمة الرئيسية",
         "admin.goods.add.stock.error": "❌ خطأ في إضافة المخزون الأولي: {error}",
-        "admin.goods.stock.add_success": "✅ تمت إضافة {quantity} وحدة إلى \"{item}\"",
+        "admin.goods.stock.add_success": '✅ تمت إضافة {quantity} وحدة إلى "{item}"',
         "admin.goods.stock.add_units": "➕ إضافة وحدات",
         "admin.goods.stock.current_status": "الحالة الحالية",
         "admin.goods.stock.error": "❌ خطأ في إدارة المخزون: {error}",
@@ -3333,12 +2898,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.stock.prompt.item_name": "أدخل اسم المنتج لإدارة المخزون:",
         "admin.goods.stock.prompt.remove_units": "أدخل عدد الوحدات المراد إزالتها:",
         "admin.goods.stock.prompt.set_exact": "أدخل كمية المخزون المحددة:",
-        "admin.goods.stock.redirect_message": "ℹ️ إدارة المخزون متاحة الآن من خلال قائمة \"إدارة المخزون\"",
-        "admin.goods.stock.remove_success": "✅ تمت إزالة {quantity} وحدة من \"{item}\"",
+        "admin.goods.stock.redirect_message": 'ℹ️ إدارة المخزون متاحة الآن من خلال قائمة "إدارة المخزون"',
+        "admin.goods.stock.remove_success": '✅ تمت إزالة {quantity} وحدة من "{item}"',
         "admin.goods.stock.remove_units": "➖ إزالة وحدات",
         "admin.goods.stock.select_action": "اختر الإجراء",
         "admin.goods.stock.set_exact": "⚖️ تعيين الكمية المحددة",
-        "admin.goods.stock.set_success": "✅ تم تعيين مخزون \"{item}\" إلى {quantity} وحدة",
+        "admin.goods.stock.set_success": '✅ تم تعيين مخزون "{item}" إلى {quantity} وحدة',
         "admin.goods.stock.status_title": "📊 حالة المخزون:",
         "errors.invalid_item_name": "❌ اسم المنتج غير صالح",
         "errors.invalid_language": "لغة غير صالحة",
@@ -3353,21 +2918,17 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.users.unban.success": "✅ تم إلغاء حظر المستخدم {name} بنجاح",
         "admin.users.unban.failed": "❌ فشل إلغاء حظر المستخدم",
         "admin.users.unban.notify": "✅ تم إلغاء حظرك من قبل المشرف",
-
         # === Profile ===
         "btn.referral": "🎲 نظام الإحالة",
         "btn.purchased": "🎁 المشتريات",
         "profile.referral_id": "👤 <b>الإحالة</b> — <code>{id}</code>",
-
         # === Subscription Flow ===
         "subscribe.prompt": "أولاً، اشترك في قناة الأخبار",
-
         # === Profile Info Lines ===
         "profile.id": "🆔 <b>ID</b> — <code>{id}</code>",
         "profile.bonus_balance": "💰 <b>مكافأة الإحالة:</b> ${bonus_balance}",
         "profile.purchased_count": "🎁 <b>المنتجات المشتراة</b> — {count} قطعة",
         "profile.registration_date": "🕢 <b>تاريخ التسجيل</b> — <code>{dt}</code>",
-
         # === Referral ===
         "referral.title": "💚 نظام الإحالة",
         "referral.count": "عدد الإحالات: {count}",
@@ -3378,29 +2939,28 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
         "btn.view_referrals": "👥 إحالاتي",
         "btn.view_earnings": "💰 أرباحي",
-
         "referrals.list.title": "👥 إحالاتك:",
         "referrals.list.empty": "ليس لديك إحالات نشطة بعد",
         "referrals.item.format": "ID: {telegram_id} | الأرباح: {total_earned} {currency}",
-
         "referral.earnings.title": "💰 الأرباح من الإحالة <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>):",
         "referral.earnings.empty": "لا توجد أرباح من هذه الإحالة <code>{id}</code> (<a href='tg://user?id={id}'>{name}</a>) بعد",
         "referral.earning.format": "{amount} {currency} | {date} | (من {original_amount} {currency})",
-        "referral.item.info": ("💰 رقم الربح: <code>{id}</code>\n"
-                               "👤 الإحالة: <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>)\n"
-                               "🔢 المبلغ: {amount} {currency}\n"
-                               "🕘 التاريخ: <code>{date}</code>\n"
-                               "💵 من إيداع بقيمة {original_amount} {currency}"),
-
-        "referral.admin_bonus.info": ("💰 رقم الربح: <code>{id}</code>\n"
-                                      "🎁 <b>مكافأة من المشرف</b>\n"
-                                      "🔢 المبلغ: {amount} {currency}\n"
-                                      "🕘 التاريخ: <code>{date}</code>"),
-
+        "referral.item.info": (
+            "💰 رقم الربح: <code>{id}</code>\n"
+            "👤 الإحالة: <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>)\n"
+            "🔢 المبلغ: {amount} {currency}\n"
+            "🕘 التاريخ: <code>{date}</code>\n"
+            "💵 من إيداع بقيمة {original_amount} {currency}"
+        ),
+        "referral.admin_bonus.info": (
+            "💰 رقم الربح: <code>{id}</code>\n"
+            "🎁 <b>مكافأة من المشرف</b>\n"
+            "🔢 المبلغ: {amount} {currency}\n"
+            "🕘 التاريخ: <code>{date}</code>"
+        ),
         "all.earnings.title": "💰 جميع أرباح الإحالة الخاصة بك:",
         "all.earnings.empty": "ليس لديك أرباح إحالة بعد",
         "all.earning.format.admin": "{amount} {currency} من المشرف | {date}",
-
         "referrals.stats.template": (
             "📊 إحصائيات نظام الإحالة:\n\n"
             "👥 الإحالات النشطة: {active_count}\n"
@@ -3408,7 +2968,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "📈 إجمالي إيداعات الإحالات: {total_original} {currency}\n"
             "🔢 عدد الأرباح: {earnings_count}"
         ),
-
         # === Admin: Main Menu ===
         "admin.menu.main": "⛩️ قائمة الإدارة",
         "admin.menu.shop": "🛒 إدارة المتجر",
@@ -3417,7 +2976,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.menu.users": "👥 إدارة المستخدمين",
         "admin.menu.broadcast": "📝 الرسائل الجماعية",
         "admin.menu.rights": "صلاحيات غير كافية",
-
         # === Admin: User Management ===
         "admin.users.prompt_enter_id": "👤 أدخل معرّف المستخدم لعرض / تعديل البيانات",
         "admin.users.invalid_id": "⚠️ يرجى إدخال معرّف مستخدم رقمي صالح.",
@@ -3436,14 +2994,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.users.bonus.added": "✅ تم إضافة مكافأة إحالة بقيمة {amount} {currency} لـ {name}",
         "admin.users.bonus.added.notify": "🎁 تم إضافة مكافأة إحالة بقيمة {amount} {currency} لحسابك",
         "admin.users.bonus.invalid": "❌ مبلغ غير صالح. أدخل رقمًا من {min_amount} إلى {max_amount} {currency}.",
-
         # === Admin: Shop Management Menu ===
         "admin.shop.menu.title": "⛩️ إدارة المتجر",
         "admin.shop.menu.statistics": "📊 الإحصائيات",
         "admin.shop.menu.logs": "📁 عرض السجلات",
         "admin.shop.menu.admins": "👮 المشرفون",
         "admin.shop.menu.users": "👤 المستخدمون",
-
         # === Admin: Categories Management ===
         "admin.categories.menu.title": "⛩️ إدارة الفئات",
         "admin.categories.add": "➕ إضافة فئة",
@@ -3459,8 +3015,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.categories.delete.success": "✅ تم حذف الفئة",
         "admin.categories.rename.not_found": "❌ لا يمكن تحديث الفئة (غير موجودة)",
         "admin.categories.rename.exist": "❌ لا يمكن إعادة التسمية (توجد فئة بهذا الاسم بالفعل)",
-        "admin.categories.rename.success": "✅ تمت إعادة تسمية الفئة \"{old}\" إلى \"{new}\"",
-
+        "admin.categories.rename.success": '✅ تمت إعادة تسمية الفئة "{old}" إلى "{new}"',
         # === Admin: Goods / Items Management (Add / List / Item Info) ===
         "admin.goods.add_position": "➕ إضافة منتج",
         "admin.goods.manage_stock": "➕ إضافة بضاعة إلى المنتج",
@@ -3482,7 +3037,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.add.stock.invalid": "⚠️ قيمة كمية غير صحيحة. يرجى إدخال رقم.",
         "admin.goods.add.stock.negative": "⚠️ قيمة كمية غير صحيحة. أدخل رقمًا موجبًا.",
         "admin.goods.add.result.created_with_stock": "✅ تم إنشاء المنتج {item_name}، وتمت إضافة {stock_quantity} إلى كمية البضائع.",
-
         # === Admin: Goods / Items Update Flow ===
         "admin.goods.update.position.invalid": "المنتج غير موجود.",
         "admin.goods.update.position.exists": "يوجد منتج بهذا الاسم بالفعل.",
@@ -3491,15 +3045,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.update.prompt.new_name": "أدخل اسم المنتج الجديد:",
         "admin.goods.update.prompt.description": "أدخل وصف المنتج:",
         "admin.goods.update.success": "✅ تم تحديث المنتج",
-
         # === Admin: Goods / Items Delete Flow ===
         "admin.goods.delete.prompt.name": "أدخل اسم المنتج",
         "admin.goods.delete.position.not_found": "❌ لم يتم حذف المنتج (غير موجود)",
         "admin.goods.delete.position.success": "✅ تم حذف المنتج",
-
         # === Admin: Item Info ===
         "admin.goods.view_stock": "عرض المنتجات",
-
         # Admin Modifier Management (Card 8)
         "admin.goods.manage_modifiers": "🍳 الإضافات",
         "admin.goods.modifiers.prompt": "هل تريد إضافة خيارات تعديل (التوابل، الإضافات، إلخ)?",
@@ -3511,16 +3062,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.modifiers.edit_instructions": "اختر إجراء:",
         "admin.goods.modifiers.set_new": "📝 تعيين جديد",
         "admin.goods.modifiers.clear": "🗑 مسح الكل",
-
         # === Admin: Logs ===
         "admin.shop.logs.caption": "سجلات البوت",
         "admin.shop.logs.empty": "❗️ لا توجد سجلات بعد",
-
         # === Group Notifications ===
         "shop.group.new_upload": "مخزون جديد",
         "shop.group.item": "المنتج",
         "shop.group.stock": "الكمية",
-
         # === Admin: Statistics ===
         "admin.shop.stats.template": (
             "إحصائيات المتجر:\n"
@@ -3535,7 +3083,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "◾العناصر: {goods} قطعة\n"
             "◾الفئات: {categories} قطعة\n"
         ),
-
         # === Admin: Lists & Broadcast ===
         "admin.shop.admins.title": "👮 مشرفو البوت:",
         "admin.shop.users.title": "مستخدمو البوت:",
@@ -3546,7 +3093,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "📊 التقدم: {progress:.1f}%{n}"
             "✅ تم الإرسال: {sent}/{total}\n"
             "❌ الأخطاء: {failed}\n"
-            "⏱ الوقت المنقضي: {time} ثانية"),
+            "⏱ الوقت المنقضي: {time} ثانية"
+        ),
         "broadcast.done": (
             "✅ اكتمل البث!\n\n"
             "📊 الإحصائيات:📊\n"
@@ -3559,7 +3107,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
         "broadcast.cancel": "❌ تم إلغاء البث.",
         "broadcast.warning": "لا يوجد بث نشط",
-
         # === Brand / Store Selection ===
         "shop.brands.title": "🏪 اختر مطعمًا",
         "shop.branches.title": "📍 اختر فرعًا",
@@ -3585,7 +3132,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.delete_cart": "🗑 حذف السلة",
         "btn.stay": "↩️ البقاء",
         "btn.switch_and_remove": "🔄 تبديل وإزالة غير المتاح",
-
         # === Shop Browsing (Categories / Goods / Item Page) ===
         "shop.categories.title": "🏪 فئات المتجر",
         "shop.goods.choose": "🏪 اختر منتجًا",
@@ -3596,7 +3142,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "shop.item.quantity_unlimited": "الكمية — غير محدودة",
         "shop.item.quantity_left": "الكمية — {count} قطعة",
         "shop.item.quantity_detailed": "📦 إجمالي المخزون: {total} قطعة\n🔒 محجوز: {reserved} قطعة\n✅ متاح للطلب: {available} قطعة",
-
         # === Purchases ===
         "purchases.title": "المشتريات:",
         "purchases.pagination.invalid": "بيانات التصفح غير صالحة",
@@ -3606,7 +3151,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "purchases.item.datetime": "<b>🕒 تاريخ الشراء</b>: <code>{dt}</code>",
         "purchases.item.unique_id": "<b>🧾 المعرّف الفريد</b>: <code>{uid}</code>",
         "purchases.item.value": "<b>🔑 القيمة</b>:\n<code>{value}</code>",
-
         # === Middleware ===
         "middleware.ban": "⏳ أنت محظور مؤقتًا. انتظر {time} ثانية.",
         "middleware.above_limits": "⚠️ طلبات كثيرة جدًا! أنت محظور مؤقتًا.",
@@ -3618,7 +3162,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "middleware.security.banned": "⛔ <b>تم حظرك</b>\n\nالسبب: {reason}",
         "middleware.security.banned_no_reason": "⛔ <b>تم حظرك</b>\n\nيرجى التواصل مع المشرف للحصول على مزيد من المعلومات.",
         "middleware.security.rate_limit": "⚠️ طلبات كثيرة جدًا! يرجى الانتظار قليلاً.",
-
         # === Errors ===
         "errors.not_subscribed": "أنت غير مشترك",
         "errors.pagination_invalid": "بيانات التصفح غير صالحة",
@@ -3626,7 +3169,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "errors.channel.telegram_not_found": "لا أستطيع الكتابة في القناة. أضفني كمشرف في قناة التحميلات @{channel} مع صلاحية نشر الرسائل.",
         "errors.channel.telegram_forbidden_error": "القناة غير موجودة. تحقق من اسم مستخدم القناة للتحميلات @{channel}.",
         "errors.channel.telegram_bad_request": "فشل الإرسال إلى قناة التحميلات: {e}",
-
         # === Orders ===
         "order.payment_method.choose": "💳 اختر طريقة الدفع:",
         "order.payment_method.bitcoin": "💳 Bitcoin",
@@ -3642,15 +3184,11 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "انتظر التسليم!"
         ),
         "order.status.notify_order_delivered": (
-            "تم تسليم الطلب {order_code}! ✅\n\n"
-            "شكرًا لشرائك! نتطلع لرؤيتك مجددًا! 🙏"
+            "تم تسليم الطلب {order_code}! ✅\n\nشكرًا لشرائك! نتطلع لرؤيتك مجددًا! 🙏"
         ),
         "order.status.notify_order_modified": (
-            "تم تعديل الطلب {order_code} من قبل المشرف 📝\n\n"
-            "التغييرات:\n{changes}\n\n"
-            "الإجمالي الجديد: {total}"
+            "تم تعديل الطلب {order_code} من قبل المشرف 📝\n\nالتغييرات:\n{changes}\n\nالإجمالي الجديد: {total}"
         ),
-
         # === Additional Common Buttons ===
         "btn.cart": "🛒 سلة المشتريات",
         "btn.my_orders": "📦 طلباتي",
@@ -3673,7 +3211,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.apply_bonus_no": "❌ لا، حفظها لاحقًا",
         "btn.cancel": "❌ إلغاء",
         "btn.add_to_cart": "🛒 إضافة إلى السلة",
-
         # === Cart Management ===
         "cart.add_success": "✅ تمت إضافة {item_name} إلى السلة!",
         "cart.add_error": "❌ {message}",
@@ -3689,7 +3226,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "cart.delivery_note": "📝 ملاحظة: {note}\n",
         "cart.use_info_question": "\n\nهل تريد استخدام هذه المعلومات أم تحديثها؟",
         "cart.no_saved_info": "❌ لم يتم العثور على معلومات توصيل محفوظة. يرجى الإدخال يدويًا.",
-
         # === Order/Delivery Flow ===
         "order.delivery.address_prompt": "📍 يرجى إدخال عنوان التوصيل:",
         "order.delivery.address_invalid": "❌ يرجى تقديم عنوان توصيل صالح (5 أحرف على الأقل).",
@@ -3697,7 +3233,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.phone_invalid": "❌ يرجى تقديم رقم هاتف صالح (8 أرقام على الأقل).",
         "order.delivery.note_prompt": "📝 هل لديك تعليمات توصيل خاصة؟ (اختياري)\n\nيمكنك تخطي ذلك بالنقر على الزر أدناه.",
         "order.delivery.info_save_error": "❌ خطأ في حفظ معلومات التوصيل. يرجى المحاولة مرة أخرى.",
-
         # Location Method Choice
         "order.delivery.location_method_prompt": "📍 كيف تريد مشاركة موقع التوصيل؟\n\nاختر أحد الخيارات أدناه:",
         "btn.location_method.gps": "📡 إرسال GPS عبر Telegram",
@@ -3711,16 +3246,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.live_gps_hint": "📍 يرجى مشاركة موقعك المباشر عبر قائمة المرفقات (📎 ← الموقع ← مشاركة الموقع المباشر).",
         "order.delivery.google_link_prompt": "🗺 الصق رابط Google Maps بموقعك.\n\nافتح Google Maps، ابحث عن الموقع، انقر 'مشاركة' وانسخ الرابط هنا.",
         "order.delivery.google_link_invalid": "❌ لم يتم التعرف على رابط Google Maps. تأكد أنه يبدأ بـ google.com/maps أو goo.gl/maps.",
-        "order.delivery.address_confirm_prompt": "📍 عنوانك:\n<b>{address}</b>\n\n🔗 <a href=\"{maps_link}\">عرض على الخريطة</a>\n\nهل هذا صحيح؟",
+        "order.delivery.address_confirm_prompt": '📍 عنوانك:\n<b>{address}</b>\n\n🔗 <a href="{maps_link}">عرض على الخريطة</a>\n\nهل هذا صحيح؟',
         "btn.address_confirm_yes": "✅ نعم، صحيح",
         "btn.address_confirm_retry": "✏️ لا، أعد الإدخال",
-
         # GPS Location (Card 2)
         "order.delivery.location_prompt": "📍 هل تريد مشاركة موقع GPS لتوصيل أكثر دقة؟\n\nانقر على الزر أدناه أو تخطَّ هذه الخطوة.",
         "order.delivery.location_saved": "✅ تم حفظ الموقع!",
         "btn.share_location": "📍 مشاركة الموقع",
         "btn.skip_location": "⏭ تخطي",
-
         # Delivery Type (Card 3)
         "order.delivery.type_prompt": "🚚 اختر نوع التوصيل:",
         "btn.delivery.door": "🚪 توصيل إلى الباب",
@@ -3737,7 +3270,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.drop_photo_prompt": "📸 هل تريد إرسال صورة لموقع التسليم؟ (اختياري)",
         "order.delivery.drop_photo_saved": "✅ تم حفظ صورة موقع التسليم!",
         "btn.skip_drop_photo": "⏭ تخطي الصورة",
-
         # PromptPay (Card 1)
         "order.payment_method.promptpay": "💳 PromptPay QR",
         "order.payment.promptpay.title": "💳 <b>الدفع عبر PromptPay</b>",
@@ -3760,7 +3292,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.promptpay.duplicate_slip": "🚫 تم استخدام إيصال الدفع هذا بالفعل لطلب آخر. يمكن استخدام كل إيصال مرة واحدة فقط. يرجى التواصل مع الدعم إذا كنت تعتقد أن هذا خطأ.",
         "admin.order.verify_payment": "✅ التحقق من الدفع",
         "admin.order.payment_verified": "✅ تم التحقق من الدفع",
-
         # Delivery Chat (Card 13)
         "order.delivery.chat_unavailable": "❌ الدردشة مع السائق غير متاحة. مجموعة السائقين غير مهيأة.",
         "order.delivery.chat_started": "💬 يمكنك مراسلة السائق. أرسل نصًا أو صورة أو موقعًا.\n\nأرسل /endchat لإنهاء الدردشة.",
@@ -3770,7 +3301,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.chat_message_sent": "✅ تم إرسال الرسالة إلى السائق.",
         "order.delivery.driver_no_active_order": "⚠️ لا يوجد طلب نشط لإعادة توجيه هذه الرسالة.",
         "btn.chat_with_driver": "💬 الدردشة مع السائق",
-
         # GPS tracking & chat session (Card 15)
         "delivery.gps.prompt": "📍 طلبك {order_code} في الطريق!\n\nساعد السائق في العثور عليك بسرعة — شارك موقعك:",
         "delivery.gps.btn_static": "📍 إرسال الموقع",
@@ -3783,7 +3313,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "delivery.chat.post_delivery_open": "✅ تم التوصيل! الدردشة تبقى مفتوحة لمدة {minutes} دقيقة إضافية.",
         "delivery.chat.post_delivery_closed": "⏹ انتهت فترة الدردشة بعد التوصيل.",
         "btn.end_chat": "❌ إنهاء الدردشة",
-
         # === Bonus/Referral Application ===
         "order.bonus.available": "💰 <b>لديك ${bonus_balance} في مكافآت الإحالة!</b>\n\n",
         "order.bonus.apply_question": "هل تريد تطبيق مكافأة الإحالة على هذا الطلب؟",
@@ -3792,21 +3321,17 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.bonus.invalid_amount": "❌ مبلغ غير صالح. يرجى إدخال رقم (مثلاً، 5.50):",
         "order.bonus.insufficient": "❌ رصيد المكافأة غير كافٍ. يرجى المحاولة مرة أخرى.",
         "order.bonus.enter_amount": "أدخل مبلغ المكافأة الذي تريد تطبيقه (الحد الأقصى ${max_applicable}):\n\nأو استخدم جميع المكافآت المتاحة بالنقر على الزر أدناه.",
-
         # === Payment Instructions ===
         "order.payment.system_unavailable": "❌ <b>نظام الدفع غير متاح مؤقتًا</b>\n\nلا تتوفر عناوين Bitcoin. يرجى التواصل مع الدعم.",
         "order.payment.customer_not_found": "❌ لم يتم العثور على معلومات العميل. يرجى المحاولة مرة أخرى.",
         "order.payment.creation_error": "❌ خطأ في إنشاء الطلبات. يرجى المحاولة مرة أخرى أو التواصل مع الدعم.",
-
         # === Order Summary/Total ===
         "order.summary.title": "📦 <b>ملخص الطلب</b>\n\n",
         "order.summary.cart_total": "إجمالي السلة: ${cart_total}",
         "order.summary.bonus_applied": "المكافأة المطبقة: -${bonus_applied}",
         "order.summary.final_amount": "المبلغ النهائي: ${final_amount}",
-
         # === Inventory/Reservation ===
         "order.inventory.unable_to_reserve": "❌ <b>تعذر حجز المنتجات</b>\n\nالمنتجات التالية غير متوفرة بالكميات المطلوبة:\n\n{unavailable_items}\n\nيرجى تعديل سلتك والمحاولة مرة أخرى.",
-
         # === My Orders View ===
         "myorders.title": "📦 <b>طلباتي</b>\n\n",
         "myorders.total": "إجمالي الطلبات: {count}",
@@ -3827,7 +3352,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "myorders.back_to_menu": "◀️ العودة إلى قائمة الطلبات",
         "myorders.select_details": "اختر طلبًا لعرض التفاصيل:",
         "myorders.order_not_found": "لم يتم العثور على الطلب",
-
         # === Order Details Display ===
         "myorders.detail.title": "📦 <b>تفاصيل الطلب #{order_code}</b>\n\n",
         "myorders.detail.status": "📊 <b>الحالة:</b> {status}\n",
@@ -3841,7 +3365,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "myorders.detail.completed": "✅ <b>مكتمل:</b> {date}\n",
         "myorders.detail.items": "\n📦 <b>المنتجات:</b>\n{items}\n",
         "myorders.detail.delivery_info": "\n📍 <b>معلومات التوصيل:</b>\n{address}\n{phone}\n{note}",
-
         # === Help System ===
         "help.prompt": "📧 <b>هل تحتاج مساعدة؟</b>\n\n",
         "help.describe_issue": "يرجى وصف مشكلتك أو سؤالك، وسيتم إرساله مباشرة إلى المشرف.\n\nاكتب رسالتك أدناه:",
@@ -3852,7 +3375,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "help.sent_success": "✅ {auto_message}",
         "help.sent_error": "❌ فشل إرسال الرسالة إلى المشرف: {error}\n\nيرجى المحاولة لاحقًا.",
         "help.cancelled": "تم إلغاء طلب المساعدة.",
-
         # === Admin Order Notifications ===
         "admin.order.action_required_title": "⏳ <b>إجراء مطلوب:</b>",
         "admin.order.address_label": "العنوان: {address}",
@@ -3872,7 +3394,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.order.payment_method_label": "طريقة الدفع: <b>{method}</b>",
         "admin.order.phone_label": "الهاتف: {phone}",
         "admin.order.subtotal_label": "المجموع الفرعي: <b>${amount} {currency}</b>",
-        "admin.order.use_cli_confirm": "استخدم CLI لتأكيد الطلب وتحديد وقت التسليم:\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time \"YYYY-MM-DD HH:MM\"</code>",
+        "admin.order.use_cli_confirm": 'استخدم CLI لتأكيد الطلب وتحديد وقت التسليم:\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time "YYYY-MM-DD HH:MM"</code>',
         "btn.admin.back_to_panel": "🔙 العودة إلى لوحة الإدارة",
         "btn.admin.create_refcode": "➕ إنشاء رمز إحالة",
         "btn.admin.list_refcodes": "📋 قائمة جميع الرموز",
@@ -3932,7 +3454,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.bitcoin.send_exact": "• أرسل المبلغ المحدد المعروض أعلاه",
         "order.payment.bitcoin.title": "💳 <b>تعليمات الدفع بـ Bitcoin</b>",
         "order.payment.bitcoin.total_amount": "المبلغ الإجمالي: <b>{amount} {currency}</b>",
-
         # Crypto payment (Card 18) — generic strings for all coins
         "crypto.payment.title": "💳 <b>{coin_name} Payment</b>",
         "crypto.payment.order_code": "Order: <b>{code}</b>",
@@ -3960,7 +3481,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Your order is now being processed."
         ),
         "crypto.payment_expired": "⏰ Payment window for your {coin} order ({order_code}) has expired. Please place a new order.",
-
         "order.payment.cash.admin_contact": "سيتواصل معك المشرف قريبًا.",
         "order.payment.cash.after_confirm": "بعد التأكيد، سيتم إعلامك بوقت التسليم.",
         "order.payment.cash.created": "تم إنشاء طلبك {code} وهو في انتظار تأكيد المشرف.",
@@ -3978,7 +3498,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.order_label": "📋 <b>الطلب: {code}</b>",
         "order.payment.subtotal_label": "المجموع الفرعي: <b>{amount} {currency}</b>",
         "order.payment.total_amount_label": "<b>المبلغ الإجمالي: {amount} {currency}</b>",
-
         # === Card 9: Kitchen & Delivery Workflow ===
         "admin.menu.orders": "📋 الطلبات",
         "admin.orders.list_title": "📋 <b>الطلبات</b>",
@@ -4061,16 +3580,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.driver.rejected_admin": "❌ تم رفض السائق.",
         "admin.driver.not_authorized": "يمكن للمالك فقط القيام بذلك.",
         "admin.driver.not_found": "لم يتم العثور على السائق.",
-
         # Delivery Photo Proof (Card 4)
         "delivery.photo.required": "مطلوب صورة للتسليم في نقطة التسليم",
         "delivery.photo.upload_prompt": "يرجى تحميل صورة التسليم",
         "delivery.photo.received": "تم حفظ صورة التسليم",
         "delivery.photo.sent_to_customer": "تم إرسال صورة التسليم للعميل",
         "delivery.photo.customer_notification": "تم تسليم طلبك {order_code}! إليك صورة التأكيد.",
-
         # === New Feature Strings ===
-
         # === Restaurant Feature Strings ===
         "admin.goods.add.allergen.dairy": "Dairy",
         "admin.goods.add.allergen.eggs": "Eggs",
@@ -4255,7 +3771,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "ticket.subject_prompt": "Enter the subject:",
         "ticket.title": "🎫 <b>Support Tickets</b>",
         "ticket.view_title": "🎫 <b>Ticket #{code}</b>\nStatus: {status}\nSubject: {subject}\nCreated: {date}",
-
         # === PDPA Privacy Policy ===
         "btn.privacy": "🔒 سياسة الخصوصية",
         "privacy.notice": (
@@ -4287,7 +3802,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "privacy.already_accepted": "✅ لقد قبلت سياسة الخصوصية بالفعل.",
         "privacy.no_url": "لم يتم تكوين صفحة سياسة الخصوصية الكاملة بعد.",
     },
-
     "fa": {
         # === Common Buttons ===
         "btn.shop": "🏪 فروشگاه",
@@ -4303,16 +3817,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.check_subscription": "🔄 بررسی اشتراک",
         "btn.admin.ban_user": "🚫 مسدود کردن کاربر",
         "btn.admin.unban_user": "✅ رفع مسدودیت کاربر",
-
         # === Admin Buttons (user management shortcuts) ===
         "btn.admin.promote": "⬆️ ارتقا به مدیر",
         "btn.admin.demote": "⬇️ حذف مدیریت",
         "btn.admin.add_user_bonus": "🎁 افزودن پاداش معرفی",
-
         # === Titles / Generic Texts ===
         "menu.title": "⛩️ منوی اصلی",
         "admin.goods.add.stock.error": "❌ خطا در افزودن موجودی اولیه: {error}",
-        "admin.goods.stock.add_success": "✅ {quantity} واحد به \"{item}\" اضافه شد",
+        "admin.goods.stock.add_success": '✅ {quantity} واحد به "{item}" اضافه شد',
         "admin.goods.stock.add_units": "➕ افزودن واحد",
         "admin.goods.stock.current_status": "وضعیت فعلی",
         "admin.goods.stock.error": "❌ خطا در مدیریت موجودی: {error}",
@@ -4326,11 +3838,11 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.stock.prompt.remove_units": "تعداد واحدهای حذف\u200cشونده را وارد کنید:",
         "admin.goods.stock.prompt.set_exact": "مقدار دقیق موجودی را وارد کنید:",
         "admin.goods.stock.redirect_message": "ℹ️ مدیریت موجودی اکنون از طریق منوی «مدیریت موجودی» در دسترس است",
-        "admin.goods.stock.remove_success": "✅ {quantity} واحد از \"{item}\" حذف شد",
+        "admin.goods.stock.remove_success": '✅ {quantity} واحد از "{item}" حذف شد',
         "admin.goods.stock.remove_units": "➖ حذف واحد",
         "admin.goods.stock.select_action": "عملیات را انتخاب کنید",
         "admin.goods.stock.set_exact": "⚖️ تنظیم مقدار دقیق",
-        "admin.goods.stock.set_success": "✅ موجودی \"{item}\" به {quantity} واحد تنظیم شد",
+        "admin.goods.stock.set_success": '✅ موجودی "{item}" به {quantity} واحد تنظیم شد',
         "admin.goods.stock.status_title": "📊 وضعیت موجودی:",
         "errors.invalid_item_name": "❌ نام محصول نامعتبر",
         "errors.invalid_language": "زبان نامعتبر",
@@ -4345,45 +3857,35 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.users.unban.success": "✅ مسدودیت کاربر {name} با موفقیت رفع شد",
         "admin.users.unban.failed": "❌ رفع مسدودیت کاربر ناموفق بود",
         "admin.users.unban.notify": "✅ مسدودیت شما توسط مدیر رفع شد",
-
         # === Profile ===
         "btn.referral": "🎲 سیستم معرفی",
         "btn.purchased": "🎁 محصولات خریداری\u200cشده",
         "profile.referral_id": "👤 <b>معرف</b> — <code>{id}</code>",
-
         # === Subscription Flow ===
         "subscribe.prompt": "ابتدا در کانال اخبار عضو شوید",
-
         # === Profile Info Lines ===
         "profile.id": "🆔 <b>شناسه</b> — <code>{id}</code>",
         "profile.bonus_balance": "💰 <b>پاداش معرفی:</b> ${bonus_balance}",
         "profile.purchased_count": "🎁 <b>محصولات خریداری\u200cشده</b> — {count} عدد",
         "profile.registration_date": "🕢 <b>تاریخ ثبت\u200cنام</b> — <code>{dt}</code>",
-
         # === Referral ===
         "referral.title": "💚 سیستم معرفی",
         "referral.count": "تعداد معرفی\u200cها: {count}",
         "referral.description": "📔 سیستم معرفی به شما امکان کسب درآمد بدون سرمایه\u200cگذاری را می\u200cدهد. لینک شخصی خود را به اشتراک بگذارید و {percent}% از شارژ حساب معرفی\u200cشدگان را در موجودی ربات خود دریافت کنید.",
         "btn.view_referrals": "👥 معرفی\u200cشدگان من",
         "btn.view_earnings": "💰 درآمد من",
-
         "referrals.list.title": "👥 معرفی\u200cشدگان شما:",
         "referrals.list.empty": "هنوز معرفی\u200cشده فعالی ندارید",
         "referrals.item.format": "ID: {telegram_id} | درآمد: {total_earned} {currency}",
-
         "referral.earnings.title": "💰 درآمد از معرفی\u200cشده <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>):",
         "referral.earnings.empty": "هنوز درآمدی از این معرفی\u200cشده <code>{id}</code> (<a href='tg://user?id={id}'>{name}</a>) کسب نشده",
         "referral.earning.format": "{amount} {currency} | {date} | (از {original_amount} {currency})",
         "referral.item.info": "💰 شماره درآمد: <code>{id}</code>\n👤 معرفی\u200cشده: <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>)\n🔢 مبلغ: {amount} {currency}\n🕘 تاریخ: <code>{date}</code>\n💵 از واریز به {original_amount} {currency}",
-
         "referral.admin_bonus.info": "💰 شماره درآمد: <code>{id}</code>\n🎁 <b>پاداش از مدیر</b>\n🔢 مبلغ: {amount} {currency}\n🕘 تاریخ: <code>{date}</code>",
-
         "all.earnings.title": "💰 تمام درآمدهای معرفی شما:",
         "all.earnings.empty": "هنوز درآمدی از معرفی ندارید",
         "all.earning.format.admin": "{amount} {currency} از مدیر | {date}",
-
         "referrals.stats.template": "📊 آمار سیستم معرفی:\n\n👥 معرفی\u200cهای فعال: {active_count}\n💰 کل درآمد: {total_earned} {currency}\n📈 کل شارژ معرفی\u200cشدگان: {total_original} {currency}\n🔢 تعداد درآمدها: {earnings_count}",
-
         # === Admin: Main Menu ===
         "admin.menu.main": "⛩️ منوی مدیریت",
         "admin.menu.shop": "🛒 مدیریت فروشگاه",
@@ -4392,7 +3894,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.menu.users": "👥 مدیریت کاربران",
         "admin.menu.broadcast": "📝 ارسال همگانی",
         "admin.menu.rights": "مجوزهای کافی ندارید",
-
         # === Admin: User Management ===
         "admin.users.prompt_enter_id": "👤 شناسه کاربر را برای مشاهده / ویرایش وارد کنید",
         "admin.users.invalid_id": "⚠️ لطفاً یک شناسه عددی معتبر وارد کنید.",
@@ -4411,14 +3912,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.users.bonus.added": "✅ پاداش معرفی {name} به مبلغ {amount} {currency} شارژ شد",
         "admin.users.bonus.added.notify": "🎁 پاداش معرفی به مبلغ {amount} {currency} به شما تعلق گرفت",
         "admin.users.bonus.invalid": "❌ مبلغ نامعتبر. عددی بین {min_amount} تا {max_amount} {currency} وارد کنید.",
-
         # === Admin: Shop Management Menu ===
         "admin.shop.menu.title": "⛩️ مدیریت فروشگاه",
         "admin.shop.menu.statistics": "📊 آمار",
         "admin.shop.menu.logs": "📁 نمایش لاگ\u200cها",
         "admin.shop.menu.admins": "👮 مدیران",
         "admin.shop.menu.users": "👤 کاربران",
-
         # === Admin: Categories Management ===
         "admin.categories.menu.title": "⛩️ مدیریت دسته\u200cبندی\u200cها",
         "admin.categories.add": "➕ افزودن دسته\u200cبندی",
@@ -4434,8 +3933,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.categories.delete.success": "✅ دسته\u200cبندی حذف شد",
         "admin.categories.rename.not_found": "❌ دسته\u200cبندی به\u200cروزرسانی نشد (وجود ندارد)",
         "admin.categories.rename.exist": "❌ تغییر نام ممکن نیست (دسته\u200cبندی با این نام وجود دارد)",
-        "admin.categories.rename.success": "✅ دسته\u200cبندی \"{old}\" به \"{new}\" تغییر نام داده شد",
-
+        "admin.categories.rename.success": '✅ دسته\u200cبندی "{old}" به "{new}" تغییر نام داده شد',
         # === Admin: Goods / Items Management (Add / List / Item Info) ===
         "admin.goods.add_position": "➕ افزودن محصول",
         "admin.goods.manage_stock": "➕ افزودن کالا به محصول",
@@ -4457,7 +3955,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.add.stock.invalid": "⚠️ مقدار نادرست. لطفاً یک عدد وارد کنید.",
         "admin.goods.add.stock.negative": "⚠️ مقدار نادرست. یک عدد مثبت وارد کنید.",
         "admin.goods.add.result.created_with_stock": "✅ محصول {item_name} ایجاد شد، {stock_quantity} به تعداد کالا اضافه شد.",
-
         # === Admin: Goods / Items Update Flow ===
         "admin.goods.update.position.invalid": "محصول یافت نشد.",
         "admin.goods.update.position.exists": "محصولی با این نام از قبل وجود دارد.",
@@ -4466,15 +3963,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.update.prompt.new_name": "نام جدید محصول را وارد کنید:",
         "admin.goods.update.prompt.description": "توضیحات محصول را وارد کنید:",
         "admin.goods.update.success": "✅ محصول به\u200cروزرسانی شد",
-
         # === Admin: Goods / Items Delete Flow ===
         "admin.goods.delete.prompt.name": "نام محصول را وارد کنید",
         "admin.goods.delete.position.not_found": "❌ محصول حذف نشد (وجود ندارد)",
         "admin.goods.delete.position.success": "✅ محصول حذف شد",
-
         # === Admin: Item Info ===
         "admin.goods.view_stock": "مشاهده محصولات",
-
         # Admin Modifier Management (Card 8)
         "admin.goods.manage_modifiers": "🍳 افزودنی‌ها",
         "admin.goods.modifiers.prompt": "آیا می‌خواهید افزودنی (ادویه، اضافه‌ها و غیره) اضافه کنید?",
@@ -4486,19 +3980,15 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.modifiers.edit_instructions": "یک عملیات انتخاب کنید:",
         "admin.goods.modifiers.set_new": "📝 تنظیم جدید",
         "admin.goods.modifiers.clear": "🗑 پاک کردن همه",
-
         # === Admin: Logs ===
         "admin.shop.logs.caption": "لاگ\u200cهای ربات",
         "admin.shop.logs.empty": "❗️ هنوز لاگی وجود ندارد",
-
         # === Group Notifications ===
         "shop.group.new_upload": "موجودی جدید",
         "shop.group.item": "محصول",
         "shop.group.stock": "تعداد",
-
         # === Admin: Statistics ===
         "admin.shop.stats.template": "آمار فروشگاه:\n➖➖➖➖➖➖➖➖➖➖➖➖➖\n<b>◽کاربران</b>\n◾️کاربران ۲۴ ساعت اخیر: {today_users}\n◾️کل مدیران: {admins}\n◾️کل کاربران: {users}\n➖➖➖➖➖➖➖➖➖➖➖➖➖\n◽<b>متفرقه</b>\n◾محصولات: {items} عدد\n◾کالاها: {goods} عدد\n◾دسته\u200cبندی\u200cها: {categories} عدد\n",
-
         # === Admin: Lists & Broadcast ===
         "admin.shop.admins.title": "👮 مدیران ربات:",
         "admin.shop.users.title": "کاربران ربات:",
@@ -4508,7 +3998,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "broadcast.done": "✅ ارسال همگانی تکمیل شد!\n\n📊 آمار:📊\n👥 کل: {total}\n✅ تحویل\u200cشده: {sent}\n❌ تحویل\u200cنشده: {failed}\n🚫 ربات مسدود: ~{blocked}\n📈 نرخ موفقیت: {success}%\n⏱ زمان: {duration} ثانیه",
         "broadcast.cancel": "❌ ارسال همگانی لغو شد.",
         "broadcast.warning": "ارسال همگانی فعالی وجود ندارد",
-
         # === Brand / Store Selection ===
         "shop.brands.title": "🏪 یک رستوران انتخاب کنید",
         "shop.branches.title": "📍 یک شعبه انتخاب کنید",
@@ -4534,7 +4023,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.delete_cart": "🗑 حذف سبد",
         "btn.stay": "↩️ ماندن",
         "btn.switch_and_remove": "🔄 تغییر و حذف موارد ناموجود",
-
         # === Shop Browsing (Categories / Goods / Item Page) ===
         "shop.categories.title": "🏪 دسته\u200cبندی\u200cهای فروشگاه",
         "shop.goods.choose": "🏪 یک محصول انتخاب کنید",
@@ -4545,7 +4033,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "shop.item.quantity_unlimited": "تعداد — نامحدود",
         "shop.item.quantity_left": "تعداد — {count} عدد",
         "shop.item.quantity_detailed": "📦 کل موجودی: {total} عدد\n🔒 رزرو شده: {reserved} عدد\n✅ قابل سفارش: {available} عدد",
-
         # === Purchases ===
         "purchases.title": "محصولات خریداری\u200cشده:",
         "purchases.pagination.invalid": "داده\u200cهای صفحه\u200cبندی نامعتبر",
@@ -4555,7 +4042,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "purchases.item.datetime": "<b>🕒 تاریخ خرید</b>: <code>{dt}</code>",
         "purchases.item.unique_id": "<b>🧾 شناسه یکتا</b>: <code>{uid}</code>",
         "purchases.item.value": "<b>🔑 مقدار</b>:\n<code>{value}</code>",
-
         # === Middleware ===
         "middleware.ban": "⏳ شما موقتاً مسدود شده\u200cاید. {time} ثانیه صبر کنید.",
         "middleware.above_limits": "⚠️ درخواست\u200cهای بیش از حد! شما موقتاً مسدود شده\u200cاید.",
@@ -4567,7 +4053,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "middleware.security.banned": "⛔ <b>شما مسدود شده\u200cاید</b>\n\nدلیل: {reason}",
         "middleware.security.banned_no_reason": "⛔ <b>شما مسدود شده\u200cاید</b>\n\nبرای اطلاعات بیشتر با مدیر تماس بگیرید.",
         "middleware.security.rate_limit": "⚠️ درخواست\u200cهای بیش از حد! لطفاً کمی صبر کنید.",
-
         # === Errors ===
         "errors.not_subscribed": "شما عضو نشده\u200cاید",
         "errors.pagination_invalid": "داده\u200cهای صفحه\u200cبندی نامعتبر",
@@ -4575,7 +4060,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "errors.channel.telegram_not_found": "امکان نوشتن در کانال وجود ندارد. مرا به عنوان مدیر کانال آپلود @{channel} با حق انتشار پیام اضافه کنید.",
         "errors.channel.telegram_forbidden_error": "کانال یافت نشد. نام کاربری کانال آپلود @{channel} را بررسی کنید.",
         "errors.channel.telegram_bad_request": "ارسال به کانال آپلود ناموفق بود: {e}",
-
         # === Orders ===
         "order.payment_method.choose": "💳 روش پرداخت را انتخاب کنید:",
         "order.payment_method.bitcoin": "💳 Bitcoin",
@@ -4586,7 +4070,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.status.notify_order_confirmed": "سفارش {order_code} تأیید شد! 🎉\n\nسفارش شما تحویل داده خواهد شد در: {delivery_time}\n\nمحصولات:\n{items}\n\nجمع کل: {total}\n\nمنتظر تحویل باشید!",
         "order.status.notify_order_delivered": "سفارش {order_code} تحویل داده شد! ✅\n\nاز خرید شما متشکریم! امیدواریم دوباره شما را ببینیم! 🙏",
         "order.status.notify_order_modified": "سفارش {order_code} توسط مدیر ویرایش شد 📝\n\nتغییرات:\n{changes}\n\nجمع جدید: {total}",
-
         # === Additional Common Buttons ===
         "btn.cart": "🛒 سبد خرید",
         "btn.my_orders": "📦 سفارش\u200cهای من",
@@ -4609,7 +4092,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.apply_bonus_no": "❌ خیر، ذخیره برای بعد",
         "btn.cancel": "❌ لغو",
         "btn.add_to_cart": "🛒 افزودن به سبد خرید",
-
         # === Cart Management ===
         "cart.add_success": "✅ {item_name} به سبد خرید اضافه شد!",
         "cart.add_error": "❌ {message}",
@@ -4625,7 +4107,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "cart.delivery_note": "📝 یادداشت: {note}\n",
         "cart.use_info_question": "\n\nآیا می\u200cخواهید از این اطلاعات استفاده کنید یا آن\u200cها را به\u200cروزرسانی کنید؟",
         "cart.no_saved_info": "❌ اطلاعات تحویل ذخیره\u200cشده یافت نشد. لطفاً به صورت دستی وارد کنید.",
-
         # === Order/Delivery Flow ===
         "order.delivery.address_prompt": "📍 لطفاً آدرس تحویل خود را وارد کنید:",
         "order.delivery.address_invalid": "❌ لطفاً یک آدرس معتبر وارد کنید (حداقل ۵ کاراکتر).",
@@ -4633,7 +4114,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.phone_invalid": "❌ لطفاً یک شماره تلفن معتبر وارد کنید (حداقل ۸ رقم).",
         "order.delivery.note_prompt": "📝 دستورالعمل خاصی برای تحویل دارید؟ (اختیاری)\n\nمی\u200cتوانید با کلیک دکمه زیر رد کنید.",
         "order.delivery.info_save_error": "❌ خطا در ذخیره اطلاعات تحویل. لطفاً دوباره امتحان کنید.",
-
         # Location Method Choice
         "order.delivery.location_method_prompt": "📍 چگونه می\u200cخواهید آدرس تحویل خود را مشخص کنید?\n\nیکی از گزینه\u200cهای زیر را انتخاب کنید:",
         "btn.location_method.gps": "📡 ارسال GPS از طریق Telegram",
@@ -4647,16 +4127,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.live_gps_hint": "📍 لطفاً موقعیت زنده خود را از منوی پیوست ارسال کنید (📎 ← موقعیت ← اشتراک موقعیت زنده).",
         "order.delivery.google_link_prompt": "🗺 لینک Google Maps با موقعیت خود را اینجا قرار دهید.\n\nGoogle Maps را باز کنید، موقعیت را پیدا کنید، 'اشتراک' را بزنید و لینک را اینجا کپی کنید.",
         "order.delivery.google_link_invalid": "❌ لینک Google Maps شناسایی نشد. مطمئن شوید با google.com/maps یا goo.gl/maps شروع می\u200cشود.",
-        "order.delivery.address_confirm_prompt": "📍 آدرس شما:\n<b>{address}</b>\n\n🔗 <a href=\"{maps_link}\">مشاهده روی نقشه</a>\n\nآیا درست است؟",
+        "order.delivery.address_confirm_prompt": '📍 آدرس شما:\n<b>{address}</b>\n\n🔗 <a href="{maps_link}">مشاهده روی نقشه</a>\n\nآیا درست است؟',
         "btn.address_confirm_yes": "✅ بله، درست است",
         "btn.address_confirm_retry": "✏️ نه، دوباره وارد کنم",
-
         # GPS Location (Card 2)
         "order.delivery.location_prompt": "📍 آیا می\u200cخواهید موقعیت GPS خود را برای تحویل دقیق\u200cتر به اشتراک بگذارید؟\n\nدکمه زیر را بزنید یا این مرحله را رد کنید.",
         "order.delivery.location_saved": "✅ موقعیت ذخیره شد!",
         "btn.share_location": "📍 اشتراک موقعیت",
         "btn.skip_location": "⏭ رد کردن",
-
         # Delivery Type (Card 3)
         "order.delivery.type_prompt": "🚚 نوع تحویل را انتخاب کنید:",
         "btn.delivery.door": "🚪 تحویل درب منزل",
@@ -4666,7 +4144,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.drop_photo_prompt": "📸 می\u200cخواهید عکسی از محل تحویل ارسال کنید؟ (اختیاری)",
         "order.delivery.drop_photo_saved": "✅ عکس محل تحویل ذخیره شد!",
         "btn.skip_drop_photo": "⏭ رد عکس",
-
         # PromptPay (Card 1)
         "order.payment_method.promptpay": "💳 PromptPay QR",
         "order.payment.promptpay.title": "💳 <b>پرداخت PromptPay</b>",
@@ -4689,7 +4166,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.promptpay.duplicate_slip": "🚫 این رسید پرداخت قبلاً برای سفارش دیگری استفاده شده است. هر رسید فقط یک‌بار قابل استفاده است. اگر فکر می‌کنید این اشتباه است، با پشتیبانی تماس بگیرید.",
         "admin.order.verify_payment": "✅ تأیید پرداخت",
         "admin.order.payment_verified": "✅ پرداخت تأیید شد",
-
         # Delivery Chat (Card 13)
         "order.delivery.chat_unavailable": "❌ چت با راننده در دسترس نیست. گروه پیک پیکربندی نشده.",
         "order.delivery.chat_started": "💬 می\u200cتوانید با راننده خود پیام بدهید. متن، عکس یا موقعیت ارسال کنید.",
@@ -4707,9 +4183,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.drop_media_done": "✅ تمام",
         "btn.skip_drop_media": "⏭ رد کردن",
         "btn.end_chat": "❌ پایان چت",
-
         # GPS tracking & chat session (Card 15)
-
         # === Bonus/Referral Application ===
         "order.bonus.available": "💰 <b>شما ${bonus_balance} پاداش معرفی دارید!</b>\n\n",
         "order.bonus.apply_question": "آیا می\u200cخواهید پاداش معرفی را در این سفارش اعمال کنید؟",
@@ -4718,21 +4192,17 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.bonus.invalid_amount": "❌ مبلغ نامعتبر. لطفاً یک عدد وارد کنید (مثلاً 5.50):",
         "order.bonus.insufficient": "❌ موجودی پاداش کافی نیست. لطفاً دوباره امتحان کنید.",
         "order.bonus.enter_amount": "مبلغ پاداشی که می\u200cخواهید اعمال کنید را وارد کنید (حداکثر ${max_applicable}):\n\nیا با کلیک دکمه زیر تمام پاداش موجود را استفاده کنید.",
-
         # === Payment Instructions ===
         "order.payment.system_unavailable": "❌ <b>سیستم پرداخت موقتاً در دسترس نیست</b>\n\nآدرس Bitcoin موجود نیست. لطفاً با پشتیبانی تماس بگیرید.",
         "order.payment.customer_not_found": "❌ اطلاعات مشتری یافت نشد. لطفاً دوباره امتحان کنید.",
         "order.payment.creation_error": "❌ خطا در ایجاد سفارش. لطفاً دوباره امتحان کنید یا با پشتیبانی تماس بگیرید.",
-
         # === Order Summary/Total ===
         "order.summary.title": "📦 <b>خلاصه سفارش</b>\n\n",
         "order.summary.cart_total": "جمع سبد خرید: ${cart_total}",
         "order.summary.bonus_applied": "پاداش اعمال\u200cشده: -${bonus_applied}",
         "order.summary.final_amount": "مبلغ نهایی: ${final_amount}",
-
         # === Inventory/Reservation ===
         "order.inventory.unable_to_reserve": "❌ <b>امکان رزرو محصولات وجود ندارد</b>\n\nمحصولات زیر به مقدار درخواستی موجود نیستند:\n\n{unavailable_items}\n\nلطفاً سبد خرید خود را تنظیم کنید و دوباره امتحان کنید.",
-
         # === My Orders View ===
         "myorders.title": "📦 <b>سفارش\u200cهای من</b>\n\n",
         "myorders.total": "کل سفارش\u200cها: {count}",
@@ -4753,7 +4223,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "myorders.back_to_menu": "◀️ بازگشت به منوی سفارش\u200cها",
         "myorders.select_details": "سفارشی را برای مشاهده جزئیات انتخاب کنید:",
         "myorders.order_not_found": "سفارش یافت نشد",
-
         # === Order Details Display ===
         "myorders.detail.title": "📦 <b>جزئیات سفارش #{order_code}</b>\n\n",
         "myorders.detail.status": "📊 <b>وضعیت:</b> {status}\n",
@@ -4767,7 +4236,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "myorders.detail.completed": "✅ <b>تکمیل\u200cشده:</b> {date}\n",
         "myorders.detail.items": "\n📦 <b>محصولات:</b>\n{items}\n",
         "myorders.detail.delivery_info": "\n📍 <b>اطلاعات تحویل:</b>\n{address}\n{phone}\n{note}",
-
         # === Help System ===
         "help.prompt": "📧 <b>نیاز به کمک دارید؟</b>\n\n",
         "help.describe_issue": "لطفاً مشکل یا سؤال خود را شرح دهید تا مستقیماً به مدیر ارسال شود.\n\nپیام خود را در زیر تایپ کنید:",
@@ -4778,7 +4246,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "help.sent_success": "✅ {auto_message}",
         "help.sent_error": "❌ ارسال پیام به مدیر ناموفق بود: {error}\n\nلطفاً بعداً دوباره امتحان کنید.",
         "help.cancelled": "درخواست کمک لغو شد.",
-
         # === Admin Order Notifications ===
         "admin.order.action_required_title": "⏳ <b>نیاز به اقدام:</b>",
         "admin.order.address_label": "آدرس: {address}",
@@ -4798,7 +4265,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.order.payment_method_label": "روش پرداخت: <b>{method}</b>",
         "admin.order.phone_label": "تلفن: {phone}",
         "admin.order.subtotal_label": "جمع فرعی: <b>${amount} {currency}</b>",
-        "admin.order.use_cli_confirm": "برای تأیید سفارش و تنظیم زمان تحویل از CLI استفاده کنید:\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time \"YYYY-MM-DD HH:MM\"</code>",
+        "admin.order.use_cli_confirm": 'برای تأیید سفارش و تنظیم زمان تحویل از CLI استفاده کنید:\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time "YYYY-MM-DD HH:MM"</code>',
         "btn.admin.back_to_panel": "🔙 بازگشت به پنل مدیریت",
         "btn.admin.create_refcode": "➕ ایجاد کد مرجع",
         "btn.admin.list_refcodes": "📋 لیست همه کدها",
@@ -4858,7 +4325,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.bitcoin.send_exact": "• مبلغ دقیق نشان\u200cداده\u200cشده را ارسال کنید",
         "order.payment.bitcoin.title": "💳 <b>دستورالعمل پرداخت Bitcoin</b>",
         "order.payment.bitcoin.total_amount": "مبلغ کل: <b>{amount} {currency}</b>",
-
         # Crypto payment (Card 18) — generic strings for all coins
         "crypto.payment.title": "💳 <b>{coin_name} Payment</b>",
         "crypto.payment.order_code": "Order: <b>{code}</b>",
@@ -4886,7 +4352,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Your order is now being processed."
         ),
         "crypto.payment_expired": "⏰ Payment window for your {coin} order ({order_code}) has expired. Please place a new order.",
-
         "order.payment.cash.admin_contact": "مدیر به زودی با شما تماس خواهد گرفت.",
         "order.payment.cash.after_confirm": "پس از تأیید، زمان تحویل به شما اطلاع داده خواهد شد.",
         "order.payment.cash.created": "سفارش {code} شما ایجاد شد و در انتظار تأیید مدیر است.",
@@ -4904,7 +4369,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.order_label": "📋 <b>سفارش: {code}</b>",
         "order.payment.subtotal_label": "جمع فرعی: <b>{amount} {currency}</b>",
         "order.payment.total_amount_label": "<b>مبلغ کل: {amount} {currency}</b>",
-
         # === Card 9: Kitchen & Delivery Workflow ===
         "admin.menu.orders": "📋 سفارشات",
         "admin.orders.list_title": "📋 <b>سفارشات</b>",
@@ -4987,16 +4451,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.driver.rejected_admin": "❌ راننده رد شد.",
         "admin.driver.not_authorized": "فقط مالک می‌تواند این کار را انجام دهد.",
         "admin.driver.not_found": "راننده یافت نشد.",
-
         # Delivery Photo Proof (Card 4)
         "delivery.photo.required": "برای تحویل در نقطه تحویل عکس لازم است",
         "delivery.photo.upload_prompt": "لطفاً عکس تحویل را آپلود کنید",
         "delivery.photo.received": "عکس تحویل ذخیره شد",
         "delivery.photo.sent_to_customer": "عکس تحویل به مشتری ارسال شد",
         "delivery.photo.customer_notification": "سفارش {order_code} شما تحویل داده شد! این عکس تأیید تحویل است.",
-
         # === New Feature Strings ===
-
         # === Restaurant Feature Strings ===
         "admin.goods.add.allergen.dairy": "Dairy",
         "admin.goods.add.allergen.eggs": "Eggs",
@@ -5181,7 +4642,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "ticket.subject_prompt": "Enter the subject:",
         "ticket.title": "🎫 <b>Support Tickets</b>",
         "ticket.view_title": "🎫 <b>Ticket #{code}</b>\nStatus: {status}\nSubject: {subject}\nCreated: {date}",
-
         # Delivery GPS (Card 15)
         "delivery.gps.prompt": "📍 سفارش {order_code} شما در راه است!\n\nبه راننده کمک کنید سریع‌تر شما را پیدا کند — موقعیت خود را به اشتراک بگذارید:",
         "delivery.gps.btn_static": "📍 ارسال موقعیت",
@@ -5193,7 +4653,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "delivery.chat.session_closed": "⏹ این جلسه چت پایان یافته است. برای کمک با پشتیبانی تماس بگیرید.",
         "delivery.chat.post_delivery_open": "✅ تحویل داده شد! چت برای {minutes} دقیقه دیگر باز می‌ماند.",
         "delivery.chat.post_delivery_closed": "⏹ پنجره چت پس از تحویل بسته شد.",
-
         # === PDPA Privacy Policy ===
         "btn.privacy": "🔒 سیاست حریم خصوصی",
         "privacy.notice": (
@@ -5240,16 +4699,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.check_subscription": "🔄 د ګډون کتنه",
         "btn.admin.ban_user": "🚫 کارن بندول",
         "btn.admin.unban_user": "✅ د کارن بندیز لرې کول",
-
         # === Admin Buttons (user management shortcuts) ===
         "btn.admin.promote": "⬆️ مدیر جوړول",
         "btn.admin.demote": "⬇️ د مدیریت لرې کول",
         "btn.admin.add_user_bonus": "🎁 د معرفي بونس ورزیاتول",
-
         # === Titles / Generic Texts ===
         "menu.title": "⛩️ اصلي مینو",
         "admin.goods.add.stock.error": "❌ د لومړني زیرمې په اضافه کولو کې تېروتنه: {error}",
-        "admin.goods.stock.add_success": "✅ {quantity} واحده \"{item}\" ته اضافه شوې",
+        "admin.goods.stock.add_success": '✅ {quantity} واحده "{item}" ته اضافه شوې',
         "admin.goods.stock.add_units": "➕ واحدې اضافه کول",
         "admin.goods.stock.current_status": "اوسنی حالت",
         "admin.goods.stock.error": "❌ د زیرمې په مدیریت کې تېروتنه: {error}",
@@ -5263,11 +4720,11 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.stock.prompt.remove_units": "د لرې کیدونکو واحدو شمېر ولیکئ:",
         "admin.goods.stock.prompt.set_exact": "دقیق د زیرمې مقدار ولیکئ:",
         "admin.goods.stock.redirect_message": "ℹ️ د زیرمې مدیریت اوس د «زیرمې مدیریت» مینو له لارې شتون لري",
-        "admin.goods.stock.remove_success": "✅ {quantity} واحدې له \"{item}\" لرې شوې",
+        "admin.goods.stock.remove_success": '✅ {quantity} واحدې له "{item}" لرې شوې',
         "admin.goods.stock.remove_units": "➖ واحدې لرې کول",
         "admin.goods.stock.select_action": "عملیات وټاکئ",
         "admin.goods.stock.set_exact": "⚖️ دقیق مقدار ټاکل",
-        "admin.goods.stock.set_success": "✅ د \"{item}\" زیرمه {quantity} واحدو ته وټاکل شوه",
+        "admin.goods.stock.set_success": '✅ د "{item}" زیرمه {quantity} واحدو ته وټاکل شوه',
         "admin.goods.stock.status_title": "📊 د زیرمې حالت:",
         "errors.invalid_item_name": "❌ ناسم د محصول نوم",
         "errors.invalid_language": "ناسمه ژبه",
@@ -5282,45 +4739,35 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.users.unban.success": "✅ د کارن {name} بندیز په بریالیتوب سره لرې شو",
         "admin.users.unban.failed": "❌ د کارن بندیز لرې کول ناکام شو",
         "admin.users.unban.notify": "✅ ستاسو بندیز د مدیر لخوا لرې شو",
-
         # === Profile ===
         "btn.referral": "🎲 د معرفي سیستم",
         "btn.purchased": "🎁 اخیستل شوي محصولات",
         "profile.referral_id": "👤 <b>معرف</b> — <code>{id}</code>",
-
         # === Subscription Flow ===
         "subscribe.prompt": "لومړی د خبرونو کانال کې ګډون وکړئ",
-
         # === Profile Info Lines ===
         "profile.id": "🆔 <b>پېژندنه</b> — <code>{id}</code>",
         "profile.bonus_balance": "💰 <b>د معرفي بونس:</b> ${bonus_balance}",
         "profile.purchased_count": "🎁 <b>اخیستل شوي محصولات</b> — {count} ټوټې",
         "profile.registration_date": "🕢 <b>د ثبت نېټه</b> — <code>{dt}</code>",
-
         # === Referral ===
         "referral.title": "💚 د معرفي سیستم",
         "referral.count": "د معرفیو شمېر: {count}",
         "referral.description": "📔 د معرفي سیستم تاسو ته پرته له پانګونې درآمد ترلاسه کولو امکان درکوي. خپل شخصي لینک شریک کړئ او د خپلو معرفي شویو د شارژ څخه {percent}% ترلاسه کړئ.",
         "btn.view_referrals": "👥 زما معرفي شوي",
         "btn.view_earnings": "💰 زما عاید",
-
         "referrals.list.title": "👥 ستاسو معرفي شوي:",
         "referrals.list.empty": "تاسو تر اوسه فعال معرفي شوي نه لرئ",
         "referrals.item.format": "ID: {telegram_id} | عاید: {total_earned} {currency}",
-
         "referral.earnings.title": "💰 د معرفي شوي <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>) څخه عاید:",
         "referral.earnings.empty": "تر اوسه د دې معرفي شوي <code>{id}</code> (<a href='tg://user?id={id}'>{name}</a>) څخه عاید نشته",
         "referral.earning.format": "{amount} {currency} | {date} | (د {original_amount} {currency} څخه)",
         "referral.item.info": "💰 د عاید شمېره: <code>{id}</code>\n👤 معرفي شوی: <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>)\n🔢 مبلغ: {amount} {currency}\n🕘 نېټه: <code>{date}</code>\n💵 د {original_amount} {currency} واریز څخه",
-
         "referral.admin_bonus.info": "💰 د عاید شمېره: <code>{id}</code>\n🎁 <b>د مدیر بونس</b>\n🔢 مبلغ: {amount} {currency}\n🕘 نېټه: <code>{date}</code>",
-
         "all.earnings.title": "💰 ستاسو ټول معرفي عایدات:",
         "all.earnings.empty": "تاسو تر اوسه د معرفي عاید نه لرئ",
         "all.earning.format.admin": "{amount} {currency} د مدیر څخه | {date}",
-
         "referrals.stats.template": "📊 د معرفي سیستم احصایې:\n\n👥 فعال معرفي شوي: {active_count}\n💰 ټول عاید: {total_earned} {currency}\n📈 د معرفي شویو ټول شارژ: {total_original} {currency}\n🔢 د عایداتو شمېر: {earnings_count}",
-
         # === Admin: Main Menu ===
         "admin.menu.main": "⛩️ د مدیر مینو",
         "admin.menu.shop": "🛒 د پلورنځي مدیریت",
@@ -5329,7 +4776,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.menu.users": "👥 د کارنانو مدیریت",
         "admin.menu.broadcast": "📝 عمومي خبرتیا",
         "admin.menu.rights": "کافي اجازې نشته",
-
         # === Admin: User Management ===
         "admin.users.prompt_enter_id": "👤 د لیدلو / سمولو لپاره د کارن ID ولیکئ",
         "admin.users.invalid_id": "⚠️ مهرباني وکړئ یو سم عددي ID ولیکئ.",
@@ -5348,14 +4794,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.users.bonus.added": "✅ د {name} معرفي بونس په {amount} {currency} شارژ شو",
         "admin.users.bonus.added.notify": "🎁 تاسو ته د {amount} {currency} معرفي بونس ورکړل شو",
         "admin.users.bonus.invalid": "❌ ناسم مبلغ. د {min_amount} تر {max_amount} {currency} پورې عدد ولیکئ.",
-
         # === Admin: Shop Management Menu ===
         "admin.shop.menu.title": "⛩️ د پلورنځي مدیریت",
         "admin.shop.menu.statistics": "📊 احصایې",
         "admin.shop.menu.logs": "📁 لاګونه ښکاره کول",
         "admin.shop.menu.admins": "👮 مدیران",
         "admin.shop.menu.users": "👤 کارنان",
-
         # === Admin: Categories Management ===
         "admin.categories.menu.title": "⛩️ د کتګوریو مدیریت",
         "admin.categories.add": "➕ کتګوري اضافه کول",
@@ -5371,8 +4815,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.categories.delete.success": "✅ کتګوري ړنګه شوه",
         "admin.categories.rename.not_found": "❌ کتګوري نشي تازه کیدلی (شتون نه لري)",
         "admin.categories.rename.exist": "❌ نوم نشي بدلیدلی (د دې نوم سره کتګوري شتون لري)",
-        "admin.categories.rename.success": "✅ کتګوري \"{old}\" د \"{new}\" په نوم بدل شوه",
-
+        "admin.categories.rename.success": '✅ کتګوري "{old}" د "{new}" په نوم بدل شوه',
         # === Admin: Goods / Items Management (Add / List / Item Info) ===
         "admin.goods.add_position": "➕ محصول اضافه کول",
         "admin.goods.manage_stock": "➕ محصول ته توکي اضافه کول",
@@ -5394,7 +4837,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.add.stock.invalid": "⚠️ ناسم مقدار. مهرباني وکړئ یو عدد ولیکئ.",
         "admin.goods.add.stock.negative": "⚠️ ناسم مقدار. یو مثبت عدد ولیکئ.",
         "admin.goods.add.result.created_with_stock": "✅ محصول {item_name} جوړ شو، {stock_quantity} د توکو شمېر ته اضافه شول.",
-
         # === Admin: Goods / Items Update Flow ===
         "admin.goods.update.position.invalid": "محصول ونه موندل شو.",
         "admin.goods.update.position.exists": "د دې نوم سره محصول مخکې شتون لري.",
@@ -5403,15 +4845,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.update.prompt.new_name": "نوی د محصول نوم ولیکئ:",
         "admin.goods.update.prompt.description": "د محصول تشریح ولیکئ:",
         "admin.goods.update.success": "✅ محصول تازه شو",
-
         # === Admin: Goods / Items Delete Flow ===
         "admin.goods.delete.prompt.name": "د محصول نوم ولیکئ",
         "admin.goods.delete.position.not_found": "❌ محصول ونه ړنګول شو (شتون نه لري)",
         "admin.goods.delete.position.success": "✅ محصول ړنګ شو",
-
         # === Admin: Item Info ===
         "admin.goods.view_stock": "محصولات لیدل",
-
         # Admin Modifier Management (Card 8)
         "admin.goods.manage_modifiers": "🍳 اضافي",
         "admin.goods.modifiers.prompt": "ایا تاسو غواړئ اضافي (مسالې، اضافې، او نور) اضافه کړئ?",
@@ -5423,19 +4862,15 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.modifiers.edit_instructions": "عملیات غوره کړئ:",
         "admin.goods.modifiers.set_new": "📝 نوی تنظیم",
         "admin.goods.modifiers.clear": "🗑 ټول پاک کړئ",
-
         # === Admin: Logs ===
         "admin.shop.logs.caption": "د بوټ لاګونه",
         "admin.shop.logs.empty": "❗️ تر اوسه لاګ نشته",
-
         # === Group Notifications ===
         "shop.group.new_upload": "نوې زیرمه",
         "shop.group.item": "محصول",
         "shop.group.stock": "شمېر",
-
         # === Admin: Statistics ===
         "admin.shop.stats.template": "د پلورنځي احصایې:\n➖➖➖➖➖➖➖➖➖➖➖➖➖\n<b>◽کارنان</b>\n◾️د تیرو ۲۴ ساعتونو کارنان: {today_users}\n◾️ټول مدیران: {admins}\n◾️ټول کارنان: {users}\n➖➖➖➖➖➖➖➖➖➖➖➖➖\n◽<b>متفرقه</b>\n◾محصولات: {items} ټوټې\n◾توکي: {goods} ټوټې\n◾کتګورۍ: {categories} ټوټې\n",
-
         # === Admin: Lists & Broadcast ===
         "admin.shop.admins.title": "👮 د بوټ مدیران:",
         "admin.shop.users.title": "د بوټ کارنان:",
@@ -5445,7 +4880,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "broadcast.done": "✅ عمومي خبرتیا بشپړه شوه!\n\n📊 احصایې:📊\n👥 ټول: {total}\n✅ رسول شوي: {sent}\n❌ نه رسول شوي: {failed}\n🚫 بوټ بند: ~{blocked}\n📈 د بریالیتوب کچه: {success}%\n⏱ وخت: {duration} ثانیې",
         "broadcast.cancel": "❌ عمومي خبرتیا لغوه شوه.",
         "broadcast.warning": "فعاله عمومي خبرتیا نشته",
-
         # === Brand / Store Selection ===
         "shop.brands.title": "🏪 یو رستورانت وټاکئ",
         "shop.branches.title": "📍 یوه څانګه وټاکئ",
@@ -5471,7 +4905,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.delete_cart": "🗑 ټوکر حذف کړئ",
         "btn.stay": "↩️ پاتې کیدل",
         "btn.switch_and_remove": "🔄 لیږد او ناشتون لرو توکي لرې کول",
-
         # === Shop Browsing (Categories / Goods / Item Page) ===
         "shop.categories.title": "🏪 د پلورنځي کتګورۍ",
         "shop.goods.choose": "🏪 یو محصول وټاکئ",
@@ -5482,7 +4915,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "shop.item.quantity_unlimited": "شمېر — بې حده",
         "shop.item.quantity_left": "شمېر — {count} ټوټې",
         "shop.item.quantity_detailed": "📦 ټوله زیرمه: {total} ټوټې\n🔒 خوندي شوي: {reserved} ټوټې\n✅ د سفارش لپاره شتون لري: {available} ټوټې",
-
         # === Purchases ===
         "purchases.title": "اخیستل شوي محصولات:",
         "purchases.pagination.invalid": "ناسم مخپانه معلومات",
@@ -5492,7 +4924,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "purchases.item.datetime": "<b>🕒 د اخیستلو نېټه</b>: <code>{dt}</code>",
         "purchases.item.unique_id": "<b>🧾 ځانګړې پېژندنه</b>: <code>{uid}</code>",
         "purchases.item.value": "<b>🔑 ارزښت</b>:\n<code>{value}</code>",
-
         # === Middleware ===
         "middleware.ban": "⏳ تاسو لنډ مهاله بند یاست. {time} ثانیې انتظار وکړئ.",
         "middleware.above_limits": "⚠️ ډېرې غوښتنې! تاسو لنډ مهاله بند یاست.",
@@ -5504,7 +4935,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "middleware.security.banned": "⛔ <b>تاسو بند شوي یاست</b>\n\nدلیل: {reason}",
         "middleware.security.banned_no_reason": "⛔ <b>تاسو بند شوي یاست</b>\n\nد نورو معلوماتو لپاره مدیر سره اړیکه ونیسئ.",
         "middleware.security.rate_limit": "⚠️ ډېرې غوښتنې! مهرباني وکړئ لږ انتظار وکړئ.",
-
         # === Errors ===
         "errors.not_subscribed": "تاسو ګډون نه دی کړی",
         "errors.pagination_invalid": "ناسم مخپانه معلومات",
@@ -5512,7 +4942,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "errors.channel.telegram_not_found": "کانال ته لیکل نشم. ما د اپلوډ کانال @{channel} کې د پیغام خپرولو حق سره د مدیر په توګه اضافه کړئ.",
         "errors.channel.telegram_forbidden_error": "کانال ونه موندل شو. د اپلوډ کانال @{channel} نوم وګورئ.",
         "errors.channel.telegram_bad_request": "کانال ته لیږل ناکام شو: {e}",
-
         # === Orders ===
         "order.payment_method.choose": "💳 د تادیې لاره وټاکئ:",
         "order.payment_method.bitcoin": "💳 Bitcoin",
@@ -5523,7 +4952,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.status.notify_order_confirmed": "سفارش {order_code} تأیید شو! 🎉\n\nستاسو سفارش به رسول شي: {delivery_time}\n\nمحصولات:\n{items}\n\nټول: {total}\n\nد رسولو انتظار وکړئ!",
         "order.status.notify_order_delivered": "سفارش {order_code} رسول شو! ✅\n\nستاسو د اخیستنې مننه! هیله لرو بیا مو وګورو! 🙏",
         "order.status.notify_order_modified": "سفارش {order_code} د مدیر لخوا سم شو 📝\n\nبدلونونه:\n{changes}\n\nنوی ټول: {total}",
-
         # === Additional Common Buttons ===
         "btn.cart": "🛒 کارټ",
         "btn.my_orders": "📦 زما سفارشونه",
@@ -5546,7 +4974,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.apply_bonus_no": "❌ نه، د وروسته لپاره خوندي کړئ",
         "btn.cancel": "❌ لغوه کول",
         "btn.add_to_cart": "🛒 کارټ ته اضافه کول",
-
         # === Cart Management ===
         "cart.add_success": "✅ {item_name} کارټ ته اضافه شو!",
         "cart.add_error": "❌ {message}",
@@ -5562,7 +4989,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "cart.delivery_note": "📝 یادداشت: {note}\n",
         "cart.use_info_question": "\n\nایا غواړئ دا معلومات وکاروئ یا تازه یې کړئ؟",
         "cart.no_saved_info": "❌ خوندي شوي د رسولو معلومات ونه موندل شول. مهرباني وکړئ په لاسي ډول ولیکئ.",
-
         # === Order/Delivery Flow ===
         "order.delivery.address_prompt": "📍 مهرباني وکړئ خپله د رسولو پته ولیکئ:",
         "order.delivery.address_invalid": "❌ مهرباني وکړئ یوه سمه پته ولیکئ (لږ تر لږه ۵ توري).",
@@ -5570,7 +4996,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.phone_invalid": "❌ مهرباني وکړئ یوه سمه تلیفون شمېره ولیکئ (لږ تر لږه ۸ عددونه).",
         "order.delivery.note_prompt": "📝 د رسولو ځانګړي لارښوونې لرئ؟ (اختیاري)\n\nتاسو کولی شئ لاندې تڼۍ فشار ورکړئ تېر شئ.",
         "order.delivery.info_save_error": "❌ د رسولو معلوماتو خوندي کولو کې تېروتنه. مهرباني وکړئ بیا هڅه وکړئ.",
-
         # Location Method Choice
         "order.delivery.location_method_prompt": "📍 تاسو د رسولو پته څنګه شریکول غواړئ?\n\nلاندې یو انتخاب وکړئ:",
         "btn.location_method.gps": "📡 د Telegram له لارې GPS واستوئ",
@@ -5584,16 +5009,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.live_gps_hint": "📍 مهرباني وکړئ خپل ژوندی موقعیت د ضمیمې مینو له لارې واستوئ (📎 ← موقعیت ← ژوندی موقعیت شریک کړئ).",
         "order.delivery.google_link_prompt": "🗺 د Google Maps لینک دلته ولیکئ.\n\nGoogle Maps خلاص کړئ، ځای ومومئ، 'شریکول' فشار ورکړئ او لینک دلته کاپي کړئ.",
         "order.delivery.google_link_invalid": "❌ د Google Maps لینک وپېژندل نه شو. ډاډ ترلاسه کړئ چې له google.com/maps یا goo.gl/maps سره پیل کېږي.",
-        "order.delivery.address_confirm_prompt": "📍 ستاسو پته:\n<b>{address}</b>\n\n🔗 <a href=\"{maps_link}\">په نقشه کې وګورئ</a>\n\nایا سمه ده؟",
+        "order.delivery.address_confirm_prompt": '📍 ستاسو پته:\n<b>{address}</b>\n\n🔗 <a href="{maps_link}">په نقشه کې وګورئ</a>\n\nایا سمه ده؟',
         "btn.address_confirm_yes": "✅ هو، سمه ده",
         "btn.address_confirm_retry": "✏️ نه، بیا ولیکئ",
-
         # GPS Location (Card 2)
         "order.delivery.location_prompt": "📍 ایا غواړئ د دقیق رسولو لپاره خپل GPS موقعیت شریک کړئ؟\n\nلاندې تڼۍ فشار ورکړئ یا دا مرحله تېره کړئ.",
         "order.delivery.location_saved": "✅ موقعیت خوندي شو!",
         "btn.share_location": "📍 موقعیت شریکول",
         "btn.skip_location": "⏭ تېرول",
-
         # Delivery Type (Card 3)
         "order.delivery.type_prompt": "🚚 د رسولو ډول وټاکئ:",
         "btn.delivery.door": "🚪 دروازې ته رسول",
@@ -5603,7 +5026,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.drop_photo_prompt": "📸 ایا غواړئ د پرېښودلو ځای عکس واستوئ؟ (اختیاري)",
         "order.delivery.drop_photo_saved": "✅ د پرېښودلو ځای عکس خوندي شو!",
         "btn.skip_drop_photo": "⏭ عکس تېرول",
-
         # PromptPay (Card 1)
         "order.payment_method.promptpay": "💳 PromptPay QR",
         "order.payment.promptpay.title": "💳 <b>PromptPay تادیه</b>",
@@ -5626,7 +5048,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.promptpay.duplicate_slip": "🚫 د تادیې دا رسید دمخه د بل سفارش لپاره کارول شوی. هر رسید یوازې یو ځل کارول کیدی شي. که فکر کوئ دا تېروتنه ده، له ملاتړ سره اړیکه ونیسئ.",
         "admin.order.verify_payment": "✅ تادیه تأیید کول",
         "admin.order.payment_verified": "✅ تادیه تأیید شوه",
-
         # Delivery Chat (Card 13)
         "order.delivery.chat_unavailable": "❌ د موټروان سره خبرې شتون نه لري. د پیک ګروپ تنظیم شوی نه دی.",
         "order.delivery.chat_started": "💬 تاسو کولی شئ خپل موټروان ته پیغام واستوئ. متن، عکس یا موقعیت واستوئ.",
@@ -5644,9 +5065,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.drop_media_done": "✅ ترسره شو",
         "btn.skip_drop_media": "⏭ تېرول",
         "btn.end_chat": "❌ د خبرو پای",
-
         # GPS tracking & chat session (Card 15)
-
         # === Bonus/Referral Application ===
         "order.bonus.available": "💰 <b>تاسو ${bonus_balance} معرفي بونس لرئ!</b>\n\n",
         "order.bonus.apply_question": "ایا غواړئ معرفي بونس پر دې سفارش پلي کړئ؟",
@@ -5655,21 +5074,17 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.bonus.invalid_amount": "❌ ناسم مبلغ. مهرباني وکړئ عدد ولیکئ (مثلاً 5.50):",
         "order.bonus.insufficient": "❌ د بونس موجودي کافي نه ده. مهرباني وکړئ بیا هڅه وکړئ.",
         "order.bonus.enter_amount": "هغه بونس مبلغ ولیکئ چې غواړئ پلي کړئ (اعظمي ${max_applicable}):\n\nیا لاندې تڼۍ فشار ورکړئ ټول شتون لرونکي بونس وکاروئ.",
-
         # === Payment Instructions ===
         "order.payment.system_unavailable": "❌ <b>د تادیې سیستم لنډ مهاله شتون نه لري</b>\n\nد Bitcoin پته شتون نه لري. مهرباني وکړئ ملاتړ سره اړیکه ونیسئ.",
         "order.payment.customer_not_found": "❌ د پیرودونکي معلومات ونه موندل شول. مهرباني وکړئ بیا هڅه وکړئ.",
         "order.payment.creation_error": "❌ د سفارش جوړولو کې تېروتنه. مهرباني وکړئ بیا هڅه وکړئ یا ملاتړ سره اړیکه ونیسئ.",
-
         # === Order Summary/Total ===
         "order.summary.title": "📦 <b>د سفارش لنډیز</b>\n\n",
         "order.summary.cart_total": "د کارټ ټول: ${cart_total}",
         "order.summary.bonus_applied": "پلي شوی بونس: -${bonus_applied}",
         "order.summary.final_amount": "وروستی مبلغ: ${final_amount}",
-
         # === Inventory/Reservation ===
         "order.inventory.unable_to_reserve": "❌ <b>د محصولاتو خوندي کول ممکن نه دي</b>\n\nلاندې محصولات په غوښتل شوي مقدار کې شتون نه لري:\n\n{unavailable_items}\n\nمهرباني وکړئ خپل کارټ تنظیم کړئ او بیا هڅه وکړئ.",
-
         # === My Orders View ===
         "myorders.title": "📦 <b>زما سفارشونه</b>\n\n",
         "myorders.total": "ټول سفارشونه: {count}",
@@ -5690,7 +5105,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "myorders.back_to_menu": "◀️ د سفارشونو مینو ته شاته",
         "myorders.select_details": "د توضیحاتو لپاره سفارش وټاکئ:",
         "myorders.order_not_found": "سفارش ونه موندل شو",
-
         # === Order Details Display ===
         "myorders.detail.title": "📦 <b>د سفارش توضیحات #{order_code}</b>\n\n",
         "myorders.detail.status": "📊 <b>حالت:</b> {status}\n",
@@ -5704,7 +5118,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "myorders.detail.completed": "✅ <b>بشپړ شوی:</b> {date}\n",
         "myorders.detail.items": "\n📦 <b>محصولات:</b>\n{items}\n",
         "myorders.detail.delivery_info": "\n📍 <b>د رسولو معلومات:</b>\n{address}\n{phone}\n{note}",
-
         # === Help System ===
         "help.prompt": "📧 <b>مرستې ته اړتیا لرئ؟</b>\n\n",
         "help.describe_issue": "مهرباني وکړئ خپله ستونزه یا پوښتنه تشریح کړئ، نو مستقیماً مدیر ته به واستول شي.\n\nخپل پیغام لاندې ولیکئ:",
@@ -5715,7 +5128,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "help.sent_success": "✅ {auto_message}",
         "help.sent_error": "❌ مدیر ته د پیغام لیږل ناکام شو: {error}\n\nمهرباني وکړئ وروسته بیا هڅه وکړئ.",
         "help.cancelled": "د مرستې غوښتنه لغوه شوه.",
-
         # === Admin Order Notifications ===
         "admin.order.action_required_title": "⏳ <b>عمل ته اړتیا:</b>",
         "admin.order.address_label": "پته: {address}",
@@ -5735,7 +5147,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.order.payment_method_label": "د تادیې لاره: <b>{method}</b>",
         "admin.order.phone_label": "تلیفون: {phone}",
         "admin.order.subtotal_label": "فرعي مجموعه: <b>${amount} {currency}</b>",
-        "admin.order.use_cli_confirm": "د سفارش تأیید او د رسولو وخت ټاکلو لپاره CLI وکاروئ:\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time \"YYYY-MM-DD HH:MM\"</code>",
+        "admin.order.use_cli_confirm": 'د سفارش تأیید او د رسولو وخت ټاکلو لپاره CLI وکاروئ:\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time "YYYY-MM-DD HH:MM"</code>',
         "btn.admin.back_to_panel": "🔙 د مدیر پینل ته شاته",
         "btn.admin.create_refcode": "➕ مرجع کوډ جوړول",
         "btn.admin.list_refcodes": "📋 ټول کوډونه لیست کول",
@@ -5795,7 +5207,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.bitcoin.send_exact": "• پورته ښودل شوی دقیق مبلغ واستوئ",
         "order.payment.bitcoin.title": "💳 <b>د Bitcoin تادیې لارښوونې</b>",
         "order.payment.bitcoin.total_amount": "ټول مبلغ: <b>{amount} {currency}</b>",
-
         # Crypto payment (Card 18) — generic strings for all coins
         "crypto.payment.title": "💳 <b>{coin_name} Payment</b>",
         "crypto.payment.order_code": "Order: <b>{code}</b>",
@@ -5823,7 +5234,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Your order is now being processed."
         ),
         "crypto.payment_expired": "⏰ Payment window for your {coin} order ({order_code}) has expired. Please place a new order.",
-
         "order.payment.cash.admin_contact": "مدیر به ډېر ژر تاسو سره اړیکه ونیسي.",
         "order.payment.cash.after_confirm": "د تأیید وروسته، د رسولو وخت به تاسو ته خبر درکړل شي.",
         "order.payment.cash.created": "ستاسو سفارش {code} جوړ شو او د مدیر تأیید ته انتظار کې دی.",
@@ -5841,16 +5251,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.order_label": "📋 <b>سفارش: {code}</b>",
         "order.payment.subtotal_label": "فرعي مجموعه: <b>{amount} {currency}</b>",
         "order.payment.total_amount_label": "<b>ټول مبلغ: {amount} {currency}</b>",
-
         # Delivery Photo Proof (Card 4)
         "delivery.photo.required": "د ځای پر ځای تحویل لپاره عکس اړین دی",
         "delivery.photo.upload_prompt": "مهرباني وکړئ د تحویل عکس اپلوډ کړئ",
         "delivery.photo.received": "د تحویل عکس خوندي شو",
         "delivery.photo.sent_to_customer": "د تحویل عکس پیرودونکي ته واستول شو",
         "delivery.photo.customer_notification": "ستاسو سفارش {order_code} تحویل شو! دا د تحویل تأیید عکس دی.",
-
         # === New Feature Strings ===
-
         # === Restaurant Feature Strings ===
         "admin.goods.add.allergen.dairy": "Dairy",
         "admin.goods.add.allergen.eggs": "Eggs",
@@ -6035,7 +5442,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "ticket.subject_prompt": "Enter the subject:",
         "ticket.title": "🎫 <b>Support Tickets</b>",
         "ticket.view_title": "🎫 <b>Ticket #{code}</b>\nStatus: {status}\nSubject: {subject}\nCreated: {date}",
-
         # Delivery GPS (Card 15)
         "delivery.gps.prompt": "📍 ستاسو سفارش {order_code} په لاره ده!\n\nچلوونکي سره مرسته وکړئ چې تاسو ژر ومومي — خپل ځای شریک کړئ:",
         "delivery.gps.btn_static": "📍 ځای واستوئ",
@@ -6047,7 +5453,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "delivery.chat.session_closed": "⏹ دا د چت غونډه پای ته ورسېدله. د مرستې لپاره له ملاتړ سره اړیکه ونیسئ.",
         "delivery.chat.post_delivery_open": "✅ تحویل شو! چت به د {minutes} نورو دقیقو لپاره خلاص پاتې شي.",
         "delivery.chat.post_delivery_closed": "⏹ د تحویل وروسته د چت کړکۍ وتړل شوه.",
-
         # === Card 9: Kitchen & Delivery Workflow ===
         "admin.menu.orders": "📋 سفارشونه",
         "admin.orders.list_title": "📋 <b>سفارشونه</b>",
@@ -6074,10 +5479,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "📞 تلفون: {phone}"
         ),
         "rider.order_ready": (
-            "🚗 <b>سفارش چمتو #{order_id}</b> ({order_code})\n\n"
-            "💰 ټول: {total}\n"
-            "📍 پته: {address}\n"
-            "📞 تلفون: {phone}"
+            "🚗 <b>سفارش چمتو #{order_id}</b> ({order_code})\n\n💰 ټول: {total}\n📍 پته: {address}\n📞 تلفون: {phone}"
         ),
         "order.status.preparing": "🍳 ستاسو سفارش #{order_code} چمتو کیږي",
         "order.status.ready": "✅ ستاسو سفارش #{order_code} د ترلاسه کولو لپاره چمتو دی",
@@ -6130,7 +5532,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.driver.rejected_admin": "❌ چلوونکی رد شو.",
         "admin.driver.not_authorized": "یوازې مالک دا کار کولی شي.",
         "admin.driver.not_found": "چلوونکی ونه موندل شو.",
-
         # === PDPA Privacy Policy ===
         "btn.privacy": "🔒 د محرمیت تګلاره",
         "privacy.notice": (
@@ -6177,16 +5578,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.check_subscription": "🔄 Vérifier l'abonnement",
         "btn.admin.ban_user": "🚫 Bannir l'utilisateur",
         "btn.admin.unban_user": "✅ Débannir l'utilisateur",
-
         # === Admin Buttons (user management shortcuts) ===
         "btn.admin.promote": "⬆️ Nommer administrateur",
         "btn.admin.demote": "⬇️ Révoquer administrateur",
         "btn.admin.add_user_bonus": "🎁 Ajouter un bonus de parrainage",
-
         # === Titles / Generic Texts ===
         "menu.title": "⛩️ Menu principal",
         "admin.goods.add.stock.error": "❌ Erreur lors de l'ajout du stock initial : {error}",
-        "admin.goods.stock.add_success": "✅ {quantity} unités ajoutées à \"{item}\"",
+        "admin.goods.stock.add_success": '✅ {quantity} unités ajoutées à "{item}"',
         "admin.goods.stock.add_units": "➕ Ajouter des unités",
         "admin.goods.stock.current_status": "Statut actuel",
         "admin.goods.stock.error": "❌ Erreur de gestion du stock : {error}",
@@ -6200,11 +5599,11 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.stock.prompt.remove_units": "Entrez le nombre d'unités à retirer :",
         "admin.goods.stock.prompt.set_exact": "Entrez la quantité exacte du stock :",
         "admin.goods.stock.redirect_message": "ℹ️ La gestion du stock est maintenant disponible via le menu « Gérer le stock »",
-        "admin.goods.stock.remove_success": "✅ {quantity} unités retirées de \"{item}\"",
+        "admin.goods.stock.remove_success": '✅ {quantity} unités retirées de "{item}"',
         "admin.goods.stock.remove_units": "➖ Retirer des unités",
         "admin.goods.stock.select_action": "Sélectionnez une action",
         "admin.goods.stock.set_exact": "⚖️ Définir la quantité exacte",
-        "admin.goods.stock.set_success": "✅ Le stock de \"{item}\" a été défini à {quantity} unités",
+        "admin.goods.stock.set_success": '✅ Le stock de "{item}" a été défini à {quantity} unités',
         "admin.goods.stock.status_title": "📊 Statut du stock :",
         "errors.invalid_item_name": "❌ Nom de produit invalide",
         "errors.invalid_language": "Langue invalide",
@@ -6219,45 +5618,35 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.users.unban.success": "✅ L'utilisateur {name} a été débanni avec succès",
         "admin.users.unban.failed": "❌ Échec du débannissement de l'utilisateur",
         "admin.users.unban.notify": "✅ Vous avez été débanni par un administrateur",
-
         # === Profile ===
         "btn.referral": "🎲 Système de parrainage",
         "btn.purchased": "🎁 Achats effectués",
         "profile.referral_id": "👤 <b>Parrain</b> — <code>{id}</code>",
-
         # === Subscription Flow ===
         "subscribe.prompt": "Abonnez-vous d'abord au canal d'actualités",
-
         # === Profile Info Lines ===
         "profile.id": "🆔 <b>ID</b> — <code>{id}</code>",
         "profile.bonus_balance": "💰 <b>Bonus de parrainage :</b> ${bonus_balance}",
         "profile.purchased_count": "🎁 <b>Articles achetés</b> — {count} pcs",
         "profile.registration_date": "🕢 <b>Inscrit le</b> — <code>{dt}</code>",
-
         # === Referral ===
         "referral.title": "💚 Système de parrainage",
         "referral.count": "Nombre de filleuls : {count}",
         "referral.description": "📔 Le système de parrainage vous permet de gagner sans investissement. Partagez votre lien personnel et recevez {percent}% des recharges de vos filleuls sur votre solde du bot.",
         "btn.view_referrals": "👥 Mes filleuls",
         "btn.view_earnings": "💰 Mes revenus",
-
         "referrals.list.title": "👥 Vos filleuls :",
         "referrals.list.empty": "Vous n'avez pas encore de filleuls actifs",
         "referrals.item.format": "ID : {telegram_id} | Gagné : {total_earned} {currency}",
-
         "referral.earnings.title": "💰 Revenus du filleul <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>) :",
         "referral.earnings.empty": "Pas encore de revenus de ce filleul <code>{id}</code> (<a href='tg://user?id={id}'>{name}</a>)",
         "referral.earning.format": "{amount} {currency} | {date} | (de {original_amount} {currency})",
         "referral.item.info": "💰 Revenu n° : <code>{id}</code>\n👤 Filleul : <code>{telegram_id}</code> (<a href='tg://user?id={telegram_id}'>{name}</a>)\n🔢 Montant : {amount} {currency}\n🕘 Date : <code>{date}</code>\n💵 D'un dépôt de {original_amount} {currency}",
-
         "referral.admin_bonus.info": "💰 Revenu n° : <code>{id}</code>\n🎁 <b>Bonus de l'administrateur</b>\n🔢 Montant : {amount} {currency}\n🕘 Date : <code>{date}</code>",
-
         "all.earnings.title": "💰 Tous vos revenus de parrainage :",
         "all.earnings.empty": "Vous n'avez pas encore de revenus de parrainage",
         "all.earning.format.admin": "{amount} {currency} de l'admin | {date}",
-
         "referrals.stats.template": "📊 Statistiques du système de parrainage :\n\n👥 Filleuls actifs : {active_count}\n💰 Total gagné : {total_earned} {currency}\n📈 Total des recharges des filleuls : {total_original} {currency}\n🔢 Nombre de revenus : {earnings_count}",
-
         # === Admin: Main Menu ===
         "admin.menu.main": "⛩️ Menu administrateur",
         "admin.menu.shop": "🛒 Gestion de la boutique",
@@ -6266,7 +5655,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.menu.users": "👥 Gestion des utilisateurs",
         "admin.menu.broadcast": "📝 Diffusion",
         "admin.menu.rights": "Permissions insuffisantes",
-
         # === Admin: User Management ===
         "admin.users.prompt_enter_id": "👤 Entrez l'ID de l'utilisateur pour voir / modifier les données",
         "admin.users.invalid_id": "⚠️ Veuillez entrer un ID utilisateur numérique valide.",
@@ -6285,14 +5673,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.users.bonus.added": "✅ Le bonus de parrainage de {name} a été crédité de {amount} {currency}",
         "admin.users.bonus.added.notify": "🎁 Un bonus de parrainage de {amount} {currency} vous a été crédité",
         "admin.users.bonus.invalid": "❌ Montant invalide. Entrez un nombre entre {min_amount} et {max_amount} {currency}.",
-
         # === Admin: Shop Management Menu ===
         "admin.shop.menu.title": "⛩️ Gestion de la boutique",
         "admin.shop.menu.statistics": "📊 Statistiques",
         "admin.shop.menu.logs": "📁 Afficher les journaux",
         "admin.shop.menu.admins": "👮 Administrateurs",
         "admin.shop.menu.users": "👤 Utilisateurs",
-
         # === Admin: Categories Management ===
         "admin.categories.menu.title": "⛩️ Gestion des catégories",
         "admin.categories.add": "➕ Ajouter une catégorie",
@@ -6308,8 +5694,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.categories.delete.success": "✅ Catégorie supprimée",
         "admin.categories.rename.not_found": "❌ Catégorie non mise à jour (elle n'existe pas)",
         "admin.categories.rename.exist": "❌ Impossible de renommer (une catégorie avec ce nom existe déjà)",
-        "admin.categories.rename.success": "✅ Catégorie \"{old}\" renommée en \"{new}\"",
-
+        "admin.categories.rename.success": '✅ Catégorie "{old}" renommée en "{new}"',
         # === Admin: Goods / Items Management (Add / List / Item Info) ===
         "admin.goods.add_position": "➕ Ajouter un article",
         "admin.goods.manage_stock": "➕ Ajouter du stock à l'article",
@@ -6331,7 +5716,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.add.stock.invalid": "⚠️ Quantité incorrecte. Veuillez entrer un nombre.",
         "admin.goods.add.stock.negative": "⚠️ Quantité incorrecte. Entrez un nombre positif.",
         "admin.goods.add.result.created_with_stock": "✅ Article {item_name} créé, {stock_quantity} ajoutés au stock.",
-
         # === Admin: Goods / Items Update Flow ===
         "admin.goods.update.position.invalid": "Article non trouvé.",
         "admin.goods.update.position.exists": "Un article avec ce nom existe déjà.",
@@ -6340,15 +5724,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.update.prompt.new_name": "Entrez le nouveau nom de l'article :",
         "admin.goods.update.prompt.description": "Entrez la description de l'article :",
         "admin.goods.update.success": "✅ Article mis à jour",
-
         # === Admin: Goods / Items Delete Flow ===
         "admin.goods.delete.prompt.name": "Entrez le nom de l'article",
         "admin.goods.delete.position.not_found": "❌ Article non supprimé (il n'existe pas)",
         "admin.goods.delete.position.success": "✅ Article supprimé",
-
         # === Admin: Item Info ===
         "admin.goods.view_stock": "Voir les articles",
-
         # Admin Modifier Management (Card 8)
         "admin.goods.manage_modifiers": "🍳 Options",
         "admin.goods.modifiers.prompt": "Souhaitez-vous ajouter des options (epices, supplements, etc.) ?",
@@ -6360,19 +5741,15 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.goods.modifiers.edit_instructions": "Choisissez une action :",
         "admin.goods.modifiers.set_new": "📝 Definir nouveau",
         "admin.goods.modifiers.clear": "🗑 Tout effacer",
-
         # === Admin: Logs ===
         "admin.shop.logs.caption": "Journaux du bot",
         "admin.shop.logs.empty": "❗️ Aucun journal disponible",
-
         # === Group Notifications ===
         "shop.group.new_upload": "Nouveau stock",
         "shop.group.item": "Article",
         "shop.group.stock": "Quantité",
-
         # === Admin: Statistics ===
         "admin.shop.stats.template": "Statistiques de la boutique :\n➖➖➖➖➖➖➖➖➖➖➖➖➖\n<b>◽UTILISATEURS</b>\n◾️Utilisateurs des dernières 24h : {today_users}\n◾️Total administrateurs : {admins}\n◾️Total utilisateurs : {users}\n➖➖➖➖➖➖➖➖➖➖➖➖➖\n◽<b>DIVERS</b>\n◾Articles : {items} pcs\n◾Positions : {goods} pcs\n◾Catégories : {categories} pcs\n",
-
         # === Admin: Lists & Broadcast ===
         "admin.shop.admins.title": "👮 Administrateurs du bot :",
         "admin.shop.users.title": "Utilisateurs du bot :",
@@ -6382,7 +5759,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "broadcast.done": "✅ Diffusion terminée !\n\n📊 Statistiques :📊\n👥 Total : {total}\n✅ Livrés : {sent}\n❌ Non livrés : {failed}\n🚫 Bot bloqué : ~{blocked}\n📈 Taux de réussite : {success}%\n⏱ Durée : {duration} sec",
         "broadcast.cancel": "❌ La diffusion a été annulée.",
         "broadcast.warning": "Aucune diffusion active",
-
         # === Brand / Store Selection ===
         "shop.brands.title": "🏪 Choisissez un restaurant",
         "shop.branches.title": "📍 Choisissez une succursale",
@@ -6408,7 +5784,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.delete_cart": "🗑 Supprimer le panier",
         "btn.stay": "↩️ Rester",
         "btn.switch_and_remove": "🔄 Basculer et supprimer les indisponibles",
-
         # === Shop Browsing (Categories / Goods / Item Page) ===
         "shop.categories.title": "🏪 Catégories de la boutique",
         "shop.goods.choose": "🏪 Choisissez un produit",
@@ -6419,7 +5794,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "shop.item.quantity_unlimited": "Quantité — illimitée",
         "shop.item.quantity_left": "Quantité — {count} pcs",
         "shop.item.quantity_detailed": "📦 Total en stock : {total} pcs\n🔒 Réservés : {reserved} pcs\n✅ Disponibles : {available} pcs",
-
         # === Purchases ===
         "purchases.title": "Articles achetés :",
         "purchases.pagination.invalid": "Données de pagination invalides",
@@ -6429,7 +5803,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "purchases.item.datetime": "<b>🕒 Acheté le</b> : <code>{dt}</code>",
         "purchases.item.unique_id": "<b>🧾 ID unique</b> : <code>{uid}</code>",
         "purchases.item.value": "<b>🔑 Valeur</b> :\n<code>{value}</code>",
-
         # === Middleware ===
         "middleware.ban": "⏳ Vous êtes temporairement bloqué. Attendez {time} secondes.",
         "middleware.above_limits": "⚠️ Trop de requêtes ! Vous êtes temporairement bloqué.",
@@ -6441,7 +5814,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "middleware.security.banned": "⛔ <b>Vous avez été banni</b>\n\nRaison : {reason}",
         "middleware.security.banned_no_reason": "⛔ <b>Vous avez été banni</b>\n\nVeuillez contacter l'administrateur pour plus d'informations.",
         "middleware.security.rate_limit": "⚠️ Trop de requêtes ! Veuillez patienter un instant.",
-
         # === Errors ===
         "errors.not_subscribed": "Vous n'êtes pas abonné",
         "errors.pagination_invalid": "Données de pagination invalides",
@@ -6449,7 +5821,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "errors.channel.telegram_not_found": "Impossible d'écrire dans le canal. Ajoutez-moi comme administrateur du canal @{channel} avec le droit de publier des messages.",
         "errors.channel.telegram_forbidden_error": "Canal non trouvé. Vérifiez le nom du canal @{channel}.",
         "errors.channel.telegram_bad_request": "Échec de l'envoi au canal : {e}",
-
         # === Orders ===
         "order.payment_method.choose": "💳 Choisissez le mode de paiement :",
         "order.payment_method.bitcoin": "💳 Bitcoin",
@@ -6460,7 +5831,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.status.notify_order_confirmed": "Commande {order_code} confirmée ! 🎉\n\nVotre commande sera livrée le : {delivery_time}\n\nArticles :\n{items}\n\nTotal : {total}\n\nPatientez pour la livraison !",
         "order.status.notify_order_delivered": "Commande {order_code} livrée ! ✅\n\nMerci pour votre achat ! Nous espérons vous revoir bientôt ! 🙏",
         "order.status.notify_order_modified": "Commande {order_code} modifiée par l'admin 📝\n\nModifications :\n{changes}\n\nNouveau total : {total}",
-
         # === Additional Common Buttons ===
         "btn.cart": "🛒 Panier",
         "btn.my_orders": "📦 Mes commandes",
@@ -6483,7 +5853,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.apply_bonus_no": "❌ Non, garder pour plus tard",
         "btn.cancel": "❌ Annuler",
         "btn.add_to_cart": "🛒 Ajouter au panier",
-
         # === Cart Management ===
         "cart.add_success": "✅ {item_name} ajouté au panier !",
         "cart.add_error": "❌ {message}",
@@ -6499,7 +5868,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "cart.delivery_note": "📝 Note : {note}\n",
         "cart.use_info_question": "\n\nSouhaitez-vous utiliser ces informations ou les mettre à jour ?",
         "cart.no_saved_info": "❌ Aucune information de livraison enregistrée. Veuillez saisir manuellement.",
-
         # === Order/Delivery Flow ===
         "order.delivery.address_prompt": "📍 Veuillez entrer votre adresse de livraison :",
         "order.delivery.address_invalid": "❌ Veuillez fournir une adresse valide (au moins 5 caractères).",
@@ -6507,7 +5875,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.phone_invalid": "❌ Veuillez fournir un numéro de téléphone valide (au moins 8 chiffres).",
         "order.delivery.note_prompt": "📝 Des instructions de livraison spéciales ? (Optionnel)\n\nVous pouvez passer en cliquant sur le bouton ci-dessous.",
         "order.delivery.info_save_error": "❌ Erreur lors de l'enregistrement des informations de livraison. Veuillez réessayer.",
-
         # Location Method Choice
         "order.delivery.location_method_prompt": "📍 Comment souhaitez-vous indiquer votre adresse de livraison ?\n\nChoisissez une option ci-dessous :",
         "btn.location_method.gps": "📡 Envoyer GPS via Telegram",
@@ -6521,16 +5888,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.live_gps_hint": "📍 Veuillez partager votre position en direct via le menu des pièces jointes (📎 → Position → Partager la position en direct).",
         "order.delivery.google_link_prompt": "🗺 Collez un lien Google Maps avec votre emplacement.\n\nOuvrez Google Maps, trouvez l'emplacement, appuyez sur 'Partager' et copiez le lien ici.",
         "order.delivery.google_link_invalid": "❌ Impossible de reconnaître le lien Google Maps. Assurez-vous qu'il commence par google.com/maps ou goo.gl/maps.",
-        "order.delivery.address_confirm_prompt": "📍 Votre adresse :\n<b>{address}</b>\n\n🔗 <a href=\"{maps_link}\">Voir sur la carte</a>\n\nEst-ce correct ?",
+        "order.delivery.address_confirm_prompt": '📍 Votre adresse :\n<b>{address}</b>\n\n🔗 <a href="{maps_link}">Voir sur la carte</a>\n\nEst-ce correct ?',
         "btn.address_confirm_yes": "✅ Oui, c'est correct",
         "btn.address_confirm_retry": "✏️ Non, ressaisir l'adresse",
-
         # GPS Location (Card 2)
         "order.delivery.location_prompt": "📍 Souhaitez-vous partager votre position GPS pour une livraison plus précise ?\n\nAppuyez sur le bouton ci-dessous ou passez cette étape.",
         "order.delivery.location_saved": "✅ Position enregistrée !",
         "btn.share_location": "📍 Partager la position",
         "btn.skip_location": "⏭ Passer",
-
         # Delivery Type (Card 3)
         "order.delivery.type_prompt": "🚚 Choisissez le type de livraison :",
         "btn.delivery.door": "🚪 Livraison à domicile",
@@ -6540,7 +5905,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.delivery.drop_photo_prompt": "📸 Voulez-vous envoyer une photo du lieu de dépôt ? (optionnel)",
         "order.delivery.drop_photo_saved": "✅ Photo du lieu de dépôt enregistrée !",
         "btn.skip_drop_photo": "⏭ Passer la photo",
-
         # PromptPay (Card 1)
         "order.payment_method.promptpay": "💳 PromptPay QR",
         "order.payment.promptpay.title": "💳 <b>Paiement PromptPay</b>",
@@ -6563,7 +5927,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.promptpay.duplicate_slip": "🚫 Ce reçu de paiement a déjà été utilisé pour une autre commande. Chaque reçu ne peut être utilisé qu'une seule fois. Veuillez contacter le support si vous pensez qu'il s'agit d'une erreur.",
         "admin.order.verify_payment": "✅ Vérifier le paiement",
         "admin.order.payment_verified": "✅ Paiement vérifié",
-
         # Delivery Chat (Card 13)
         "order.delivery.chat_unavailable": "❌ Chat avec le livreur indisponible. Le groupe de livraison n'est pas configuré.",
         "order.delivery.chat_started": "💬 Vous pouvez envoyer un message à votre livreur. Envoyez du texte, une photo ou une position.",
@@ -6581,9 +5944,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn.drop_media_done": "✅ Terminé",
         "btn.skip_drop_media": "⏭ Passer",
         "btn.end_chat": "❌ Terminer le chat",
-
         # GPS tracking & chat session (Card 15)
-
         # === Bonus/Referral Application ===
         "order.bonus.available": "💰 <b>Vous avez ${bonus_balance} en bonus de parrainage !</b>\n\n",
         "order.bonus.apply_question": "Souhaitez-vous appliquer le bonus de parrainage à cette commande ?",
@@ -6592,21 +5953,17 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.bonus.invalid_amount": "❌ Montant invalide. Veuillez entrer un nombre (ex. : 5.50) :",
         "order.bonus.insufficient": "❌ Solde bonus insuffisant. Veuillez réessayer.",
         "order.bonus.enter_amount": "Entrez le montant du bonus à appliquer (maximum ${max_applicable}) :\n\nOu utilisez tous les bonus disponibles en cliquant sur le bouton ci-dessous.",
-
         # === Payment Instructions ===
         "order.payment.system_unavailable": "❌ <b>Système de paiement temporairement indisponible</b>\n\nAucune adresse Bitcoin disponible. Veuillez contacter le support.",
         "order.payment.customer_not_found": "❌ Informations client introuvables. Veuillez réessayer.",
         "order.payment.creation_error": "❌ Erreur lors de la création de la commande. Veuillez réessayer ou contacter le support.",
-
         # === Order Summary/Total ===
         "order.summary.title": "📦 <b>Récapitulatif de la commande</b>\n\n",
         "order.summary.cart_total": "Total du panier : ${cart_total}",
         "order.summary.bonus_applied": "Bonus appliqué : -${bonus_applied}",
         "order.summary.final_amount": "Montant final : ${final_amount}",
-
         # === Inventory/Reservation ===
         "order.inventory.unable_to_reserve": "❌ <b>Impossible de réserver les articles</b>\n\nLes articles suivants ne sont pas disponibles dans les quantités demandées :\n\n{unavailable_items}\n\nVeuillez ajuster votre panier et réessayer.",
-
         # === My Orders View ===
         "myorders.title": "📦 <b>Mes commandes</b>\n\n",
         "myorders.total": "Total des commandes : {count}",
@@ -6627,7 +5984,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "myorders.back_to_menu": "◀️ Retour au menu des commandes",
         "myorders.select_details": "Sélectionnez une commande pour voir les détails :",
         "myorders.order_not_found": "Commande non trouvée",
-
         # === Order Details Display ===
         "myorders.detail.title": "📦 <b>Détails de la commande #{order_code}</b>\n\n",
         "myorders.detail.status": "📊 <b>Statut :</b> {status}\n",
@@ -6641,7 +5997,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "myorders.detail.completed": "✅ <b>Terminée le :</b> {date}\n",
         "myorders.detail.items": "\n📦 <b>Articles :</b>\n{items}\n",
         "myorders.detail.delivery_info": "\n📍 <b>Informations de livraison :</b>\n{address}\n{phone}\n{note}",
-
         # === Help System ===
         "help.prompt": "📧 <b>Besoin d'aide ?</b>\n\n",
         "help.describe_issue": "Veuillez décrire votre problème ou question, il sera envoyé directement à l'administrateur.\n\nTapez votre message ci-dessous :",
@@ -6652,7 +6007,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "help.sent_success": "✅ {auto_message}",
         "help.sent_error": "❌ Échec de l'envoi du message à l'administrateur : {error}\n\nVeuillez réessayer plus tard.",
         "help.cancelled": "Demande d'aide annulée.",
-
         # === Admin Order Notifications ===
         "admin.order.action_required_title": "⏳ <b>Action requise :</b>",
         "admin.order.address_label": "Adresse : {address}",
@@ -6672,7 +6026,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.order.payment_method_label": "Mode de paiement : <b>{method}</b>",
         "admin.order.phone_label": "Téléphone : {phone}",
         "admin.order.subtotal_label": "Sous-total : <b>${amount} {currency}</b>",
-        "admin.order.use_cli_confirm": "Utilisez le CLI pour confirmer la commande et définir l'heure de livraison :\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time \"YYYY-MM-DD HH:MM\"</code>",
+        "admin.order.use_cli_confirm": 'Utilisez le CLI pour confirmer la commande et définir l\'heure de livraison :\n<code>python bot_cli.py order --order-code {code} --status-confirmed --delivery-time "YYYY-MM-DD HH:MM"</code>',
         "btn.admin.back_to_panel": "🔙 Retour au panneau d'administration",
         "btn.admin.create_refcode": "➕ Créer un code de référence",
         "btn.admin.list_refcodes": "📋 Lister tous les codes",
@@ -6732,7 +6086,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.bitcoin.send_exact": "• Envoyez le montant EXACT indiqué ci-dessus",
         "order.payment.bitcoin.title": "💳 <b>Instructions de paiement Bitcoin</b>",
         "order.payment.bitcoin.total_amount": "Montant total : <b>{amount} {currency}</b>",
-
         # Crypto payment (Card 18) — generic strings for all coins
         "crypto.payment.title": "💳 <b>{coin_name} Payment</b>",
         "crypto.payment.order_code": "Order: <b>{code}</b>",
@@ -6760,7 +6113,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Your order is now being processed."
         ),
         "crypto.payment_expired": "⏰ Payment window for your {coin} order ({order_code}) has expired. Please place a new order.",
-
         "order.payment.cash.admin_contact": "L'administrateur vous contactera sous peu.",
         "order.payment.cash.after_confirm": "Après confirmation, vous serez notifié de l'heure de livraison.",
         "order.payment.cash.created": "Votre commande {code} a été créée et est en attente de confirmation de l'administrateur.",
@@ -6778,16 +6130,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "order.payment.order_label": "📋 <b>Commande : {code}</b>",
         "order.payment.subtotal_label": "Sous-total : <b>{amount} {currency}</b>",
         "order.payment.total_amount_label": "<b>Montant total : {amount} {currency}</b>",
-
         # Delivery Photo Proof (Card 4)
         "delivery.photo.required": "Photo requise pour la livraison en point de depot",
         "delivery.photo.upload_prompt": "Veuillez telecharger la photo de livraison",
         "delivery.photo.received": "Photo de livraison enregistree",
         "delivery.photo.sent_to_customer": "Photo de livraison envoyee au client",
         "delivery.photo.customer_notification": "Votre commande {order_code} a ete livree ! Voici la photo de confirmation.",
-
         # === New Feature Strings ===
-
         # === Restaurant Feature Strings ===
         "admin.goods.add.allergen.dairy": "Dairy",
         "admin.goods.add.allergen.eggs": "Eggs",
@@ -6972,7 +6321,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "ticket.subject_prompt": "Enter the subject:",
         "ticket.title": "🎫 <b>Support Tickets</b>",
         "ticket.view_title": "🎫 <b>Ticket #{code}</b>\nStatus: {status}\nSubject: {subject}\nCreated: {date}",
-
         # Delivery GPS (Card 15)
         "delivery.gps.prompt": "📍 Votre commande {order_code} est en route !\n\nAidez votre livreur a vous trouver plus vite — partagez votre position :",
         "delivery.gps.btn_static": "📍 Envoyer la position",
@@ -6984,7 +6332,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "delivery.chat.session_closed": "⏹ Cette session de chat est terminee. Contactez le support pour de l'aide.",
         "delivery.chat.post_delivery_open": "✅ Livre ! Le chat reste ouvert pendant {minutes} minutes supplementaires.",
         "delivery.chat.post_delivery_closed": "⏹ La fenetre de chat post-livraison est fermee.",
-
         # === Card 9: Kitchen & Delivery Workflow ===
         "admin.menu.orders": "📋 Commandes",
         "admin.orders.list_title": "📋 <b>Commandes</b>",
@@ -7067,7 +6414,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.driver.rejected_admin": "❌ Livreur refuse.",
         "admin.driver.not_authorized": "Seul le proprietaire peut faire cela.",
         "admin.driver.not_found": "Livreur introuvable.",
-
         # === PDPA Privacy Policy ===
         "btn.privacy": "🔒 Politique de confidentialité",
         "privacy.notice": (
@@ -7099,5 +6445,4 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "privacy.already_accepted": "✅ Vous avez déjà accepté la politique de confidentialité.",
         "privacy.no_url": "La page de politique de confidentialité complète n'est pas encore configurée.",
     },
-
 }

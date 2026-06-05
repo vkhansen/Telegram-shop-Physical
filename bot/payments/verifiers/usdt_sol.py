@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -22,7 +22,6 @@ USDT_DECIMALS = Decimal("1000000")
 
 
 class USDTSolVerifier(ChainVerifier):
-
     def required_confirmations(self) -> int:
         return 1  # finalized commitment
 
@@ -32,6 +31,7 @@ class USDTSolVerifier(ChainVerifier):
     @staticmethod
     def _rpc_url() -> str:
         from bot.config.env import EnvKeys
+
         return EnvKeys.SOLANA_RPC_URL
 
     async def check_payment(self, address: str, expected_amount: Decimal) -> TxResult:
@@ -57,17 +57,13 @@ class USDTSolVerifier(ChainVerifier):
 
             # Step 2: get recent signatures for each token account
             for token_account in token_accounts:
-                result = await self._check_token_account(
-                    client, rpc_url, token_account, address, expected_amount
-                )
+                result = await self._check_token_account(client, rpc_url, token_account, address, expected_amount)
                 if result and result.found:
                     return result
 
         return TxResult(found=False)
 
-    async def _get_token_accounts(
-        self, client: httpx.AsyncClient, rpc_url: str, owner: str
-    ) -> list[str]:
+    async def _get_token_accounts(self, client: httpx.AsyncClient, rpc_url: str, owner: str) -> list[str]:
         """Get all USDT token accounts owned by the given address."""
         payload = {
             "jsonrpc": "2.0",
@@ -99,7 +95,7 @@ class USDTSolVerifier(ChainVerifier):
         token_account: str,
         owner_address: str,
         expected_amount: Decimal,
-    ) -> Optional[TxResult]:
+    ) -> TxResult | None:
         """Check recent transactions on a token account for incoming USDT."""
         # Get recent signatures for the token account
         sigs_payload = {
@@ -140,7 +136,7 @@ class USDTSolVerifier(ChainVerifier):
         token_account: str,
         owner_address: str,
         expected_amount: Decimal,
-    ) -> Optional[TxResult]:
+    ) -> TxResult | None:
         """Inspect a single transaction for USDT received."""
         tx_payload = {
             "jsonrpc": "2.0",
@@ -205,18 +201,11 @@ class USDTSolVerifier(ChainVerifier):
                         # Check if this owner's balance decreased
                         sender_owner = bal.get("owner")
                         sender_idx = bal.get("accountIndex", -1)
-                        sender_pre = Decimal(
-                            bal.get("uiTokenAmount", {}).get("amount", "0")
-                        )
+                        sender_pre = Decimal(bal.get("uiTokenAmount", {}).get("amount", "0"))
                         # Find matching post balance
                         for post_bal in post_token_balances:
-                            if (
-                                post_bal.get("accountIndex") == sender_idx
-                                and post_bal.get("mint") == USDT_MINT
-                            ):
-                                sender_post = Decimal(
-                                    post_bal.get("uiTokenAmount", {}).get("amount", "0")
-                                )
+                            if post_bal.get("accountIndex") == sender_idx and post_bal.get("mint") == USDT_MINT:
+                                sender_post = Decimal(post_bal.get("uiTokenAmount", {}).get("amount", "0"))
                                 if sender_post < sender_pre:
                                     from_address = sender_owner
                                     break

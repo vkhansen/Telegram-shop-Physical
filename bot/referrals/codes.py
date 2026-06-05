@@ -1,17 +1,17 @@
 import secrets
 import string
 from datetime import timedelta
-from typing import Optional, Tuple
+
 import pytz
 
+from bot.config.timezone import get_localized_time
 from bot.database.main import Database
 from bot.database.models.main import ReferenceCode, ReferenceCodeUsage
 from bot.export.custom_logging import (
     log_reference_code_creation,
+    log_reference_code_deactivation,
     log_reference_code_usage,
-    log_reference_code_deactivation
 )
-from bot.config.timezone import get_localized_time
 
 
 def generate_reference_code() -> str:
@@ -23,7 +23,7 @@ def generate_reference_code() -> str:
     """
     # Use secrets for cryptographically strong random generation
     characters = string.ascii_uppercase
-    code = ''.join(secrets.choice(characters) for _ in range(8))
+    code = "".join(secrets.choice(characters) for _ in range(8))
     return code
 
 
@@ -56,9 +56,9 @@ def create_reference_code(
     created_by: int,
     created_by_username: str,
     is_admin_code: bool = False,
-    expires_in_hours: Optional[int] = None,
-    max_uses: Optional[int] = None,
-    note: Optional[str] = None
+    expires_in_hours: int | None = None,
+    max_uses: int | None = None,
+    note: str | None = None,
 ) -> str:
     """
     Create a new reference code
@@ -105,7 +105,7 @@ def create_reference_code(
             expires_at=expires_at,
             max_uses=max_uses,
             note=note,
-            is_admin_code=is_admin_code
+            is_admin_code=is_admin_code,
         )
         session.add(ref_code)
         session.commit()
@@ -118,13 +118,13 @@ def create_reference_code(
         expires_at=expires_at,
         max_uses=max_uses,
         note=note,
-        is_admin=is_admin_code
+        is_admin=is_admin_code,
     )
 
     return code
 
 
-def validate_reference_code(code: str, user_id: int) -> Tuple[bool, str, Optional[int]]:
+def validate_reference_code(code: str, user_id: int) -> tuple[bool, str, int | None]:
     """
     Validate a reference code
 
@@ -167,23 +167,19 @@ def validate_reference_code(code: str, user_id: int) -> Tuple[bool, str, Optiona
             return False, "You cannot use your own reference code", None
 
         # Check if already used by this user
-        existing_usage = session.query(ReferenceCodeUsage).filter_by(
-            code=code,
-            used_by=user_id
-        ).first()
+        existing_usage = session.query(ReferenceCodeUsage).filter_by(code=code, used_by=user_id).first()
 
         if existing_usage:
             return False, "You have already used this reference code", None
 
         # Check if max uses reached
-        if ref_code.max_uses is not None:
-            if ref_code.current_uses >= ref_code.max_uses:
-                return False, "This reference code has reached its maximum usage limit", None
+        if ref_code.max_uses is not None and ref_code.current_uses >= ref_code.max_uses:
+            return False, "This reference code has reached its maximum usage limit", None
 
         return True, "", ref_code.created_by
 
 
-def use_reference_code(code: str, used_by: int, used_by_username: str) -> Tuple[bool, str, Optional[int]]:
+def use_reference_code(code: str, used_by: int, used_by_username: str) -> tuple[bool, str, int | None]:
     """
     Mark a reference code as used by a user
 
@@ -219,7 +215,8 @@ def use_reference_code(code: str, used_by: int, used_by_username: str) -> Tuple[
 
         # Get creator username for logging
         from bot.database.models.main import User
-        creator = session.query(User).filter_by(telegram_id=creator_id).first()
+
+        session.query(User).filter_by(telegram_id=creator_id).first()
         creator_username = f"user_{creator_id}"  # Default if user not found
 
         # Log usage
@@ -228,14 +225,15 @@ def use_reference_code(code: str, used_by: int, used_by_username: str) -> Tuple[
             used_by=used_by,
             used_by_username=used_by_username,
             referred_by=creator_id,
-            referred_by_username=creator_username
+            referred_by_username=creator_username,
         )
 
         return True, "", creator_id
 
 
-def deactivate_reference_code(code: str, deactivated_by: int,
-                              deactivated_by_username: str, reason: str = "Admin action") -> bool:
+def deactivate_reference_code(
+    code: str, deactivated_by: int, deactivated_by_username: str, reason: str = "Admin action"
+) -> bool:
     """
     Deactivate a reference code
 
@@ -259,10 +257,7 @@ def deactivate_reference_code(code: str, deactivated_by: int,
 
         # Log deactivation
         log_reference_code_deactivation(
-            code=code,
-            deactivated_by=deactivated_by,
-            deactivated_by_username=deactivated_by_username,
-            reason=reason
+            code=code, deactivated_by=deactivated_by, deactivated_by_username=deactivated_by_username, reason=reason
         )
 
         return True
@@ -289,16 +284,18 @@ def get_user_reference_codes(user_id: int, include_inactive: bool = False):
 
         result = []
         for code in codes:
-            result.append({
-                'code': code.code,
-                'created_at': code.created_at,
-                'expires_at': code.expires_at,
-                'max_uses': code.max_uses,
-                'current_uses': code.current_uses,
-                'note': code.note,
-                'is_active': code.is_active,
-                'is_admin_code': code.is_admin_code
-            })
+            result.append(
+                {
+                    "code": code.code,
+                    "created_at": code.created_at,
+                    "expires_at": code.expires_at,
+                    "max_uses": code.max_uses,
+                    "current_uses": code.current_uses,
+                    "note": code.note,
+                    "is_active": code.is_active,
+                    "is_admin_code": code.is_admin_code,
+                }
+            )
 
         return result
 
@@ -323,14 +320,14 @@ def get_reference_code_stats(code: str):
         usages = session.query(ReferenceCodeUsage).filter_by(code=code).all()
 
         return {
-            'code': code,
-            'created_by': ref_code.created_by,
-            'created_at': ref_code.created_at,
-            'expires_at': ref_code.expires_at,
-            'max_uses': ref_code.max_uses,
-            'current_uses': ref_code.current_uses,
-            'note': ref_code.note,
-            'is_active': ref_code.is_active,
-            'is_admin_code': ref_code.is_admin_code,
-            'users': [{'user_id': u.used_by, 'used_at': u.used_at} for u in usages]
+            "code": code,
+            "created_by": ref_code.created_by,
+            "created_at": ref_code.created_at,
+            "expires_at": ref_code.expires_at,
+            "max_uses": ref_code.max_uses,
+            "current_uses": ref_code.current_uses,
+            "note": ref_code.note,
+            "is_active": ref_code.is_active,
+            "is_admin_code": ref_code.is_admin_code,
+            "users": [{"user_id": u.used_by, "used_at": u.used_at} for u in usages],
         }

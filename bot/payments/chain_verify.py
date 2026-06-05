@@ -5,18 +5,17 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Optional
 
 
 @dataclass
 class TxResult:
     found: bool
-    tx_hash: Optional[str] = None
-    amount: Optional[Decimal] = None       # Amount received in native units
-    confirmations: Optional[int] = None
-    from_address: Optional[str] = None
-    block_height: Optional[int] = None
-    timestamp: Optional[int] = None
+    tx_hash: str | None = None
+    amount: Decimal | None = None  # Amount received in native units
+    confirmations: int | None = None
+    from_address: str | None = None
+    block_height: int | None = None
+    timestamp: int | None = None
 
 
 class ChainVerifier(ABC):
@@ -35,17 +34,18 @@ class ChainVerifier(ABC):
         """Human-readable coin name for display."""
 
 
-# Import verifiers after definition to avoid circular imports
-from bot.payments.verifiers.btc import BTCVerifier
-from bot.payments.verifiers.ltc import LTCVerifier
-from bot.payments.verifiers.sol import SOLVerifier
-from bot.payments.verifiers.usdt_sol import USDTSolVerifier
+# Import verifiers after definition to avoid circular imports (they subclass
+# ChainVerifier, which must be defined first) — E402 is intentional here.
+from bot.payments.verifiers.btc import BTCVerifier  # noqa: E402
+from bot.payments.verifiers.ltc import LTCVerifier  # noqa: E402
+from bot.payments.verifiers.sol import SOLVerifier  # noqa: E402
+from bot.payments.verifiers.usdt_sol import USDTSolVerifier  # noqa: E402
 
 VERIFIERS: dict[str, ChainVerifier] = {
-    'btc': BTCVerifier(),
-    'ltc': LTCVerifier(),
-    'sol': SOLVerifier(),
-    'usdt_sol': USDTSolVerifier(),
+    "btc": BTCVerifier(),
+    "ltc": LTCVerifier(),
+    "sol": SOLVerifier(),
+    "usdt_sol": USDTSolVerifier(),
 }
 
 
