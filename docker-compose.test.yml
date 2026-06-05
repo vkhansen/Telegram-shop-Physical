@@ -44,12 +44,15 @@ services:
     volumes:
       - ./tests:/app/tests
       - ./bot:/app/bot
-    # Override CMD to run the full test suite instead of the bot
+    # Override CMD to run the full test suite instead of the bot.
+    # --run-e2e enables the e2e-marked tests (otherwise they self-skip), so the
+    # "docker e2e" run actually exercises the end-to-end suite, not just units.
     command: >
       python -m pytest tests/
       -v
       --tb=short
       --timeout=120
+      --run-e2e
     restart: "no"
     healthcheck:
       # Disable healthcheck for test runner
