@@ -44,6 +44,11 @@ ignore = [
     "RUF012",  # mutable class attributes — SQLAlchemy models use this pattern
 ]
 
+# Intentional UI glyphs that ruff flags as "confusable" with ASCII. These are
+# deliberate button/label characters, not typos — whitelist them globally so
+# RUF001/002/003 stay active everywhere else.
+allowed-confusables = ["➕", "ℹ"]
+
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = [
     "S101",    # assert is fine in tests
@@ -59,6 +64,14 @@ ignore = [
 "bot/database/models/main.py" = [
     "N815",    # mixedCase variable in class scope — SQLAlchemy column names
 ]
+# i18n string tables and data seeders are full of legitimate non-Latin text
+# (Thai, Arabic, Cyrillic, Persian, Pashto, French). The ambiguous-unicode
+# rules are false positives on translation data, so scope them out of data
+# files only — they remain active across all real code.
+"bot/i18n/strings.py" = ["RUF001", "RUF002", "RUF003"]
+"gen_translations.py" = ["RUF001", "RUF002", "RUF003"]
+"gen_all_translations.py" = ["RUF001", "RUF002", "RUF003"]
+"load_test_data.py" = ["RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["bot"]

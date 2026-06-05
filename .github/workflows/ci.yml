@@ -4,14 +4,22 @@ on:
   push:
     branches: [master, main, develop]
   pull_request:
-    branches: [master, main]
+    branches: [master, main, develop]
+  workflow_dispatch: {}
 
+# Cancel superseded runs on the same ref to save CI minutes.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Least-privilege default token.
+permissions:
+  contents: read
+
 env:
   PYTHON_VERSION: "3.11"
+  # Pin ruff so a new release adding lint rules can't silently break CI.
+  RUFF_VERSION: "0.15.15"
   # Required env vars for bot module imports
   TOKEN: "test_token_for_ci"
   OWNER_ID: "123456789"
@@ -21,6 +29,7 @@ jobs:
   lint:
     name: Lint & Format
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -28,9 +37,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
 
       - name: Install linting tools
-        run: pip install ruff
+        run: pip install "ruff==${RUFF_VERSION}"
 
       - name: Ruff check (lint)
         run: ruff check . --output-format=github
@@ -41,6 +51,7 @@ jobs:
   typecheck:
     name: Type Check (mypy)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -48,13 +59,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: ${{ runner.os }}-pip-
+          cache: pip
+          cache-dependency-path: requirements.txt
 
       - name: Install dependencies
         run: |
@@ -63,6 +69,9 @@ jobs:
           pip install mypy types-pytz types-python-dateutil
 
       - name: Run mypy (new modules - strict)
+        # --follow-imports=silent scopes strict checking to the listed "new"
+        # modules only; without it mypy reports errors across the whole
+        # transitively-imported codebase, defeating the per-module strict intent.
         run: |
           mypy \
             bot/payments/promptpay.py \
@@ -72,7 +81,8 @@ jobs:
             bot/utils/order_helpers.py \
             bot/utils/constants.py \
             bot/config/delivery_zones.py \
-            --ignore-missing-imports
+            --ignore-missing-imports \
+            --follow-imports=silent
 
       - name: Run mypy (full codebase - lenient)
         run: mypy bot/ --ignore-missing-imports --no-strict-optional --allow-untyped-defs
@@ -81,6 +91,7 @@ jobs:
   test:
     name: Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -88,13 +99,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: ${{ runner.os }}-pip-
+          cache: pip
+          cache-dependency-path: requirements.txt
 
       - name: Install dependencies
         run: |
@@ -126,6 +132,7 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -133,12 +140,17 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
 
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install pip-audit safety
 
+      # Advisory-only: these report known CVEs in dependencies but do not fail
+      # the build (continue-on-error), so a new upstream advisory can't block
+      # unrelated merges. Review the step logs/summary for findings.
       - name: Audit dependencies
         run: pip-audit -r requirements.txt --skip-editable
         continue-on-error: true
@@ -150,12 +162,23 @@ jobs:
   docker:
     name: Docker Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [lint, test]
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build Docker image
-        run: docker build -t telegram-shop-physical:ci .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: telegram-shop-physical:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Verify image
         run: docker image inspect telegram-shop-physical:ci --format '{{.Size}}'
