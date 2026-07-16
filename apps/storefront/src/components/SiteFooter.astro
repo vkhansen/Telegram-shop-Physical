@@ -1,0 +1,34 @@
+---
+interface Props {
+  legalName?: string | null;
+  dbdNumber?: string | null;
+  warnings?: string[];
+  brandSlug: string;
+}
+
+const { legalName, dbdNumber, warnings = [], brandSlug } = Astro.props;
+---
+
+<footer class="mt-12 border-t border-ink-800 py-8 text-sm text-ink-500">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div class="space-y-1">
+      {legalName && <p class="font-medium text-sand-200">{legalName}</p>}
+      {dbdNumber && <p>DBD / Reg. No. {dbdNumber}</p>}
+      <nav class="mt-2 flex flex-wrap gap-3 text-sand-200">
+        <a class="hover:text-accent" href={`/${brandSlug}`}>Home</a>
+        <a class="hover:text-accent" href={`/${brandSlug}/about`}>About</a>
+        <a class="hover:text-accent" href={`/${brandSlug}/contact`}>Contact</a>
+        <a class="hover:text-accent" href={`/${brandSlug}/inquire`}>Inquire</a>
+        <a class="hover:text-accent" href={`/${brandSlug}/book`}>Book</a>
+      </nav>
+    </div>
+    <div class="max-w-md space-y-2 text-xs leading-relaxed">
+      {warnings.map((w) => (
+        <p>{w}</p>
+      ))}
+      <p class="text-ink-500">
+        Site generated from live brand data. Ordering may complete via private channels where configured.
+      </p>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,55 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { fetchBrand } from "../../lib/api";
+
+export const prerender = false;
+
+const { brand: brandSlug } = Astro.params;
+if (!brandSlug) return Astro.redirect("/");
+const brand = await fetchBrand(brandSlug);
+if (!brand) return new Response(null, { status: 404 });
+const apiBase = (import.meta.env.PUBLIC_API_BASE || "http://127.0.0.1:9090").replace(/\/$/, "");
+---
+
+<BaseLayout title="Account" brandName={brand.name}>
+  <main class="mx-auto max-w-lg py-8">
+    <a href={`/${brandSlug}`} class="text-xs text-accent hover:underline">← {brand.name}</a>
+    <h1 class="mt-3 text-3xl font-bold">Account</h1>
+    <div id="card" class="mt-6 rounded-2xl border border-ink-700 bg-ink-900 p-6">
+      <p class="text-sm text-ink-500">Loading profile…</p>
+    </div>
+    <div class="mt-4 flex flex-wrap gap-2">
+      <a href={`/${brandSlug}/tickets`} class="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-ink-950">My tickets</a>
+      <button id="logout" type="button" class="rounded-xl border border-ink-700 px-4 py-2 text-sm">Log out</button>
+    </div>
+  </main>
+</BaseLayout>
+
+<script define:vars={{ apiBase, brandSlug }}>
+  async function load() {
+    const res = await fetch(`${apiBase}/api/public/auth/me`, { credentials: "include" });
+    if (!res.ok) {
+      window.location.href = `/${brandSlug}/login?next=/${brandSlug}/account`;
+      return;
+    }
+    const data = await res.json();
+    const p = data.profile || {};
+    const card = document.getElementById("card");
+    card.innerHTML = `
+      <div class="flex items-center gap-4">
+        ${p.avatar ? `<img src="${p.avatar}" alt="" class="h-14 w-14 rounded-full object-cover" />` : `<div class="flex h-14 w-14 items-center justify-center rounded-full bg-ink-800 text-accent">${(p.name || p.email || "?")[0]}</div>`}
+        <div>
+          <p class="text-lg font-semibold">${p.name || "—"}</p>
+          <p class="text-sm text-sand-200">${p.email || "—"}</p>
+          <p class="text-xs text-ink-500">@${p.username || "user"} · id ${p.user_id ?? data.session?.uid}</p>
+        </div>
+      </div>
+      <p class="mt-4 text-xs text-ink-500">Linked providers: ${(p.providers || []).map((x) => x.provider).join(", ") || "—"}</p>
+    `;
+  }
+  load();
+  document.getElementById("logout")?.addEventListener("click", async () => {
+    await fetch(`${apiBase}/api/public/auth/logout`, { method: "POST", credentials: "include" });
+    window.location.href = `/${brandSlug}/login`;
+  });
+</script>

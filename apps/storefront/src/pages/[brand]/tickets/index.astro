@@ -1,0 +1,68 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { fetchBrand } from "../../../lib/api";
+
+export const prerender = false;
+
+const { brand: brandSlug } = Astro.params;
+if (!brandSlug) return Astro.redirect("/");
+const brand = await fetchBrand(brandSlug);
+if (!brand) return new Response(null, { status: 404 });
+
+const apiBase = (import.meta.env.PUBLIC_API_BASE || "http://127.0.0.1:9090").replace(/\/$/, "");
+---
+
+<BaseLayout title="Support tickets" brandName={brand.name}>
+  <main class="py-8 lg:py-10">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <a href={`/${brandSlug}`} class="text-xs font-medium uppercase tracking-wider text-accent hover:underline">
+          ← {brand.name}
+        </a>
+        <h1 class="mt-2 text-3xl font-bold">Support tickets</h1>
+        <p id="who" class="mt-1 text-sm text-sand-200">Checking session…</p>
+      </div>
+      <div class="flex gap-2">
+        <a href={`/${brandSlug}/tickets/new`} class="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-ink-950">
+          New ticket
+        </a>
+        <a href={`/${brandSlug}/account`} class="rounded-xl border border-ink-700 px-4 py-2 text-sm">Account</a>
+      </div>
+    </div>
+    <ul id="ticket-list" class="mt-8 space-y-3"></ul>
+    <p id="empty" class="mt-8 hidden text-center text-ink-500">No tickets yet.</p>
+  </main>
+</BaseLayout>
+
+<script define:vars={{ apiBase, brandSlug }}>
+  async function load() {
+    const me = await fetch(`${apiBase}/api/public/auth/me`, { credentials: "include" });
+    if (!me.ok) {
+      window.location.href = `/${brandSlug}/login?next=/${brandSlug}/tickets`;
+      return;
+    }
+    const meData = await me.json();
+    const who = document.getElementById("who");
+    if (who) {
+      who.textContent = meData.profile?.email || meData.session?.email || meData.profile?.name || "Signed in";
+    }
+    const res = await fetch(`${apiBase}/api/public/tickets`, { credentials: "include" });
+    if (!res.ok) return;
+    const data = await res.json();
+    const list = document.getElementById("ticket-list");
+    const empty = document.getElementById("empty");
+    if (!data.tickets?.length) {
+      empty?.classList.remove("hidden");
+      return;
+    }
+    for (const t of data.tickets) {
+      const li = document.createElement("li");
+      li.innerHTML = `<a href="/${brandSlug}/tickets/${t.ticket_code}" class="block rounded-xl border border-ink-700 bg-ink-900 p-4 hover:border-accent">
+        <div class="flex justify-between gap-2"><span class="font-semibold">${t.subject}</span><span class="text-xs uppercase text-ink-500">${t.status}</span></div>
+        <p class="mt-1 text-xs text-ink-500">${t.ticket_code}</p>
+      </a>`;
+      list?.appendChild(li);
+    }
+  }
+  load();
+</script>

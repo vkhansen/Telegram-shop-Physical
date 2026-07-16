@@ -79,6 +79,12 @@ class EnvKeys:
     MONITORING_HOST: Final = os.getenv("MONITORING_HOST", "localhost")
     MONITORING_PORT: Final = int(os.getenv("MONITORING_PORT", 9090))
 
+    # White-label public catalog / media (CARD-38)
+    PUBLIC_MEDIA_BASE_URL: Final = os.getenv("PUBLIC_MEDIA_BASE_URL", "")  # e.g. https://api.example.com
+    PUBLIC_API_BASE: Final = os.getenv("PUBLIC_API_BASE", "")  # storefront fetch origin
+    WEB_MEDIA_CACHE_DIR: Final = os.getenv("WEB_MEDIA_CACHE_DIR", "data/media_cache")
+    WEB_STOREFRONT_ENABLED: Final = os.getenv("WEB_STOREFRONT_ENABLED", "false").lower() in ("1", "true", "yes")
+
     # Crypto payments (Card 18)
     CRYPTO_PAYMENTS_ENABLED: Final = os.getenv("CRYPTO_PAYMENTS_ENABLED", "false").lower() in ("1", "true", "yes")
     CRYPTO_POLL_INTERVAL: Final = int(os.getenv("CRYPTO_POLL_INTERVAL", 30))

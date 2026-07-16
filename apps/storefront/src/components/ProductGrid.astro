@@ -1,0 +1,53 @@
+---
+import type { CatalogItem } from "../lib/api";
+import { ctaLabel } from "../lib/api";
+
+interface Props {
+  items: CatalogItem[];
+  brandSlug: string;
+  storeSlug: string;
+}
+
+const { items, brandSlug, storeSlug } = Astro.props;
+---
+
+{
+  items.length === 0 ? (
+    <p class="py-12 text-center text-ink-500">No items to show.</p>
+  ) : (
+    <div class="grid grid-cols-3 gap-0.5 sm:gap-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {items.map((item) => (
+        <a
+          href={`/${brandSlug}/${storeSlug}/i/${item.slug}`}
+          class="group relative aspect-square overflow-hidden bg-ink-800 focus:z-10"
+        >
+          {item.image_url ? (
+            <img
+              src={item.image_url}
+              alt={item.name}
+              class="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+              loading="lazy"
+            />
+          ) : (
+            <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-ink-800 to-ink-900 p-2 text-center text-xs text-sand-200">
+              {item.name}
+            </div>
+          )}
+          <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-950/80 via-transparent to-transparent opacity-90" />
+          <div class="absolute bottom-0 left-0 right-0 p-1.5 sm:p-2">
+            <p class="truncate text-[10px] font-semibold text-sand-50 sm:text-xs">{item.name}</p>
+            <div class="mt-0.5 flex items-center justify-between gap-1">
+              {item.price && <span class="text-[10px] text-accent sm:text-xs">{item.price}</span>}
+              {!item.available && (
+                <span class="rounded bg-ink-950/80 px-1 text-[9px] uppercase text-sand-200">Sold out</span>
+              )}
+            </div>
+            <span class="mt-0.5 hidden text-[9px] uppercase tracking-wide text-sand-200 sm:inline">
+              {ctaLabel(item.cta)}
+            </span>
+          </div>
+        </a>
+      ))}
+    </div>
+  )
+}

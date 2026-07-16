@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  @apply bg-ink-950 text-sand-50 antialiased;
+}
+
+body {
+  @apply min-h-screen;
+}
+
+/* Focus rings for a11y (desktop keyboard) */
+:focus-visible {
+  @apply outline outline-2 outline-offset-2 outline-accent;
+}

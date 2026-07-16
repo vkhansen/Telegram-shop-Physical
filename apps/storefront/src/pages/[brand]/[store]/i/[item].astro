@@ -1,0 +1,105 @@
+---
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+import SiteFooter from "../../../../components/SiteFooter.astro";
+import { ctaLabel, fetchBrand, fetchItem } from "../../../../lib/api";
+
+export const prerender = false;
+
+const { brand: brandSlug, store: storeSlug, item: itemSlug } = Astro.params;
+if (!brandSlug || !storeSlug || !itemSlug) return Astro.redirect("/");
+
+const brand = await fetchBrand(brandSlug);
+const item = await fetchItem(brandSlug, storeSlug, itemSlug);
+if (!brand || !item) {
+  return new Response(null, { status: 404, statusText: "Not Found" });
+}
+
+const web = brand.web || {};
+const compliance = (web.compliance as Record<string, unknown>) || {};
+const warnings = (compliance.footer_warnings as string[]) || [];
+const cta = item.cta || "inquire";
+---
+
+<BaseLayout title={item.name} description={item.description || brand.name} brandName={brand.name}>
+  <article class="py-6 lg:grid lg:grid-cols-2 lg:gap-10 lg:py-10">
+    <div class="aspect-[4/5] overflow-hidden rounded-2xl bg-ink-800 lg:aspect-square">
+      {
+        item.image_url ? (
+          <img src={item.image_url} alt={item.name} class="h-full w-full object-cover" />
+        ) : (
+          <div class="flex h-full items-center justify-center text-ink-500">No image</div>
+        )
+      }
+    </div>
+    <div class="mt-6 lg:mt-0">
+      <a
+        href={`/${brandSlug}/${storeSlug}`}
+        class="text-xs font-medium uppercase tracking-wider text-accent hover:underline"
+      >
+        ← Back to menu
+      </a>
+      <h1 class="mt-2 text-3xl font-bold tracking-tight">{item.name}</h1>
+      {
+        item.price && (
+          <p class="mt-2 text-xl font-semibold text-accent">{item.price}</p>
+        )
+      }
+      {
+        !item.available && (
+          <p class="mt-2 text-sm font-medium text-red-400">Currently unavailable</p>
+        )
+      }
+      {
+        item.badges?.length > 0 && (
+          <div class="mt-3 flex flex-wrap gap-2">
+            {item.badges.map((b) => (
+              <span class="rounded-full border border-ink-700 px-2 py-0.5 text-xs text-sand-200">{b}</span>
+            ))}
+          </div>
+        )
+      }
+      {
+        item.description && (
+          <p class="mt-4 text-sm leading-relaxed text-sand-200 lg:text-base">{item.description}</p>
+        )
+      }
+      {
+        item.allergens && (
+          <p class="mt-3 text-xs text-ink-500">Allergens: {item.allergens}</p>
+        )
+      }
+
+      <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+        {
+          cta === "order" ? (
+            <a
+              href={`/${brandSlug}/contact`}
+              class="rounded-xl bg-accent px-6 py-3 text-center text-sm font-semibold text-ink-950 hover:bg-accent-glow"
+            >
+              {ctaLabel("order")} — contact / Telegram
+            </a>
+          ) : (
+            <a
+              href={`/${brandSlug}/inquire?item=${encodeURIComponent(item.slug)}`}
+              class="rounded-xl bg-accent px-6 py-3 text-center text-sm font-semibold text-ink-950 hover:bg-accent-glow"
+            >
+              {ctaLabel("inquire")}
+            </a>
+          )
+        }
+        <a
+          href={`/${brandSlug}/book`}
+          class="rounded-xl border border-ink-700 px-6 py-3 text-center text-sm font-medium hover:bg-ink-800"
+        >
+          Book a meeting
+        </a>
+      </div>
+    </div>
+  </article>
+  <SiteFooter
+    brandSlug={brandSlug}
+    legalName={brand.legal?.legal_name}
+    dbdNumber={brand.legal?.dbd_number}
+    warnings={warnings}
+  />
+</BaseLayout>

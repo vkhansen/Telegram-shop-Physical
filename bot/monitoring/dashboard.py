@@ -18,11 +18,16 @@ MONITORING_API_KEY = os.getenv("MONITORING_API_KEY", "")
 
 @web.middleware
 async def auth_middleware(request, handler):
-    """Require API key or basic auth for all monitoring endpoints."""
+    """Require API key or basic auth for all monitoring endpoints.
+
+    Public white-label catalog (CARD-38) is unauthenticated under ``/api/public/``.
+    """
+    path = request.path or ""
+    if path == "/health" or path.startswith("/api/public/") or path.startswith("/media/"):
+        return await handler(request)
+
     if not MONITORING_API_KEY:
-        # No key configured — allow health check only, block rest
-        if request.path == "/health":
-            return await handler(request)
+        # No key configured — allow health + public catalog only, block rest
         return web.json_response({"error": "MONITORING_API_KEY not configured"}, status=503)
 
     # Check X-API-Key header
@@ -69,6 +74,10 @@ class MonitoringServer:
         self.app.router.add_get("/business-metrics", self.business_metrics_handler)
         self.app.router.add_get("/background-tasks", self.background_tasks_handler)
         self.app.router.add_get("/", self.index_handler)
+        # CARD-38: public white-label catalog (no API key)
+        from bot.web.public_api import register_public_catalog_routes
+
+        register_public_catalog_routes(self.app)
 
     def _get_base_html(self, title: str, content: str, active_page: str = "") -> str:
         """Generate base HTML with navigation"""

@@ -1,0 +1,75 @@
+---
+interface Props {
+  name: string;
+  description?: string | null;
+  logoUrl?: string | null;
+  tagline?: string | null;
+  brandSlug: string;
+  commerceMode?: string;
+}
+
+const { name, description, logoUrl, tagline, brandSlug, commerceMode = "full_store" } = Astro.props;
+---
+
+<header class="flex flex-col gap-4 border-b border-ink-800 py-6 sm:flex-row sm:items-center sm:gap-6 lg:py-8">
+  <div
+    class="mx-auto h-24 w-24 shrink-0 overflow-hidden rounded-full border-2 border-ink-700 bg-ink-800 sm:mx-0 sm:h-28 sm:w-28"
+  >
+    {
+      logoUrl ? (
+        <img src={logoUrl} alt="" class="h-full w-full object-cover" loading="eager" />
+      ) : (
+        <div class="flex h-full w-full items-center justify-center text-2xl font-bold text-accent">
+          {name.slice(0, 1)}
+        </div>
+      )
+    }
+  </div>
+  <div class="flex-1 text-center sm:text-left">
+    <h1 class="text-2xl font-bold tracking-tight text-sand-50 sm:text-3xl lg:text-4xl">{name}</h1>
+    {tagline && <p class="mt-1 text-sm font-medium text-accent">{tagline}</p>}
+    {description && <p class="mt-2 max-w-2xl text-sm leading-relaxed text-sand-200 lg:text-base">{description}</p>}
+    <div class="mt-4 flex flex-wrap justify-center gap-2 sm:justify-start">
+      <a
+        href={`/${brandSlug}/contact`}
+        class="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-ink-950 hover:bg-accent-glow"
+      >
+        Contact
+      </a>
+      {
+        commerceMode === "portfolio" || commerceMode === "hybrid" ? (
+          <a
+            href={`/${brandSlug}/inquire`}
+            class="rounded-full border border-ink-700 px-4 py-2 text-sm font-medium text-sand-50 hover:bg-ink-800"
+          >
+            Inquire
+          </a>
+        ) : null
+      }
+      <a
+        href={`/${brandSlug}/book`}
+        class="rounded-full border border-ink-700 px-4 py-2 text-sm font-medium text-sand-50 hover:bg-ink-800"
+      >
+        Book meeting
+      </a>
+      <a
+        href={`/${brandSlug}/tickets`}
+        class="rounded-full border border-ink-700 px-4 py-2 text-sm font-medium text-sand-50 hover:bg-ink-800"
+      >
+        Support
+      </a>
+      <a
+        href={`/${brandSlug}/login`}
+        class="rounded-full border border-ink-700 px-4 py-2 text-sm font-medium text-sand-50 hover:bg-ink-800"
+      >
+        Log in
+      </a>
+      <a
+        href={`/${brandSlug}/about`}
+        class="rounded-full border border-ink-700 px-4 py-2 text-sm font-medium text-sand-50 hover:bg-ink-800"
+      >
+        About
+      </a>
+    </div>
+  </div>
+</header>

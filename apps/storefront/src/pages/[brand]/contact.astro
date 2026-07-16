@@ -1,0 +1,136 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+import { fetchBrand } from "../../lib/api";
+
+export const prerender = false;
+
+const { brand: brandSlug } = Astro.params;
+if (!brandSlug) return Astro.redirect("/");
+const brand = await fetchBrand(brandSlug);
+if (!brand) return new Response(null, { status: 404 });
+
+const web = brand.web || {};
+const social = (web.social as Record<string, string>) || {};
+const compliance = (web.compliance as Record<string, unknown>) || {};
+const warnings = (compliance.footer_warnings as string[]) || [];
+---
+
+<BaseLayout title="Contact" brandName={brand.name}>
+  <main class="py-8 lg:grid lg:grid-cols-2 lg:gap-12 lg:py-12">
+    <div>
+      <a href={`/${brandSlug}`} class="text-xs font-medium uppercase tracking-wider text-accent hover:underline">
+        ← {brand.name}
+      </a>
+      <h1 class="mt-3 text-3xl font-bold">Contact</h1>
+      <dl class="mt-6 space-y-4 text-sm">
+        {
+          brand.contact?.support_phone && (
+            <div>
+              <dt class="text-ink-500">Phone</dt>
+              <dd>
+                <a class="text-sand-50 hover:text-accent" href={`tel:${brand.contact.support_phone}`}>
+                  {brand.contact.support_phone}
+                </a>
+              </dd>
+            </div>
+          )
+        }
+        {
+          brand.contact?.support_email && (
+            <div>
+              <dt class="text-ink-500">Email</dt>
+              <dd>
+                <a class="text-sand-50 hover:text-accent" href={`mailto:${brand.contact.support_email}`}>
+                  {brand.contact.support_email}
+                </a>
+              </dd>
+            </div>
+          )
+        }
+        {
+          brand.legal?.legal_name && (
+            <div>
+              <dt class="text-ink-500">Legal name</dt>
+              <dd class="text-sand-50">{brand.legal.legal_name}</dd>
+            </div>
+          )
+        }
+        {
+          brand.legal?.dbd_number && (
+            <div>
+              <dt class="text-ink-500">DBD / Reg.</dt>
+              <dd class="text-sand-50">{brand.legal.dbd_number}</dd>
+            </div>
+          )
+        }
+      </dl>
+
+      <h2 class="mt-8 text-sm font-semibold uppercase tracking-wider text-ink-500">Branches</h2>
+      <ul class="mt-3 space-y-3">
+        {
+          brand.stores.map((st) => (
+            <li class="rounded-xl border border-ink-700 bg-ink-900 p-4">
+              <a href={`/${brandSlug}/${st.slug}`} class="font-semibold text-sand-50 hover:text-accent">
+                {st.name}
+              </a>
+              {st.address && <p class="mt-1 text-sm text-sand-200">{st.address}</p>}
+              {st.phone && (
+                <a class="mt-1 block text-sm text-accent" href={`tel:${st.phone}`}>
+                  {st.phone}
+                </a>
+              )}
+            </li>
+          ))
+        }
+      </ul>
+
+      {
+        Object.keys(social).length > 0 && (
+          <>
+            <h2 class="mt-8 text-sm font-semibold uppercase tracking-wider text-ink-500">Social</h2>
+            <ul class="mt-2 flex flex-wrap gap-3 text-sm">
+              {Object.entries(social).map(([k, v]) =>
+                v ? (
+                  <li>
+                    <a class="text-accent hover:underline" href={String(v)} target="_blank" rel="noopener">
+                      {k}
+                    </a>
+                  </li>
+                ) : null,
+              )}
+            </ul>
+          </>
+        )
+      }
+    </div>
+    <div class="mt-10 lg:mt-0">
+      <div class="rounded-2xl border border-ink-700 bg-ink-900 p-6">
+        <h2 class="text-lg font-semibold">Get in touch</h2>
+        <p class="mt-2 text-sm text-sand-200">
+          Lead form and booking wire-up ships with CARD-36. For now use branch phone or social links.
+        </p>
+        <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+          <a
+            href={`/${brandSlug}/inquire`}
+            class="rounded-xl bg-accent px-4 py-3 text-center text-sm font-semibold text-ink-950"
+          >
+            Inquire
+          </a>
+          <a
+            href={`/${brandSlug}/book`}
+            class="rounded-xl border border-ink-700 px-4 py-3 text-center text-sm font-medium"
+          >
+            Book a meeting
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+  <SiteFooter
+    brandSlug={brandSlug}
+    legalName={brand.legal?.legal_name}
+    dbdNumber={brand.legal?.dbd_number}
+    warnings={warnings}
+  />
+</BaseLayout>

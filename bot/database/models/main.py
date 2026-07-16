@@ -175,6 +175,16 @@ class Brand(Database.BASE):
     timezone = Column(String(50), nullable=True)  # Override, null = platform default
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
+    # White-label public site (CARD-38)
+    legal_name = Column(String(255), nullable=True)
+    dbd_number = Column(String(64), nullable=True)  # Thai DBD / company registration
+    support_email = Column(String(255), nullable=True)
+    support_phone = Column(String(50), nullable=True)
+    commerce_mode = Column(String(20), nullable=False, default="full_store")  # full_store|portfolio|hybrid
+    age_gate_enabled = Column(Boolean, nullable=False, default=False)
+    min_age = Column(Integer, nullable=True)  # e.g. 18 / 20 / 21
+    web_profile = Column(JSON, nullable=True)  # about, hero, FAQ, social, compliance, modules
+
     # Relationships
     stores = relationship("Store", back_populates="brand", cascade="all, delete-orphan")
     staff = relationship("BrandStaff", back_populates="brand", cascade="all, delete-orphan")
@@ -190,6 +200,14 @@ class Brand(Database.BASE):
         promptpay_id: str | None = None,
         promptpay_name: str | None = None,
         timezone: str | None = None,
+        legal_name: str | None = None,
+        dbd_number: str | None = None,
+        support_email: str | None = None,
+        support_phone: str | None = None,
+        commerce_mode: str = "full_store",
+        age_gate_enabled: bool = False,
+        min_age: int | None = None,
+        web_profile: dict | None = None,
         **kw: Any,
     ):
         super().__init__(**kw)
@@ -200,6 +218,14 @@ class Brand(Database.BASE):
         self.promptpay_id = promptpay_id
         self.promptpay_name = promptpay_name
         self.timezone = timezone
+        self.legal_name = legal_name
+        self.dbd_number = dbd_number
+        self.support_email = support_email
+        self.support_phone = support_phone
+        self.commerce_mode = commerce_mode
+        self.age_gate_enabled = age_gate_enabled
+        self.min_age = min_age
+        self.web_profile = web_profile
 
 
 class BrandStaff(Database.BASE):
@@ -296,6 +322,11 @@ class Goods(Database.BASE):
     available_from = Column(String(5), nullable=True)  # "06:00" HH:MM availability start
     available_until = Column(String(5), nullable=True)  # "22:00" HH:MM availability end
     calories = Column(Integer, nullable=True)  # Nutritional info
+
+    # White-label public catalog flags (CARD-38)
+    web_listable = Column(Boolean, nullable=False, default=True)  # show on website
+    web_orderable = Column(Boolean, nullable=False, default=True)  # allow online/TG order path
+    inquiry_only = Column(Boolean, nullable=False, default=False)  # force inquire/call/book CTA
 
     category = relationship("Categories", back_populates="item")
     brand = relationship("Brand", back_populates="goods")
@@ -1112,6 +1143,7 @@ class SupportTicket(Database.BASE):
     id = Column(Integer, primary_key=True)
     ticket_code = Column(String(8), unique=True, nullable=False, index=True)
     user_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False, index=True)
+    brand_id = Column(Integer, ForeignKey("brands.id", ondelete="SET NULL"), nullable=True, index=True)  # CARD-39 web
     subject = Column(String(200), nullable=False)
     status = Column(String(20), nullable=False, default="open")  # open, in_progress, resolved, closed
     priority = Column(String(10), nullable=False, default="normal")  # low, normal, high, urgent
@@ -1127,6 +1159,7 @@ class SupportTicket(Database.BASE):
     __table_args__ = (
         Index("ix_support_tickets_user_status", "user_id", "status"),
         Index("ix_support_tickets_status", "status"),
+        Index("ix_support_tickets_brand", "brand_id"),
     )
 
     def __init__(
@@ -1137,6 +1170,7 @@ class SupportTicket(Database.BASE):
         status: str = "open",
         priority: str = "normal",
         order_id: int | None = None,
+        brand_id: int | None = None,
         **kw: Any,
     ):
         super().__init__(**kw)
@@ -1146,6 +1180,7 @@ class SupportTicket(Database.BASE):
         self.status = status
         self.priority = priority
         self.order_id = order_id
+        self.brand_id = brand_id
 
 
 class TicketMessage(Database.BASE):
@@ -1168,6 +1203,184 @@ class TicketMessage(Database.BASE):
         self.message_text = message_text
 
 
+class Lead(Database.BASE):
+    """Web lead / inquiry (CARD-36)."""
+
+    __tablename__ = "leads"
+
+    id = Column(Integer, primary_key=True)
+    brand_id = Column(Integer, ForeignKey("brands.id", ondelete="CASCADE"), nullable=False, index=True)
+    store_id = Column(Integer, ForeignKey("stores.id", ondelete="SET NULL"), nullable=True, index=True)
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="SET NULL"), nullable=True, index=True)
+    name = Column(String(200), nullable=False)
+    phone = Column(String(50), nullable=True)
+    email = Column(String(255), nullable=True)
+    preferred_channel = Column(String(20), nullable=False, default="phone")  # line|whatsapp|phone|email|telegram
+    channel_handle = Column(String(128), nullable=True)
+    interest_type = Column(String(40), nullable=True)  # retail|wholesale|product_inquiry|...
+    item_slug = Column(String(120), nullable=True)
+    message = Column(Text, nullable=True)
+    source = Column(String(40), nullable=False, default="web_site")
+    utm_json = Column(JSON, nullable=True)
+    status = Column(String(20), nullable=False, default="new")  # new|contacted|qualified|ordered|closed|spam
+    consent_at = Column(DateTime(timezone=True), nullable=True)
+    age_confirmed = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    def __init__(
+        self,
+        brand_id: int,
+        name: str,
+        preferred_channel: str = "phone",
+        phone: str | None = None,
+        email: str | None = None,
+        store_id: int | None = None,
+        user_id: int | None = None,
+        channel_handle: str | None = None,
+        interest_type: str | None = None,
+        item_slug: str | None = None,
+        message: str | None = None,
+        source: str = "web_site",
+        utm_json: dict | None = None,
+        status: str = "new",
+        consent_at=None,
+        age_confirmed: bool = False,
+        **kw: Any,
+    ):
+        super().__init__(**kw)
+        self.brand_id = brand_id
+        self.store_id = store_id
+        self.user_id = user_id
+        self.name = name
+        self.phone = phone
+        self.email = email
+        self.preferred_channel = preferred_channel
+        self.channel_handle = channel_handle
+        self.interest_type = interest_type
+        self.item_slug = item_slug
+        self.message = message
+        self.source = source
+        self.utm_json = utm_json
+        self.status = status
+        self.consent_at = consent_at
+        self.age_confirmed = age_confirmed
+
+
+class Booking(Database.BASE):
+    """Meeting booking request (CARD-36) — in person or Google Meet."""
+
+    __tablename__ = "bookings"
+
+    id = Column(Integer, primary_key=True)
+    brand_id = Column(Integer, ForeignKey("brands.id", ondelete="CASCADE"), nullable=False, index=True)
+    store_id = Column(Integer, ForeignKey("stores.id", ondelete="SET NULL"), nullable=True, index=True)
+    lead_id = Column(Integer, ForeignKey("leads.id", ondelete="SET NULL"), nullable=True)
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="SET NULL"), nullable=True, index=True)
+    name = Column(String(200), nullable=False)
+    phone = Column(String(50), nullable=True)
+    email = Column(String(255), nullable=True)
+    meeting_type = Column(String(20), nullable=False, default="in_person")  # in_person|google_meet|phone_call
+    preferred_slots = Column(JSON, nullable=True)  # list of ISO strings or free text
+    scheduled_at = Column(DateTime(timezone=True), nullable=True)
+    meet_url = Column(String(512), nullable=True)
+    status = Column(String(20), nullable=False, default="requested")
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    def __init__(
+        self,
+        brand_id: int,
+        name: str,
+        meeting_type: str = "in_person",
+        phone: str | None = None,
+        email: str | None = None,
+        store_id: int | None = None,
+        lead_id: int | None = None,
+        user_id: int | None = None,
+        preferred_slots: list | None = None,
+        notes: str | None = None,
+        status: str = "requested",
+        **kw: Any,
+    ):
+        super().__init__(**kw)
+        self.brand_id = brand_id
+        self.name = name
+        self.meeting_type = meeting_type
+        self.phone = phone
+        self.email = email
+        self.store_id = store_id
+        self.lead_id = lead_id
+        self.user_id = user_id
+        self.preferred_slots = preferred_slots
+        self.notes = notes
+        self.status = status
+
+
+class UserIdentity(Database.BASE):
+    """Maps external platform IDs to users.telegram_id (CARD-30 / CARD-39)."""
+
+    __tablename__ = "user_identities"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False, index=True)
+    platform = Column(String(20), nullable=False)  # telegram | google | web | line | ...
+    external_id = Column(String(128), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (UniqueConstraint("platform", "external_id", name="uq_user_identities_platform_ext"),)
+
+    def __init__(self, user_id: int, platform: str, external_id: str, **kw: Any):
+        super().__init__(**kw)
+        self.user_id = user_id
+        self.platform = platform
+        self.external_id = external_id
+
+
+class OAuthProfile(Database.BASE):
+    """OAuth provider profile fields for web login (CARD-39)."""
+
+    __tablename__ = "oauth_profiles"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False, index=True)
+    provider = Column(String(32), nullable=False)  # google, ...
+    provider_subject = Column(String(128), nullable=False)
+    email = Column(String(255), nullable=True, index=True)
+    email_verified = Column(Boolean, nullable=False, default=False)
+    display_name = Column(String(255), nullable=True)
+    username = Column(String(128), nullable=True)
+    avatar_url = Column(String(512), nullable=True)
+    raw_claims = Column(JSON, nullable=True)
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (UniqueConstraint("provider", "provider_subject", name="uq_oauth_provider_subject"),)
+
+    def __init__(
+        self,
+        user_id: int,
+        provider: str,
+        provider_subject: str,
+        email: str | None = None,
+        email_verified: bool = False,
+        display_name: str | None = None,
+        username: str | None = None,
+        avatar_url: str | None = None,
+        raw_claims: dict | None = None,
+        **kw: Any,
+    ):
+        super().__init__(**kw)
+        self.user_id = user_id
+        self.provider = provider
+        self.provider_subject = provider_subject
+        self.email = email
+        self.email_verified = email_verified
+        self.display_name = display_name
+        self.username = username
+        self.avatar_url = avatar_url
+        self.raw_claims = raw_claims
+
+
 class Store(Database.BASE):
     """Store / branch location for multi-location support."""
 
@@ -1176,6 +1389,7 @@ class Store(Database.BASE):
     id = Column(Integer, primary_key=True)
     brand_id = Column(Integer, ForeignKey("brands.id", ondelete="CASCADE"), nullable=True, index=True)
     name = Column(String(200), nullable=False)
+    slug = Column(String(80), nullable=True, index=True)  # URL segment; unique per brand (CARD-38)
     address = Column(Text, nullable=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
@@ -1194,13 +1408,18 @@ class Store(Database.BASE):
     payment_qr_file_id = Column(
         String(255), nullable=True
     )  # Telegram file_id of a static branch QR (fallback if no dynamic id)
+    web_profile = Column(JSON, nullable=True)  # branch about, amenities, SEO (CARD-38)
 
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     brand = relationship("Brand", back_populates="stores")
     inventory = relationship("BranchInventory", back_populates="store", cascade="all, delete-orphan")
 
-    __table_args__ = (UniqueConstraint("brand_id", "name", name="uq_store_brand_name"),)
+    __table_args__ = (
+        UniqueConstraint("brand_id", "name", name="uq_store_brand_name"),
+        UniqueConstraint("brand_id", "slug", name="uq_store_brand_slug"),
+        Index("ix_stores_brand_slug", "brand_id", "slug"),
+    )
 
     def __init__(
         self,
@@ -1217,10 +1436,13 @@ class Store(Database.BASE):
         promptpay_id: str | None = None,
         promptpay_name: str | None = None,
         payment_qr_file_id: str | None = None,
+        slug: str | None = None,
+        web_profile: dict | None = None,
         **kw: Any,
     ):
         super().__init__(**kw)
         self.name = name
+        self.slug = slug
         self.brand_id = brand_id
         self.address = address
         self.latitude = latitude
@@ -1233,6 +1455,7 @@ class Store(Database.BASE):
         self.promptpay_id = promptpay_id
         self.promptpay_name = promptpay_name
         self.payment_qr_file_id = payment_qr_file_id
+        self.web_profile = web_profile
 
 
 class BranchInventory(Database.BASE):

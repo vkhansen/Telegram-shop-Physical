@@ -1,0 +1,82 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { fetchBrand } from "../../lib/api";
+
+export const prerender = false;
+
+const { brand: brandSlug } = Astro.params;
+if (!brandSlug) return Astro.redirect("/");
+const brand = await fetchBrand(brandSlug);
+if (!brand) return new Response(null, { status: 404 });
+
+const next = Astro.url.searchParams.get("next") || `/${brandSlug}/tickets`;
+const apiBase = (import.meta.env.PUBLIC_API_BASE || "http://127.0.0.1:9090").replace(/\/$/, "");
+const googleUrl = `${apiBase}/api/public/auth/google/start?brand=${encodeURIComponent(brandSlug)}&next=${encodeURIComponent(next)}`;
+---
+
+<BaseLayout title="Log in" brandName={brand.name}>
+  <main class="mx-auto max-w-md py-12">
+    <a href={`/${brandSlug}`} class="text-xs font-medium uppercase tracking-wider text-accent hover:underline">
+      ← {brand.name}
+    </a>
+    <h1 class="mt-4 text-3xl font-bold">Log in</h1>
+    <p class="mt-2 text-sm text-sand-200">
+      Sign in to access support tickets. We match your OAuth email, name, and profile to your account.
+    </p>
+
+    <div class="mt-8 space-y-3">
+      <a
+        href={googleUrl}
+        class="flex w-full items-center justify-center gap-2 rounded-xl border border-ink-700 bg-ink-900 px-4 py-3 text-sm font-semibold hover:border-accent"
+      >
+        Continue with Google
+      </a>
+      <p class="text-center text-xs text-ink-500">
+        Google requires <code class="text-accent">OAUTH_GOOGLE_*</code> on the API. Use dev login below for local testing.
+      </p>
+    </div>
+
+    <div class="mt-10 rounded-2xl border border-ink-700 bg-ink-900 p-5">
+      <h2 class="text-sm font-semibold text-sand-50">Dev login</h2>
+      <p class="mt-1 text-xs text-ink-500">Requires <code>OAUTH_DEV_LOGIN=true</code> on the API server.</p>
+      <form id="dev-login" class="mt-4 space-y-3">
+        <input type="hidden" name="next" value={next} />
+        <label class="block text-sm">
+          <span class="text-ink-500">Email</span>
+          <input name="email" type="email" required value="customer@example.com" class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-950 px-3 py-2" />
+        </label>
+        <label class="block text-sm">
+          <span class="text-ink-500">Display name</span>
+          <input name="name" required value="Web Customer" class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-950 px-3 py-2" />
+        </label>
+        <button type="submit" class="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-ink-950">
+          Dev sign in
+        </button>
+        <p id="dev-err" class="hidden text-xs text-red-400"></p>
+      </form>
+    </div>
+  </main>
+</BaseLayout>
+
+<script define:vars={{ apiBase, next }}>
+  document.getElementById("dev-login")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const err = document.getElementById("dev-err");
+    const res = await fetch(`${apiBase}/api/public/auth/dev-login`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: fd.get("email"), name: fd.get("name") }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (err) {
+        err.textContent = data.error || "Dev login failed (is OAUTH_DEV_LOGIN=true?)";
+        err.classList.remove("hidden");
+      }
+      return;
+    }
+    window.location.href = next;
+  });
+</script>

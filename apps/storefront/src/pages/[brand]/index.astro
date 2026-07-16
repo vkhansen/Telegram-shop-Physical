@@ -1,0 +1,94 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import AgeGate from "../../components/AgeGate.astro";
+import ProfileHeader from "../../components/ProfileHeader.astro";
+import StoryChips from "../../components/StoryChips.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+import { fetchBrand, fetchStoreMenu } from "../../lib/api";
+import ProductGrid from "../../components/ProductGrid.astro";
+
+export const prerender = false;
+
+const { brand: brandSlug } = Astro.params;
+if (!brandSlug) {
+  return Astro.redirect("/");
+}
+
+const brand = await fetchBrand(brandSlug);
+if (!brand) {
+  return new Response(null, { status: 404, statusText: "Not Found" });
+}
+
+const web = brand.web || {};
+const hero = (web.hero as Record<string, string>) || {};
+const compliance = (web.compliance as Record<string, unknown>) || {};
+const ageGate = (compliance.age_gate as Record<string, string>) || {};
+const warnings = (compliance.footer_warnings as string[]) || [];
+const tagline = (web.tagline as string) || hero.headline || null;
+
+const stores = brand.stores || [];
+const defaultStore = stores.find((s) => s.is_default) || stores[0];
+
+let menuItems: import("../../lib/api").CatalogItem[] = [];
+let storeSlug = defaultStore?.slug || "";
+if (defaultStore) {
+  const menu = await fetchStoreMenu(brandSlug, defaultStore.slug);
+  if (menu) {
+    menuItems = menu.categories.flatMap((c) => c.items);
+    storeSlug = menu.store.slug;
+  }
+}
+
+const chips = [
+  { href: `/${brandSlug}`, label: "Home", active: true },
+  ...stores.map((s) => ({
+    href: `/${brandSlug}/${s.slug}`,
+    label: s.name,
+    active: false,
+  })),
+  { href: `/${brandSlug}/about`, label: "About" },
+  { href: `/${brandSlug}/contact`, label: "Contact" },
+];
+---
+
+<BaseLayout title={brand.name} description={brand.description || ""} brandName={brand.name}>
+  <AgeGate
+    enabled={brand.age_gate_enabled}
+    minAge={brand.min_age}
+    title={ageGate.title}
+    body={ageGate.body_md || ageGate.body}
+    brandSlug={brand.slug}
+  />
+  <ProfileHeader
+    name={brand.name}
+    description={brand.description}
+    logoUrl={brand.logo_url}
+    tagline={tagline}
+    brandSlug={brand.slug}
+    commerceMode={brand.commerce_mode}
+  />
+  <StoryChips chips={chips} />
+  {
+    defaultStore ? (
+      <section class="pb-8">
+        <div class="mb-3 flex items-baseline justify-between gap-2">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-ink-500">
+            {defaultStore.name}
+          </h2>
+          <a class="text-sm text-accent hover:underline" href={`/${brand.slug}/${storeSlug}`}>
+            Open branch →
+          </a>
+        </div>
+        <ProductGrid items={menuItems} brandSlug={brand.slug} storeSlug={storeSlug} />
+      </section>
+    ) : (
+      <p class="py-12 text-center text-ink-500">No active stores for this brand.</p>
+    )
+  }
+  <SiteFooter
+    brandSlug={brand.slug}
+    legalName={brand.legal?.legal_name}
+    dbdNumber={brand.legal?.dbd_number}
+    warnings={warnings}
+  />
+</BaseLayout>

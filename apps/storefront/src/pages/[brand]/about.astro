@@ -1,0 +1,37 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+import { fetchBrand } from "../../lib/api";
+
+export const prerender = false;
+
+const { brand: brandSlug } = Astro.params;
+if (!brandSlug) return Astro.redirect("/");
+const brand = await fetchBrand(brandSlug);
+if (!brand) return new Response(null, { status: 404 });
+
+const web = brand.web || {};
+const about = (web.about as Record<string, string>) || {};
+const compliance = (web.compliance as Record<string, unknown>) || {};
+const warnings = (compliance.footer_warnings as string[]) || [];
+const title = about.title || "About us";
+const body = about.body_md || about.body || brand.description || "More information coming soon.";
+---
+
+<BaseLayout title={title} brandName={brand.name}>
+  <main class="py-8 lg:py-12">
+    <a href={`/${brandSlug}`} class="text-xs font-medium uppercase tracking-wider text-accent hover:underline">
+      ← {brand.name}
+    </a>
+    <h1 class="mt-3 text-3xl font-bold">{title}</h1>
+    <div class="prose prose-invert mt-6 max-w-2xl whitespace-pre-wrap text-sm leading-relaxed text-sand-200 lg:text-base">
+      {body}
+    </div>
+  </main>
+  <SiteFooter
+    brandSlug={brandSlug}
+    legalName={brand.legal?.legal_name}
+    dbdNumber={brand.legal?.dbd_number}
+    warnings={warnings}
+  />
+</BaseLayout>

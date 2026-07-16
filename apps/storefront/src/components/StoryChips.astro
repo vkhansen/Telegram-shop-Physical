@@ -1,0 +1,34 @@
+---
+interface Chip {
+  href: string;
+  label: string;
+  active?: boolean;
+}
+
+interface Props {
+  chips: Chip[];
+}
+
+const { chips } = Astro.props;
+---
+
+<nav
+  class="scrollbar-none -mx-1 flex gap-2 overflow-x-auto py-3"
+  aria-label="Locations and sections"
+>
+  {
+    chips.map((c) => (
+      <a
+        href={c.href}
+        class:list={[
+          "shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition",
+          c.active
+            ? "border-accent bg-accent/15 text-accent"
+            : "border-ink-700 text-sand-200 hover:border-ink-500 hover:bg-ink-800",
+        ]}
+      >
+        {c.label}
+      </a>
+    ))
+  }
+</nav>

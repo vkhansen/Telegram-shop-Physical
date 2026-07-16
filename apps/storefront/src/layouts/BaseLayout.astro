@@ -1,0 +1,28 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description?: string;
+  brandName?: string;
+}
+
+const { title, description = "", brandName } = Astro.props;
+const fullTitle = brandName ? `${title} · ${brandName}` : title;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{fullTitle}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="bg-ink-950 text-sand-50">
+    <div class="mx-auto min-h-screen w-full max-w-site px-3 sm:px-4 lg:px-6">
+      <slot />
+    </div>
+  </body>
+</html>

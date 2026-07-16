@@ -1,0 +1,74 @@
+---
+interface Props {
+  enabled: boolean;
+  minAge?: number | null;
+  title?: string;
+  body?: string;
+  brandSlug: string;
+}
+
+const {
+  enabled,
+  minAge = 18,
+  title = "Are you of legal age?",
+  body = "You must be of legal age in your country to enter this site.",
+  brandSlug,
+} = Astro.props;
+
+const storageKey = `age_ok_${brandSlug}`;
+---
+
+{
+  enabled && (
+    <div
+      id="age-gate"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/95 p-4 backdrop-blur-sm"
+      hidden
+    >
+      <div class="w-full max-w-md rounded-2xl border border-ink-700 bg-ink-900 p-6 shadow-card sm:p-8">
+        <p class="text-xs font-semibold uppercase tracking-widest text-accent">Restricted</p>
+        <h1 class="mt-2 text-2xl font-bold text-sand-50">{title}</h1>
+        <p class="mt-3 text-sm leading-relaxed text-sand-200">{body}</p>
+        {minAge != null && (
+          <p class="mt-2 text-xs text-ink-500">Minimum age: {minAge}+</p>
+        )}
+        <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            id="age-confirm"
+            class="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-ink-950 transition hover:bg-accent-glow"
+          >
+            I am of legal age
+          </button>
+          <button
+            type="button"
+            id="age-deny"
+            class="flex-1 rounded-xl border border-ink-700 px-4 py-3 text-sm font-medium text-sand-200 hover:bg-ink-800"
+          >
+            I am under age
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+{
+  enabled && (
+    <script define:vars={{ storageKey }}>
+      const gate = document.getElementById("age-gate");
+      if (gate && !sessionStorage.getItem(storageKey)) {
+        gate.hidden = false;
+        document.body.style.overflow = "hidden";
+      }
+      document.getElementById("age-confirm")?.addEventListener("click", () => {
+        sessionStorage.setItem(storageKey, "1");
+        if (gate) gate.hidden = true;
+        document.body.style.overflow = "";
+      });
+      document.getElementById("age-deny")?.addEventListener("click", () => {
+        window.location.href = "https://www.google.com";
+      });
+    </script>
+  )
+}

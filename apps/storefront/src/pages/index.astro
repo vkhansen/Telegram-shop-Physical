@@ -1,0 +1,39 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { fetchBrands } from "../lib/api";
+
+export const prerender = false;
+
+const brands = await fetchBrands();
+---
+
+<BaseLayout title="Storefront" description="White-label brand sites">
+  <main class="py-10 lg:py-16">
+    <h1 class="text-3xl font-bold tracking-tight lg:text-4xl">Brands</h1>
+    <p class="mt-2 max-w-xl text-sand-200">
+      Multi-tenant white-label storefront. Pick a brand to open its Instagram-style site.
+    </p>
+    {
+      brands.length === 0 ? (
+        <p class="mt-8 text-ink-500">
+          No active brands returned from the catalog API. Start the bot monitoring server and set
+          <code class="text-accent">PUBLIC_API_BASE</code>.
+        </p>
+      ) : (
+        <ul class="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {brands.map((b) => (
+            <li>
+              <a
+                href={`/${b.slug}`}
+                class="block rounded-2xl border border-ink-700 bg-ink-900 p-5 transition hover:border-accent"
+              >
+                <span class="text-lg font-semibold text-sand-50">{b.name}</span>
+                {b.description && <p class="mt-1 text-sm text-sand-200 line-clamp-2">{b.description}</p>}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </main>
+</BaseLayout>

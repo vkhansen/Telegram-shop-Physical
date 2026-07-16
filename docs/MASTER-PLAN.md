@@ -2,11 +2,12 @@
 
 > **The single source of truth for sequencing.** This file answers one question: *what stands between us and a safe go-live, and in what order do we close it?*
 >
-> - **Status board** (what shipped): [`FEATURE_CARDS.md`](FEATURE_CARDS.md)
-> - **Card details:** `docs/done/`, `docs/backlog/`, `docs/later/`
-> - This plan supersedes the milestone ordering in [`ROADMAP.md`](ROADMAP.md), which is retained for the growth-track narrative.
+> - **Clear start / next work:** [`CLEAR-START.md`](CLEAR-START.md)
+> - **Status board** (what shipped + prioritized backlog): [`FEATURE_CARDS.md`](FEATURE_CARDS.md)
+> - **Card details:** `docs/done/`, `docs/later/`
+> - This plan supersedes the milestone ordering in [`ROADMAP.md`](ROADMAP.md), which is retained for the growth-track narrative. On conflict with older multi-channel notes, **CLEAR-START + FEATURE_CARDS win**.
 
-Last reviewed: 2026-06-03
+Last reviewed: 2026-07-16 (backlog reprioritized: white-label sites CARD-38 first — see CLEAR-START.md)
 
 ---
 
@@ -75,33 +76,45 @@ The differentiator that turns a kitchen-notification tool into a delivery platfo
 
 ---
 
-### M3 — Multi-Platform Growth — *deferred, after M2 stable*
+### M3 — White-label public surfaces + multi-channel — *active*
 
-| Card | What | Effort |
-|------|------|--------|
-| [CARD-16](later/CARD-16-line-api-integration.md) | Line API integration (53M Thai users) atop a transport abstraction, inheriting the shipped multi-brand context | 5–8d |
+> **Session bootstrap:** [`CLEAR-START.md`](CLEAR-START.md) · **Astro contract:** [`Specifications/WHITE-LABEL-ASTRO-IMPLEMENTATION.md`](Specifications/WHITE-LABEL-ASTRO-IMPLEMENTATION.md) · **Board:** [`FEATURE_CARDS.md`](FEATURE_CARDS.md)  
+> **North star:** Auto-generated Brand + Branch sites from backend (any vertical), **Astro Instagram-like UI on desktop and mobile**. Telegram stays primary for orders/ops.  
+> **Next epic:** [CARD-38](later/CARD-38-white-label-brand-branch-sites.md)
 
-**Already shipped on the growth track:** multi-brand runtime ([CARD-19](done/CARD-19-multi-brand-bot-coordination.md)), Grok admin ([CARD-17](done/CARD-17-grok-admin-assistant.md)) and customer ([CARD-22](done/CARD-22-grok-customer-assistant.md)) assistants.
+| Priority | Card | What | Effort |
+|----------|------|------|--------|
+| **P0** | [CARD-38](later/CARD-38-white-label-brand-branch-sites.md) | White-label brand/branch auto-sites (API → media → web shell) | 6–10d phased |
+| P1 | [CARD-29](later/CARD-29-messenger-port.md) | Messenger port | 1–2d |
+| P1 | [CARD-30](later/CARD-30-user-identities.md) | User identities dual-write | 1–2d |
+| P1 | [CARD-31](later/CARD-31-platform-capabilities.md) | Capability masks | 0.5–1d |
+| P1 | [CARD-32](later/CARD-32-customer-application-services.md) | Customer services DTOs | 2–4d |
+| P2 | [CARD-36](later/CARD-36-instagram-web-telegram-funnel.md) | Leads/forms bridge | 3–5d |
+| P2 | [CARD-34](later/CARD-34-conversation-workflow-specifications.md) | Chat/workflow specs | 3–6d |
+| P2 | [CARD-33](later/CARD-33-instagram-messaging-channel.md) | Instagram DM | 5–8d |
+| P2 | [CARD-16](later/CARD-16-line-api-integration.md) | LINE | 5–8d |
+| P3 | [CARD-37](later/CARD-37-snusthai-hub-astro-mvp.md) | Vertical demo only | parked |
+
+**Exit criteria (CARD-38):** Two brands expose distinct brand+branch pages from one deploy; menu/inventory updates without redeploy; flag-off safe.  
+**Already shipped on growth track:** multi-brand runtime ([CARD-19](done/CARD-19-multi-brand-bot-coordination.md)), Grok admin/customer ([CARD-17](done/CARD-17-grok-admin-assistant.md), [CARD-22](done/CARD-22-grok-customer-assistant.md)).
 
 ---
 
 ## 4. Dependency graph
 
 ```
-M0 (Go-Live Gate)  ◀── re-scoped 2026-06-02; CARD-25 + CARD-23 done 2026-06-03
-  ✅ CARD-25 (tests) DONE ──▶ ✅ CARD-23 (session refactor) DONE
-   CI green                   all 6 handlers + get_metrics fix
-        │
-        └─▶ CARD-24 (payment integrity, ~22%)  ◀── last M0 blocker
+M0 ✅ Launch gate (CARD-25, 23, 24)
+M1 ✅ Hardening (CARD-27, 21)
+M2 ✅ Dispatch (CARD-26)
         │
         ▼
-M1  ✅ CARD-27 (input) DONE   ✅ CARD-21 (cart polish) DONE
+M3  White-label + multi-channel
         │
-        ▼
-M2  ✅ CARD-26 (GPS driver dispatch) DONE ◀── reuses CARD-02/13/15 GPS+chat foundation
-        │
-        ▼
-M3  CARD-16 (Line)   ◀── inherits CARD-19 brand context (shipped)
+        ├─ P0  CARD-38 Brand/Branch auto-sites
+        │         A Catalog API → B Media → C Web shell
+        ├─ P1  CARD-29 / 30 / 31 / 32
+        ├─ P2  CARD-36 leads · 34 specs · 33 IG · 16 LINE
+        └─ P3  CARD-37 vertical demo (parked)
 ```
 
 ## 5. Launch checklist (M0 exit)

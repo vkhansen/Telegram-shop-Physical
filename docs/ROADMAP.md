@@ -2,14 +2,14 @@
 
 > **Sequencing now lives in [`MASTER-PLAN.md`](MASTER-PLAN.md)** — the go-live gate, milestone order, and launch checklist. This file is retained for the **growth-track narrative** (platform scale, AI, multi-platform). [`FEATURE_CARDS.md`](FEATURE_CARDS.md) remains the **status** source of truth; when they disagree, trust `FEATURE_CARDS.md` and update here.
 
-Last reviewed: 2026-06-03
+Last reviewed: 2026-07-16
 
 ---
 
 ## Where we are
 
 - **28 numbered cards shipped** (Phases 1–5 + M1 hardening + the full M0 launch gate + M2 dispatch + multi-store payment polish) plus the RC/FC menu & feature suites — including the multi-brand runtime (CARD-19), both Grok assistants (CARD-17 admin, CARD-22 customer), the persistent cart (CARD-21) and input hardening (CARD-27), and as of 2026-06-03 the quality gate (CARD-25), payment-session refactor (CARD-23), payment integrity (CARD-24), live GPS driver dispatch (CARD-26), and per-store menu image + payment QR (CARD-28).
-- **The M0 launch gate is fully green and M2 is shipped (2026-06-03).** CARD-25, CARD-23, and CARD-24 closed the launch gate; CARD-26 then shipped automated GPS driver matching & dispatch (flag-gated behind `AUTO_DISPATCH_ENABLED`). Remaining open work is growth (M3 — CARD-16 Line API), tracked in [`MASTER-PLAN.md`](MASTER-PLAN.md).
+- **The M0 launch gate is fully green and M2 is shipped (2026-06-03).** CARD-25, CARD-23, and CARD-24 closed the launch gate; CARD-26 then shipped automated GPS driver matching & dispatch (flag-gated behind `AUTO_DISPATCH_ENABLED`). Remaining open work is growth (M3 multi-channel: ports → services → **Instagram Phase 2** → LINE Tier 3), tracked in [`MASTER-PLAN.md`](MASTER-PLAN.md) and [`later/MULTI-CHANNEL-TIERED-PLAN.md`](later/MULTI-CHANNEL-TIERED-PLAN.md).
 - Codebase is single-bot, single-brand in runtime but has the multi-brand runtime shipped behind `MULTI_BOT_ENABLED`.
 - **Quality gate is green** (2026-06-03: **1460 passed, 150 skipped, 48.19% coverage** — above the now-30% gate). [CARD-25](done/CARD-25-test-suite-recovery.md) is ✅ done: `smoke` marker registered, marker drift reconciled, `fail_under` ratcheted 25→30; `pytest tests/` collects cleanly. Handler layer, notifications, i18n, and CLI remain comparatively light on tests.
 
@@ -17,7 +17,7 @@ Last reviewed: 2026-06-03
 
 1. **Ship UX wins before infra epics.** A 3-day cart polish beats a 2-week platform refactor for customer-visible value.
 2. **Let DB models lead the runtime.** Multi-brand tables already exist — runtime work (CARD-19) unblocks downstream cards cheaply.
-3. **Defer transport-layer rewrites.** CARD-16 (Line) forces a handler abstraction across the whole codebase; do it once, after brand context is stable.
+3. **Defer transport-layer rewrites.** Multi-channel uses thin ports + customer services (CARD-29–32), not a full handler rewrite. **Instagram is Phase 2** (CARD-33); LINE is Tier 3 (CARD-16).
 4. **Parallelizable > sequential.** AI admin (CARD-17) touches admin surfaces only and can ship beside CARD-19.
 
 ---
@@ -26,19 +26,28 @@ Last reviewed: 2026-06-03
 
 ```
 CARD-21 (Cart Stub) ──┐
-                      ├──▶ CARD-19 (Multi-Brand Runtime) ──▶ CARD-16 (Line API)
-  brand/store DB ─────┘
-  models (merged)
+                      ├──▶ CARD-19 (Multi-Brand Runtime) ✅
+  brand/store DB ─────┘              │
+                                     ▼
+              CARD-34 (workflow & chat specs) ── hard gate ──┐
+              CARD-29/30/31 (ports) ──▶ CARD-32 (services)   │
+                                              │              │
+                                              ▼              ▼
+                                     CARD-33 (Instagram Phase 2)
+                                              │
+                                              ▼
+                                     CARD-16 (LINE Tier 3)
 
-CARD-17 (Grok Admin) ✅ ──▶ CARD-22 (Grok Customer Assistant)
-                              reuses: grok_client, rate limiter,
-                              tool-call loop, Pydantic schema pattern
+CARD-17 (Grok Admin) ✅ ──▶ CARD-22 (Grok Customer Assistant) ✅
 ```
 
-- **CARD-21** is a soft prereq for CARD-19: its brand-switch save/delete/stay flow is the UX primitive CARD-19's multi-brand runtime needs.
-- **CARD-16** is a hard dependency on CARD-19: Line integration should inherit brand context, not add a second dimension of coupling.
-- **CARD-17** is done — its Grok client, rate-limit helper, and tool-call executor pattern are directly reusable by CARD-22.
-- **CARD-22** is independent of CARD-19/21 — it only touches user handlers and can ship in parallel.
+- **CARD-21** was a soft prereq for CARD-19: brand-switch save/delete/stay UX.
+- **CARD-19** is done — brand context is required by channel adapters (IG default brand, later multi-page).
+- **CARD-34** formalizes as-built Telegram flows + Instagram mask package (hard gate for CARD-33).
+- **CARD-29–32** are the Telegram-preserving foundation (Messenger, identities, caps, services).
+- **CARD-33 (Instagram)** is Phase 2 — first non-Telegram customer surface; only specified flows.
+- **CARD-16 (LINE)** is Tier 3 — reuses the same ports/services; no full PlatformContext rewrite.
+- **CARD-17 / CARD-22** are done.
 
 ---
 
@@ -91,18 +100,30 @@ CARD-17 (Grok Admin) ✅ ──▶ CARD-22 (Grok Customer Assistant)
 
 ---
 
-### M4 — Multi-Platform Reach  *(target: after M2 stable)*
+### M4 — Multi-Platform Reach  *(Telegram primary; Instagram Phase 2)*
 
-**Goal:** Line users (53M in Thailand, 3.5× Telegram's Thai base) can order from the same backend.
+**Goal:** Customers can order from Instagram (Phase 2) and later LINE on the **same backend**, while Telegram remains the full-privilege main app (admin, kitchen, drivers).
 
-- [ ] **CARD-16** — Line API Integration *(5–8d)*
-  - Transport-layer abstraction: `MessagingPlatform` interface over aiogram + Line SDK
-  - Shared handler registry emits platform-neutral intents
-  - Keyboard builder emits both inline keyboards and Line Flex messages
-  - Shared DB, shared brand context (inherited from CARD-19)
-  - Per-platform delivery tracking for metrics
+Full sequencing: [`docs/later/MULTI-CHANNEL-TIERED-PLAN.md`](later/MULTI-CHANNEL-TIERED-PLAN.md)
 
-**Exit criteria:** Same menu, same orders, same admin tooling across Telegram and Line; one order shows up identically regardless of which platform created it.
+- [ ] **T0-Spec — CARD-34** Conversation & workflow specifications *(3–6d)*
+  - As-built Telegram catalog; template + index under `docs/Specifications/`
+  - Instagram In/Out package **accepted** before CARD-33 coding
+- [ ] **T0 — CARD-29** Messenger port + Telegram default *(1–2d)*
+- [ ] **T0 — CARD-30** User identities dual-write *(1–2d)*
+- [ ] **T0 — CARD-31** Platform capability / feature mask *(0.5–1d)*
+- [ ] **T1 — CARD-32** Customer application services *(2–4d)*
+- [ ] **T2 — CARD-33** Instagram Messaging channel — **Phase 2** *(5–8d)*
+  - Meta webhook + **only** flows from accepted CARD-34 IG package
+  - Admin/kitchen/driver stay Telegram-only
+  - Flag: `INSTAGRAM_CHANNEL_ENABLED`
+- [ ] **T2-Web — CARD-35** Instagram-style auto-generated mobile web storefront *(4–7d)*
+  - Spec: [`WEB-INSTAGRAM-STYLE-STOREFRONT.md`](Specifications/WEB-INSTAGRAM-STYLE-STOREFRONT.md)
+  - Hierarchy: Brand → Store → Menu → Items from Telegram backend
+  - Order handoff to Telegram; flag `WEB_STOREFRONT_ENABLED`
+- [ ] **T3 — CARD-16** LINE API *(5–8d after foundation)* — same ports/services pattern
+
+**Exit criteria:** Flag-off Telegram behavior unchanged; flag-on IG order appears in Telegram admin/kitchen; status can notify on the customer’s channel; no requirement for full UI parity across platforms.
 
 ---
 
