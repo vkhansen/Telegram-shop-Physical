@@ -1,0 +1,119 @@
+/** Client for CARD-38 public catalog API. */
+
+const API_BASE = (import.meta.env.PUBLIC_API_BASE || "http://127.0.0.1:9090").replace(/\/$/, "");
+
+export type BrandPublic = {
+  slug: string;
+  name: string;
+  description?: string | null;
+  logo_url?: string | null;
+  timezone?: string | null;
+  commerce_mode: string;
+  age_gate_enabled: boolean;
+  min_age?: number | null;
+  legal: { legal_name?: string | null; dbd_number?: string | null };
+  contact: { support_email?: string | null; support_phone?: string | null };
+  web: Record<string, unknown>;
+  stores: StoreSummary[];
+};
+
+export type StoreSummary = {
+  slug: string;
+  name: string;
+  address?: string | null;
+  phone?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  maps_url?: string | null;
+  is_default?: boolean;
+  menu_image_url?: string | null;
+};
+
+export type CatalogItem = {
+  slug: string;
+  name: string;
+  category?: string;
+  price?: string | null;
+  image_url?: string | null;
+  media_urls?: string[];
+  available: boolean;
+  badges: string[];
+  cta: string;
+  description?: string;
+  inquiry_only?: boolean;
+  web_orderable?: boolean;
+  prep_time_minutes?: number | null;
+  allergens?: string | null;
+};
+
+export type StoreMenu = {
+  brand: {
+    slug: string;
+    name: string;
+    commerce_mode: string;
+    age_gate_enabled: boolean;
+    min_age?: number | null;
+    web: Record<string, unknown>;
+    legal: { legal_name?: string | null; dbd_number?: string | null };
+  };
+  store: StoreSummary & { web?: Record<string, unknown> };
+  categories: {
+    slug: string;
+    name: string;
+    sort_order?: number;
+    image_url?: string | null;
+    items: CatalogItem[];
+  }[];
+};
+
+async function getJson<T>(path: string): Promise<T | null> {
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      headers: { Accept: "application/json" },
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    return (await res.json()) as T;
+  } catch (e) {
+    console.error("catalog fetch failed", path, e);
+    return null;
+  }
+}
+
+export function getApiBase() {
+  return API_BASE;
+}
+
+export async function fetchBrand(slug: string) {
+  return getJson<BrandPublic>(`/api/public/brands/${encodeURIComponent(slug)}`);
+}
+
+export async function fetchStoreMenu(brand: string, store: string) {
+  return getJson<StoreMenu>(
+    `/api/public/brands/${encodeURIComponent(brand)}/stores/${encodeURIComponent(store)}`,
+  );
+}
+
+export async function fetchItem(brand: string, store: string, item: string) {
+  return getJson<CatalogItem & { brand_slug?: string; store_slug?: string }>(
+    `/api/public/brands/${encodeURIComponent(brand)}/stores/${encodeURIComponent(store)}/items/${encodeURIComponent(item)}`,
+  );
+}
+
+export async function fetchBrands() {
+  const data = await getJson<{ brands: { slug: string; name: string; description?: string }[] }>(
+    `/api/public/brands`,
+  );
+  return data?.brands ?? [];
+}
+
+export function ctaLabel(cta: string): string {
+  switch (cta) {
+    case "order":
+      return "Order";
+    case "inquire":
+      return "Inquire";
+    default:
+      return "Contact";
+  }
+}
