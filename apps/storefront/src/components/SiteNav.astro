@@ -1,0 +1,54 @@
+---
+/**
+ * Sticky editorial nav — full-width pills + brand wordmark (no logo image required).
+ */
+import type { NavChip } from "../lib/brandContext";
+
+interface Props {
+  brandName: string;
+  brandSlug: string;
+  chips: NavChip[];
+  actions?: { href: string; label: string; primary?: boolean }[];
+}
+
+const { brandName, brandSlug, chips, actions = [] } = Astro.props;
+const primary = actions.find((a) => a.primary) || actions[0];
+---
+
+<nav
+  class="sticky top-0 z-40 -mx-3 mb-2 border-b border-[color:var(--brand-line)] bg-[color:var(--brand-paper)]/90 px-3 backdrop-blur-md sm:-mx-4 sm:px-4 lg:-mx-6 lg:px-6"
+  aria-label="Primary"
+>
+  <div class="mx-auto flex max-w-[var(--container-max)] items-center justify-between gap-3 py-3">
+    <a
+      href={`/${brandSlug}`}
+      class="display shrink-0 text-lg tracking-tight text-[color:var(--brand-ink)] sm:text-xl"
+    >
+      {brandName}
+    </a>
+    <div class="hidden items-center gap-1 md:flex">
+      {
+        chips.map((c) => (
+          <a
+            href={c.href}
+            class:list={[
+              "rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition",
+              c.active
+                ? "bg-[color:var(--brand-ink)] text-[color:var(--brand-on-ink)]"
+                : "text-[color:var(--brand-muted)] hover:text-[color:var(--brand-ink)]",
+            ]}
+          >
+            {c.label}
+          </a>
+        ))
+      }
+    </div>
+    {
+      primary && (
+        <a href={primary.href} class="btn-pill btn-pill-primary text-xs sm:text-sm">
+          {primary.label}
+        </a>
+      )
+    }
+  </div>
+</nav>

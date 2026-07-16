@@ -5,16 +5,39 @@
  */
 interface Props {
   text?: string | null;
+  /** static (default) | marquee */
+  variant?: string;
 }
 
-const { text = null } = Astro.props;
+const { text = null, variant = "static" } = Astro.props;
 const line = (text || "").trim();
+const parts = line
+  ? line.split(/[·•|]/).map((p) => p.trim()).filter(Boolean)
+  : [];
+const track = parts.length ? parts : line ? [line] : [];
+const marquee = variant === "marquee" && track.length > 0;
 ---
 
 {
-  line && (
-    <div class="overflow-hidden border-b border-ink-800 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
-      <p class="whitespace-nowrap text-center sm:tracking-[0.35em]">{line}</p>
-    </div>
-  )
+  line &&
+    (marquee ? (
+      <div class="ticker-marquee py-2.5" aria-hidden="true">
+        <div class="ticker-track">
+          {[0, 1].map(() => (
+            <span>
+              {track.map((p) => (
+                <>
+                  {p}
+                  <i class="ticker-dot" />
+                </>
+              ))}
+            </span>
+          ))}
+        </div>
+      </div>
+    ) : (
+      <div class="overflow-hidden border-b border-ink-800 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
+        <p class="whitespace-nowrap text-center sm:tracking-[0.35em]">{line}</p>
+      </div>
+    ))
 }

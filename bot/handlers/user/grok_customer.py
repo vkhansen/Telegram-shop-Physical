@@ -1,9 +1,14 @@
-"""Grok AI Customer Shopping Assistant — Telegram handler (Card 22).
+"""Grok AI Customer Shopping Assistant — Telegram adapter (Card 22 + CARD-40 D).
 
 Entry points:
   - /ask command (any private chat)
   - callback_data == "ai_assistant_customer" (main menu button)
+
+Tier D: tools are capability-masked; domain writes go through application services;
+maintainer pings use Messenger.
 """
+
+from __future__ import annotations
 
 import json
 import logging
@@ -28,11 +33,13 @@ from bot.ai.customer_executor import (
     execute_start_store_live_chat,
 )
 from bot.ai.customer_schemas import CUSTOMER_TOOL_SCHEMA_MAP
-from bot.ai.customer_tool_defs import CUSTOMER_TOOLS
+from bot.ai.customer_tool_defs import tool_allowed, tools_for_channel
 from bot.ai.grok_client import call_grok
 from bot.config.env import EnvKeys
 from bot.handlers.user.ticket_handler import _get_maintainer_ids
 from bot.keyboards.inline import back, simple_buttons
+from bot.platform.capabilities import cap_enabled, resolve_capabilities
+from bot.services import tickets as tickets_svc
 from bot.states.user_state import GrokCustomerStates
 
 logger = logging.getLogger(__name__)
@@ -41,6 +48,7 @@ router = Router()
 # Rate limit: 20 calls/hour per customer (configurable via env)
 _GROK_CUSTOMER_RATE_LIMIT = EnvKeys.GROK_CUSTOMER_RATE_LIMIT
 _GROK_RATE_WINDOW = 3600
+_CHANNEL = "telegram"
 
 _SYSTEM_PROMPT = """\
 You are a friendly AI shopping assistant. You help customers find menu items, \
@@ -64,6 +72,21 @@ Available tools: browse_menu, get_today_specials, find_deals, find_nearby_stores
 check_coupon, get_order_status, get_my_account, open_support_ticket, \
 start_app_live_chat, start_store_live_chat\
 """
+
+
+def _default_customer_caps() -> dict:
+    """TG customer caps without brand context (global assistant entry)."""
+    return resolve_capabilities(
+        commerce_mode="full_store",
+        age_gate_enabled=False,
+        web_profile=None,
+        channel=_CHANNEL,
+        role="customer",
+    )
+
+
+def _customer_tools(caps: dict | None = None):
+    return tools_for_channel(_CHANNEL, caps=caps or _default_customer_caps())
 
 
 def _check_rate_limit(state_data: dict) -> tuple[bool, int]:
@@ -120,10 +143,19 @@ async def _start_customer_assistant(message: Message, state: FSMContext):
         await message.answer("AI Assistant is not available right now. Please try again later.")
         return
 
+    caps = _default_customer_caps()
+    if not cap_enabled(caps, "ai_customer"):
+        await message.answer("AI Assistant is not enabled for this channel.")
+        return
+    if not _customer_tools(caps):
+        await message.answer("AI Assistant has no tools available right now.")
+        return
+
     await state.set_state(GrokCustomerStates.chatting)
     await state.update_data(
         grok_history=[{"role": "system", "content": _SYSTEM_PROMPT}],
         grok_call_timestamps=[],
+        grok_caps=caps,
     )
     await message.answer(
         "Hi! I'm your AI shopping assistant. I can help you:\n"
@@ -169,6 +201,31 @@ async def exit_ai_command(message: Message, state: FSMContext):
 # ── Live chat relay ───────────────────────────────────────────────────────────
 
 
+async def _relay_to_support(text: str, photo_id: str | None = None, bot=None) -> None:
+    """D4: live-chat relay via Messenger (group photo falls back to bot if needed)."""
+    from bot.platform.messaging import get_messenger
+
+    messenger = get_messenger()
+    for mid in _get_maintainer_ids():
+        try:
+            if photo_id:
+                await messenger.send_photo(mid, photo_id, caption=text)
+            else:
+                await messenger.send_text(mid, text)
+        except Exception as e:
+            logger.warning("Failed to relay to %s: %s", mid, e)
+
+    support_chat = EnvKeys.SUPPORT_CHAT_ID
+    if support_chat:
+        try:
+            if photo_id and bot is not None:
+                await bot.send_photo(int(support_chat), photo_id, caption=text)
+            else:
+                await messenger.send_group(str(support_chat), text)
+        except Exception as e:
+            logger.warning("Failed to relay to support chat: %s", e)
+
+
 @router.message(GrokCustomerStates.app_live_chat, F.chat.type == ChatType.PRIVATE)
 @router.message(GrokCustomerStates.store_live_chat, F.chat.type == ChatType.PRIVATE)
 async def live_chat_relay(message: Message, state: FSMContext):
@@ -189,40 +246,19 @@ async def live_chat_relay(message: Message, state: FSMContext):
     msg_text = message.text or message.caption or "(attachment)"
     photo_id = message.photo[-1].file_id if message.photo else None
 
-    from bot.database import Database
-    from bot.database.models.main import TicketMessage
-
-    with Database().session() as s:
-        s.add(
-            TicketMessage(
-                ticket_id=ticket_id,
-                sender_id=user_id,
-                sender_role="user",
-                message_text=msg_text,
-            )
-        )
-        s.commit()
+    # Single writer: tickets service (not raw TicketMessage ORM)
+    res = tickets_svc.append_message(
+        user_id,
+        msg_text,
+        ticket_id=int(ticket_id),
+        sender_role="user",
+    )
+    if not res.ok:
+        await message.answer("Could not send message. Please try again or /exit_ai.")
+        return
 
     relay = f"💬 [{ticket_code}] <b>User {user_id}:</b>\n{msg_text}"
-    for mid in _get_maintainer_ids():
-        try:
-            if photo_id:
-                await message.bot.send_photo(mid, photo_id, caption=relay)
-            else:
-                await message.bot.send_message(mid, relay)
-        except Exception as e:
-            logger.warning("Failed to relay to %s: %s", mid, e)
-
-    support_chat = EnvKeys.SUPPORT_CHAT_ID
-    if support_chat:
-        try:
-            if photo_id:
-                await message.bot.send_photo(int(support_chat), photo_id, caption=relay)
-            else:
-                await message.bot.send_message(int(support_chat), relay)
-        except Exception as e:
-            logger.warning("Failed to relay to support chat: %s", e)
-
+    await _relay_to_support(relay, photo_id=photo_id, bot=message.bot)
     await message.answer("✅ Message sent to support. They'll reply shortly.")
 
 
@@ -234,6 +270,8 @@ async def handle_customer_message(message: Message, state: FSMContext):
     """Main conversation loop — every message goes through Grok."""
     data = await state.get_data()
     history: list[dict] = data.get("grok_history", [])
+    caps = data.get("grok_caps") or _default_customer_caps()
+    tools = _customer_tools(caps)
 
     # Rate limit check
     allowed, reset_in = _check_rate_limit(data)
@@ -264,7 +302,7 @@ async def handle_customer_message(message: Message, state: FSMContext):
     await message.bot.send_chat_action(message.chat.id, "typing")
 
     try:
-        response = await call_grok(messages=history, tools=CUSTOMER_TOOLS)
+        response = await call_grok(messages=history, tools=tools)
     except Exception as e:
         logger.error("Grok API call failed: %s", e)
         await message.answer(
@@ -279,7 +317,9 @@ async def handle_customer_message(message: Message, state: FSMContext):
     # Process tool calls
     if assistant_msg.get("tool_calls"):
         for tool_call in assistant_msg["tool_calls"]:
-            result = await _process_tool_call(tool_call, message.from_user.id, message.bot, state)
+            result = await _process_tool_call(
+                tool_call, message.from_user.id, message.bot, state, caps
+            )
             history.append(
                 {
                     "role": "tool",
@@ -300,7 +340,7 @@ async def handle_customer_message(message: Message, state: FSMContext):
         # Follow-up response from Grok after tool results
         try:
             await message.bot.send_chat_action(message.chat.id, "typing")
-            followup = await call_grok(messages=history, tools=CUSTOMER_TOOLS)
+            followup = await call_grok(messages=history, tools=tools)
             followup_msg = followup["choices"][0]["message"]
             history.append(followup_msg)
 
@@ -308,7 +348,9 @@ async def handle_customer_message(message: Message, state: FSMContext):
             while followup_msg.get("tool_calls") and depth < 3:
                 depth += 1
                 for tc in followup_msg["tool_calls"]:
-                    res = await _process_tool_call(tc, message.from_user.id, message.bot, state)
+                    res = await _process_tool_call(
+                        tc, message.from_user.id, message.bot, state, caps
+                    )
                     history.append(
                         {
                             "role": "tool",
@@ -324,7 +366,7 @@ async def handle_customer_message(message: Message, state: FSMContext):
                         )
                         return
                 await message.bot.send_chat_action(message.chat.id, "typing")
-                followup = await call_grok(messages=history, tools=CUSTOMER_TOOLS)
+                followup = await call_grok(messages=history, tools=tools)
                 followup_msg = followup["choices"][0]["message"]
                 history.append(followup_msg)
 
@@ -350,6 +392,7 @@ async def _process_tool_call(
     user_id: int,
     bot,
     state: FSMContext,
+    caps: dict | None = None,
 ) -> dict:
     """Validate tool call against Pydantic schema and execute.
 
@@ -357,6 +400,10 @@ async def _process_tool_call(
     never from the AI payload.
     """
     func_name = tool_call["function"]["name"]
+    caps = caps or _default_customer_caps()
+
+    if not tool_allowed(func_name, caps):
+        return {"error": f"Tool not available: {func_name}"}
 
     try:
         args = json.loads(tool_call["function"]["arguments"])
@@ -372,7 +419,7 @@ async def _process_tool_call(
     except Exception as e:
         return {"error": "Validation failed", "details": str(e)}
 
-    # Dispatch to executor
+    # Dispatch to executor (services under the hood)
     if func_name == "browse_menu":
         return execute_browse_menu(validated)
     if func_name == "get_today_specials":

@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-> **~35% Complete** | `███████░░░░░░░░░░░░░` | Tier A+B done 2026-07-17 (masks + commerce spine API + parity tests). Builds on CARD-29–32; does **not** require pixel-identical UX.
+> **~100% Complete** | `████████████████████` | Tier A–F done 2026-07-17 (masks · commerce · tickets · Grok · non-parity harden · scorecard/PR gate). Builds on CARD-29–32; does **not** require pixel-identical UX.
 
 **Tier:** T1.5 — Cross-surface parity epic (after T0 ports + T1 services spine)  
 **Phase:** M3 — Multi-Platform Growth  
@@ -150,12 +150,17 @@ Work is ordered so each tier leaves both surfaces **more equal on the service bu
 
 | Deliverable | Detail |
 |-------------|--------|
-| **C1** Tickets service unify | TG ticket handlers call shared tickets application service (extract from `tickets_web` + TG if needed) |
-| **C2** Identity at adapter edge | Web OAuth already links identities; TG continues dual-write; any web↔TG link is future — resolve API only |
-| **C3** Messenger for customer status | All order-status customer pings via `get_messenger()` (CARD-29 complete on remaining call sites) |
-| **C4** Auth mask | Web: OAuth session; TG: platform telegram identity — **no** fake OAuth inside bot |
+| **C1** Tickets service unify | ✅ `bot/services/tickets.py` single writer; TG `ticket_handler` + `tickets_web` facade |
+| **C2** Identity at adapter edge | ✅ Web OAuth session uid / TG dual-write; resolve API only — no link UI |
+| **C3** Messenger for customer status | ✅ order_management, payment_checker, inventory expire, admin ticket reply → `get_messenger()` |
+| **C4** Auth mask | ✅ Web OAuth ON; TG `auth` OFF in platform ceiling + CHANNEL_DEFAULT_OFF |
 
 **Exit C:** Support + identity + notify are shared; only auth **adapter** differs.
+
+**Tier C status (2026-07-17):** ✅  
+- Service: `bot/services/tickets.py` · facade: `tickets_web.py`  
+- TG adapter: `bot/handlers/user/ticket_handler.py`  
+- Tests: `tests/unit/services/test_tickets_parity_card40c.py`
 
 ---
 
@@ -174,6 +179,14 @@ Work is ordered so each tier leaves both surfaces **more equal on the service bu
 
 **Non-goals for D:** Admin Grok full service extract (ops surface; lower priority for web customer parity).
 
+**Tier D status (2026-07-17):** ✅  
+- Service: `bot/services/customer_catalog.py` · tickets/order_query reused  
+- Tools mask: `bot/ai/customer_tool_defs.py` (`tools_for_channel` / `TOOL_REQUIRED_CAP`)  
+- Executor: `bot/ai/customer_executor.py` (no raw SupportTicket ORM)  
+- Adapter: `bot/handlers/user/grok_customer.py`  
+- Tests: `tests/unit/ai/test_customer_card40d.py`  
+- D3 session store: deferred (FSM history remains)
+
 ---
 
 ### Tier E — Web-only & TG-ops hardening (explicit non-parity) · ~1–2 d
@@ -189,6 +202,12 @@ Work is ordered so each tier leaves both surfaces **more equal on the service bu
 
 **Exit E:** Product can ship “full web funnel + full TG shop” without anyone re-adding lead forms to Telegram “for parity.”
 
+**Tier E status (2026-07-17):** ✅  
+- Packs: `WEB_ONLY_CAPS` · `TG_OPS_CAPS` · `SHARED_PARITY_CAPS` in `capabilities.py`  
+- Deep links: `bot/platform/deep_links.py` (`storefront_url` / `funnel_url_button`)  
+- API: `auth_api` gates `leads`/`booking` via mask; rejects ops impersonation  
+- Tests: `tests/unit/platform/test_card40ef_nonparity.py`
+
 ---
 
 ### Tier F — Proof & freeze · ~1 d
@@ -198,6 +217,11 @@ Work is ordered so each tier leaves both surfaces **more equal on the service bu
 | **F1** Parity scorecard | Checklist §6 green for shared caps; web-only/tg-ops marked N/A |
 | **F2** PR gate | CI or review checklist: new feature needs service + mask row + adapter notes |
 | **F3** CLEAR-START / FEATURE_CARDS | Board reflects CARD-40 status |
+
+**Tier F status (2026-07-17):** ✅  
+- Scorecard: [`CARD-40-parity-scorecard.md`](CARD-40-parity-scorecard.md)  
+- PR gate: [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md)  
+- Machine freeze: `test_card40ef_nonparity.py` (F suite)
 
 ---
 
@@ -233,12 +257,12 @@ Brand `web_profile.channels.telegram.mask` / `.web.mask` may tighten further; th
 
 - [x] **Tier A** capability + parity matrix published and tested  
 - [x] **Tier B** shared commerce only through `cart` / `checkout` / `order_query` / catalog services on **both** adapters (where masks allow)  
-- [ ] **Tier C** tickets + identity + customer notify on platform ports  
-- [ ] **Tier D** customer Grok tools use services + masks (no parallel commerce rules)  
-- [ ] **Tier E** web-only (`leads`, `booking`/Google scheduling, marketing) and TG-ops explicitly **masked off** the other surface  
-- [ ] **Tier F** scorecard + PR gate  
-- [ ] No new handler→domain commerce shortcuts (R1)  
-- [ ] Web lead/book **not** reimplemented as Telegram FSM “for parity”
+- [x] **Tier C** tickets + identity + customer notify on platform ports  
+- [x] **Tier D** customer Grok tools use services + masks (no parallel commerce rules)  
+- [x] **Tier E** web-only (`leads`, `booking`/Google scheduling, marketing) and TG-ops explicitly **masked off** the other surface  
+- [x] **Tier F** scorecard + PR gate  
+- [x] No new handler→domain commerce shortcuts (R1) for shared commerce/support  
+- [x] Web lead/book **not** reimplemented as Telegram FSM “for parity”
 
 ---
 

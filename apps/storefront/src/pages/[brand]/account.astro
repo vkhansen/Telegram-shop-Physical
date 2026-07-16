@@ -18,24 +18,66 @@ const L = ctx.labels;
 
 <BrandShell ctx={ctx} title="Account">
   <main class="mx-auto max-w-lg py-2">
-    <PageHeader brandSlug={ctx.slug} brandName={ctx.brand.name} title="Account" />
-    <div id="card" class="mt-6 rounded-2xl border border-ink-700 bg-ink-900 p-6">
-      <p class="text-sm text-ink-500">Loading profile…</p>
+    <PageHeader
+      brandSlug={ctx.slug}
+      brandName={ctx.brand.name}
+      title="Account"
+      lead="Your storefront session for support and authenticated features."
+    />
+
+    <div id="card" class="mt-6 rounded-2xl border border-ink-700 bg-ink-900 p-6" aria-live="polite">
+      <div class="flex items-center gap-3">
+        <div class="h-12 w-12 animate-pulse rounded-full bg-ink-800"></div>
+        <div class="flex-1 space-y-2">
+          <div class="h-4 w-1/2 animate-pulse rounded bg-ink-800"></div>
+          <div class="h-3 w-2/3 animate-pulse rounded bg-ink-800"></div>
+        </div>
+      </div>
     </div>
-    <div class="mt-4 flex flex-wrap gap-2">
+
+    <div id="providers" class="mt-4 hidden rounded-2xl border border-ink-700 bg-ink-900/60 p-4">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-ink-500">Linked sign-in</h2>
+      <ul id="provider-list" class="mt-2 space-y-1 text-sm text-sand-200"></ul>
+    </div>
+
+    <div class="mt-6 flex flex-wrap gap-2">
       {
         can(ctx, "tickets") && (
-          <a href={`/${brandSlug}/tickets`} class="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-ink-950">
+          <a
+            href={`/${brandSlug}/tickets`}
+            class="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-ink-950"
+          >
             {L.support}
           </a>
         )
       }
-      <button id="logout" type="button" class="rounded-xl border border-ink-700 px-4 py-2 text-sm">Log out</button>
+      <a
+        href={`/${brandSlug}`}
+        class="rounded-xl border border-ink-700 px-4 py-2 text-sm hover:border-accent"
+      >
+        Home
+      </a>
+      <button
+        id="logout"
+        type="button"
+        class="rounded-xl border border-ink-700 px-4 py-2 text-sm text-red-300 hover:border-red-500/50"
+      >
+        Log out
+      </button>
     </div>
+    <p id="logout-err" class="mt-2 hidden text-xs text-red-400"></p>
   </main>
 </BrandShell>
 
 <script define:vars={{ apiBase, brandSlug }}>
+  function esc(s) {
+    return String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
   async function load() {
     const res = await fetch(`${apiBase}/api/public/auth/me`, { credentials: "include" });
     if (!res.ok) {
@@ -44,21 +86,54 @@ const L = ctx.labels;
     }
     const data = await res.json();
     const p = data.profile || {};
+    const name = p.name || data.session?.name || "Customer";
+    const email = p.email || data.session?.email || "";
+    const avatar = p.avatar || data.session?.avatar || "";
+    const initial = esc((name || email || "?").trim().charAt(0).toUpperCase() || "?");
     const card = document.getElementById("card");
     if (!card) return;
+    const avatarHtml = avatar
+      ? `<img src="${esc(avatar)}" alt="" class="h-14 w-14 rounded-full object-cover ring-2 ring-ink-700" />`
+      : `<div class="flex h-14 w-14 items-center justify-center rounded-full bg-ink-800 text-lg font-semibold text-accent ring-2 ring-ink-700">${initial}</div>`;
     card.innerHTML = `
       <div class="flex items-center gap-4">
-        ${p.avatar ? `<img src="${p.avatar}" alt="" class="h-14 w-14 rounded-full object-cover" />` : `<div class="flex h-14 w-14 items-center justify-center rounded-full bg-ink-800 text-accent">${(p.name || p.email || "?")[0]}</div>`}
-        <div>
-          <p class="font-semibold text-sand-50">${p.name || "—"}</p>
-          <p class="text-sm text-sand-200">${p.email || ""}</p>
+        ${avatarHtml}
+        <div class="min-w-0">
+          <p class="truncate font-semibold text-sand-50">${esc(name)}</p>
+          <p class="truncate text-sm text-sand-200">${esc(email)}</p>
+          <p class="mt-1 text-[11px] text-ink-500">Signed in · web session</p>
         </div>
       </div>
     `;
+
+    const providers = p.providers || [];
+    const box = document.getElementById("providers");
+    const list = document.getElementById("provider-list");
+    if (box && list && providers.length) {
+      box.classList.remove("hidden");
+      list.innerHTML = providers
+        .map(
+          (pr) =>
+            `<li class="flex justify-between gap-2"><span class="capitalize text-sand-50">${esc(pr.provider)}</span><span class="truncate text-ink-500">${esc(pr.email || pr.name || "")}</span></li>`,
+        )
+        .join("");
+    }
   }
-  load();
+
+  load().catch(() => {
+    window.location.href = `/${brandSlug}/login?next=/${brandSlug}/account`;
+  });
+
   document.getElementById("logout")?.addEventListener("click", async () => {
-    await fetch(`${apiBase}/api/public/auth/logout`, { method: "POST", credentials: "include" });
-    window.location.href = `/${brandSlug}`;
+    const err = document.getElementById("logout-err");
+    try {
+      await fetch(`${apiBase}/api/public/auth/logout`, { method: "POST", credentials: "include" });
+      window.location.href = `/${brandSlug}`;
+    } catch (_) {
+      if (err) {
+        err.textContent = "Logout failed — try again.";
+        err.classList.remove("hidden");
+      }
+    }
   });
 </script>

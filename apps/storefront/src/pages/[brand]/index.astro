@@ -1,7 +1,7 @@
 ---
 import BrandShell from "../../layouts/BrandShell.astro";
 import ProfileHeader from "../../components/ProfileHeader.astro";
-import StoryChips from "../../components/StoryChips.astro";
+import HeroEditorial from "../../components/HeroEditorial.astro";
 import BenefitsStrip from "../../components/BenefitsStrip.astro";
 import FeaturedItem from "../../components/FeaturedItem.astro";
 import CatalogSection from "../../components/CatalogSection.astro";
@@ -27,17 +27,31 @@ const chips = buildNavChips(ctx, { active: "home", includeCatalogAnchor: true })
 const actions = buildHeaderActions(ctx);
 const L = ctx.labels;
 const b = ctx.brand;
+const t = ctx.theme;
+const editorial = t.isEditorial;
 ---
 
 <BrandShell ctx={ctx} title={b.name}>
-  <ProfileHeader
-    name={b.name}
-    description={b.description}
-    logoUrl={b.logo_url}
-    tagline={ctx.tagline}
-    actions={actions}
-  />
-  <StoryChips chips={chips} />
+  {
+    editorial && t.chrome.hero === "editorial_display" ? (
+      <HeroEditorial
+        brandName={b.name}
+        tagline={ctx.tagline}
+        headline={ctx.hero.headline || ctx.tagline}
+        subhead={ctx.hero.subhead || b.description}
+        eyebrow={ctx.hero.eyebrow || null}
+        actions={actions}
+      />
+    ) : (
+      <ProfileHeader
+        name={b.name}
+        description={b.description}
+        logoUrl={b.logo_url}
+        tagline={ctx.tagline}
+        actions={actions}
+      />
+    )
+  }
 
   {
     can(ctx, "benefits") && ctx.benefits.length > 0 && (
@@ -45,6 +59,7 @@ const b = ctx.brand;
         benefits={ctx.benefits}
         eyebrow={L.benefitsEyebrow}
         headline={L.benefitsHeadline}
+        variant={t.chrome.benefits}
       />
     )
   }
@@ -60,6 +75,8 @@ const b = ctx.brand;
         ctaLabel={L.featuredCta}
         ctaHref="#catalog"
         fallbackBody={ctx.hero.subhead || null}
+        variant={t.chrome.featured}
+        productMedia={t.chrome.product_media}
       />
     )
   }
@@ -75,10 +92,13 @@ const b = ctx.brand;
         storeSlug={home.storeSlug}
         branchHref={`/${b.slug}/${home.storeSlug}`}
         branchLabel={L.openBranch}
+        catalogVariant={t.chrome.catalog}
+        productMedia={t.chrome.product_media}
+        editorial={editorial}
       />
     ) : (
       !can(ctx, "catalog") ? null : (
-        <p class="py-12 text-center text-ink-500">No active stores for this brand.</p>
+        <p class="py-12 text-center text-[color:var(--brand-muted,#6b6b73)]">No active stores for this brand.</p>
       )
     )
   }

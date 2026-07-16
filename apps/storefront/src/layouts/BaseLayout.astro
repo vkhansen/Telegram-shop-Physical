@@ -5,23 +5,47 @@ interface Props {
   title: string;
   description?: string;
   brandName?: string;
+  /** Injected CSS custom properties from theme tokens */
+  cssVars?: Record<string, string>;
+  fontHref?: string | null;
+  themeMode?: "light" | "dark";
+  /** Max width override (editorial uses wider container) */
+  containerClass?: string;
 }
 
-const { title, description = "", brandName } = Astro.props;
+const {
+  title,
+  description = "",
+  brandName,
+  cssVars = {},
+  fontHref = null,
+  themeMode = "dark",
+  containerClass = "mx-auto min-h-screen w-full max-w-site px-3 sm:px-4 lg:px-6",
+} = Astro.props;
 const fullTitle = brandName ? `${title} · ${brandName}` : title;
+const styleInline = Object.entries(cssVars)
+  .map(([k, v]) => `${k}:${v}`)
+  .join(";");
+const bodyBg = themeMode === "light" ? "var(--brand-paper, #fbf8f3)" : undefined;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" class={themeMode === "light" ? "theme-light" : "theme-dark"} style={styleInline || undefined}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <title>{fullTitle}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    {fontHref && <link rel="preconnect" href="https://fonts.googleapis.com" />}
+    {fontHref && <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />}
+    {fontHref && <link rel="stylesheet" href={fontHref} />}
   </head>
-  <body class="bg-ink-950 text-sand-50">
-    <div class="mx-auto min-h-screen w-full max-w-site px-3 sm:px-4 lg:px-6">
+  <body
+    class={themeMode === "light" ? "min-h-screen text-[color:var(--brand-ink)]" : "min-h-screen bg-ink-950 text-sand-50"}
+    style={bodyBg ? `background:${bodyBg};` : undefined}
+  >
+    <div class={containerClass}>
       <slot />
     </div>
   </body>

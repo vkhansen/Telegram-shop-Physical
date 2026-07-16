@@ -1,8 +1,11 @@
-/** Auth + tickets client (CARD-39). Uses credentials cookies against PUBLIC_API_BASE. */
+/** Auth + tickets client (CARD-39 portal). Cookie session against PUBLIC_API_BASE. */
 
 const API_BASE = (import.meta.env.PUBLIC_API_BASE || "http://127.0.0.1:9090").replace(/\/$/, "");
 
-async function api<T>(path: string, init: RequestInit = {}): Promise<{ ok: boolean; status: number; data: T | null }> {
+async function api<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<{ ok: boolean; status: number; data: T | null; error?: string }> {
   try {
     const res = await fetch(`${API_BASE}${path}`, {
       ...init,
@@ -14,9 +17,13 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<{ ok: boole
       },
     });
     const data = res.status === 204 ? null : await res.json().catch(() => null);
-    return { ok: res.ok, status: res.status, data: data as T };
+    const err =
+      data && typeof data === "object" && "error" in data
+        ? String((data as { error?: string }).error || "")
+        : undefined;
+    return { ok: res.ok, status: res.status, data: data as T, error: err };
   } catch {
-    return { ok: false, status: 0, data: null };
+    return { ok: false, status: 0, data: null, error: "network_error" };
   }
 }
 
@@ -29,12 +36,26 @@ export type MeResponse = {
     name?: string;
     username?: string;
     avatar?: string;
-    providers?: unknown[];
+    providers?: { provider: string; email?: string; name?: string; avatar?: string }[];
   };
+};
+
+export type AuthConfig = {
+  google_enabled: boolean;
+  dev_login_enabled: boolean;
+  session_cookie?: string;
+  brand?: string;
+  auth_enabled?: boolean;
+  tickets_enabled?: boolean;
 };
 
 export async function fetchMe() {
   return api<MeResponse>("/api/public/auth/me");
+}
+
+export async function fetchAuthConfig(brand?: string) {
+  const q = brand ? `?brand=${encodeURIComponent(brand)}` : "";
+  return api<AuthConfig>(`/api/public/auth/config${q}`);
 }
 
 export async function devLogin(email: string, name: string) {
@@ -53,14 +74,20 @@ export function googleStartUrl(brand: string, next?: string) {
   return `${API_BASE}/api/public/auth/google/start?${q}`;
 }
 
-export async function listTickets() {
-  return api<{ tickets: TicketSummary[] }>("/api/public/tickets");
+export async function listTickets(brand?: string) {
+  const q = brand ? `?brand=${encodeURIComponent(brand)}` : "";
+  return api<{ tickets: TicketSummary[]; count?: number }>(`/api/public/tickets${q}`);
 }
 
-export async function createTicket(subject: string, message: string) {
-  return api<{ ticket_code: string }>("/api/public/tickets", {
+export async function createTicket(subject: string, message: string, brand?: string) {
+  return api<{ ticket_code: string; subject?: string; status?: string }>("/api/public/tickets", {
     method: "POST",
-    body: JSON.stringify({ subject, message }),
+    body: JSON.stringify({
+      subject,
+      message,
+      brand_slug: brand,
+      brand,
+    }),
   });
 }
 
@@ -87,3 +114,47 @@ export type TicketSummary = {
 export type TicketDetail = TicketSummary & {
   messages: { sender_role: string; message_text: string; created_at?: string }[];
 };
+
+/** Escape text for safe innerHTML (ticket subjects / messages). */
+export function escapeHtml(s: string | null | undefined): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+export function statusBadgeClass(status: string): string {
+  const s = (status || "").toLowerCase();
+  if (s === "open") return "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30";
+  if (s === "in_progress") return "bg-sky-500/15 text-sky-300 ring-sky-500/30";
+  if (s === "resolved") return "bg-violet-500/15 text-violet-300 ring-violet-500/30";
+  if (s === "closed") return "bg-ink-700/80 text-ink-400 ring-ink-600";
+  return "bg-ink-800 text-sand-200 ring-ink-600";
+}
+
+export function formatWhen(iso?: string | null): string {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+export function isTicketClosed(status: string): boolean {
+  const s = (status || "").toLowerCase();
+  return s === "closed" || s === "resolved";
+}
+
+export function loginRedirect(brandSlug: string, nextPath: string): string {
+  return `/${brandSlug}/login?next=${encodeURIComponent(nextPath)}`;
+}

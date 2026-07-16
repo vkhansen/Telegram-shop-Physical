@@ -1,0 +1,84 @@
+---
+/**
+ * Large display hero — template grammar inspired by editorial brand landings.
+ * Copy from DB (tagline / hero); no product images.
+ */
+interface Props {
+  brandName: string;
+  tagline?: string | null;
+  headline?: string | null;
+  subhead?: string | null;
+  eyebrow?: string | null;
+  actions?: { href: string; label: string; primary?: boolean }[];
+}
+
+const {
+  brandName,
+  tagline = null,
+  headline = null,
+  subhead = null,
+  eyebrow = null,
+  actions = [],
+} = Astro.props;
+
+// Split headline into lines for stacked display; last word can be accent stroke.
+const display = (headline || tagline || brandName).trim();
+const words = display.split(/\s+/);
+const last = words.length > 1 ? words[words.length - 1] : "";
+const head = words.length > 1 ? words.slice(0, -1).join(" ") : display;
+---
+
+<section class="hero-editorial relative border-b border-[color:var(--brand-line)] pb-10 pt-6 sm:pb-14 sm:pt-8">
+  {
+    eyebrow && (
+      <p class="sec-eye text-[color:var(--brand-sea)]">{eyebrow}</p>
+    )
+  }
+  <h1 class="display hero-title mt-3 text-[color:var(--brand-ink)]">
+    {
+      last ? (
+        <>
+          <span class="block">{head}</span>
+          <span class="display-outline block text-[color:var(--brand-sea)]">
+            {last}
+            <span class="hero-underline" aria-hidden="true" />
+          </span>
+        </>
+      ) : (
+        <span class="block">
+          {head}
+          <span class="text-[color:var(--brand-sea)]">.</span>
+        </span>
+      )
+    }
+  </h1>
+  {
+    subhead && (
+      <p class="mt-6 max-w-xl text-base leading-relaxed text-[color:var(--brand-muted)] sm:text-lg">
+        {subhead}
+      </p>
+    )
+  }
+  {
+    tagline && headline && tagline !== headline && (
+      <p class="mt-3 max-w-xl text-sm font-medium text-[color:var(--brand-sea)]">{tagline}</p>
+    )
+  }
+  {
+    actions.length > 0 && (
+      <div class="mt-8 flex flex-wrap gap-3">
+        {actions.map((a) =>
+          a.primary ? (
+            <a href={a.href} class="btn-pill btn-pill-primary">
+              {a.label}
+            </a>
+          ) : (
+            <a href={a.href} class="btn-pill btn-pill-ghost">
+              {a.label}
+            </a>
+          ),
+        )}
+      </div>
+    )
+  }
+</section>

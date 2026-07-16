@@ -19,25 +19,102 @@ logger = logging.getLogger(__name__)
 _ROOT = Path(__file__).resolve().parents[2]
 TEST_DATA = _ROOT / "tests" / "test-data"
 
-# Map demo SKUs → images in tests/test-data (15 files available)
-SNUS_LINEUP: list[tuple[str, str, str, str, int]] = [
-    # name, price, flavor desc, image filename, strength 1-7
-    ("Mint Glacier", "299", "Sharp mint lift with a cool, dry finish. Everyday strength.", "1000045254.jpg", 3),
-    ("Berries Storm", "319", "Bright berry ice with a long clean finish — pocket-ready slim pouches.", "1000045255.jpg", 4),
-    ("Cola Lime", "329", "Dark cola zest and lime ice — late-night storm energy. Limited · new release.", "1000045258.jpg", 5),
-    ("Citrus Pulse", "289", "Citrus peel and light sweetness — bright daytime option.", "1000045260.jpg", 2),
-    ("Coffee Ember", "309", "Roasted coffee notes with a warm finish — evening ritual.", "1000045262.jpg", 4),
-    ("Tropic Heat", "319", "Tropical fruit with a mild warm spice edge.", "1000045264.jpg", 4),
-    ("Iceberg Spearmint", "299", "Classic spearmint freeze for all-day discreet use.", "1000045268.jpg", 3),
-    ("Watermelon Chill", "309", "Sweet melon body with a cold mint close.", "1000045270.jpg", 3),
-    ("Grape Night", "319", "Dark grape and soft ice — after-hours lineup.", "1000045271.jpg", 4),
-    ("Apple Frost", "299", "Crisp green apple with a clean frost finish.", "1000045272.jpg", 3),
-    ("Mango Storm", "329", "Ripe mango heat-wave with long-lasting flavor.", "1000045273.jpg", 5),
-    ("Peppermint Zero", "279", "Clean peppermint for lighter adult sessions.", "1000045274.jpg", 2),
-    ("Cherry Blizzard", "319", "Sour cherry ice with a sharp cold finish.", "1000045275.jpg", 4),
-    ("Lemon Thunder", "309", "Electric lemon zest and soft mint undercurrent.", "1000045276.jpg", 3),
-    ("Vanilla Smoke", "329", "Soft vanilla body with a dark spice close — demo limited.", "1000045277.jpg", 5),
+# Map demo SKUs → images + vector visual DNA (accent / strength / motif).
+# Photos are optional; storefront editorial theme draws SVG cans from visual fields.
+# tuple: name, price, desc, image, strength, accent, accent2, tag, motif, featured_xl
+SNUS_LINEUP: list[tuple[str, str, str, str, int, str, str, str, str, bool]] = [
+    ("Mint Glacier", "299", "Sharp mint lift with a cool, dry finish. Everyday strength.", "1000045254.jpg", 3, "#3ecf8e", "#0a4d3c", "MINT · ICE", "ice", False),
+    ("Berries Storm", "319", "Bright berry ice with a long clean finish — pocket-ready slim pouches.", "1000045255.jpg", 4, "#c23b6e", "#4a0a28", "BERRY · ICE", "berry", False),
+    ("Cola Lime", "329", "Dark cola zest and lime ice — late-night storm energy. Limited · new release.", "1000045258.jpg", 5, "#b86a3a", "#2a1508", "FIZZ · ZEST", "cola", True),
+    ("Citrus Pulse", "289", "Citrus peel and light sweetness — bright daytime option.", "1000045260.jpg", 2, "#f0b429", "#6b4a00", "CITRUS · DAY", "citrus", False),
+    ("Coffee Ember", "309", "Roasted coffee notes with a warm finish — evening ritual.", "1000045262.jpg", 4, "#6b3f2a", "#1f1008", "ROAST · WARM", "coffee", False),
+    ("Tropic Heat", "319", "Tropical fruit with a mild warm spice edge.", "1000045264.jpg", 4, "#e85d04", "#5c1a00", "TROPIC · HEAT", "storm", False),
+    ("Iceberg Spearmint", "299", "Classic spearmint freeze for all-day discreet use.", "1000045268.jpg", 3, "#5ecfcf", "#0a3d3d", "SPEARMINT · ICE", "ice", False),
+    ("Watermelon Chill", "309", "Sweet melon body with a cold mint close.", "1000045270.jpg", 3, "#e85a7a", "#5c1028", "MELON · CHILL", "berry", False),
+    ("Grape Night", "319", "Dark grape and soft ice — after-hours lineup.", "1000045271.jpg", 4, "#7b3fa0", "#1a0a28", "GRAPE · NIGHT", "night", False),
+    ("Apple Frost", "299", "Crisp green apple with a clean frost finish.", "1000045272.jpg", 3, "#7cbc3d", "#1e3d0a", "APPLE · FROST", "ice", False),
+    ("Mango Storm", "329", "Ripe mango heat-wave with long-lasting flavor.", "1000045273.jpg", 5, "#ff9f1c", "#5c3000", "MANGO · STORM", "storm", False),
+    ("Peppermint Zero", "279", "Clean peppermint for lighter adult sessions.", "1000045274.jpg", 2, "#a8e6cf", "#1a4d3c", "PEPPERMINT · LIGHT", "ice", False),
+    ("Cherry Blizzard", "319", "Sour cherry ice with a sharp cold finish.", "1000045275.jpg", 4, "#d62828", "#4a0a0a", "CHERRY · ICE", "berry", False),
+    ("Lemon Thunder", "309", "Electric lemon zest and soft mint undercurrent.", "1000045276.jpg", 3, "#f4d35e", "#5c4a00", "LEMON · ZEST", "citrus", False),
+    ("Vanilla Smoke", "329", "Soft vanilla body with a dark spice close — demo limited.", "1000045277.jpg", 5, "#d4a574", "#3d2814", "VANILLA · SPICE", "night", False),
 ]
+
+# Editorial theme pack: paper/ink/sea/sun tokens + chrome enums (no image assets).
+SNUS_THEME_TOKENS = {
+    "mode": "light",
+    "colors": {
+        "ink": "#06122e",
+        "sea": "#0a4ea2",
+        "sea_deep": "#062f63",
+        "sun": "#ffd60a",
+        "paper": "#fbf8f3",
+        "paper_warm": "#f3ecdf",
+        "line": "rgba(6,18,46,.12)",
+        "footer": "#02091b",
+        "accent": "#ffd60a",
+        "on_ink": "#fbf8f3",
+        "muted": "rgba(6,18,46,.55)",
+    },
+    "type": {
+        "display": "Archivo Black",
+        "body": "Inter",
+        "mono": "JetBrains Mono",
+        "display_scale": "hero_xl",
+        "text_transform_display": "uppercase",
+        "letter_spacing_display": "-0.02em",
+        "line_height_display": "0.88",
+    },
+    "geometry": {
+        "radius_card": "20px",
+        "radius_pill": "999px",
+        "radius_gate": "24px",
+        "container_max": "1280px",
+        "section_pad_y": "5rem",
+        "grid_catalog": "3",
+        "card_aspect": "4/5",
+        "can_tilt_deg": 8,
+        "shadow": "0 30px 60px -30px rgba(6,18,46,.35)",
+        "border_width": "1.5px",
+    },
+    "motion": {
+        "ticker_seconds": 28,
+        "hover_lift_px": 6,
+        "hero_underline": True,
+    },
+    "chrome": {
+        "nav": "sticky_full",
+        "ticker": "marquee",
+        "age_gate": "paper_card",
+        "benefits": "ink_strip_numbers",
+        "catalog": "flavor_tiles",
+        "product_media": "vector_only",
+        "logo": "wordmark_svg",
+        "hero": "editorial_display",
+        "featured": "spotlight",
+    },
+}
+
+
+def web_visual(
+    *,
+    accent: str,
+    accent2: str,
+    strength: int,
+    tag: str,
+    motif: str,
+    featured_xl: bool = False,
+) -> dict:
+    """Structured product visual DNA (geometry) stored on goods.media."""
+    return {
+        "type": "web_visual",
+        "accent_hex": accent,
+        "accent_hex_2": accent2,
+        "strength": strength,
+        "tag": tag,
+        "visual_motif": motif,
+        "featured_xl": featured_xl,
+    }
 
 NICOTINE_WARNING = (
     "Warning: This product contains nicotine. Nicotine is an addictive chemical. "
@@ -54,7 +131,9 @@ AGE_GATE_BODY = (
 SNUS_WEB_PROFILE = {
     "schema_version": 1,
     "web_enabled": True,
-    "theme": "landing_gallery",
+    # landing_editorial = paper/sea/sun + vector cans (per-brand theme_tokens)
+    "theme": "landing_editorial",
+    "theme_tokens": SNUS_THEME_TOKENS,
     "tagline": "Clean Kicks for Thailand — Tobacco-Free, Flavor-Focused, Pocket-Ready",
     # Single ticker source (also readable via compliance.ticker)
     "ticker": "Nicotine pouches · Sweden snus · Tobacco free · All white slim format · Adults only",
@@ -247,7 +326,27 @@ def seed_snus_demo(*, force: bool = False) -> dict:
             store = s.query(Store).filter_by(brand_id=brand.id, slug="bangkok").one_or_none()
             n_goods = s.query(Goods).filter_by(brand_id=brand.id).count()
             if store and n_goods > 0:
-                return {"slug": "snus-demo", "products": n_goods, "skipped": True}
+                # Refresh theme tokens + product visual DNA without full recreate
+                brand.web_profile = SNUS_WEB_PROFILE
+                brand.age_gate_enabled = True
+                brand.min_age = 18
+                for name, _price, desc, _img, strength, accent, accent2, tag, motif, featured_xl in SNUS_LINEUP:
+                    g = s.query(Goods).filter_by(name=name).one_or_none()
+                    if not g:
+                        continue
+                    g.media = [
+                        web_visual(
+                            accent=accent,
+                            accent2=accent2,
+                            strength=strength,
+                            tag=tag,
+                            motif=motif,
+                            featured_xl=featured_xl,
+                        )
+                    ]
+                    g.description = f"{desc}\n\nStrength {strength}/7 · Slim format · Demo SKU."
+                s.commit()
+                return {"slug": "snus-demo", "products": n_goods, "skipped": True, "refreshed_theme": True}
 
         if brand is None:
             brand = Brand(
@@ -331,9 +430,19 @@ def seed_snus_demo(*, force: bool = False) -> dict:
         s.flush()
 
         created = 0
-        for i, (name, price, desc, img, strength) in enumerate(SNUS_LINEUP):
+        for i, (name, price, desc, img, strength, accent, accent2, tag, motif, featured_xl) in enumerate(
+            SNUS_LINEUP
+        ):
             # Prefer mapped image; fall back to cycling available files
             img_name = img if (TEST_DATA / img).exists() else (images[i % len(images)] if images else None)
+            visual = web_visual(
+                accent=accent,
+                accent2=accent2,
+                strength=strength,
+                tag=tag,
+                motif=motif,
+                featured_xl=featured_xl,
+            )
             existing = s.query(Goods).filter_by(name=name).one_or_none()
             if existing:
                 existing.brand_id = brand.id
@@ -345,6 +454,7 @@ def seed_snus_demo(*, force: bool = False) -> dict:
                 existing.web_orderable = False
                 existing.inquiry_only = True
                 existing.item_type = "product"
+                existing.media = [visual]
                 if img_name:
                     existing.image_file_id = local_file_id(img_name)
                 continue
@@ -361,6 +471,7 @@ def seed_snus_demo(*, force: bool = False) -> dict:
             g.web_listable = True
             g.web_orderable = False
             g.inquiry_only = True
+            g.media = [visual]
             if img_name:
                 g.image_file_id = local_file_id(img_name)
             s.add(g)

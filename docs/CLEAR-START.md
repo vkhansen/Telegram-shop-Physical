@@ -2,7 +2,7 @@
 
 > **Open this file first in any new session.**  
 > **Product blurb · pitch · full WIP archive · docs index:** [`MASTER-DOCUMENT.md`](MASTER-DOCUMENT.md)  
-> **Last updated:** 2026-07-17 (CARD-40 Tier B commerce spine)
+> **Last updated:** 2026-07-17 (CARD-16 LINE adapter foundation)
 
 ---
 
@@ -13,14 +13,18 @@
 | **M0–M2** | Done (payments integrity, cart stub, dispatch) |
 | **CARD-38** white-label web | A+B+C done — Astro storefront + public API + media |
 | **Unified backend law** | Documented — adapters → services → domain |
-| **CARD-32 migration** | **~95%** — TG + web commerce on cart/checkout/order_query |
-| **CARD-29 Messenger** | **~90%** — `TelegramMessenger` + notifications via port |
-| **CARD-30 Identities** | **~90%** — TG dual-write + backfill + resolve/link helpers |
+| **CARD-32 migration** | **~98%** — commerce + tickets + customer Grok tools on services |
+| **CARD-29 Messenger** | **~95%** — customer status + crypto + inventory expire + ticket/AI pings via port |
+| **CARD-30 Identities** | **~95%** — edge resolve only; no TG↔web link UI |
 | **CARD-31 Caps** | **~95%** — platform×role + default masks (`bot/platform/capabilities.py`) |
-| **CARD-40 Web↔TG parity** | **~35%** — Tier A+B ✅ (matrix + web commerce API); C–F open |
-| **Next slice** | **CARD-40 Tier C** — tickets unify + Messenger status + identity edge |
+| **CARD-39 OAuth/tickets** | **~90%** — portal polish (safe OAuth next, auth config, ticket UX); live Google env ops |
+| **CARD-40 Web↔TG parity** | **~100%** — Tier A+B+C+D+E+F ✅ freeze |
+| **CARD-33 Instagram** | **~55%** — webhook + identity + masked shop FSM + messenger router; Meta prod + slip polish open |
+| **CARD-16 LINE** | **~55%** — webhook + identity + masked shop FSM + LineMessenger; Flex/QR polish open |
+| **CARD-36 funnel** | **~90%** — leads/bookings + staff Messenger notify + form UX |
+| **Next slice** | CARD-33/16 finish (QR, Flex, Redis) · live Google OAuth deploy |
 
-**Do not re-litigate:** hybrid content model, commerce modes, age gate from DB, Telegram-as-adapter (not special domain).
+**Do not re-litigate:** hybrid content model, commerce modes, age gate from DB, Telegram-as-adapter (not special domain), web lead forms into Telegram “for parity.”
 
 ---
 
@@ -35,7 +39,8 @@ No new handler → domain business shortcuts
 
 **Binding law:** [`Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md`](Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md)  
 **Plan:** [`later/MULTI-CHANNEL-TIERED-PLAN.md`](later/MULTI-CHANNEL-TIERED-PLAN.md)  
-**Board:** [`FEATURE_CARDS.md`](FEATURE_CARDS.md)
+**Board:** [`FEATURE_CARDS.md`](FEATURE_CARDS.md)  
+**Parity freeze:** [`later/CARD-40-parity-scorecard.md`](later/CARD-40-parity-scorecard.md)
 
 ---
 
@@ -46,15 +51,17 @@ PostgreSQL  Brand · Store · Goods · Orders · web_profile · identities
                     │
                     ▼
          Application services
-    catalog_public · leads_bookings · tickets_web · web_auth
-    cart · checkout · order_query          ◄── CARD-32 (new)
-    platform: capabilities · media_ref · messaging
+    catalog_public · leads_bookings · web_auth
+    cart · checkout · order_query · tickets · customer_catalog
+    tickets_web = thin facade → tickets
+    platform: capabilities · deep_links · media_ref · messaging · messenger_router · identity
+    Grok tools = masked adapter → same services
                     │
-     ┌──────────────┼──────────────┐
-     ▼              ▼              ▼
- Public API    Telegram        (LINE/IG later)
- storefront    handlers        webhooks
-               (thin adapters)
+     ┌──────────────┼──────────────┬────────────────┐
+     ▼              ▼              ▼                ▼
+ Public API    Telegram     Instagram DM         (LINE later)
+ storefront    handlers     channels/instagram   webhooks
+               + Grok AI    (flag-gated)
 ```
 
 ### Code map (know these paths)
@@ -65,19 +72,28 @@ PostgreSQL  Brand · Store · Goods · Orders · web_profile · identities
 | `bot/services/cart.py` | Cart list/add/remove/clear |
 | `bot/services/checkout.py` | `create_pending_order`, cash/PromptPay/crypto, QR, `ensure_delivery_profile` |
 | `bot/services/order_query.py` | List/get orders as DTOs |
-| `bot/services/tickets_web.py` | Web tickets (Tier C: unify with TG `ticket_handler`) |
-| `bot/platform/capabilities.py` | `CAPABILITY_KEYS`, `PLATFORM_CAPS`×role, `CHANNEL_DEFAULT_OFF`, `resolve_capabilities` / `can` |
+| `bot/services/tickets.py` | **Single ticket writer** — list/get/create/reply/close/append |
+| `bot/services/tickets_web.py` | HTTP facade → `tickets` (legacy dict API for auth_api) |
+| `bot/services/customer_catalog.py` | Grok/assistant catalog browse, specials, deals, nearby, coupon check |
+| `bot/ai/customer_executor.py` | Tool dispatch → services (not raw ticket/order ORM) |
+| `bot/ai/customer_tool_defs.py` | `tools_for_channel` / `tools_for_capabilities` (mask filter) |
+| `bot/platform/capabilities.py` | Caps + `WEB_ONLY_CAPS` / `TG_OPS_CAPS` / `SHARED_PARITY_CAPS` |
+| `bot/platform/deep_links.py` | TG → web funnel URL buttons (no form FSM) |
+| `bot/platform/messenger_router.py` | Multi-channel customer `notify_user` |
+| `bot/channels/instagram/` | CARD-33 IG webhook + adapter + Messenger |
+| `bot/channels/line/` | CARD-16 LINE webhook + adapter + Messenger |
 | `bot/web/commerce_api.py` | **Web commerce adapter** — cart/checkout/orders (session cookie) |
-| `bot/web/auth_api.py` | OAuth session + tickets/leads HTTP |
+| `bot/web/auth_api.py` | OAuth session + tickets/leads/bookings (cap-gated) |
 | `bot/web/public_api.py` | Catalog + media + mounts auth + commerce |
 | `bot/handlers/user/cart_handler.py` | TG cart → **cart service** |
 | `bot/handlers/user/order_handler.py` | TG payments → **checkout service** |
-| `bot/handlers/user/ticket_handler.py` | TG tickets still domain-heavy → **Tier C target** |
-| `bot/handlers/user/grok_customer.py` | Customer AI → **Tier D target** |
+| `bot/handlers/user/ticket_handler.py` | TG tickets → **tickets service** (FSM UI only) |
+| `bot/handlers/user/grok_customer.py` | Customer AI adapter — masked tools + Messenger |
 | `bot/platform/messaging.py` | `Messenger` / `get_messenger` |
 | `bot/platform/identity.py` | `resolve_user_id` / `link_identity` / `ensure_telegram_identity` |
 | `apps/storefront` | BrandShell + capability-gated UI (cart UI may lag API) |
 | `docs/later/CARD-40-parity-matrix.md` | Shared vs web-only vs tg-ops table |
+| `docs/later/CARD-40-parity-scorecard.md` | **F freeze** checklist + PR gate |
 | `docs/Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md` | Law R1–R8 |
 
 ---
@@ -98,7 +114,8 @@ npm run dev -- --host 127.0.0.1 --port 4321
 
 ```bash
 # Prefer venv on Windows
-.\.venv\Scripts\python.exe -m pytest tests/unit/services/test_commerce_parity_card40b.py tests/unit/services/test_checkout_service.py tests/unit/platform/ -q --no-cov
+.\.venv\Scripts\python.exe -m pytest tests/unit/platform/test_card40ef_nonparity.py tests/unit/platform/ -q --no-cov
+.\.venv\Scripts\python.exe -m pytest tests/unit/ai/test_customer_card40d.py tests/unit/services/test_tickets_parity_card40c.py tests/unit/services/test_commerce_parity_card40b.py -q --no-cov
 .\.venv\Scripts\python.exe -m pytest tests/unit/services/ -q --no-cov
 ```
 
@@ -107,48 +124,52 @@ npm run dev -- --host 127.0.0.1 --port 4321
 - Session cookie: `wl_session` (from Google OAuth or `POST /api/public/auth/dev-login` when enabled)
 - Cart/checkout/orders require cookie + credentials; gated by brand `capabilities` (`checkout` off → 403)
 - **Not** a second order writer — same `cart` / `checkout` / `order_query` as Telegram
+- Tickets: same `services.tickets` as TG; session `uid` is internal user_id
+- Leads/bookings: cap-gated (`leads` / `booking`); ops role claims → 403
 
 ---
 
-## 4. Migration checklist (CARD-32)
+## 4. Migration checklist (CARD-32 / CARD-40)
 
-### Done this wave
+### Done (commerce + support + AI + freeze)
 
 - [x] `ServiceResult` DTO  
 - [x] `cart` / `checkout` / `order_query` services  
-- [x] Telegram **PromptPay** → `checkout.start_promptpay_order`  
-- [x] Telegram **cash** → `checkout.start_cash_order`  
-- [x] Telegram **crypto** → `checkout.start_crypto_order` (legacy BTC + LTC/SOL/USDT + CryptoPayment)  
-- [x] Telegram **cart_handler** → `cart` service (list/add/remove/clear; no domain cart methods)  
-- [x] Unit tests: `tests/unit/services/test_checkout_service.py` (cart + checkout)  
-- [x] Unified interface + multi-channel plan docs  
-- [x] **CARD-32 TG commerce hard paths cleared** (cart + all payments)  
+- [x] Telegram payments + cart → services  
+- [x] Web commerce API (CARD-40 B)  
+- [x] **CARD-40 Tier C** — `services/tickets` single writer; TG `ticket_handler` + `tickets_web` facade  
+- [x] Customer order-status / crypto / inventory-expire / ticket reply pings → `get_messenger()`  
+- [x] Auth mask: web OAuth ON, TG `auth` OFF (no fake OAuth in bot)  
+- [x] Tests: `test_tickets_parity_card40c.py`  
+- [x] **CARD-40 Tier D** — Grok tools → services + capability masks + Messenger  
+- [x] Tests: `test_customer_card40d.py`  
+- [x] **CARD-40 Tier E** — web-only + TG-ops packs + deep_links + API enforcement  
+- [x] **CARD-40 Tier F** — scorecard + PR template + machine freeze tests  
+- [x] Tests: `test_card40ef_nonparity.py`  
 
 ### Next migration slices (pick one per session)
 
-1. **CARD-40 Tier C** (~1–2d) — tickets unify + Messenger customer status + identity edge  
-2. **CARD-40 Tier D** (~2–3d) — customer Grok tools → services + masks  
-3. **CARD-40 Tier E+F** (~2–3d) — intentional non-parity harden + scorecard/PR gate  
-4. **Only then** CARD-33 / CARD-16 (second channel)  
+1. **CARD-33 / CARD-16 finish** — hosted QR, Flex UI, Redis sessions, multi-brand map  
+2. Live Google OAuth credentials in deploy  
+3. Optional CARD-36 CAPTCHA / TG opt-in  
 
-**Hard gates (met):** TG + web commerce on services; Messenger; identities; CARD-31; CARD-40 A+B.  
-**Next gates:** CARD-40 C (tickets/notify) then D (Grok) before second channel.
+**Hard gates (met):** TG + web commerce + tickets on services; Grok as masked adapter; Messenger; identities; CARD-31; **CARD-40 A–F freeze**; IG + LINE foundations.
 
-### Tier C task checklist (next session)
+### Tier E+F exit (done)
 
-- [ ] **C1** Extract/share tickets application service; TG `ticket_handler` → service (web already `tickets_web`)  
-- [ ] **C2** Document/identity edge only — web OAuth + TG dual-write; no fake OAuth in bot  
-- [ ] **C3** Grep remaining customer order-status pings → `get_messenger()`  
-- [ ] **C4** Auth mask honesty (web OAuth vs TG identity)  
-- [ ] Tests: ticket create/list parity for same `user_id`; no dual ticket writers
+- [x] **E1** Web-only pack off TG by default (`WEB_ONLY_CAPS` + `CHANNEL_DEFAULT_OFF`)  
+- [x] **E2** Deep-link policy (`bot/platform/deep_links.py`) — URL buttons only  
+- [x] **E3** TG-ops pack documented (`TG_OPS_CAPS`); web ceiling excludes ops  
+- [x] **E4** No TG lead/book FSM; API rejects ops impersonation; leads/booking cap-gated  
+- [x] **F** Scorecard + PR gate freeze  
 
 ---
 
 ## 5. Session checklist
 
-- [ ] Read this file + UNIFIED-BACKEND law  
-- [ ] Prefer **CARD-40 Tier C tickets + Messenger** next  
-- [ ] New code: adapter → service only  
+- [ ] Read this file + UNIFIED-BACKEND law + [parity scorecard](later/CARD-40-parity-scorecard.md)  
+- [ ] Prefer second-channel adapter **or** product polish — not re-opening parity  
+- [ ] New code: adapter → service only; new caps need matrix row  
 - [ ] Run targeted pytest for touched services  
 - [ ] Keep Telegram UX unchanged when migrating  
 
@@ -164,6 +185,7 @@ npm run dev -- --host 127.0.0.1 --port 4321
 | [CARD-32](later/CARD-32-customer-application-services.md) | Customer services epic |
 | [CARD-40](later/CARD-40-web-telegram-abstracted-feature-parity.md) | Web↔TG abstracted parity (masks) |
 | [CARD-40 parity matrix](later/CARD-40-parity-matrix.md) | Tier A capability × adapter table |
+| [CARD-40 scorecard](later/CARD-40-parity-scorecard.md) | **F freeze** + PR gate |
 | [CARD-29](later/CARD-29-messenger-port.md) | Messenger |
 | [CARD-38](later/CARD-38-white-label-brand-branch-sites.md) | Web shell (done) |
 | [FEATURE_CARDS](FEATURE_CARDS.md) | Status board |
@@ -174,6 +196,24 @@ npm run dev -- --host 127.0.0.1 --port 4321
 
 ## 7. Ready statement
 
-**Context is clear for a clean continue.**
+**CARD-40 frozen · CARD-33 foundation live (flag-off default).**
 
-Say next: *“CARD-40 Tier C tickets and Messenger.”*
+```bash
+INSTAGRAM_CHANNEL_ENABLED=true
+INSTAGRAM_PAGE_ACCESS_TOKEN=...
+INSTAGRAM_APP_SECRET=...
+INSTAGRAM_VERIFY_TOKEN=...
+INSTAGRAM_DEFAULT_BRAND_ID=1
+# Webhook: GET/POST {MONITORING}/webhooks/instagram
+```
+
+```bash
+# LINE (flag-off by default)
+LINE_CHANNEL_ENABLED=true
+LINE_CHANNEL_ACCESS_TOKEN=...
+LINE_CHANNEL_SECRET=...
+LINE_DEFAULT_BRAND_ID=1
+# Webhook: POST {MONITORING}/webhooks/line
+```
+
+Say next: *“CARD-33 finish QR/slip/Redis”* · *“CARD-16 finish Flex/QR”* · *“live Google OAuth deploy.”*

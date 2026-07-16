@@ -18,55 +18,165 @@ const L = ctx.labels;
 
 <BrandShell ctx={ctx} title={L.support}>
   <main class="py-2">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <PageHeader brandSlug={ctx.slug} brandName={ctx.brand.name} title={L.support} />
-      <div class="flex gap-2">
-        <a href={`/${brandSlug}/tickets/new`} class="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-ink-950">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <PageHeader
+        brandSlug={ctx.slug}
+        brandName={ctx.brand.name}
+        title={L.support}
+        lead="View and open support tickets for this brand."
+      />
+      <div class="flex flex-wrap gap-2">
+        <a
+          href={`/${brandSlug}/tickets/new`}
+          class="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-ink-950"
+        >
           New ticket
         </a>
         {
           can(ctx, "auth") && (
-            <a href={`/${brandSlug}/account`} class="rounded-xl border border-ink-700 px-4 py-2 text-sm">
+            <a
+              href={`/${brandSlug}/account`}
+              class="rounded-xl border border-ink-700 px-4 py-2 text-sm hover:border-accent"
+            >
               Account
             </a>
           )
         }
       </div>
     </div>
-    <p id="who" class="mt-1 text-sm text-sand-200">Checking session…</p>
-    <ul id="ticket-list" class="mt-8 space-y-3"></ul>
-    <p id="empty" class="mt-8 hidden text-center text-ink-500">No tickets yet.</p>
+
+    <div class="mt-2 flex flex-wrap items-center gap-3 text-sm">
+      <p id="who" class="text-sand-200">Checking session…</p>
+      <span id="count" class="hidden rounded-full bg-ink-800 px-2 py-0.5 text-xs text-ink-400"></span>
+    </div>
+
+    <div id="load-err" class="mt-4 hidden rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200" role="alert"></div>
+
+    <ul id="ticket-list" class="mt-6 space-y-3" aria-live="polite"></ul>
+
+    <div id="empty" class="mt-10 hidden text-center">
+      <p class="text-ink-500">No tickets yet for this brand.</p>
+      <a
+        href={`/${brandSlug}/tickets/new`}
+        class="mt-4 inline-flex rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-ink-950"
+      >
+        Open your first ticket
+      </a>
+    </div>
+
+    <div id="skeleton" class="mt-6 space-y-3">
+      <div class="h-20 animate-pulse rounded-xl bg-ink-900"></div>
+      <div class="h-20 animate-pulse rounded-xl bg-ink-900"></div>
+    </div>
   </main>
 </BrandShell>
 
 <script define:vars={{ apiBase, brandSlug }}>
+  function esc(s) {
+    return String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function badge(status) {
+    const s = (status || "").toLowerCase();
+    let cls = "bg-ink-800 text-sand-200 ring-ink-600";
+    if (s === "open") cls = "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30";
+    else if (s === "in_progress") cls = "bg-sky-500/15 text-sky-300 ring-sky-500/30";
+    else if (s === "resolved") cls = "bg-violet-500/15 text-violet-300 ring-violet-500/30";
+    else if (s === "closed") cls = "bg-ink-700/80 text-ink-400 ring-ink-600";
+    return `<span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset ${cls}">${esc(status || "unknown")}</span>`;
+  }
+
+  function when(iso) {
+    if (!iso) return "";
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "";
+      return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return "";
+    }
+  }
+
   async function load() {
+    const who = document.getElementById("who");
+    const list = document.getElementById("ticket-list");
+    const empty = document.getElementById("empty");
+    const skeleton = document.getElementById("skeleton");
+    const loadErr = document.getElementById("load-err");
+    const countEl = document.getElementById("count");
+
     const me = await fetch(`${apiBase}/api/public/auth/me`, { credentials: "include" });
     if (!me.ok) {
       window.location.href = `/${brandSlug}/login?next=/${brandSlug}/tickets`;
       return;
     }
     const profile = await me.json();
-    const who = document.getElementById("who");
-    if (who) who.textContent = profile.profile?.email || profile.profile?.name || "Signed in";
-    const res = await fetch(`${apiBase}/api/public/tickets?brand=${encodeURIComponent(brandSlug)}`, {
-      credentials: "include",
-    });
-    const list = document.getElementById("ticket-list");
-    const empty = document.getElementById("empty");
-    if (!res.ok || !list) return;
+    if (who) {
+      const label = profile.profile?.email || profile.profile?.name || profile.session?.email || "Signed in";
+      who.textContent = label;
+    }
+
+    const res = await fetch(
+      `${apiBase}/api/public/tickets?brand=${encodeURIComponent(brandSlug)}`,
+      { credentials: "include" },
+    );
+    skeleton?.classList.add("hidden");
+
+    if (!res.ok) {
+      if (loadErr) {
+        const data = await res.json().catch(() => ({}));
+        loadErr.textContent =
+          data.error === "tickets_disabled"
+            ? "Tickets are disabled for this brand."
+            : data.error || "Could not load tickets.";
+        loadErr.classList.remove("hidden");
+      }
+      return;
+    }
+
     const data = await res.json();
-    const tickets = data.tickets || data || [];
+    const tickets = data.tickets || [];
+    if (countEl) {
+      countEl.textContent = `${tickets.length} ticket${tickets.length === 1 ? "" : "s"}`;
+      countEl.classList.remove("hidden");
+    }
+    if (!list) return;
     list.innerHTML = "";
     if (!tickets.length) {
       empty?.classList.remove("hidden");
       return;
     }
+    empty?.classList.add("hidden");
     for (const t of tickets) {
       const li = document.createElement("li");
-      li.innerHTML = `<a class="block rounded-xl border border-ink-700 bg-ink-900 p-4 hover:border-accent" href="/${brandSlug}/tickets/${t.ticket_code}"><p class="font-semibold text-sand-50">${t.subject}</p><p class="mt-1 text-xs text-ink-500">${t.ticket_code} · ${t.status}</p></a>`;
+      const updated = when(t.updated_at || t.created_at);
+      li.innerHTML = `
+        <a class="block rounded-xl border border-ink-700 bg-ink-900 p-4 transition hover:border-accent"
+           href="/${brandSlug}/tickets/${esc(t.ticket_code)}">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <p class="font-semibold text-sand-50">${esc(t.subject)}</p>
+            ${badge(t.status)}
+          </div>
+          <p class="mt-2 text-xs text-ink-500">
+            <span class="font-mono">${esc(t.ticket_code)}</span>
+            ${updated ? ` · ${esc(updated)}` : ""}
+            ${t.priority && t.priority !== "normal" ? ` · ${esc(t.priority)}` : ""}
+          </p>
+        </a>`;
       list.appendChild(li);
     }
   }
-  load();
+
+  load().catch(() => {
+    document.getElementById("skeleton")?.classList.add("hidden");
+    const loadErr = document.getElementById("load-err");
+    if (loadErr) {
+      loadErr.textContent = "Network error loading tickets.";
+      loadErr.classList.remove("hidden");
+    }
+  });
 </script>

@@ -52,6 +52,13 @@ export type CatalogItem = {
   web_orderable?: boolean;
   prep_time_minutes?: number | null;
   allergens?: string | null;
+  /** Geometry-driven product identity (optional — from goods.media web_visual) */
+  accent_hex?: string | null;
+  accent_hex_2?: string | null;
+  strength?: number | null;
+  tag?: string | null;
+  visual_motif?: string | null;
+  featured_xl?: boolean;
 };
 
 export type StoreMenu = {

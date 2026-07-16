@@ -17,6 +17,7 @@ const item = Astro.url.searchParams.get("item") || "";
 const L = ctx.labels;
 const ageConfirmLabel = ctx.compliance.ageGate.confirmLabel;
 const apiBase = ctx.apiBase;
+const brandName = ctx.brand.name;
 ---
 
 <BrandShell ctx={ctx} title={L.inquire}>
@@ -25,24 +26,73 @@ const apiBase = ctx.apiBase;
       brandSlug={ctx.slug}
       brandName={ctx.brand.name}
       title={L.inquire}
-      lead={`Request information${item ? ` about “${item}”` : ""}. We’ll contact you on your preferred channel.`}
+      lead={`Request information${item ? ` about “${item}”` : ""}. We’ll contact you on your preferred channel — no Telegram required.`}
     />
+
+    <div
+      id="success"
+      class="mt-8 hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-center"
+      role="status"
+    >
+      <p class="text-lg font-semibold text-emerald-200">Thanks — we got your inquiry</p>
+      <p id="success-detail" class="mt-2 text-sm text-sand-200"></p>
+      <p class="mt-3 text-xs text-ink-500">
+        Staff will reach you on the channel you chose. You don’t need to join Telegram.
+      </p>
+      <div class="mt-6 flex flex-wrap justify-center gap-2">
+        <a href={`/${brandSlug}`} class="rounded-xl border border-ink-700 px-4 py-2 text-sm hover:border-accent">
+          Back to home
+        </a>
+        <button
+          type="button"
+          id="another"
+          class="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-ink-950"
+        >
+          Send another
+        </button>
+      </div>
+    </div>
+
     <form id="lead-form" class="mt-8 space-y-4">
+      <!-- honeypot -->
+      <div class="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
+        <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+      </div>
+
       <label class="block text-sm">
         <span class="text-ink-500">Name</span>
-        <input required name="name" class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2" />
+        <input
+          required
+          name="name"
+          autocomplete="name"
+          class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+        />
       </label>
       <label class="block text-sm">
         <span class="text-ink-500">Phone</span>
-        <input name="phone" type="tel" class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2" />
+        <input
+          name="phone"
+          type="tel"
+          autocomplete="tel"
+          class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+        />
       </label>
       <label class="block text-sm">
         <span class="text-ink-500">Email</span>
-        <input name="email" type="email" class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2" />
+        <input
+          name="email"
+          type="email"
+          autocomplete="email"
+          class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+        />
       </label>
       <label class="block text-sm">
         <span class="text-ink-500">Preferred channel</span>
-        <select name="channel" class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2">
+        <select
+          name="channel"
+          id="channel"
+          class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+        >
           <option value="line">LINE</option>
           <option value="whatsapp">WhatsApp</option>
           <option value="phone">Phone</option>
@@ -50,14 +100,28 @@ const apiBase = ctx.apiBase;
           <option value="telegram">Telegram</option>
         </select>
       </label>
+      <label id="handle-wrap" class="block text-sm">
+        <span class="text-ink-500">LINE / WhatsApp / Telegram ID (optional)</span>
+        <input
+          name="channel_handle"
+          id="channel_handle"
+          placeholder="@handle or number"
+          class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+        />
+      </label>
       <label class="block text-sm">
         <span class="text-ink-500">Message</span>
-        <textarea name="message" rows="4" class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2"></textarea>
+        <textarea
+          name="message"
+          rows="4"
+          maxlength="2000"
+          class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+        ></textarea>
       </label>
       <input type="hidden" name="item" value={item} />
       <label class="flex items-start gap-2 text-xs text-sand-200">
         <input type="checkbox" name="consent" required class="mt-0.5" />
-        <span>I consent to be contacted about this inquiry.</span>
+        <span>I consent to be contacted about this inquiry by {brandName}.</span>
       </label>
       {
         ctx.brand.age_gate_enabled && (
@@ -75,59 +139,128 @@ const apiBase = ctx.apiBase;
           <DisclaimerPanel blocks={ctx.compliance.footerWarnings.map((w) => ({ body: w }))} compact />
         )
       }
-      <button type="submit" class="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-ink-950">
+      <button
+        type="submit"
+        id="submit-btn"
+        class="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-ink-950 disabled:opacity-50"
+      >
         Submit inquiry
       </button>
-      <p id="msg" class="hidden text-sm"></p>
+      <p id="msg" class="hidden text-sm" role="alert"></p>
     </form>
   </main>
 </BrandShell>
 
-<script define:vars={{ apiBase, brandSlug: ctx.slug }}>
-  document.getElementById("lead-form")?.addEventListener("submit", async (e) => {
+<script define:vars={{ apiBase, brandSlug: ctx.slug, item }}>
+  function utmFromPage() {
+    const p = new URLSearchParams(window.location.search);
+    const utm = {};
+    for (const k of ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "ref"]) {
+      if (p.get(k)) utm[k] = p.get(k);
+    }
+    return Object.keys(utm).length ? utm : null;
+  }
+
+  function errorText(key) {
+    const map = {
+      name_required: "Please enter your name.",
+      phone_or_email_required: "Phone or email is required.",
+      consent_required: "Please accept the consent checkbox.",
+      brand_not_found: "This brand is unavailable.",
+      leads_disabled: "Inquiries are disabled for this brand.",
+      network_error: "Network error — try again.",
+    };
+    return map[key] || key || "Request failed";
+  }
+
+  const form = document.getElementById("lead-form");
+  const success = document.getElementById("success");
+  const successDetail = document.getElementById("success-detail");
+  const channel = document.getElementById("channel");
+  const handleWrap = document.getElementById("handle-wrap");
+
+  function syncHandle() {
+    const v = channel?.value;
+    if (handleWrap) {
+      handleWrap.classList.toggle("hidden", v === "phone" || v === "email");
+    }
+  }
+  channel?.addEventListener("change", syncHandle);
+  syncHandle();
+
+  document.getElementById("another")?.addEventListener("click", () => {
+    success?.classList.add("hidden");
+    form?.classList.remove("hidden");
+    form?.reset();
+    syncHandle();
+  });
+
+  form?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
     const phone = String(fd.get("phone") || "").trim();
     const email = String(fd.get("email") || "").trim();
     const msg = document.getElementById("msg");
+    const btn = document.getElementById("submit-btn");
+    if (msg) {
+      msg.classList.add("hidden");
+      msg.textContent = "";
+    }
     if (!phone && !email) {
       if (msg) {
-        msg.textContent = "Phone or email is required.";
+        msg.textContent = errorText("phone_or_email_required");
         msg.className = "text-sm text-red-400";
         msg.classList.remove("hidden");
       }
       return;
     }
-    const res = await fetch(`${apiBase}/api/public/leads`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        brand_slug: brandSlug,
-        name: fd.get("name"),
-        phone: phone || null,
-        email: email || null,
-        channel: fd.get("channel"),
-        message: fd.get("message"),
-        item_slug: fd.get("item") || null,
-        consent: true,
-        age_confirmed: fd.get("age_confirmed") === "on",
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch(`${apiBase}/api/public/leads`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brand_slug: brandSlug,
+          name: fd.get("name"),
+          phone: phone || null,
+          email: email || null,
+          channel: fd.get("channel"),
+          channel_handle: fd.get("channel_handle") || null,
+          message: fd.get("message"),
+          item_slug: fd.get("item") || item || null,
+          consent: fd.get("consent") === "on",
+          age_confirmed: fd.get("age_confirmed") === "on",
+          source: "web_inquire",
+          website: fd.get("website") || "",
+          utm: utmFromPage(),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (msg) {
+          msg.textContent = errorText(data.error_key || data.error);
+          msg.className = "text-sm text-red-400";
+          msg.classList.remove("hidden");
+        }
+        if (btn) btn.disabled = false;
+        return;
+      }
+      form?.classList.add("hidden");
+      if (successDetail) {
+        successDetail.textContent =
+          data.id && data.id !== 0
+            ? `Reference #${data.id}${data.preferred_channel ? ` · ${data.preferred_channel}` : ""}`
+            : "We’ll be in touch soon.";
+      }
+      success?.classList.remove("hidden");
+    } catch (_) {
       if (msg) {
-        msg.textContent = data.error || "Request failed";
+        msg.textContent = errorText("network_error");
         msg.className = "text-sm text-red-400";
         msg.classList.remove("hidden");
       }
-      return;
     }
-    if (msg) {
-      msg.textContent = "Thanks — we received your inquiry (#" + data.id + ").";
-      msg.className = "text-sm text-accent";
-      msg.classList.remove("hidden");
-    }
-    e.target.reset();
+    if (btn) btn.disabled = false;
   });
 </script>

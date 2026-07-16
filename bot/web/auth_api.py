@@ -1,4 +1,11 @@
-"""Auth + ticket HTTP API for white-label storefront (CARD-39)."""
+"""Auth + ticket HTTP API for white-label storefront (CARD-39).
+
+CARD-40 Tier C:
+- Tickets write through ``tickets_web`` → shared ``services.tickets`` (same as TG).
+- Identity: session cookie carries internal ``uid`` from OAuth upsert; resolve only
+  at this adapter edge. No Telegram↔web link UI required here.
+- Capability ``auth`` is web OAuth; Telegram uses platform telegram identity (not OAuth).
+"""
 
 from __future__ import annotations
 
@@ -9,6 +16,7 @@ from urllib.parse import urlencode
 
 from aiohttp import web
 
+from bot.platform.capabilities import TG_OPS_CAPS, cap_enabled, resolve_capabilities
 from bot.services import tickets_web, web_auth
 
 logger = logging.getLogger(__name__)
@@ -16,8 +24,55 @@ logger = logging.getLogger(__name__)
 COOKIE = web_auth.SESSION_COOKIE
 
 
+def _reject_ops_impersonation(body: dict | None) -> web.Response | None:
+    """CARD-40 E4: public customer API never accepts ops role/capability claims."""
+    if not isinstance(body, dict):
+        return None
+    # Explicit ops claims (headers mirrored into body or raw JSON abuse)
+    role = str(body.get("role") or body.get("as_role") or "").strip().lower()
+    if role in ("admin", "kitchen", "driver", "ops"):
+        return web.json_response(
+            {"error": "ops_not_allowed", "error_key": "cap.ops_impersonation"},
+            status=403,
+        )
+    for key in TG_OPS_CAPS:
+        if body.get(key) is True or body.get(f"cap_{key}") is True:
+            return web.json_response(
+                {"error": "ops_not_allowed", "error_key": "cap.ops_impersonation"},
+                status=403,
+            )
+    return None
+
+
+def _web_customer_caps(brand_slug: str) -> tuple[dict | None, web.Response | None]:
+    """Resolve web customer mask for a brand; 404 if unknown."""
+    from bot.services import catalog_public as catalog
+
+    slug = (brand_slug or "").strip()
+    if not slug:
+        return None, web.json_response(
+            {"error": "brand_required", "error_key": "brand.required"},
+            status=400,
+        )
+    ctx = catalog.resolve_brand_store(slug)
+    if not ctx:
+        return None, web.json_response(
+            {"error": "not_found", "error_key": "brand.not_found"},
+            status=404,
+        )
+    caps = resolve_capabilities(
+        commerce_mode=ctx["commerce_mode"],
+        age_gate_enabled=ctx["age_gate_enabled"],
+        web_profile=ctx["web_profile"],
+        channel="web",
+        role="customer",
+    )
+    return caps, None
+
+
 def register_auth_and_ticket_routes(app: web.Application) -> None:
     app.router.add_get("/api/public/auth/me", auth_me)
+    app.router.add_get("/api/public/auth/config", auth_config)
     app.router.add_post("/api/public/auth/logout", auth_logout)
     app.router.add_post("/api/public/auth/dev-login", auth_dev_login)
     app.router.add_get("/api/public/auth/google/start", google_start)
@@ -31,25 +86,58 @@ def register_auth_and_ticket_routes(app: web.Application) -> None:
     logger.info("Auth + ticket + lead/booking API routes registered")
 
 
+def _cookie_secure() -> bool:
+    return os.getenv("WEB_COOKIE_SECURE", "false").lower() in ("1", "true", "yes")
+
+
 def _session_from_request(request: web.Request) -> dict | None:
     return web_auth.verify_session(request.cookies.get(COOKIE))
 
 
 def _set_session_cookie(response: web.Response, token: str) -> None:
-    secure = os.getenv("WEB_COOKIE_SECURE", "false").lower() in ("1", "true", "yes")
     response.set_cookie(
         COOKIE,
         token,
         max_age=web_auth.SESSION_MAX_AGE,
         httponly=True,
         samesite="Lax",
-        secure=secure,
+        secure=_cookie_secure(),
         path="/",
     )
 
 
+def _set_oauth_flow_cookies(
+    response: web.Response,
+    *,
+    state: str,
+    next_path: str,
+    brand: str,
+) -> None:
+    secure = _cookie_secure()
+    kw = dict(max_age=600, httponly=True, samesite="Lax", path="/", secure=secure)
+    response.set_cookie("oauth_state", state, **kw)
+    response.set_cookie("oauth_next", next_path, **kw)
+    response.set_cookie("oauth_brand", brand, **kw)
+
+
 def _clear_session_cookie(response: web.Response) -> None:
     response.del_cookie(COOKIE, path="/")
+
+
+def _require_tickets_cap(brand_slug: str | None) -> web.Response | None:
+    """When brand is known, require ``tickets`` capability (CARD-39 polish)."""
+    if not brand_slug:
+        return None
+    caps, cerr = _web_customer_caps(str(brand_slug))
+    if cerr:
+        return cerr
+    assert caps is not None
+    if not cap_enabled(caps, "tickets"):
+        return web.json_response(
+            {"error": "tickets_disabled", "error_key": "cap.tickets_disabled"},
+            status=403,
+        )
+    return None
 
 
 async def auth_me(request: web.Request) -> web.Response:
@@ -60,6 +148,24 @@ async def auth_me(request: web.Request) -> web.Response:
     return web.json_response({"authenticated": True, "session": sess, "profile": profile})
 
 
+async def auth_config(request: web.Request) -> web.Response:
+    """Public auth method discovery for storefront login UI (no session required)."""
+    cfg = web_auth.auth_public_config()
+    brand = (request.query.get("brand") or "").strip()
+    if brand:
+        caps, cerr = _web_customer_caps(brand)
+        if cerr:
+            return cerr
+        assert caps is not None
+        cfg = {
+            **cfg,
+            "brand": brand,
+            "auth_enabled": cap_enabled(caps, "auth"),
+            "tickets_enabled": cap_enabled(caps, "tickets"),
+        }
+    return web.json_response(cfg)
+
+
 async def auth_logout(request: web.Request) -> web.Response:
     resp = web.json_response({"ok": True})
     _clear_session_cookie(resp)
@@ -68,13 +174,17 @@ async def auth_logout(request: web.Request) -> web.Response:
 
 async def auth_dev_login(request: web.Request) -> web.Response:
     if not web_auth.dev_login_enabled():
-        return web.json_response({"error": "dev_login_disabled"}, status=403)
+        return web.json_response({"error": "dev_login_disabled", "error_key": "auth.dev_login_disabled"}, status=403)
     try:
         body = await request.json()
     except Exception:
         body = {}
+    if not isinstance(body, dict):
+        body = {}
     email = (body.get("email") or "dev@example.com").strip().lower()
     name = (body.get("name") or "Dev User").strip()
+    if "@" not in email:
+        return web.json_response({"error": "invalid_email", "error_key": "auth.invalid_email"}, status=400)
     subject = f"dev:{email}"
     user = web_auth.upsert_oauth_user(
         provider="dev",
@@ -97,38 +207,42 @@ async def auth_dev_login(request: web.Request) -> web.Response:
 
 async def google_start(request: web.Request) -> web.Response:
     if not web_auth.google_enabled():
-        return web.json_response({"error": "google_oauth_not_configured"}, status=503)
-    brand = request.query.get("brand", "")
-    next_path = request.query.get("next", f"/{brand}/tickets" if brand else "/")
+        return web.json_response(
+            {"error": "google_oauth_not_configured", "error_key": "auth.google_not_configured"},
+            status=503,
+        )
+    brand = (request.query.get("brand") or "").strip()
+    default_next = f"/{brand}/tickets" if brand else "/"
+    next_path = web_auth.safe_next_path(request.query.get("next"), default=default_next)
     redirect_uri = os.getenv("OAUTH_GOOGLE_REDIRECT_URI") or str(
         request.url.with_path("/api/public/auth/google/callback").with_query({})
     )
     state = secrets.token_urlsafe(24)
-    # store state in short-lived cookie
     url = web_auth.google_authorize_url(redirect_uri=redirect_uri, state=state)
     resp = web.HTTPFound(url)
-    resp.set_cookie("oauth_state", state, max_age=600, httponly=True, samesite="Lax", path="/")
-    resp.set_cookie("oauth_next", next_path, max_age=600, httponly=True, samesite="Lax", path="/")
-    resp.set_cookie("oauth_brand", brand, max_age=600, httponly=True, samesite="Lax", path="/")
+    _set_oauth_flow_cookies(resp, state=state, next_path=next_path, brand=brand)
     return resp
 
 
 async def google_callback(request: web.Request) -> web.Response:
     if not web_auth.google_enabled():
-        return web.json_response({"error": "google_oauth_not_configured"}, status=503)
+        return web.json_response(
+            {"error": "google_oauth_not_configured", "error_key": "auth.google_not_configured"},
+            status=503,
+        )
     state = request.query.get("state", "")
     cookie_state = request.cookies.get("oauth_state", "")
     if not state or state != cookie_state:
-        return web.json_response({"error": "invalid_state"}, status=400)
+        return web.json_response({"error": "invalid_state", "error_key": "auth.invalid_state"}, status=400)
     code = request.query.get("code")
     if not code:
-        return web.json_response({"error": "missing_code"}, status=400)
+        return web.json_response({"error": "missing_code", "error_key": "auth.missing_code"}, status=400)
     redirect_uri = os.getenv("OAUTH_GOOGLE_REDIRECT_URI") or str(
         request.url.with_path("/api/public/auth/google/callback").with_query({})
     )
     info = await web_auth.google_exchange_code(code=code, redirect_uri=redirect_uri)
     if not info or not info.get("sub"):
-        return web.json_response({"error": "oauth_failed"}, status=400)
+        return web.json_response({"error": "oauth_failed", "error_key": "auth.oauth_failed"}, status=400)
     user = web_auth.upsert_oauth_user(
         provider="google",
         subject=str(info["sub"]),
@@ -145,13 +259,11 @@ async def google_callback(request: web.Request) -> web.Response:
         name=user.get("name"),
         avatar=user.get("avatar"),
     )
-    next_path = request.cookies.get("oauth_next") or "/tickets"
-    # Prefer storefront origin for redirect
+    brand = (request.cookies.get("oauth_brand") or "").strip()
+    default_next = f"/{brand}/tickets" if brand else "/"
+    next_path = web_auth.safe_next_path(request.cookies.get("oauth_next"), default=default_next)
     storefront = os.getenv("PUBLIC_SITE_URL", "http://127.0.0.1:4321").rstrip("/")
-    if next_path.startswith("http"):
-        dest = next_path
-    else:
-        dest = storefront + (next_path if next_path.startswith("/") else f"/{next_path}")
+    dest = storefront + next_path
     resp = web.HTTPFound(dest)
     _set_session_cookie(resp, token)
     resp.del_cookie("oauth_state", path="/")
@@ -163,63 +275,75 @@ async def google_callback(request: web.Request) -> web.Response:
 async def tickets_list(request: web.Request) -> web.Response:
     sess = _session_from_request(request)
     if not sess:
-        return web.json_response({"error": "unauthorized"}, status=401)
-    brand = request.query.get("brand")
-    return web.json_response({"tickets": tickets_web.list_tickets(int(sess["uid"]), brand_slug=brand)})
+        return web.json_response({"error": "unauthorized", "error_key": "auth.required"}, status=401)
+    brand = request.query.get("brand") or request.query.get("brand_slug")
+    denied = _require_tickets_cap(brand)
+    if denied:
+        return denied
+    tickets = tickets_web.list_tickets(int(sess["uid"]), brand_slug=brand)
+    return web.json_response({"tickets": tickets, "count": len(tickets)})
 
 
 async def tickets_create(request: web.Request) -> web.Response:
     sess = _session_from_request(request)
     if not sess:
-        return web.json_response({"error": "unauthorized"}, status=401)
+        return web.json_response({"error": "unauthorized", "error_key": "auth.required"}, status=401)
     try:
         body = await request.json()
     except Exception:
         return web.json_response({"error": "invalid_json"}, status=400)
+    if not isinstance(body, dict):
+        return web.json_response({"error": "invalid_json"}, status=400)
+    brand_slug = body.get("brand_slug") or body.get("brand")
+    denied = _require_tickets_cap(str(brand_slug) if brand_slug else None)
+    if denied:
+        return denied
     try:
         ticket = tickets_web.create_ticket(
             int(sess["uid"]),
             subject=body.get("subject", ""),
             message=body.get("message", ""),
             priority=body.get("priority", "normal"),
-            brand_slug=body.get("brand_slug") or body.get("brand"),
+            brand_slug=brand_slug,
         )
         return web.json_response(ticket, status=201)
     except ValueError as e:
-        return web.json_response({"error": str(e)}, status=400)
+        return web.json_response({"error": str(e), "error_key": str(e)}, status=400)
 
 
 async def tickets_get(request: web.Request) -> web.Response:
     sess = _session_from_request(request)
     if not sess:
-        return web.json_response({"error": "unauthorized"}, status=401)
+        return web.json_response({"error": "unauthorized", "error_key": "auth.required"}, status=401)
     code = request.match_info["code"]
     data = tickets_web.get_ticket(int(sess["uid"]), code)
     if not data:
-        return web.json_response({"error": "not_found"}, status=404)
+        return web.json_response({"error": "not_found", "error_key": "ticket.not_found"}, status=404)
     return web.json_response(data)
 
 
 async def tickets_reply(request: web.Request) -> web.Response:
     sess = _session_from_request(request)
     if not sess:
-        return web.json_response({"error": "unauthorized"}, status=401)
+        return web.json_response({"error": "unauthorized", "error_key": "auth.required"}, status=401)
     code = request.match_info["code"]
     try:
         body = await request.json()
     except Exception:
         return web.json_response({"error": "invalid_json"}, status=400)
+    if not isinstance(body, dict):
+        return web.json_response({"error": "invalid_json"}, status=400)
     try:
         data = tickets_web.reply_ticket(int(sess["uid"]), code, body.get("message", ""))
     except ValueError as e:
-        return web.json_response({"error": str(e)}, status=400)
+        return web.json_response({"error": str(e), "error_key": str(e)}, status=400)
     if not data:
-        return web.json_response({"error": "not_found"}, status=404)
+        return web.json_response({"error": "not_found", "error_key": "ticket.not_found"}, status=404)
     return web.json_response(data)
 
 
 async def create_lead(request: web.Request) -> web.Response:
-    """Public lead capture (CARD-36) — auth optional."""
+    """Public lead capture (CARD-36) — auth optional; gated by ``leads`` mask (CARD-40 E1)."""
     from bot.services import leads_bookings
 
     sess = _session_from_request(request)
@@ -227,9 +351,30 @@ async def create_lead(request: web.Request) -> web.Response:
         body = await request.json()
     except Exception:
         return web.json_response({"error": "invalid_json"}, status=400)
+    if not isinstance(body, dict):
+        return web.json_response({"error": "invalid_json"}, status=400)
+    # Honeypot (bots fill hidden "website" field)
+    if (body.get("website") or body.get("hp") or "").strip():
+        return web.json_response({"ok": True, "id": 0, "status": "new"}, status=201)
+    denied = _reject_ops_impersonation(body)
+    if denied:
+        return denied
+
+    brand_slug = body.get("brand_slug") or body.get("brand") or ""
+    caps, cerr = _web_customer_caps(str(brand_slug))
+    if cerr:
+        return cerr
+    assert caps is not None
+    if not cap_enabled(caps, "leads"):
+        return web.json_response(
+            {"error": "leads_disabled", "error_key": "cap.leads_disabled"},
+            status=403,
+        )
+
     try:
+        utm = leads_bookings.parse_utm_from_mapping(body)
         lead = leads_bookings.create_lead(
-            brand_slug=body.get("brand_slug") or body.get("brand") or "",
+            brand_slug=str(brand_slug),
             name=body.get("name", ""),
             preferred_channel=body.get("preferred_channel") or body.get("channel") or "phone",
             phone=body.get("phone"),
@@ -241,20 +386,27 @@ async def create_lead(request: web.Request) -> web.Response:
             item_slug=body.get("item_slug") or body.get("item"),
             message=body.get("message"),
             source=body.get("source") or "web_site",
-            utm=body.get("utm"),
+            utm=utm,
             age_confirmed=bool(body.get("age_confirmed")),
             consent=bool(body.get("consent")),
         )
+        staff_msg = lead.pop("staff_message", None)
+        if staff_msg:
+            try:
+                await leads_bookings.notify_staff(staff_msg)
+            except Exception:
+                logger.exception("staff notify failed for lead id=%s", lead.get("id"))
         return web.json_response(lead, status=201)
     except ValueError as e:
-        return web.json_response({"error": str(e)}, status=400)
+        key = str(e)
+        return web.json_response({"error": key, "error_key": key}, status=400)
     except Exception:
         logger.exception("create_lead failed")
-        return web.json_response({"error": "internal_error"}, status=500)
+        return web.json_response({"error": "internal_error", "error_key": "internal_error"}, status=500)
 
 
 async def create_booking(request: web.Request) -> web.Response:
-    """Meeting booking request (CARD-36)."""
+    """Meeting booking request (CARD-36); gated by ``booking`` mask (CARD-40 E1)."""
     from bot.services import leads_bookings
 
     sess = _session_from_request(request)
@@ -262,9 +414,32 @@ async def create_booking(request: web.Request) -> web.Response:
         body = await request.json()
     except Exception:
         return web.json_response({"error": "invalid_json"}, status=400)
+    if not isinstance(body, dict):
+        return web.json_response({"error": "invalid_json"}, status=400)
+    if (body.get("website") or body.get("hp") or "").strip():
+        return web.json_response({"ok": True, "id": 0, "status": "requested"}, status=201)
+    denied = _reject_ops_impersonation(body)
+    if denied:
+        return denied
+
+    brand_slug = body.get("brand_slug") or body.get("brand") or ""
+    caps, cerr = _web_customer_caps(str(brand_slug))
+    if cerr:
+        return cerr
+    assert caps is not None
+    if not cap_enabled(caps, "booking"):
+        return web.json_response(
+            {"error": "booking_disabled", "error_key": "cap.booking_disabled"},
+            status=403,
+        )
+
     try:
+        # consent defaults True if omitted (backward compat); false only when explicitly false
+        consent = body.get("consent")
+        if consent is None:
+            consent = True
         booking = leads_bookings.create_booking(
-            brand_slug=body.get("brand_slug") or body.get("brand") or "",
+            brand_slug=str(brand_slug),
             name=body.get("name", ""),
             meeting_type=body.get("meeting_type") or body.get("type") or "in_person",
             phone=body.get("phone") or body.get("contact"),
@@ -273,10 +448,18 @@ async def create_booking(request: web.Request) -> web.Response:
             user_id=int(sess["uid"]) if sess else None,
             preferred_when=body.get("preferred_when") or body.get("when"),
             notes=body.get("notes"),
+            consent=bool(consent),
         )
+        staff_msg = booking.pop("staff_message", None)
+        if staff_msg:
+            try:
+                await leads_bookings.notify_staff(staff_msg)
+            except Exception:
+                logger.exception("staff notify failed for booking id=%s", booking.get("id"))
         return web.json_response(booking, status=201)
     except ValueError as e:
-        return web.json_response({"error": str(e)}, status=400)
+        key = str(e)
+        return web.json_response({"error": key, "error_key": key}, status=400)
     except Exception:
         logger.exception("create_booking failed")
-        return web.json_response({"error": "internal_error"}, status=500)
+        return web.json_response({"error": "internal_error", "error_key": "internal_error"}, status=500)

@@ -1,14 +1,16 @@
 ---
 /**
  * Standard white-label chrome for every brand page.
- * AgeGate + Ticker + chips + body + SiteFooter — all from BrandContext (DB + capabilities).
+ * AgeGate + Ticker + chips/nav + body + SiteFooter — all from BrandContext (DB + capabilities).
  */
 import BaseLayout from "./BaseLayout.astro";
 import AgeGate from "../components/AgeGate.astro";
 import TickerStrip from "../components/TickerStrip.astro";
 import StoryChips from "../components/StoryChips.astro";
+import SiteNav from "../components/SiteNav.astro";
 import SiteFooter from "../components/SiteFooter.astro";
-import { type BrandContext, type NavChip, buildFooterLinks, can } from "../lib/brandContext";
+import { type BrandContext, type NavChip, buildFooterLinks, buildHeaderActions, can } from "../lib/brandContext";
+import { themeCssVars, themeFontHref } from "../lib/theme";
 
 interface Props {
   ctx: BrandContext;
@@ -28,14 +30,31 @@ const {
   ageGate = true,
 } = Astro.props;
 
-const { brand, compliance: cmp } = ctx;
+const { brand, compliance: cmp, theme } = ctx;
 const desc = description || brand.description || "";
 const footerLinks = buildFooterLinks(ctx);
 const gateOn = ageGate && can(ctx, "age_gate", brand.age_gate_enabled);
 const tickerOn = showTicker && can(ctx, "ticker", true);
+const cssVars = themeCssVars(theme);
+const fontHref = themeFontHref(theme);
+const editorial = theme.isEditorial;
+const actions = buildHeaderActions(ctx);
+const stickyNav = theme.chrome.nav === "sticky_full";
 ---
 
-<BaseLayout title={title} description={desc} brandName={brand.name}>
+<BaseLayout
+  title={title}
+  description={desc}
+  brandName={brand.name}
+  cssVars={cssVars}
+  fontHref={fontHref}
+  themeMode={theme.mode}
+  containerClass={
+    editorial
+      ? "brand-shell theme-light mx-auto min-h-screen w-full px-3 sm:px-4 lg:px-6"
+      : "brand-shell theme-dark mx-auto min-h-screen w-full max-w-site px-3 sm:px-4 lg:px-6"
+  }
+>
   {
     gateOn && (
       <AgeGate
@@ -51,13 +70,20 @@ const tickerOn = showTicker && can(ctx, "ticker", true);
         brandName={brand.name}
         brandSlug={brand.slug}
         logoUrl={brand.logo_url}
+        variant={theme.chrome.age_gate}
       />
     )
   }
 
-  {tickerOn && <TickerStrip text={cmp.ticker} />}
+  {tickerOn && <TickerStrip text={cmp.ticker} variant={theme.chrome.ticker} />}
 
-  {chips.length > 0 && <StoryChips chips={chips} />}
+  {
+    stickyNav && chips.length > 0 ? (
+      <SiteNav brandName={brand.name} brandSlug={brand.slug} chips={chips} actions={actions} />
+    ) : chips.length > 0 ? (
+      <StoryChips chips={chips} />
+    ) : null
+  }
 
   <slot />
 

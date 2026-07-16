@@ -7,6 +7,20 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class ThemeTokensV1(BaseModel):
+    """Per-brand visual system (CSS variables + chrome enums). Tokens only — no raw CSS."""
+
+    model_config = ConfigDict(extra="allow")
+
+    mode: Literal["light", "dark"] | None = None
+    colors: dict[str, str] | None = None
+    type: dict[str, Any] | None = None
+    geometry: dict[str, Any] | None = None
+    motion: dict[str, Any] | None = None
+    # chrome enums: nav, ticker, age_gate, benefits, catalog, product_media, logo
+    chrome: dict[str, str] | None = None
+
+
 class WebProfileV1(BaseModel):
     """Loose schema — extra keys allowed for forward compatibility.
 
@@ -15,6 +29,7 @@ class WebProfileV1(BaseModel):
       channels — per-surface enable + mask (web, telegram, line, …)
       compliance — age gate + disclaimers (tenant legal prose)
       nav / sections / cta — UI labels
+      theme / theme_tokens — skin + CSS variable pack (per brand)
     """
 
     model_config = ConfigDict(extra="allow")
@@ -22,6 +37,7 @@ class WebProfileV1(BaseModel):
     schema_version: int = 1
     web_enabled: bool = True
     theme: str | None = None
+    theme_tokens: ThemeTokensV1 | dict[str, Any] | None = None
     tagline: str | None = None
     tagline_i18n: dict[str, str] | None = None
     ticker: str | None = None

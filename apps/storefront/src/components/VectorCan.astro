@@ -1,0 +1,166 @@
+---
+/**
+ * Parametric SVG snus-style can — original geometry, driven by product visual DNA.
+ * No product photographs; accent/strength/motif from catalog DTO / DB.
+ */
+interface Props {
+  name: string;
+  accent?: string | null;
+  accent2?: string | null;
+  strength?: number | null;
+  motif?: string | null;
+  size?: number;
+  class?: string;
+}
+
+const {
+  name,
+  accent = "#0a4ea2",
+  accent2 = "#062f63",
+  strength = null,
+  motif = "ice",
+  size = 160,
+  class: className = "",
+} = Astro.props;
+
+const c1 = accent || "#0a4ea2";
+const c2 = accent2 || "#062f63";
+const uid = `can-${Math.random().toString(36).slice(2, 9)}`;
+const label = name.length > 14 ? name.slice(0, 13) + "…" : name;
+const s = strength != null && strength >= 1 && strength <= 7 ? strength : null;
+const m = (motif || "ice").toLowerCase();
+---
+
+<svg
+  class={`vector-can ${className}`}
+  width={size}
+  height={Math.round(size * 1.25)}
+  viewBox="0 0 120 150"
+  role="img"
+  aria-label={`${name} can illustration`}
+  style={`--c1:${c1};--c2:${c2};transform:rotate(var(--can-tilt, 8deg));`}
+>
+  <defs>
+    <linearGradient id={`${uid}-body`} x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color={c1}></stop>
+      <stop offset="55%" stop-color={c1}></stop>
+      <stop offset="100%" stop-color={c2}></stop>
+    </linearGradient>
+    <linearGradient id={`${uid}-spec`} x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0"></stop>
+      <stop offset="18%" stop-color="#fff" stop-opacity="0.35"></stop>
+      <stop offset="32%" stop-color="#fff" stop-opacity="0"></stop>
+      <stop offset="100%" stop-color="#fff" stop-opacity="0"></stop>
+    </linearGradient>
+    <filter id={`${uid}-soft`} x="-20%" y="-10%" width="140%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-opacity="0.35"></feDropShadow>
+    </filter>
+  </defs>
+
+  <!-- base shadow -->
+  <ellipse cx="60" cy="138" rx="38" ry="6" fill="#000" opacity="0.18"></ellipse>
+
+  <!-- body -->
+  <g filter={`url(#${uid}-soft)`}>
+    <path
+      d="M28 38
+         C28 28, 42 22, 60 22
+         C78 22, 92 28, 92 38
+         L92 118
+         C92 128, 78 134, 60 134
+         C42 134, 28 128, 28 118 Z"
+      fill={`url(#${uid}-body)`}
+    ></path>
+    <!-- lid -->
+    <ellipse cx="60" cy="38" rx="32" ry="12" fill={c2}></ellipse>
+    <ellipse cx="60" cy="36" rx="28" ry="9" fill={c1} opacity="0.9"></ellipse>
+    <ellipse cx="60" cy="34" rx="22" ry="6" fill="#fbf8f3" opacity="0.85"></ellipse>
+    <!-- specular -->
+    <path
+      d="M28 38
+         C28 28, 42 22, 60 22
+         C78 22, 92 28, 92 38
+         L92 118
+         C92 128, 78 134, 60 134
+         C42 134, 28 128, 28 118 Z"
+      fill={`url(#${uid}-spec)`}
+    ></path>
+    <!-- label band -->
+    <rect x="34" y="62" width="52" height="36" rx="4" fill="#fbf8f3" opacity="0.94"></rect>
+    <text
+      x="60"
+      y="78"
+      text-anchor="middle"
+      fill="#06122e"
+      font-family="system-ui,sans-serif"
+      font-size="7"
+      font-weight="700"
+      letter-spacing="0.04em">{label}</text
+    >
+    {
+      s != null && (
+        <text
+          x="60"
+          y="90"
+          text-anchor="middle"
+          fill="#06122e"
+          font-family="ui-monospace,monospace"
+          font-size="6"
+          opacity="0.7"
+        >
+          {s}/7
+        </text>
+      )
+    }
+    <!-- motif accents (original simple geometry) -->
+    {
+      m === "ice" && (
+        <>
+          <circle cx="42" cy="52" r="1.2" fill="#fff" opacity="0.8"></circle>
+          <circle cx="78" cy="48" r="1" fill="#fff" opacity="0.6"></circle>
+          <circle cx="70" cy="56" r="0.8" fill="#fff" opacity="0.7"></circle>
+        </>
+      )
+    }
+    {
+      m === "citrus" && (
+        <path d="M48 50 A12 12 0 0 1 72 50" fill="none" stroke="#ffd60a" stroke-width="1.5" opacity="0.9"></path>
+      )
+    }
+    {
+      m === "storm" && (
+        <path d="M64 46 L56 58 L62 58 L54 72 L70 56 L62 56 Z" fill="#ffd60a" opacity="0.85"></path>
+      )
+    }
+    {
+      m === "berry" && (
+        <>
+          <circle cx="54" cy="50" r="3" fill="#fff" opacity="0.25"></circle>
+          <circle cx="62" cy="52" r="2.2" fill="#fff" opacity="0.2"></circle>
+        </>
+      )
+    }
+    {
+      m === "cola" && (
+        <path d="M50 108 Q60 100 70 108" fill="none" stroke="#a8e63d" stroke-width="1.5" opacity="0.8"></path>
+      )
+    }
+    {
+      m === "night" && (
+        <>
+          <circle cx="45" cy="50" r="0.8" fill="#ffd60a" opacity="0.9"></circle>
+          <circle cx="75" cy="48" r="0.6" fill="#ffd60a" opacity="0.7"></circle>
+          <circle cx="68" cy="54" r="0.5" fill="#ffd60a" opacity="0.8"></circle>
+        </>
+      )
+    }
+  </g>
+</svg>
+
+<style>
+  .vector-can {
+    display: block;
+    overflow: visible;
+    filter: drop-shadow(0 18px 20px rgba(6, 18, 46, 0.28));
+  }
+</style>

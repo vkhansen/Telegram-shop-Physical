@@ -13,6 +13,7 @@ if (!ctx) return new Response(null, { status: 404 });
 if (!can(ctx, "tickets", true)) return new Response(null, { status: 404 });
 
 const apiBase = ctx.apiBase;
+const L = ctx.labels;
 ---
 
 <BrandShell ctx={ctx} title="New ticket">
@@ -21,20 +22,43 @@ const apiBase = ctx.apiBase;
       brandSlug={ctx.slug}
       brandName={ctx.brand.name}
       title="New support ticket"
+      lead={`Send a message to ${ctx.brand.name} support. You’ll get a ticket code to track replies.`}
       backHref={`/${brandSlug}/tickets`}
       backLabel="← Tickets"
     />
+
     <form id="new-ticket" class="mt-8 space-y-4">
       <label class="block text-sm">
         <span class="text-ink-500">Subject</span>
-        <input name="subject" required class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2" />
+        <input
+          name="subject"
+          required
+          maxlength="200"
+          placeholder="Short summary"
+          class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+        />
+        <span id="subj-count" class="mt-1 block text-[11px] text-ink-500">0 / 200</span>
       </label>
       <label class="block text-sm">
         <span class="text-ink-500">Message</span>
-        <textarea name="message" required rows="5" class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2"></textarea>
+        <textarea
+          name="message"
+          required
+          rows="6"
+          maxlength="4000"
+          placeholder="Describe your issue…"
+          class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+        ></textarea>
+        <span id="msg-count" class="mt-1 block text-[11px] text-ink-500">0 / 4000</span>
       </label>
-      <button type="submit" class="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-ink-950">Create ticket</button>
-      <p id="err" class="hidden text-xs text-red-400"></p>
+      <button
+        type="submit"
+        id="submit-btn"
+        class="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-ink-950 disabled:opacity-50"
+      >
+        Create ticket
+      </button>
+      <p id="err" class="hidden text-xs text-red-400" role="alert"></p>
     </form>
   </main>
 </BrandShell>
@@ -43,28 +67,60 @@ const apiBase = ctx.apiBase;
   fetch(`${apiBase}/api/public/auth/me`, { credentials: "include" }).then((r) => {
     if (!r.ok) window.location.href = `/${brandSlug}/login?next=/${brandSlug}/tickets/new`;
   });
-  document.getElementById("new-ticket")?.addEventListener("submit", async (e) => {
+
+  const form = document.getElementById("new-ticket");
+  const subj = form?.querySelector('[name="subject"]');
+  const msg = form?.querySelector('[name="message"]');
+  const subjCount = document.getElementById("subj-count");
+  const msgCount = document.getElementById("msg-count");
+
+  function bump() {
+    if (subjCount && subj) subjCount.textContent = `${subj.value.length} / 200`;
+    if (msgCount && msg) msgCount.textContent = `${msg.value.length} / 4000`;
+  }
+  subj?.addEventListener("input", bump);
+  msg?.addEventListener("input", bump);
+
+  form?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
-    const res = await fetch(`${apiBase}/api/public/tickets`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        subject: fd.get("subject"),
-        message: fd.get("message"),
-        brand_slug: brandSlug,
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const err = document.getElementById("err");
+    const btn = document.getElementById("submit-btn");
+    const err = document.getElementById("err");
+    if (btn) btn.disabled = true;
+    if (err) {
+      err.classList.add("hidden");
+      err.textContent = "";
+    }
+    try {
+      const res = await fetch(`${apiBase}/api/public/tickets`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: fd.get("subject"),
+          message: fd.get("message"),
+          brand_slug: brandSlug,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (err) {
+          err.textContent =
+            data.error === "subject_and_message_required"
+              ? "Subject and message are required."
+              : data.error || "Could not create ticket.";
+          err.classList.remove("hidden");
+        }
+        if (btn) btn.disabled = false;
+        return;
+      }
+      window.location.href = `/${brandSlug}/tickets/${data.ticket_code}`;
+    } catch (_) {
       if (err) {
-        err.textContent = data.error || "Failed";
+        err.textContent = "Network error — try again.";
         err.classList.remove("hidden");
       }
-      return;
+      if (btn) btn.disabled = false;
     }
-    window.location.href = `/${brandSlug}/tickets/${data.ticket_code}`;
   });
 </script>

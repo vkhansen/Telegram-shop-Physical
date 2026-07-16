@@ -1,16 +1,17 @@
-"""Customer Grok assistant executor — DB queries scoped to the authenticated user (Card 22).
+"""Customer Grok assistant executor (Card 22 + CARD-40 Tier D).
 
 Security invariant: every query that touches user-owned data is filtered by
-``user_id`` sourced from ``message.from_user.id`` (Telegram auth), never
+``user_id`` sourced from adapter auth (Telegram ``from_user.id`` today), never
 from the AI tool call payload itself.
+
+CARD-40 D: tools call application services (tickets, order_query, customer_catalog)
+and notify via Messenger — not a parallel domain stack.
 """
+
+from __future__ import annotations
 
 import contextlib
 import logging
-import math
-import random
-import string
-from datetime import UTC, datetime, timezone
 
 from bot.ai.customer_schemas import (
     BrowseMenuAction,
@@ -25,27 +26,17 @@ from bot.ai.customer_schemas import (
 )
 from bot.config.env import EnvKeys
 from bot.database import Database
-from bot.database.models.main import (
-    Coupon,
-    CustomerInfo,
-    Goods,
-    Order,
-    Store,
-    SupportTicket,
-    TicketMessage,
-    User,
-)
+from bot.database.models.main import CustomerInfo, User
+from bot.services import customer_catalog as catalog_svc
+from bot.services import order_query as order_query_svc
+from bot.services import tickets as tickets_svc
 
 logger = logging.getLogger(__name__)
 
 
-def _generate_ticket_code() -> str:
-    return "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
-
-
 def _get_maintainer_ids() -> list[int]:
     raw = EnvKeys.MAINTAINER_IDS or ""
-    ids = []
+    ids: list[int] = []
     for part in raw.split(","):
         part = part.strip()
         if part.isdigit():
@@ -56,234 +47,111 @@ def _get_maintainer_ids() -> list[int]:
     return ids
 
 
-async def _notify_ids(bot, ids: list[int], text: str) -> None:
+async def _notify_ids(ids: list[int], text: str) -> None:
+    """D4: maintainer / support pings via Messenger port (not raw bot API)."""
+    from bot.platform.messaging import get_messenger
+
+    messenger = get_messenger()
     for uid in ids:
         try:
-            await bot.send_message(uid, text)
+            await messenger.send_text(uid, text)
         except Exception as e:
             logger.warning("Failed to notify %s: %s", uid, e)
     support_chat = EnvKeys.SUPPORT_CHAT_ID
     if support_chat:
         try:
-            await bot.send_message(int(support_chat), text)
+            await messenger.send_group(str(support_chat), text)
         except Exception as e:
             logger.warning("Failed to notify support chat: %s", e)
 
 
-def _bangkok_now() -> datetime:
-    """Return current Bangkok time (UTC+7)."""
-    from datetime import timedelta
-
-    tz = timezone(timedelta(hours=7))
-    return datetime.now(tz)
-
-
-def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    R = 6371.0
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    dphi = math.radians(lat2 - lat1)
-    dlam = math.radians(lon2 - lon1)
-    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2
-    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+def _resolve_own_order_id(user_id: int, order_code: str | None) -> int | None:
+    if not order_code:
+        return None
+    res = order_query_svc.get_order(user_id, order_code=order_code.upper())
+    if not res.ok:
+        return None
+    return res.data["order"].get("id")
 
 
-# ── Catalog tools (no user_id needed) ────────────────────────────────────────
+# ── Catalog tools ─────────────────────────────────────────────────────────────
 
 
 def execute_browse_menu(action: BrowseMenuAction) -> dict:
-    with Database().session() as s:
-        q = s.query(Goods).filter(Goods.is_active.is_(True))
-        if action.in_stock_only:
-            # For products: available_quantity > 0; for prepared: stock_quantity=0 means unlimited
-            q = q.filter(Goods.sold_out_today.is_(False))
-        if action.keyword:
-            kw = f"%{action.keyword}%"
-            q = q.filter((Goods.name.ilike(kw)) | (Goods.description.ilike(kw)) | (Goods.allergens.ilike(kw)))
-        if action.category:
-            q = q.filter(Goods.category_name.ilike(f"%{action.category}%"))
-        if action.max_price is not None:
-            q = q.filter(Goods.price <= action.max_price)
-        if action.min_price is not None:
-            q = q.filter(Goods.price >= action.min_price)
-        items = q.order_by(Goods.price).limit(action.limit).all()
-        return {
-            "items": [
-                {
-                    "name": g.name,
-                    "price": str(g.price),
-                    "category": g.category_name,
-                    "description": g.description[:200] if g.description else None,
-                    "allergens": g.allergens,
-                    "prep_time_minutes": g.prep_time_minutes,
-                    "calories": g.calories,
-                    "available": g.is_currently_available,
-                }
-                for g in items
-            ],
-            "count": len(items),
-        }
+    res = catalog_svc.browse_menu(
+        keyword=action.keyword,
+        category=action.category,
+        max_price=action.max_price,
+        min_price=action.min_price,
+        in_stock_only=action.in_stock_only,
+        limit=action.limit,
+    )
+    return res.data if res.ok else {"error": res.error_key, "detail": res.error_detail}
 
 
 def execute_get_today_specials(action: GetTodaySpecialsAction) -> dict:
-    now = _bangkok_now()
-    current_time = now.strftime("%H:%M")
-
-    with Database().session() as s:
-        q = s.query(Goods).filter(
-            Goods.is_active.is_(True),
-            Goods.sold_out_today.is_(False),
-            Goods.available_from.isnot(None),
-            Goods.available_until.isnot(None),
-        )
-        if action.category:
-            q = q.filter(Goods.category_name.ilike(f"%{action.category}%"))
-        all_items = q.all()
-
-        active = [g for g in all_items if g.available_from <= current_time <= g.available_until]
-        return {
-            "current_time_bangkok": current_time,
-            "items": [
-                {
-                    "name": g.name,
-                    "price": str(g.price),
-                    "category": g.category_name,
-                    "available_from": g.available_from,
-                    "available_until": g.available_until,
-                }
-                for g in active
-            ],
-            "count": len(active),
-        }
+    res = catalog_svc.today_specials(category=action.category)
+    return res.data if res.ok else {"error": res.error_key, "detail": res.error_detail}
 
 
 def execute_find_deals(action: FindDealsAction) -> dict:
-    now = datetime.now(UTC)
-    with Database().session() as s:
-        q = s.query(Coupon).filter(
-            Coupon.is_active.is_(True),
-            (Coupon.valid_until.is_(None)) | (Coupon.valid_until >= now),
-            (Coupon.valid_from.is_(None)) | (Coupon.valid_from <= now),
-            (Coupon.max_uses.is_(None)) | (Coupon.current_uses < Coupon.max_uses),
-        )
-        if action.min_order_max is not None:
-            q = q.filter((Coupon.min_order.is_(None)) | (Coupon.min_order <= action.min_order_max))
-        coupons = q.order_by(Coupon.discount_value.desc()).all()
-        return {
-            "deals": [
-                {
-                    "code": c.code,
-                    "discount_type": c.discount_type,
-                    "discount_value": str(c.discount_value),
-                    "min_order": str(c.min_order) if c.min_order else None,
-                    "max_discount": str(c.max_discount) if c.max_discount else None,
-                    "valid_until": c.valid_until.isoformat() if c.valid_until else None,
-                }
-                for c in coupons
-            ],
-            "count": len(coupons),
-        }
+    res = catalog_svc.find_deals(min_order_max=action.min_order_max)
+    return res.data if res.ok else {"error": res.error_key, "detail": res.error_detail}
 
 
 def execute_find_nearby_stores(action: FindNearbyStoresAction) -> dict:
-    with Database().session() as s:
-        stores = (
-            s.query(Store)
-            .filter(
-                Store.is_active.is_(True),
-                Store.latitude.isnot(None),
-                Store.longitude.isnot(None),
-            )
-            .all()
-        )
-
-    results = []
-    for store in stores:
-        dist = _haversine_km(action.latitude, action.longitude, store.latitude, store.longitude)
-        if dist <= action.max_distance_km:
-            results.append(
-                {
-                    "name": store.name,
-                    "address": store.address,
-                    "distance_km": round(dist, 2),
-                    "phone": store.phone,
-                }
-            )
-    results.sort(key=lambda x: x["distance_km"])
-    return {"stores": results, "count": len(results)}
+    res = catalog_svc.find_nearby_stores(
+        action.latitude,
+        action.longitude,
+        max_distance_km=action.max_distance_km,
+    )
+    return res.data if res.ok else {"error": res.error_key, "detail": res.error_detail}
 
 
 def execute_check_coupon(action: CheckCouponAction) -> dict:
-    now = datetime.now(UTC)
-    with Database().session() as s:
-        coupon = (
-            s.query(Coupon)
-            .filter(
-                Coupon.code == action.code.upper(),
-            )
-            .first()
-        )
-
-    if not coupon:
-        return {"valid": False, "reason": "Coupon code not found"}
-    if not coupon.is_active:
-        return {"valid": False, "reason": "Coupon is inactive"}
-    if coupon.valid_from and coupon.valid_from > now:
-        return {"valid": False, "reason": "Coupon is not yet active"}
-    if coupon.valid_until and coupon.valid_until < now:
-        return {"valid": False, "reason": "Coupon has expired"}
-    if coupon.max_uses and coupon.current_uses >= coupon.max_uses:
-        return {"valid": False, "reason": "Coupon has reached its usage limit"}
-
-    result = {
-        "valid": True,
-        "code": coupon.code,
-        "discount_type": coupon.discount_type,
-        "discount_value": str(coupon.discount_value),
-        "min_order": str(coupon.min_order) if coupon.min_order else None,
-        "max_discount": str(coupon.max_discount) if coupon.max_discount else None,
-        "valid_until": coupon.valid_until.isoformat() if coupon.valid_until else None,
-    }
-
-    if action.order_total is not None and action.order_total > 0:
-        if coupon.min_order and action.order_total < coupon.min_order:
-            result["applicable"] = False
-            result["reason"] = f"Order minimum is {coupon.min_order}"
-        else:
-            if coupon.discount_type == "percent":
-                raw = action.order_total * coupon.discount_value / 100
-                discount = min(raw, coupon.max_discount) if coupon.max_discount else raw
-            else:
-                discount = coupon.discount_value
-            result["applicable"] = True
-            result["effective_discount"] = str(round(discount, 2))
-            result["final_total"] = str(round(action.order_total - discount, 2))
-
-    return result
+    res = catalog_svc.check_coupon(action.code, order_total=action.order_total)
+    return res.data if res.ok else {"error": res.error_key, "detail": res.error_detail}
 
 
-# ── Own-account tools (always filtered by user_id from Telegram auth) ─────────
+# ── Own-account tools ─────────────────────────────────────────────────────────
 
 
 def execute_get_order_status(action: GetOrderStatusAction, user_id: int) -> dict:
-    with Database().session() as s:
-        q = s.query(Order).filter(Order.buyer_id == user_id)
-        if action.order_code:
-            q = q.filter(Order.order_code == action.order_code.upper())
-        orders = q.order_by(Order.created_at.desc()).limit(action.limit).all()
+    if action.order_code:
+        res = order_query_svc.get_order(user_id, order_code=action.order_code.upper())
+        if not res.ok:
+            return {"orders": [], "message": "No orders found"}
+        o = res.data["order"]
+        return {
+            "orders": [
+                {
+                    "order_code": o.get("order_code"),
+                    "status": o.get("order_status"),
+                    "total_price": o.get("total_price"),
+                    "payment_method": o.get("payment_method"),
+                    "delivery_type": o.get("delivery_type"),
+                    "created_at": o.get("created_at"),
+                    "delivery_time": o.get("delivery_time"),
+                }
+            ]
+        }
 
+    res = order_query_svc.list_orders(user_id, limit=action.limit)
+    if not res.ok:
+        return {"error": res.error_key, "detail": res.error_detail}
+    orders = res.data.get("orders") or []
     if not orders:
         return {"orders": [], "message": "No orders found"}
-
     return {
         "orders": [
             {
-                "order_code": o.order_code,
-                "status": o.order_status,
-                "total_price": str(o.total_price),
-                "payment_method": o.payment_method,
-                "delivery_type": o.delivery_type,
-                "created_at": o.created_at.isoformat() if o.created_at else None,
-                "delivery_time": o.delivery_time.isoformat() if o.delivery_time else None,
+                "order_code": o.get("order_code"),
+                "status": o.get("order_status"),
+                "total_price": o.get("total_price"),
+                "payment_method": o.get("payment_method"),
+                "delivery_type": o.get("delivery_type"),
+                "created_at": o.get("created_at"),
+                "delivery_time": o.get("delivery_time"),
             }
             for o in orders
         ]
@@ -291,13 +159,12 @@ def execute_get_order_status(action: GetOrderStatusAction, user_id: int) -> dict
 
 
 def execute_get_my_account(user_id: int) -> dict:
+    """Account summary (no dedicated service yet — read-only user profile)."""
     with Database().session() as s:
         user = s.query(User).filter(User.telegram_id == user_id).first()
         info = s.query(CustomerInfo).filter(CustomerInfo.telegram_id == user_id).first()
         if not user:
             return {"error": "User not found"}
-
-        # Count referrals
         referral_count = s.query(User).filter(User.referral_id == user_id).count()
 
     return {
@@ -310,47 +177,23 @@ def execute_get_my_account(user_id: int) -> dict:
     }
 
 
-# ── Support tools ─────────────────────────────────────────────────────────────
+# ── Support tools (tickets service single writer) ─────────────────────────────
 
 
-async def execute_open_support_ticket(action: OpenSupportTicketAction, user_id: int, bot) -> dict:
-    ticket_code = _generate_ticket_code()
+async def execute_open_support_ticket(action: OpenSupportTicketAction, user_id: int, bot=None) -> dict:
+    del bot  # notifications use Messenger; bot kept for call-site compatibility
+    order_id = _resolve_own_order_id(user_id, action.order_code)
+    res = tickets_svc.create_ticket(
+        user_id,
+        action.subject,
+        action.description,
+        priority=action.priority,
+        order_id=order_id,
+    )
+    if not res.ok:
+        return {"success": False, "error": res.error_key, "detail": res.error_detail}
 
-    # Resolve order_id from order_code if provided
-    order_id = None
-    if action.order_code:
-        with Database().session() as s:
-            order = (
-                s.query(Order)
-                .filter(
-                    Order.order_code == action.order_code.upper(),
-                    Order.buyer_id == user_id,  # Security: only own orders
-                )
-                .first()
-            )
-            if order:
-                order_id = order.id
-
-    with Database().session() as s:
-        ticket = SupportTicket(
-            ticket_code=ticket_code,
-            user_id=user_id,
-            subject=action.subject,
-            priority=action.priority,
-            order_id=order_id,
-        )
-        s.add(ticket)
-        s.flush()
-        s.add(
-            TicketMessage(
-                ticket_id=ticket.id,
-                sender_id=user_id,
-                sender_role="user",
-                message_text=action.description,
-            )
-        )
-        s.commit()
-
+    ticket_code = res.data["ticket_code"]
     maintainers = _get_maintainer_ids()
     notify_text = (
         f"🎫 <b>New Support Ticket</b>\n\n"
@@ -360,37 +203,27 @@ async def execute_open_support_ticket(action: OpenSupportTicketAction, user_id: 
         f"Priority: {action.priority}\n"
         f"Via: AI Assistant"
     )
-    await _notify_ids(bot, maintainers, notify_text)
+    await _notify_ids(maintainers, notify_text)
+    return {"success": True, "ticket_code": ticket_code, "ticket_id": res.data.get("id")}
 
-    return {"success": True, "ticket_code": ticket_code}
 
-
-async def execute_start_app_live_chat(action: StartAppLiveChatAction, user_id: int, bot) -> dict:
+async def execute_start_app_live_chat(action: StartAppLiveChatAction, user_id: int, bot=None) -> dict:
+    del bot
     maintainers = _get_maintainer_ids()
     if not maintainers:
         return {"success": False, "error": "No maintainers configured"}
 
-    ticket_code = _generate_ticket_code()
-    with Database().session() as s:
-        ticket = SupportTicket(
-            ticket_code=ticket_code,
-            user_id=user_id,
-            subject=f"[APP_LIVE_CHAT] {action.reason[:150]}",
-            priority="high",
-        )
-        s.add(ticket)
-        s.flush()
-        s.add(
-            TicketMessage(
-                ticket_id=ticket.id,
-                sender_id=user_id,
-                sender_role="user",
-                message_text=f"App live chat started. Reason: {action.reason}",
-            )
-        )
-        s.commit()
-        ticket_id = ticket.id
+    res = tickets_svc.create_ticket(
+        user_id,
+        f"[APP_LIVE_CHAT] {action.reason[:150]}",
+        f"App live chat started. Reason: {action.reason}",
+        priority="high",
+    )
+    if not res.ok:
+        return {"success": False, "error": res.error_key, "detail": res.error_detail}
 
+    ticket_code = res.data["ticket_code"]
+    ticket_id = res.data["id"]
     notify_text = (
         f"💬 <b>App Live Chat Request</b>\n\n"
         f"Ticket: <b>{ticket_code}</b>\n"
@@ -398,8 +231,7 @@ async def execute_start_app_live_chat(action: StartAppLiveChatAction, user_id: i
         f"Reason: {action.reason}\n\n"
         f"Respond via admin ticket panel."
     )
-    await _notify_ids(bot, maintainers, notify_text)
-
+    await _notify_ids(maintainers, notify_text)
     return {
         "success": True,
         "ticket_code": ticket_code,
@@ -408,49 +240,21 @@ async def execute_start_app_live_chat(action: StartAppLiveChatAction, user_id: i
     }
 
 
-async def execute_start_store_live_chat(action: StartStoreLiveChatAction, user_id: int, bot) -> dict:
-    ticket_code = _generate_ticket_code()
+async def execute_start_store_live_chat(action: StartStoreLiveChatAction, user_id: int, bot=None) -> dict:
+    del bot
+    order_id = _resolve_own_order_id(user_id, action.order_code)
+    res = tickets_svc.create_ticket(
+        user_id,
+        f"[STORE_LIVE_CHAT] {action.reason[:150]}",
+        f"Store live chat started. Reason: {action.reason}",
+        priority="high",
+        order_id=order_id,
+    )
+    if not res.ok:
+        return {"success": False, "error": res.error_key, "detail": res.error_detail}
 
-    # Resolve order_id from order_code if provided
-    order_id = None
-    if action.order_code:
-        with Database().session() as s:
-            order = (
-                s.query(Order)
-                .filter(
-                    Order.order_code == action.order_code.upper(),
-                    Order.buyer_id == user_id,  # Security: only own orders
-                )
-                .first()
-            )
-            if order:
-                order_id = order.id
-
-    with Database().session() as s:
-        subject = f"[STORE_LIVE_CHAT] {action.reason[:150]}"
-        ticket = SupportTicket(
-            ticket_code=ticket_code,
-            user_id=user_id,
-            subject=subject,
-            priority="high",
-            order_id=order_id,
-        )
-        s.add(ticket)
-        s.flush()
-        s.add(
-            TicketMessage(
-                ticket_id=ticket.id,
-                sender_id=user_id,
-                sender_role="user",
-                message_text=f"Store live chat started. Reason: {action.reason}",
-            )
-        )
-        s.commit()
-        ticket_id = ticket.id
-
-    # Notify all maintainers (store support uses same channel for now;
-    # per-store admin notification can be layered in when USERS_MANAGE permission
-    # lookup is available per-brand)
+    ticket_code = res.data["ticket_code"]
+    ticket_id = res.data["id"]
     maintainers = _get_maintainer_ids()
     notify_text = (
         f"🏪 <b>Store Live Chat Request</b>\n\n"
@@ -460,8 +264,7 @@ async def execute_start_store_live_chat(action: StartStoreLiveChatAction, user_i
         + (f"Order: {action.order_code}\n" if action.order_code else "")
         + "\nRespond via admin ticket panel."
     )
-    await _notify_ids(bot, maintainers, notify_text)
-
+    await _notify_ids(maintainers, notify_text)
     return {
         "success": True,
         "ticket_code": ticket_code,

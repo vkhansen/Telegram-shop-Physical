@@ -1,5 +1,7 @@
 ---
 import type { CatalogItem } from "../lib/api";
+import VectorCan from "./VectorCan.astro";
+import StrengthPips from "./StrengthPips.astro";
 
 interface Props {
   item: CatalogItem;
@@ -10,45 +12,130 @@ interface Props {
   ctaLabel: string;
   ctaHref: string;
   fallbackBody?: string | null;
+  /** split (default) | spotlight */
+  variant?: string;
+  productMedia?: string;
 }
 
-const { item, brandSlug, storeSlug, eyebrow, badge, ctaLabel, ctaHref, fallbackBody = null } =
-  Astro.props;
+const {
+  item,
+  brandSlug,
+  storeSlug,
+  eyebrow,
+  badge,
+  ctaLabel,
+  ctaHref,
+  fallbackBody = null,
+  variant = "split",
+  productMedia = "photo_or_vector",
+} = Astro.props;
+
+const spotlight = variant === "spotlight";
+const vectorOnly = productMedia === "vector_only";
+const c1 = item.accent_hex || "#0a4ea2";
+const c2 = item.accent_hex_2 || "#062f63";
+const motif = item.visual_motif || "storm";
+const useVector = vectorOnly || !item.image_url;
 ---
 
-<section class="border-t border-ink-800 py-10">
-  <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">{eyebrow}</p>
-  <div class="mt-4 grid items-center gap-6 md:grid-cols-2">
-    <a
-      href={`/${brandSlug}/${storeSlug}/i/${item.slug}`}
-      class="group relative aspect-square overflow-hidden rounded-2xl bg-ink-900 sm:aspect-[4/3]"
-    >
-      {
-        item.image_url ? (
-          <img
-            src={item.image_url}
-            alt={item.name}
-            class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-          />
-        ) : (
-          <div class="flex h-full items-center justify-center text-sand-200">{item.name}</div>
-        )
-      }
-    </a>
-    <div>
-      <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">{badge}</p>
-      <h2 class="mt-3 text-3xl font-bold tracking-tight text-sand-50 sm:text-4xl">
-        {item.name}<span class="text-accent">.</span>
-      </h2>
-      <p class="mt-3 max-w-md text-sm leading-relaxed text-sand-200">
-        {item.description || fallbackBody || ""}
-      </p>
-      <a
-        class="mt-6 inline-flex rounded-full bg-sand-50 px-5 py-2.5 text-sm font-semibold text-ink-950 transition hover:bg-accent"
-        href={ctaHref}
+{
+  spotlight ? (
+    <section class="border-t border-[color:var(--brand-line)] py-10">
+      <p class="sec-eye text-[color:var(--brand-sea)]">{eyebrow}</p>
+      <div
+        class:list={["featured-spotlight mt-4", `motif-${motif}`]}
+        style={`--c1:${c1};--c2:${c2};`}
       >
-        {ctaLabel}
-      </a>
-    </div>
-  </div>
-</section>
+        <div class="grid items-center gap-6 p-6 sm:grid-cols-2 sm:p-10">
+          <a
+            href={`/${brandSlug}/${storeSlug}/i/${item.slug}`}
+            class="flex items-center justify-center py-4"
+          >
+            {useVector ? (
+              <VectorCan
+                name={item.name}
+                accent={c1}
+                accent2={c2}
+                strength={item.strength}
+                motif={motif}
+                size={200}
+              />
+            ) : (
+              <img
+                src={item.image_url!}
+                alt={item.name}
+                class="max-h-64 object-contain drop-shadow-2xl"
+              />
+            )}
+          </a>
+          <div class="text-[color:var(--brand-on-ink,#fbf8f3)]">
+            <p class="sec-eye text-[color:var(--brand-sun)]">{badge}</p>
+            <h2 class="display mt-3 text-3xl tracking-tight sm:text-5xl">
+              {item.name}
+              <span class="text-[color:var(--brand-sun)]">.</span>
+            </h2>
+            <p class="mt-4 max-w-md text-sm leading-relaxed text-white/85">
+              {item.description || fallbackBody || ""}
+            </p>
+            <div class="mt-4">
+              <StrengthPips strength={item.strength} accent="var(--brand-sun)" />
+            </div>
+            <a class="btn-pill btn-pill-primary mt-6" href={ctaHref}>
+              {ctaLabel}
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  ) : (
+    <section class="border-t border-ink-800 py-10">
+      <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">{eyebrow}</p>
+      <div class="mt-4 grid items-center gap-6 md:grid-cols-2">
+        <a
+          href={`/${brandSlug}/${storeSlug}/i/${item.slug}`}
+          class="group relative aspect-square overflow-hidden rounded-2xl bg-ink-900 sm:aspect-[4/3]"
+        >
+          {item.image_url && !vectorOnly ? (
+            <img
+              src={item.image_url}
+              alt={item.name}
+              class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            />
+          ) : item.accent_hex ? (
+            <div
+              class="flex h-full items-center justify-center"
+              style={`background:linear-gradient(145deg,${c1},${c2});`}
+            >
+              <VectorCan
+                name={item.name}
+                accent={c1}
+                accent2={c2}
+                strength={item.strength}
+                motif={motif}
+                size={180}
+              />
+            </div>
+          ) : (
+            <div class="flex h-full items-center justify-center text-sand-200">{item.name}</div>
+          )}
+        </a>
+        <div>
+          <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">{badge}</p>
+          <h2 class="mt-3 text-3xl font-bold tracking-tight text-sand-50 sm:text-4xl">
+            {item.name}
+            <span class="text-accent">.</span>
+          </h2>
+          <p class="mt-3 max-w-md text-sm leading-relaxed text-sand-200">
+            {item.description || fallbackBody || ""}
+          </p>
+          <a
+            class="mt-6 inline-flex rounded-full bg-sand-50 px-5 py-2.5 text-sm font-semibold text-ink-950 transition hover:bg-accent"
+            href={ctaHref}
+          >
+            {ctaLabel}
+          </a>
+        </div>
+      </div>
+    </section>
+  )
+}

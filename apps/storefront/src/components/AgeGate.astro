@@ -24,6 +24,8 @@ interface Props {
   logoUrl?: string | null;
   /** Cookie / storage lifetime in days (default 30). */
   rememberDays?: number;
+  /** dark_full (default) | paper_card */
+  variant?: string;
 }
 
 const {
@@ -40,7 +42,10 @@ const {
   brandSlug,
   logoUrl = null,
   rememberDays = 30,
+  variant = "dark_full",
 } = Astro.props;
+
+const paper = variant === "paper_card";
 
 const lines = (disclaimerLines || []).filter(Boolean);
 
@@ -64,72 +69,117 @@ const showGate = Boolean(enabled) && !alreadyConfirmed;
 ---
 
 {
-  showGate && (
-    <div
-      id="age-gate"
-      class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-ink-950 p-4 sm:p-8"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="age-gate-title"
-      data-age-key={storageKey}
-    >
-      <div class="flex w-full max-w-md flex-col items-center text-center">
-        <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">
-          Restricted · {(minAge ?? 18)}+
-        </p>
-
-        {
-          logoUrl ? (
-            <img
-              src={logoUrl}
-              alt=""
-              class="mt-8 h-20 w-20 rounded-full border border-ink-700 object-cover sm:h-24 sm:w-24"
-            />
-          ) : (
-            <div class="mt-8 flex h-20 w-20 items-center justify-center rounded-full border border-ink-700 bg-ink-900 text-2xl font-bold text-accent sm:h-24 sm:w-24">
-              {(brandName || "B").slice(0, 1)}
-            </div>
-          )
-        }
-
-        {brandName && <p class="mt-4 text-sm font-medium tracking-wide text-sand-200">{brandName}</p>}
-
-        <h1 id="age-gate-title" class="mt-6 text-3xl font-bold tracking-tight text-sand-50 sm:text-4xl">
-          {title}
-        </h1>
-        <p class="mt-4 text-sm leading-relaxed text-sand-200 sm:text-base">{body}</p>
-
-        <div class="mt-10 flex w-full flex-col gap-3 sm:flex-row">
-          <button
-            type="button"
-            id="age-confirm"
-            class="flex-1 cursor-pointer rounded-full bg-sand-50 px-5 py-3.5 text-sm font-semibold text-ink-950 transition hover:bg-accent"
+  showGate &&
+    (paper ? (
+      <div
+        id="age-gate"
+        class="age-gate-paper fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 sm:p-8"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="age-gate-title"
+        data-age-key={storageKey}
+      >
+        <div class="age-gate-card flex w-full max-w-md flex-col items-center px-6 py-10 text-center sm:px-10">
+          <p class="sec-eye text-[color:var(--brand-sea)]">Restricted · {(minAge ?? 18)}+</p>
+          <div class="mt-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[color:var(--brand-ink)] text-2xl font-black text-[color:var(--brand-sun)]">
+            {(brandName || "B").slice(0, 1)}
+          </div>
+          {brandName && (
+            <p class="display mt-4 text-sm tracking-wide text-[color:var(--brand-ink)]">{brandName}</p>
+          )}
+          <h1
+            id="age-gate-title"
+            class="mt-6 text-3xl font-bold tracking-tight text-[color:var(--brand-ink)] sm:text-4xl"
           >
-            {confirmLabel}
-          </button>
-          <button
-            type="button"
-            id="age-deny"
-            class="flex-1 cursor-pointer rounded-full border border-ink-600 px-5 py-3.5 text-sm font-medium text-sand-200 transition hover:bg-ink-900"
-          >
-            {denyLabel}
-          </button>
-        </div>
-
-        <p class="mt-8 text-[11px] font-medium uppercase tracking-wider text-ink-500">{footerNote}</p>
-
-        {
-          lines.length > 0 && (
-            <div class="mt-4 max-w-sm space-y-2 text-[11px] leading-relaxed text-ink-500">
+            {title}
+          </h1>
+          <p class="mt-4 text-sm leading-relaxed text-[color:var(--brand-muted)] sm:text-base">{body}</p>
+          <div class="mt-10 flex w-full flex-col gap-3 sm:flex-row">
+            <button type="button" id="age-confirm" class="btn-pill btn-pill-primary flex-1 cursor-pointer">
+              {confirmLabel}
+            </button>
+            <button type="button" id="age-deny" class="btn-pill btn-pill-ghost flex-1 cursor-pointer">
+              {denyLabel}
+            </button>
+          </div>
+          <p class="mt-8 text-[11px] font-medium uppercase tracking-wider text-[color:var(--brand-muted)]">
+            {footerNote}
+          </p>
+          {lines.length > 0 && (
+            <div class="mt-4 max-w-sm space-y-2 text-[11px] leading-relaxed text-[color:var(--brand-muted)]">
               {lines.map((line) => (
                 <p>{line}</p>
               ))}
             </div>
-          )
-        }
+          )}
+        </div>
       </div>
-    </div>
-  )
+    ) : (
+      <div
+        id="age-gate"
+        class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-ink-950 p-4 sm:p-8"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="age-gate-title"
+        data-age-key={storageKey}
+      >
+        <div class="flex w-full max-w-md flex-col items-center text-center">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">
+            Restricted · {(minAge ?? 18)}+
+          </p>
+
+          {
+            logoUrl ? (
+              <img
+                src={logoUrl}
+                alt=""
+                class="mt-8 h-20 w-20 rounded-full border border-ink-700 object-cover sm:h-24 sm:w-24"
+              />
+            ) : (
+              <div class="mt-8 flex h-20 w-20 items-center justify-center rounded-full border border-ink-700 bg-ink-900 text-2xl font-bold text-accent sm:h-24 sm:w-24">
+                {(brandName || "B").slice(0, 1)}
+              </div>
+            )
+          }
+
+          {brandName && <p class="mt-4 text-sm font-medium tracking-wide text-sand-200">{brandName}</p>}
+
+          <h1 id="age-gate-title" class="mt-6 text-3xl font-bold tracking-tight text-sand-50 sm:text-4xl">
+            {title}
+          </h1>
+          <p class="mt-4 text-sm leading-relaxed text-sand-200 sm:text-base">{body}</p>
+
+          <div class="mt-10 flex w-full flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              id="age-confirm"
+              class="flex-1 cursor-pointer rounded-full bg-sand-50 px-5 py-3.5 text-sm font-semibold text-ink-950 transition hover:bg-accent"
+            >
+              {confirmLabel}
+            </button>
+            <button
+              type="button"
+              id="age-deny"
+              class="flex-1 cursor-pointer rounded-full border border-ink-600 px-5 py-3.5 text-sm font-medium text-sand-200 transition hover:bg-ink-900"
+            >
+              {denyLabel}
+            </button>
+          </div>
+
+          <p class="mt-8 text-[11px] font-medium uppercase tracking-wider text-ink-500">{footerNote}</p>
+
+          {
+            lines.length > 0 && (
+              <div class="mt-4 max-w-sm space-y-2 text-[11px] leading-relaxed text-ink-500">
+                {lines.map((line) => (
+                  <p>{line}</p>
+                ))}
+              </div>
+            )
+          }
+        </div>
+      </div>
+    ))
 }
 
 {

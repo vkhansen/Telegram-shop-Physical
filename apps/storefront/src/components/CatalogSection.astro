@@ -12,6 +12,9 @@ interface Props {
   branchHref?: string | null;
   branchLabel?: string | null;
   id?: string;
+  catalogVariant?: string;
+  productMedia?: string;
+  editorial?: boolean;
 }
 
 const {
@@ -24,23 +27,61 @@ const {
   branchHref = null,
   branchLabel = null,
   id = "catalog",
+  catalogVariant = "ig_grid",
+  productMedia = "photo_or_vector",
+  editorial = false,
 } = Astro.props;
 ---
 
-<section id={id} class="border-t border-ink-800 pb-10 pt-8">
-  <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">{eyebrow}</p>
+<section
+  id={id}
+  class:list={[
+    "pb-10 pt-8",
+    editorial ? "border-t border-[color:var(--brand-line)]" : "border-t border-ink-800",
+  ]}
+>
+  <p
+    class:list={[
+      editorial ? "sec-eye text-[color:var(--brand-sea)]" : "text-[11px] font-semibold uppercase tracking-[0.2em] text-accent",
+    ]}
+  >
+    {eyebrow}
+  </p>
   <div class="mt-2 mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
     <div>
-      <h2 class="mt-1 text-2xl font-bold tracking-tight text-sand-50 sm:text-3xl">{headline}</h2>
-      {subline && <p class="mt-1 text-sm text-sand-200">{subline}</p>}
+      <h2
+        class:list={[
+          editorial
+            ? "display mt-1 text-2xl tracking-tight text-[color:var(--brand-ink)] sm:text-4xl"
+            : "mt-1 text-2xl font-bold tracking-tight text-sand-50 sm:text-3xl",
+        ]}
+      >
+        {headline}
+      </h2>
+      {
+        subline && (
+          <p class:list={[editorial ? "mt-1 text-sm text-[color:var(--brand-muted)]" : "mt-1 text-sm text-sand-200"]}>
+            {subline}
+          </p>
+        )
+      }
     </div>
     {
       branchHref && branchLabel && (
-        <a class="text-sm text-accent hover:underline" href={branchHref}>
+        <a
+          class:list={[editorial ? "text-sm font-semibold text-[color:var(--brand-sea)] hover:underline" : "text-sm text-accent hover:underline"]}
+          href={branchHref}
+        >
           {branchLabel}
         </a>
       )
     }
   </div>
-  <ProductGrid items={items} brandSlug={brandSlug} storeSlug={storeSlug} />
+  <ProductGrid
+    items={items}
+    brandSlug={brandSlug}
+    storeSlug={storeSlug}
+    variant={catalogVariant}
+    productMedia={productMedia}
+  />
 </section>

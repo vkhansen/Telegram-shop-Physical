@@ -116,6 +116,42 @@ def category_visible(cat: Categories, now_hhmm: str) -> bool:
     return _in_time_window(now_hhmm, cat.available_from, cat.available_until)
 
 
+def _extract_web_visual(goods: Goods) -> dict[str, Any]:
+    """Pull product visual DNA from goods.media entries with type ``web_visual``.
+
+    Stored as geometry/theme fields (accent, strength, motif) — not product photos.
+    Safe to omit; storefront falls back to name-only tiles.
+    """
+    visual: dict[str, Any] = {}
+    media = goods.media
+    if not isinstance(media, list):
+        return visual
+    for m in media:
+        if not isinstance(m, dict):
+            continue
+        if m.get("type") != "web_visual":
+            continue
+        accent = m.get("accent_hex")
+        if isinstance(accent, str) and accent.strip():
+            visual["accent_hex"] = accent.strip()
+        accent2 = m.get("accent_hex_2")
+        if isinstance(accent2, str) and accent2.strip():
+            visual["accent_hex_2"] = accent2.strip()
+        strength = m.get("strength")
+        if isinstance(strength, (int, float)) and 1 <= int(strength) <= 7:
+            visual["strength"] = int(strength)
+        tag = m.get("tag")
+        if isinstance(tag, str) and tag.strip():
+            visual["tag"] = tag.strip()
+        motif = m.get("visual_motif")
+        if isinstance(motif, str) and motif.strip():
+            visual["visual_motif"] = motif.strip().lower()
+        if m.get("featured_xl") is True:
+            visual["featured_xl"] = True
+        break
+    return visual
+
+
 def _serialize_item(
     goods: Goods,
     *,
@@ -148,6 +184,7 @@ def _serialize_item(
                     media_urls.append(ref)
 
     price: str | Decimal | None = goods.price
+    visual = _extract_web_visual(goods)
 
     dto: dict[str, Any] = {
         "slug": slugify(goods.name),
@@ -164,6 +201,13 @@ def _serialize_item(
         "cta": cta,
         "prep_time_minutes": goods.prep_time_minutes,
         "allergens": goods.allergens,
+        # Geometry-driven product identity (optional — theme packs use these)
+        "accent_hex": visual.get("accent_hex"),
+        "accent_hex_2": visual.get("accent_hex_2"),
+        "strength": visual.get("strength"),
+        "tag": visual.get("tag"),
+        "visual_motif": visual.get("visual_motif"),
+        "featured_xl": bool(visual.get("featured_xl")),
     }
     if include_description:
         dto["description"] = goods.description

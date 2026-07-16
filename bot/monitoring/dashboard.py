@@ -23,7 +23,12 @@ async def auth_middleware(request, handler):
     Public white-label catalog (CARD-38) is unauthenticated under ``/api/public/``.
     """
     path = request.path or ""
-    if path == "/health" or path.startswith("/api/public/") or path.startswith("/media/"):
+    if (
+        path == "/health"
+        or path.startswith("/api/public/")
+        or path.startswith("/media/")
+        or path.startswith("/webhooks/")
+    ):
         return await handler(request)
 
     if not MONITORING_API_KEY:
@@ -78,6 +83,27 @@ class MonitoringServer:
         from bot.web.public_api import register_public_catalog_routes
 
         register_public_catalog_routes(self.app)
+        # CARD-33 / CARD-16: messaging webhooks (flag-gated; no-op when disabled)
+        try:
+            from bot.channels.instagram.webhook import register_instagram_routes
+            from bot.platform.messenger_router import register_customer_transport
+
+            if register_instagram_routes(self.app):
+                ad = self.app.get("instagram_adapter")
+                if ad is not None:
+                    register_customer_transport(ad.messenger)
+        except Exception:
+            logger.exception("Failed to register Instagram channel routes")
+        try:
+            from bot.channels.line.webhook import register_line_routes
+            from bot.platform.messenger_router import register_customer_transport
+
+            if register_line_routes(self.app):
+                ad = self.app.get("line_adapter")
+                if ad is not None:
+                    register_customer_transport(ad.messenger)
+        except Exception:
+            logger.exception("Failed to register LINE channel routes")
 
     def _get_base_html(self, title: str, content: str, active_page: str = "") -> str:
         """Generate base HTML with navigation"""

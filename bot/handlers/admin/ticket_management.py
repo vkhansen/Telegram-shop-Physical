@@ -177,9 +177,11 @@ async def process_admin_reply(message: Message, state: FSMContext):
         ticket.updated_at = datetime.now(UTC)
         session.commit()
 
-        # Notify the user about the admin reply
+        # Notify the user about the admin reply (Messenger port — CARD-40 C3)
         with contextlib.suppress(Exception):
-            await message.bot.send_message(
+            from bot.platform.messaging import get_messenger
+
+            await get_messenger().send_text(
                 ticket.user_id,
                 localize("ticket.view") + f"\n\n"
                 f"[{ticket.ticket_code}] {ticket.subject}\n\n"
@@ -215,9 +217,11 @@ async def admin_resolve_ticket(call: CallbackQuery, state: FSMContext):
         ticket.resolved_at = datetime.now(UTC)
         session.commit()
 
-        # Notify the user
+        # Notify the user (Messenger port — CARD-40 C3)
         with contextlib.suppress(Exception):
-            await call.bot.send_message(
+            from bot.platform.messaging import get_messenger
+
+            await get_messenger().send_text(
                 ticket.user_id,
                 localize("admin.ticket.resolved") + f"\n\n[{ticket.ticket_code}] {ticket.subject}",
             )

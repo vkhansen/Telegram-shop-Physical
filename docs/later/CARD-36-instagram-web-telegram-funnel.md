@@ -2,12 +2,12 @@
 
 ## Implementation Status
 
-> **~70% Complete** | `██████████████░░░░░` | Leads + bookings tables/API + storefront forms wired (2026-07-16). Staff notify pending CARD-29.
+> **~90% Complete** | `██████████████████░░` | Staff Messenger notify + form UX polish + tests (2026-07-17). Optional Resend / TG opt-in / CAPTCHA still open.
 
 **Tier:** T2-Funnel — Customer acquisition bridge  
 **Phase:** M3 — Multi-Platform Growth  
 **Priority:** **P1**  
-**Effort:** Remaining: staff Telegram notify, optional Resend
+**Effort:** Remaining: optional Resend email, signed TG opt-in, CAPTCHA
 **Dependencies:**  
 - Spec: [`FUNNEL-INSTAGRAM-WEB-TELEGRAM.md`](../Specifications/FUNNEL-INSTAGRAM-WEB-TELEGRAM.md)  
 - Spec: [`WHITE-LABEL-SITE-MODES-COMPLIANCE-LEADS.md`](../Specifications/WHITE-LABEL-SITE-MODES-COMPLIANCE-LEADS.md) (portfolio mode, leads, bookings)  
@@ -113,12 +113,24 @@ Minimal change to existing shop handlers; new router for lead bind + admin lead 
 
 ## Exit criteria
 
-- [ ] F-01 path works end-to-end without mandatory Telegram join  
-- [ ] Staff get Telegram alert for new lead  
-- [ ] preferred_channel persisted (line/whatsapp/telegram/phone)  
-- [ ] F-02 inquiry includes product context  
-- [ ] Privacy/consent enforced  
-- [ ] Default flags off; suite green  
+- [x] F-01 path works end-to-end without mandatory Telegram join (web forms + API)  
+- [x] Staff get Telegram alert for new lead/booking via Messenger (`notify_staff`)  
+- [x] preferred_channel persisted (line/whatsapp/telegram/phone/email)  
+- [x] F-02 inquiry includes product context (`item_slug` + product_inquiry interest)  
+- [x] Privacy/consent enforced (`consent_required`)  
+- [x] Suite green (`tests/unit/services/test_leads_card36.py`)  
+- [ ] Optional CAPTCHA / rate limit product flags  
+- [ ] Optional signed Telegram opt-in (F-04)  
+
+### Landed polish (2026-07-17)
+
+| Path | Role |
+|------|------|
+| `bot/services/leads_bookings.py` | create + `notify_staff` + UTM normalize |
+| `bot/web/auth_api.py` | lead/booking handlers call notify (soft-fail) |
+| `apps/storefront/.../inquire.astro` | success panel, UTM, handle, honeypot |
+| `apps/storefront/.../book.astro` | success panel, consent, phone_call type |
+| `tests/unit/services/test_leads_card36.py` | validation + notify + HTTP |
 
 ---
 

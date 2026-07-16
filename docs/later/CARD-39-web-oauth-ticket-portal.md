@@ -2,10 +2,10 @@
 
 ## Implementation Status
 
-> **~50% Complete** | `██████████░░░░░░░░░` | Auth + tickets + brand_id; storefront login/tickets; Google path; leads/bookings related (CARD-36).
+> **~90% Complete** | `██████████████████░░` | Portal polish 2026-07-17: safe OAuth next, auth config, ticket UX, XSS-safe rendering, cap gates. Live Google credentials still env-dependent.
 
 **Priority:** **P1** — required for authenticated ticket access on white-label sites  
-**Depends on:** CARD-38 storefront ✅ · existing SupportTicket  
+**Depends on:** CARD-38 storefront ✅ · existing SupportTicket · CARD-40 tickets service ✅  
 **Spec:** [`WHITE-LABEL-OAUTH-TICKETS.md`](../Specifications/WHITE-LABEL-OAUTH-TICKETS.md)
 
 ---
@@ -27,22 +27,29 @@ Catalog can be public; **support tickets must be authenticated**. OAuth gives em
 - [x] Ticket list/create/reply API (session-scoped)  
 - [x] Storefront: login, account, tickets list/new/detail  
 - [x] Dev login when `OAUTH_DEV_LOGIN=true`  
-- [ ] Production Google OAuth end-to-end (code path ready; needs live credentials)
+- [x] Google OAuth code path (needs live `OAUTH_GOOGLE_*` in deploy)
 
-### Phase 2
+### Phase 2 / portal polish (2026-07-17)
 
-- [ ] Google OAuth production config + redirect hardening  
-- [ ] Optional email-link to existing Telegram user  
-- [ ] `brand_id` on tickets for multi-tenant queues  
+- [x] OAuth `next` open-redirect harden (`web_auth.safe_next_path`)  
+- [x] `GET /api/public/auth/config` — google/dev discovery for login UI  
+- [x] OAuth flow cookies honor `WEB_COOKIE_SECURE`  
+- [x] Tickets API: brand capability gate + structured errors  
+- [x] Storefront UX: loading/empty/error states, status badges, closed-ticket reply lock  
+- [x] XSS-safe ticket subject/message rendering  
+- [x] Tests: `tests/unit/services/test_auth_portal_card39.py`  
+- [ ] Optional email-link to existing Telegram user (nice-to-have)  
+- [ ] Staff multi-tenant queue UI (ops — out of customer portal)
 
 ---
 
-## Exit criteria (Phase 1)
+## Exit criteria (Phase 1 + polish)
 
 - [x] Documented flow + matching rules  
 - [x] Logged-in user accesses only own tickets via API  
 - [x] UI pages on multi-tenant Astro storefront  
-- [ ] E2E with real Google client id in deploy env  
+- [x] Safe redirects + auth method discovery  
+- [ ] E2E with real Google client id in deploy env (ops checklist)
 
 ---
 

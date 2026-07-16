@@ -98,6 +98,17 @@ def two_brands(db_engine):
             stock_quantity=0,
             is_active=True,
         )
+        g2.media = [
+            {
+                "type": "web_visual",
+                "accent_hex": "#c23b6e",
+                "accent_hex_2": "#4a0a28",
+                "strength": 4,
+                "tag": "BERRY · ICE",
+                "visual_motif": "berry",
+                "featured_xl": False,
+            }
+        ]
         g_hidden = Goods(
             name="Secret",
             price=Decimal("1.00"),
@@ -135,6 +146,23 @@ def test_web_profile_validate():
     out = validate_brand_web_profile({"about": {"title": "Hi"}, "schema_version": 1})
     assert out["schema_version"] == 1
     assert out["about"]["title"] == "Hi"
+
+
+def test_web_profile_theme_tokens():
+    out = validate_brand_web_profile(
+        {
+            "schema_version": 1,
+            "theme": "landing_editorial",
+            "theme_tokens": {
+                "mode": "light",
+                "colors": {"ink": "#06122e", "sun": "#ffd60a"},
+                "chrome": {"catalog": "flavor_tiles", "product_media": "vector_only"},
+            },
+        }
+    )
+    assert out["theme"] == "landing_editorial"
+    assert out["theme_tokens"]["mode"] == "light"
+    assert out["theme_tokens"]["chrome"]["catalog"] == "flavor_tiles"
 
 
 def test_list_brands(two_brands):
@@ -189,6 +217,11 @@ def test_store_menu_portfolio_cta(two_brands):
     item = menu["categories"][0]["items"][0]
     assert item["cta"] == "inquire"
     assert item["name"] == "Berry Storm"
+    # web_visual DNA from goods.media
+    assert item["accent_hex"] == "#c23b6e"
+    assert item["strength"] == 4
+    assert item["visual_motif"] == "berry"
+    assert item["tag"] == "BERRY · ICE"
 
 
 def test_get_item_detail(two_brands):

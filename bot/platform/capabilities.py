@@ -286,6 +286,55 @@ ROLE_FEATURES: dict[str, frozenset[str]] = {
 }
 
 # ---------------------------------------------------------------------------
+# Intentional non-parity packs (CARD-40 Tier E)
+# These are product policy, not debt. Tests and PR gate freeze them.
+# ---------------------------------------------------------------------------
+
+# Web funnel + marketing: default ON for web customer, OFF for TG customer.
+WEB_ONLY_CAPS: frozenset[str] = frozenset(
+    {
+        "leads",
+        "booking",
+        "age_gate",
+        "about",
+        "faq",
+        "benefits",
+        "featured",
+        "ticker",
+        "contact",
+        "social_links",
+        "maps_widget",
+        "auth",  # OAuth adapter is web; TG uses implicit identity
+    }
+)
+
+# Ops surfaces: Telegram (or future ops web) only — never customer web parity.
+TG_OPS_CAPS: frozenset[str] = frozenset(
+    {
+        "admin_console",
+        "kitchen_ops",
+        "driver_dispatch",
+        "broadcast",
+    }
+)
+
+# Shared commerce / support keys that *must* share services when both masks ON.
+SHARED_PARITY_CAPS: frozenset[str] = frozenset(
+    {
+        "catalog",
+        "item_detail",
+        "media",
+        "cart",
+        "checkout",
+        "payment_promptpay",
+        "payment_crypto",
+        "payment_cash",
+        "order_status",
+        "tickets",
+    }
+)
+
+# ---------------------------------------------------------------------------
 # Channel default OFF (CARD-40 A2) — brand channel.mask may re-enable
 # within PLATFORM_CAPS × ROLE_FEATURES.
 # ---------------------------------------------------------------------------

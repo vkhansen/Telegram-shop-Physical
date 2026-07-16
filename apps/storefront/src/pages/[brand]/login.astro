@@ -12,69 +12,182 @@ const ctx = await loadBrandContext(brandSlug);
 if (!ctx) return new Response(null, { status: 404 });
 if (!can(ctx, "auth", true)) return new Response(null, { status: 404 });
 
-const next = Astro.url.searchParams.get("next") || `/${brandSlug}/tickets`;
+const rawNext = Astro.url.searchParams.get("next") || `/${brandSlug}/tickets`;
+// Client still re-validates; keep relative default
+const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : `/${brandSlug}/tickets`;
 const apiBase = ctx.apiBase;
 const googleUrl = `${apiBase}/api/public/auth/google/start?brand=${encodeURIComponent(brandSlug)}&next=${encodeURIComponent(next)}`;
 const L = ctx.labels;
+const errParam = Astro.url.searchParams.get("error") || "";
 ---
 
 <BrandShell ctx={ctx} title={L.login}>
   <main class="mx-auto max-w-md py-2">
-    <PageHeader brandSlug={ctx.slug} brandName={ctx.brand.name} title={L.login} lead="Sign in to access support tickets. We match your OAuth profile to your account." />
+    <PageHeader
+      brandSlug={ctx.slug}
+      brandName={ctx.brand.name}
+      title={L.login}
+      lead="Sign in to open and track support tickets. Your OAuth profile maps to the same account spine as Telegram support."
+    />
+
+    {
+      errParam && (
+        <div
+          class="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+          role="alert"
+        >
+          Sign-in failed ({errParam}). Try again or use dev login if enabled.
+        </div>
+      )
+    }
+
+    <div id="flash" class="mt-4 hidden rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200"></div>
 
     <div class="mt-8 space-y-3">
       <a
+        id="google-btn"
         href={googleUrl}
-        class="flex w-full items-center justify-center gap-2 rounded-xl border border-ink-700 bg-ink-900 px-4 py-3 text-sm font-semibold hover:border-accent"
+        class="flex w-full items-center justify-center gap-2 rounded-xl border border-ink-700 bg-ink-900 px-4 py-3 text-sm font-semibold transition hover:border-accent"
       >
+        <span aria-hidden="true">G</span>
         Continue with Google
       </a>
-      <p class="text-center text-xs text-ink-500">
-        Google requires <code class="text-accent">OAUTH_GOOGLE_*</code> on the API. Use dev login below for local testing.
+      <p id="google-hint" class="text-center text-xs text-ink-500">
+        Checking login methods…
       </p>
     </div>
 
-    <div class="mt-10 rounded-2xl border border-ink-700 bg-ink-900 p-5">
+    <div id="dev-box" class="mt-10 hidden rounded-2xl border border-ink-700 bg-ink-900 p-5">
       <h2 class="text-sm font-semibold text-sand-50">Dev login</h2>
-      <p class="mt-1 text-xs text-ink-500">Requires <code>OAUTH_DEV_LOGIN=true</code> on the API server.</p>
+      <p class="mt-1 text-xs text-ink-500">
+        Local only — requires <code class="text-accent">OAUTH_DEV_LOGIN=true</code> on the API.
+      </p>
       <form id="dev-login" class="mt-4 space-y-3">
         <input type="hidden" name="next" value={next} />
         <label class="block text-sm">
           <span class="text-ink-500">Email</span>
-          <input name="email" type="email" required value="customer@example.com" class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-950 px-3 py-2" />
+          <input
+            name="email"
+            type="email"
+            required
+            autocomplete="email"
+            value="customer@example.com"
+            class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-950 px-3 py-2 outline-none focus:border-accent"
+          />
         </label>
         <label class="block text-sm">
           <span class="text-ink-500">Display name</span>
-          <input name="name" required value="Web Customer" class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-950 px-3 py-2" />
+          <input
+            name="name"
+            required
+            autocomplete="name"
+            value="Web Customer"
+            class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-950 px-3 py-2 outline-none focus:border-accent"
+          />
         </label>
-        <button type="submit" class="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-ink-950">
+        <button
+          type="submit"
+          id="dev-submit"
+          class="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-ink-950 disabled:opacity-50"
+        >
           Dev sign in
         </button>
-        <p id="dev-err" class="hidden text-xs text-red-400"></p>
+        <p id="dev-err" class="hidden text-xs text-red-400" role="alert"></p>
       </form>
     </div>
+
+    {
+      can(ctx, "tickets") && (
+        <p class="mt-8 text-center text-xs text-ink-500">
+          After sign-in you’ll return to support tickets for {ctx.brand.name}.
+        </p>
+      )
+    }
   </main>
 </BrandShell>
 
-<script define:vars={{ apiBase, next }}>
+<script define:vars={{ apiBase, next, brandSlug, googleUrl }}>
+  (async () => {
+    // Already signed in?
+    try {
+      const me = await fetch(`${apiBase}/api/public/auth/me`, { credentials: "include" });
+      if (me.ok) {
+        window.location.href = next;
+        return;
+      }
+    } catch (_) {}
+
+    const googleBtn = document.getElementById("google-btn");
+    const googleHint = document.getElementById("google-hint");
+    const devBox = document.getElementById("dev-box");
+
+    try {
+      const res = await fetch(
+        `${apiBase}/api/public/auth/config?brand=${encodeURIComponent(brandSlug)}`,
+        { credentials: "include" },
+      );
+      const cfg = await res.json().catch(() => ({}));
+      if (cfg.google_enabled) {
+        if (googleHint) {
+          googleHint.textContent = "Uses Google OAuth · session cookie on the API host";
+        }
+      } else {
+        if (googleBtn) {
+          googleBtn.classList.add("pointer-events-none", "opacity-40");
+          googleBtn.setAttribute("aria-disabled", "true");
+          googleBtn.removeAttribute("href");
+        }
+        if (googleHint) {
+          googleHint.textContent =
+            "Google OAuth is not configured (set OAUTH_GOOGLE_CLIENT_ID / SECRET).";
+        }
+      }
+      if (cfg.dev_login_enabled && devBox) {
+        devBox.classList.remove("hidden");
+      }
+    } catch (_) {
+      if (googleHint) googleHint.textContent = "Could not load auth config — Google may still work.";
+      if (devBox) devBox.classList.remove("hidden");
+    }
+  })();
+
   document.getElementById("dev-login")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const fd = new FormData(e.target);
+    const form = e.target;
+    const fd = new FormData(form);
     const err = document.getElementById("dev-err");
-    const res = await fetch(`${apiBase}/api/public/auth/dev-login`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: fd.get("email"), name: fd.get("name") }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
+    const btn = document.getElementById("dev-submit");
+    if (btn) btn.disabled = true;
+    if (err) {
+      err.classList.add("hidden");
+      err.textContent = "";
+    }
+    try {
+      const res = await fetch(`${apiBase}/api/public/auth/dev-login`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: fd.get("email"), name: fd.get("name") }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (err) {
+          err.textContent =
+            data.error === "dev_login_disabled"
+              ? "Dev login is disabled on the API."
+              : data.error || "Dev login failed";
+          err.classList.remove("hidden");
+        }
+        if (btn) btn.disabled = false;
+        return;
+      }
+      window.location.href = next;
+    } catch (_) {
       if (err) {
-        err.textContent = data.error || "Dev login failed (is OAUTH_DEV_LOGIN=true?)";
+        err.textContent = "Network error — is the API running?";
         err.classList.remove("hidden");
       }
-      return;
+      if (btn) btn.disabled = false;
     }
-    window.location.href = next;
   });
 </script>

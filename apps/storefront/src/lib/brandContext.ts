@@ -19,6 +19,7 @@ import {
   getApiBase,
 } from "./api";
 import { type ComplianceView, parseCompliance } from "./compliance";
+import { type ThemeTokens, parseThemeTokens } from "./theme";
 import { asRecord, asString } from "./util";
 
 export type NavChip = { href: string; label: string; active?: boolean };
@@ -54,6 +55,8 @@ export type BrandContext = {
   labels: SectionLabels;
   /** Resolved capability mask for this storefront channel. */
   capabilities: Capabilities;
+  /** Per-brand visual system (CSS tokens + chrome enums). */
+  theme: ThemeTokens;
   tagline: string | null;
   hero: Record<string, string>;
   about: { title: string; body: string };
@@ -167,6 +170,7 @@ export async function loadBrandContext(slug: string): Promise<BrandContext | nul
   const stores = brand.stores || [];
   const defaultStore = stores.find((s) => s.is_default) || stores[0] || null;
   const capabilities: Capabilities = brand.capabilities || {};
+  const theme = parseThemeTokens(web, asString(web.theme));
 
   return {
     brand,
@@ -175,6 +179,7 @@ export async function loadBrandContext(slug: string): Promise<BrandContext | nul
     compliance: parseCompliance(web, { minAge: brand.min_age }),
     labels: parseLabels(web),
     capabilities,
+    theme,
     tagline: asString(web.tagline) || hero.headline || null,
     hero,
     about,

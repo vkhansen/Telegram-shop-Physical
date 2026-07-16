@@ -18,26 +18,40 @@ if (!menu) return new Response(null, { status: 404, statusText: "Not Found" });
 
 const chips = buildNavChips(ctx, { active: "store", storeSlug: menu.store.slug });
 const cats = menu.categories || [];
+const t = ctx.theme;
+const editorial = t.isEditorial;
 ---
 
 <BrandShell ctx={ctx} title={menu.store.name} description={menu.store.address || ctx.brand.name} chips={chips}>
   <PageHeader brandSlug={ctx.slug} brandName={ctx.brand.name} title={menu.store.name}>
     {
       menu.store.address && (
-        <p class="mt-1 text-sm text-sand-200">{menu.store.address}</p>
+        <p class:list={[editorial ? "mt-1 text-sm text-[color:var(--brand-muted)]" : "mt-1 text-sm text-sand-200"]}>
+          {menu.store.address}
+        </p>
       )
     }
-    <div class="mt-2 flex flex-wrap gap-3 text-sm text-sand-200">
+    <div
+      class:list={[
+        "mt-2 flex flex-wrap gap-3 text-sm",
+        editorial ? "text-[color:var(--brand-muted)]" : "text-sand-200",
+      ]}
+    >
       {
         menu.store.phone && (
-          <a class="hover:text-accent" href={`tel:${menu.store.phone}`}>
+          <a class:list={[editorial ? "hover:text-[color:var(--brand-sea)]" : "hover:text-accent"]} href={`tel:${menu.store.phone}`}>
             {menu.store.phone}
           </a>
         )
       }
       {
         menu.store.maps_url && (
-          <a class="hover:text-accent" href={menu.store.maps_url} target="_blank" rel="noopener">
+          <a
+            class:list={[editorial ? "hover:text-[color:var(--brand-sea)]" : "hover:text-accent"]}
+            href={menu.store.maps_url}
+            target="_blank"
+            rel="noopener"
+          >
             Maps
           </a>
         )
@@ -47,15 +61,31 @@ const cats = menu.categories || [];
 
   {
     cats.map((cat) => (
-      <section class="mb-8 border-t border-ink-800 pt-6" id={cat.slug}>
-        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-500">{cat.name}</h2>
-        <ProductGrid items={cat.items} brandSlug={brandSlug} storeSlug={menu.store.slug} />
+      <section
+        class:list={["mb-8 pt-6", editorial ? "border-t border-[color:var(--brand-line)]" : "border-t border-ink-800"]}
+        id={cat.slug}
+      >
+        <h2
+          class:list={[
+            "mb-3 text-sm font-semibold uppercase tracking-wider",
+            editorial ? "text-[color:var(--brand-muted)]" : "text-ink-500",
+          ]}
+        >
+          {cat.name}
+        </h2>
+        <ProductGrid
+          items={cat.items}
+          brandSlug={brandSlug}
+          storeSlug={menu.store.slug}
+          variant={t.chrome.catalog}
+          productMedia={t.chrome.product_media}
+        />
       </section>
     ))
   }
   {
     cats.every((c) => c.items.length === 0) && (
-      <p class="py-12 text-center text-ink-500">No listable items for this branch right now.</p>
+      <p class="py-12 text-center text-[color:var(--brand-muted,#6b6b73)]">No listable items for this branch right now.</p>
     )
   }
 </BrandShell>

@@ -226,6 +226,49 @@ def google_enabled() -> bool:
     return bool(os.getenv("OAUTH_GOOGLE_CLIENT_ID") and os.getenv("OAUTH_GOOGLE_CLIENT_SECRET"))
 
 
+def dev_login_enabled() -> bool:
+    return os.getenv("OAUTH_DEV_LOGIN", "").lower() in ("1", "true", "yes", "on")
+
+
+def auth_public_config() -> dict[str, Any]:
+    """Storefront discovery: which login methods are live (CARD-39 polish)."""
+    return {
+        "google_enabled": google_enabled(),
+        "dev_login_enabled": dev_login_enabled(),
+        "session_cookie": SESSION_COOKIE,
+    }
+
+
+def safe_next_path(next_path: str | None, *, default: str = "/") -> str:
+    """
+    Harden OAuth / login ``next`` redirects (CARD-39).
+
+    Only allow same-site relative paths. Reject scheme-relative, absolute URLs,
+    and path traversal. Returns *default* when unsafe.
+    """
+    raw = (next_path or "").strip()
+    if not raw:
+        return default
+    # Block absolute / protocol-relative / backslash tricks
+    if "://" in raw or raw.startswith("//") or "\\" in raw:
+        return default
+    if not raw.startswith("/"):
+        return default
+    # Disallow ".." segments
+    parts = [p for p in raw.split("/") if p not in ("", ".")]
+    if any(p == ".." for p in parts):
+        return default
+    # Keep query string if present on a relative path
+    if "?" in raw:
+        path_only, _, query = raw.partition("?")
+        if not path_only.startswith("/") or ".." in path_only.split("/"):
+            return default
+        # Drop fragment
+        query = query.split("#", 1)[0]
+        return f"{path_only}?{query}" if query else path_only
+    return raw.split("#", 1)[0] or default
+
+
 def google_authorize_url(*, redirect_uri: str, state: str) -> str:
     params = {
         "client_id": os.getenv("OAUTH_GOOGLE_CLIENT_ID", ""),
@@ -270,7 +313,3 @@ async def google_exchange_code(*, code: str, redirect_uri: str) -> dict[str, Any
     except Exception:
         logger.exception("Google OAuth exchange failed")
         return None
-
-
-def dev_login_enabled() -> bool:
-    return os.getenv("OAUTH_DEV_LOGIN", "false").lower() in ("1", "true", "yes")

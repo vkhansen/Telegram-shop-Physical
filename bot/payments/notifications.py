@@ -43,16 +43,18 @@ __all__ = [
 
 async def send_order_notification(telegram_id: int, message_text: str) -> bool:
     """
-    Send a notification message to user via the default Messenger.
+    Send a notification message to user via multi-channel router (CARD-33).
 
     Args:
-        telegram_id: Telegram user ID (UserRef)
+        telegram_id: Internal user id (users.telegram_id PK — may be synthetic for IG/web)
         message_text: Message to send
 
     Returns:
         True if sent successfully, False otherwise
     """
-    return await get_messenger().send_text(telegram_id, message_text)
+    from bot.platform.messenger_router import notify_user
+
+    return await notify_user(int(telegram_id), message_text)
 
 
 async def _send_to_group(

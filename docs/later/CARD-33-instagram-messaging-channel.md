@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-> **0% Complete** | `░░░░░░░░░░░░░░░░░░░` | Design only — not started.
+> **~55% Complete** | `███████████░░░░░░░░░` | Foundation + masked shop path 2026-07-17 (webhook, identity, FSM, services, router). Meta prod review + slip pipeline polish open.
 
 **Tier:** T2 — First non-Telegram customer channel  
 **Phase:** M3 — Multi-Platform Growth  
@@ -172,13 +172,35 @@ Order status from admin/Telegram kitchen must reach IG customers when identity i
 
 ## Exit criteria
 
-- [ ] CARD-34 Instagram package accepted; only those flows implemented  
-- [ ] Flag-off: zero effect on Telegram  
-- [ ] Flag-on: IG customer can place cash or PromptPay order; order visible in Telegram admin  
-- [ ] Status notifications deliver to IG when that is the customer channel  
-- [ ] `can("instagram", …)` enforced at adapter boundary  
-- [ ] No admin/kitchen/driver surfaces on IG  
-- [ ] Suite green  
+- [ ] CARD-34 Instagram package accepted; only those flows implemented *(soft — adapter implements CARD-33 mask; full flow docs later)*  
+- [x] Flag-off: zero effect on Telegram  
+- [x] Flag-on path: IG customer can place cash or PromptPay order via services (needs Meta tokens + brand id in env)  
+- [x] Status notifications route via `messenger_router.notify_user` (IG preferred when linked)  
+- [x] `can("instagram", …)` enforced at adapter boundary  
+- [x] No admin/kitchen/driver surfaces on IG  
+- [x] Suite green (`tests/unit/channels/test_instagram_card33.py`)  
+
+### Landed (2026-07-17)
+
+| Path | Role |
+|------|------|
+| `bot/channels/instagram/config.py` | Env flag + tokens |
+| `bot/channels/instagram/signature.py` | `X-Hub-Signature-256` |
+| `bot/channels/instagram/webhook.py` | GET verify + POST receive |
+| `bot/channels/instagram/adapter.py` | Intents → cart/checkout/orders/tickets |
+| `bot/channels/instagram/messenger.py` | Graph API Messenger port |
+| `bot/channels/instagram/renderer.py` | Text + quick replies |
+| `bot/channels/instagram/session.py` | Per-PSID FSM store |
+| `bot/platform/messenger_router.py` | Multi-channel `notify_user` |
+| `bot/platform/identity.py` | `ensure_instagram_user` / `list_identities` |
+
+### Still open
+
+- [ ] Hosted PromptPay QR URL (data-URI note only today) + slip image → verify pipeline  
+- [ ] Redis session store for multi-worker  
+- [ ] Per-page multi-brand mapping (v1: `INSTAGRAM_DEFAULT_BRAND_ID`)  
+- [ ] Meta App Review / 24h window message tags  
+- [ ] Optional TG↔IG link code UX
 
 ---
 

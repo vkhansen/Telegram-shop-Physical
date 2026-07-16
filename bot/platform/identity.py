@@ -97,6 +97,90 @@ def ensure_telegram_identity(telegram_id: int, *, session: Any | None = None) ->
     )
 
 
+def list_identities(user_id: int, *, session: Any | None = None) -> list[dict[str, str]]:
+    """Return ``[{platform, external_id}, ...]`` for *user_id*."""
+
+    def _list(s) -> list[dict[str, str]]:
+        rows = (
+            s.query(UserIdentity)
+            .filter(UserIdentity.user_id == int(user_id))
+            .order_by(UserIdentity.platform)
+            .all()
+        )
+        return [{"platform": r.platform, "external_id": r.external_id} for r in rows]
+
+    if session is not None:
+        return _list(session)
+    with Database().session() as s:
+        return _list(s)
+
+
+def ensure_platform_user(
+    platform: str,
+    external_id: str,
+    *,
+    locale: str | None = None,
+) -> int:
+    """
+    Resolve or create an internal user for a non-Telegram platform (CARD-33).
+
+    Uses the same synthetic high-range id scheme as web OAuth so FKs on
+    ``users.telegram_id`` stay collision-free with real Telegram ids.
+    """
+    from datetime import UTC, datetime
+
+    from bot.services.web_auth import ensure_role_user, synthetic_user_id
+
+    platform = (platform or "").strip().lower()
+    external_id = str(external_id).strip()
+    if not platform or not external_id:
+        raise ValueError("platform_and_external_id_required")
+
+    existing = resolve_user_id(platform, external_id)
+    if existing is not None:
+        return int(existing)
+
+    uid = synthetic_user_id(platform, external_id)
+    with Database().session() as s:
+        # Race-safe-ish: re-check identity inside session
+        row = (
+            s.query(UserIdentity)
+            .filter(UserIdentity.platform == platform, UserIdentity.external_id == external_id)
+            .one_or_none()
+        )
+        if row is not None:
+            return int(row.user_id)
+
+        for _ in range(5):
+            if s.query(User).filter_by(telegram_id=uid).first() is None:
+                break
+            uid = synthetic_user_id(platform, external_id + str(uid))
+
+        s.add(
+            User(
+                telegram_id=uid,
+                registration_date=datetime.now(UTC),
+                role_id=ensure_role_user(),
+                locale=locale,
+            )
+        )
+        s.flush()
+        s.add(UserIdentity(user_id=uid, platform=platform, external_id=external_id))
+        s.commit()
+        logger.info("created platform user platform=%s external_id=%s user_id=%s", platform, external_id, uid)
+        return int(uid)
+
+
+def ensure_instagram_user(psid: str, *, locale: str | None = None) -> int:
+    """Create/resolve user for Instagram PSID."""
+    return ensure_platform_user(PLATFORM_INSTAGRAM, psid, locale=locale)
+
+
+def ensure_line_user(line_user_id: str, *, locale: str | None = None) -> int:
+    """Create/resolve user for LINE Messaging userId (CARD-16)."""
+    return ensure_platform_user(PLATFORM_LINE, line_user_id, locale=locale)
+
+
 def backfill_telegram_identities(*, session: Any | None = None) -> int:
     """
     Create missing ``platform=telegram`` rows for all users.

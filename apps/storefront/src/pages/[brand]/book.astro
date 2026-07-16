@@ -14,6 +14,7 @@ if (!can(ctx, "booking", true)) return new Response(null, { status: 404 });
 
 const L = ctx.labels;
 const apiBase = ctx.apiBase;
+const brandName = ctx.brand.name;
 ---
 
 <BrandShell ctx={ctx} title={L.book}>
@@ -22,29 +23,76 @@ const apiBase = ctx.apiBase;
       brandSlug={ctx.slug}
       brandName={ctx.brand.name}
       title={L.book}
-      lead="Request an in-person visit or Google Meet call. Staff will confirm and send a Meet link if needed."
+      lead="Request an in-person visit, phone call, or Google Meet. Staff will confirm — no mandatory Telegram join."
     />
+
+    <div
+      id="success"
+      class="mt-8 hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-center"
+      role="status"
+    >
+      <p class="text-lg font-semibold text-emerald-200">Meeting request received</p>
+      <p id="success-detail" class="mt-2 text-sm text-sand-200"></p>
+      <p class="mt-3 text-xs text-ink-500">
+        We’ll confirm by phone or email. For Google Meet, staff will send the link when ready.
+      </p>
+      <div class="mt-6 flex flex-wrap justify-center gap-2">
+        <a href={`/${brandSlug}`} class="rounded-xl border border-ink-700 px-4 py-2 text-sm hover:border-accent">
+          Back to home
+        </a>
+        <button
+          type="button"
+          id="another"
+          class="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-ink-950"
+        >
+          Book another
+        </button>
+      </div>
+    </div>
+
     <form id="book-form" class="mt-8 space-y-4">
+      <div class="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
+        <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+      </div>
+
       <label class="block text-sm">
         <span class="text-ink-500">Name</span>
-        <input required name="name" class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2" />
+        <input
+          required
+          name="name"
+          autocomplete="name"
+          class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+        />
       </label>
       <label class="block text-sm">
         <span class="text-ink-500">Phone</span>
-        <input name="phone" type="tel" class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2" />
+        <input
+          name="phone"
+          type="tel"
+          autocomplete="tel"
+          class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+        />
       </label>
       <label class="block text-sm">
         <span class="text-ink-500">Email</span>
-        <input name="email" type="email" class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2" />
+        <input
+          name="email"
+          type="email"
+          autocomplete="email"
+          class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+        />
       </label>
       <fieldset class="text-sm">
         <legend class="text-ink-500">Meeting type</legend>
-        <div class="mt-2 flex flex-col gap-2 sm:flex-row">
+        <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <label class="flex items-center gap-2 rounded-xl border border-ink-700 px-3 py-2">
             <input type="radio" name="type" value="in_person" checked /> In person
           </label>
           <label class="flex items-center gap-2 rounded-xl border border-ink-700 px-3 py-2">
             <input type="radio" name="type" value="google_meet" /> Google Meet
+          </label>
+          <label class="flex items-center gap-2 rounded-xl border border-ink-700 px-3 py-2">
+            <input type="radio" name="type" value="phone_call" /> Phone call
           </label>
         </div>
       </fieldset>
@@ -52,7 +100,10 @@ const apiBase = ctx.apiBase;
         ctx.stores.length > 0 && (
           <label class="block text-sm">
             <span class="text-ink-500">Preferred branch (in person)</span>
-            <select name="store" class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2">
+            <select
+              name="store"
+              class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+            >
               {ctx.stores.map((st) => (
                 <option value={st.slug}>{st.name}</option>
               ))}
@@ -62,64 +113,124 @@ const apiBase = ctx.apiBase;
       }
       <label class="block text-sm">
         <span class="text-ink-500">Preferred date & time</span>
-        <input required name="when" type="datetime-local" class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2" />
+        <input
+          required
+          name="when"
+          type="datetime-local"
+          class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+        />
       </label>
       <label class="block text-sm">
         <span class="text-ink-500">Notes</span>
-        <textarea name="notes" rows="3" class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2"></textarea>
+        <textarea
+          name="notes"
+          rows="3"
+          maxlength="2000"
+          class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+        ></textarea>
       </label>
-      <button type="submit" class="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-ink-950">
+      <label class="flex items-start gap-2 text-xs text-sand-200">
+        <input type="checkbox" name="consent" required class="mt-0.5" />
+        <span>I consent to be contacted by {brandName} about this meeting request.</span>
+      </label>
+      <button
+        type="submit"
+        id="submit-btn"
+        class="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-ink-950 disabled:opacity-50"
+      >
         Request meeting
       </button>
-      <p id="msg" class="hidden text-sm"></p>
+      <p id="msg" class="hidden text-sm" role="alert"></p>
     </form>
   </main>
 </BrandShell>
 
 <script define:vars={{ apiBase, brandSlug: ctx.slug }}>
-  document.getElementById("book-form")?.addEventListener("submit", async (e) => {
+  function errorText(key) {
+    const map = {
+      name_required: "Please enter your name.",
+      phone_or_email_required: "Phone or email is required.",
+      consent_required: "Please accept the consent checkbox.",
+      brand_not_found: "This brand is unavailable.",
+      booking_disabled: "Booking is disabled for this brand.",
+      network_error: "Network error — try again.",
+    };
+    return map[key] || key || "Request failed";
+  }
+
+  const form = document.getElementById("book-form");
+  const success = document.getElementById("success");
+  const successDetail = document.getElementById("success-detail");
+
+  document.getElementById("another")?.addEventListener("click", () => {
+    success?.classList.add("hidden");
+    form?.classList.remove("hidden");
+    form?.reset();
+  });
+
+  form?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
     const phone = String(fd.get("phone") || "").trim();
     const email = String(fd.get("email") || "").trim();
     const msg = document.getElementById("msg");
+    const btn = document.getElementById("submit-btn");
+    if (msg) {
+      msg.classList.add("hidden");
+      msg.textContent = "";
+    }
     if (!phone && !email) {
       if (msg) {
-        msg.textContent = "Phone or email is required.";
+        msg.textContent = errorText("phone_or_email_required");
         msg.className = "text-sm text-red-400";
         msg.classList.remove("hidden");
       }
       return;
     }
-    const res = await fetch(`${apiBase}/api/public/bookings`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        brand_slug: brandSlug,
-        name: fd.get("name"),
-        phone: phone || null,
-        email: email || null,
-        meeting_type: fd.get("type"),
-        store_slug: fd.get("store") || null,
-        preferred_when: fd.get("when"),
-        notes: fd.get("notes"),
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch(`${apiBase}/api/public/bookings`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brand_slug: brandSlug,
+          name: fd.get("name"),
+          phone: phone || null,
+          email: email || null,
+          meeting_type: fd.get("type"),
+          store_slug: fd.get("store") || null,
+          preferred_when: fd.get("when"),
+          notes: fd.get("notes"),
+          consent: fd.get("consent") === "on",
+          website: fd.get("website") || "",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (msg) {
+          msg.textContent = errorText(data.error_key || data.error);
+          msg.className = "text-sm text-red-400";
+          msg.classList.remove("hidden");
+        }
+        if (btn) btn.disabled = false;
+        return;
+      }
+      form?.classList.add("hidden");
+      if (successDetail) {
+        successDetail.textContent =
+          data.id && data.id !== 0
+            ? `Reference #${data.id}${data.meeting_type ? ` · ${data.meeting_type}` : ""}`
+            : "We’ll confirm soon.";
+      }
+      success?.classList.remove("hidden");
+    } catch (_) {
       if (msg) {
-        msg.textContent = data.error || "Request failed";
+        msg.textContent = errorText("network_error");
         msg.className = "text-sm text-red-400";
         msg.classList.remove("hidden");
       }
-      return;
     }
-    if (msg) {
-      msg.textContent = "Request received (#" + data.id + "). We’ll confirm soon.";
-      msg.className = "text-sm text-accent";
-      msg.classList.remove("hidden");
-    }
-    e.target.reset();
+    if (btn) btn.disabled = false;
   });
 </script>

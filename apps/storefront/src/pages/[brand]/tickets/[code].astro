@@ -24,54 +24,194 @@ const apiBase = ctx.apiBase;
       backHref={`/${brandSlug}/tickets`}
       backLabel="← All tickets"
     />
-    <h1 id="subject" class="mt-2 text-2xl font-bold">Loading…</h1>
-    <p id="meta" class="mt-1 text-xs text-ink-500"></p>
-    <div id="thread" class="mt-6 space-y-3"></div>
+
+    <div class="mt-2 flex flex-wrap items-center gap-2">
+      <h1 id="subject" class="text-2xl font-bold text-sand-50">Loading…</h1>
+      <span id="status-badge" class="hidden"></span>
+    </div>
+    <p id="meta" class="mt-1 text-xs text-ink-500 font-mono"></p>
+
+    <div id="load-err" class="mt-4 hidden rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200" role="alert"></div>
+
+    <div id="thread" class="mt-6 space-y-3" aria-live="polite"></div>
+
     <form id="reply" class="mt-8 space-y-3 border-t border-ink-800 pt-6">
-      <textarea name="message" required rows="3" placeholder="Write a reply…" class="w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 text-sm"></textarea>
-      <button type="submit" class="rounded-xl bg-accent px-5 py-2 text-sm font-semibold text-ink-950">Send reply</button>
+      <label class="block text-sm">
+        <span class="sr-only">Reply</span>
+        <textarea
+          name="message"
+          required
+          rows="3"
+          maxlength="4000"
+          placeholder="Write a reply…"
+          class="w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 text-sm outline-none focus:border-accent"
+        ></textarea>
+      </label>
+      <div class="flex flex-wrap items-center gap-3">
+        <button
+          type="submit"
+          id="reply-btn"
+          class="rounded-xl bg-accent px-5 py-2 text-sm font-semibold text-ink-950 disabled:opacity-50"
+        >
+          Send reply
+        </button>
+        <p id="closed-note" class="hidden text-xs text-ink-500">This ticket is closed — replies are disabled.</p>
+      </div>
+      <p id="reply-err" class="hidden text-xs text-red-400" role="alert"></p>
     </form>
   </main>
 </BrandShell>
 
 <script define:vars={{ apiBase, brandSlug, code }}>
+  function esc(s) {
+    return String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function badgeHtml(status) {
+    const s = (status || "").toLowerCase();
+    let cls = "bg-ink-800 text-sand-200 ring-ink-600";
+    if (s === "open") cls = "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30";
+    else if (s === "in_progress") cls = "bg-sky-500/15 text-sky-300 ring-sky-500/30";
+    else if (s === "resolved") cls = "bg-violet-500/15 text-violet-300 ring-violet-500/30";
+    else if (s === "closed") cls = "bg-ink-700/80 text-ink-400 ring-ink-600";
+    return `<span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset ${cls}">${esc(status || "")}</span>`;
+  }
+
+  function when(iso) {
+    if (!iso) return "";
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "";
+      return d.toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "";
+    }
+  }
+
+  function setReplyEnabled(enabled) {
+    const form = document.getElementById("reply");
+    const btn = document.getElementById("reply-btn");
+    const ta = form?.querySelector("textarea");
+    const note = document.getElementById("closed-note");
+    if (ta) ta.disabled = !enabled;
+    if (btn) btn.disabled = !enabled;
+    if (note) note.classList.toggle("hidden", enabled);
+  }
+
   async function load() {
     const me = await fetch(`${apiBase}/api/public/auth/me`, { credentials: "include" });
     if (!me.ok) {
       window.location.href = `/${brandSlug}/login?next=/${brandSlug}/tickets/${code}`;
       return;
     }
-    const res = await fetch(`${apiBase}/api/public/tickets/${code}`, { credentials: "include" });
+    const res = await fetch(`${apiBase}/api/public/tickets/${encodeURIComponent(code)}`, {
+      credentials: "include",
+    });
+    const loadErr = document.getElementById("load-err");
     if (!res.ok) {
       document.getElementById("subject").textContent = "Ticket not found";
+      if (loadErr) {
+        loadErr.textContent = "This ticket does not exist or is not yours.";
+        loadErr.classList.remove("hidden");
+      }
+      setReplyEnabled(false);
       return;
     }
     const t = await res.json();
-    document.getElementById("subject").textContent = t.subject;
-    document.getElementById("meta").textContent = `${t.ticket_code} · ${t.status}`;
+    document.getElementById("subject").textContent = t.subject || "Ticket";
+    const badge = document.getElementById("status-badge");
+    if (badge) {
+      badge.classList.remove("hidden");
+      badge.innerHTML = badgeHtml(t.status);
+    }
+    const metaBits = [t.ticket_code, t.status];
+    if (t.created_at) metaBits.push(when(t.created_at));
+    document.getElementById("meta").textContent = metaBits.filter(Boolean).join(" · ");
+
+    const closed = ["closed", "resolved"].includes((t.status || "").toLowerCase());
+    setReplyEnabled(!closed);
+
     const thread = document.getElementById("thread");
     thread.innerHTML = "";
-    for (const m of t.messages || []) {
+    const messages = t.messages || [];
+    if (!messages.length) {
+      thread.innerHTML = `<p class="text-sm text-ink-500">No messages yet.</p>`;
+      return;
+    }
+    for (const m of messages) {
       const div = document.createElement("div");
       const mine = m.sender_role === "user";
-      div.className = `rounded-xl p-3 text-sm ${mine ? "bg-accent/10 border border-accent/30 ml-4" : "bg-ink-900 border border-ink-700 mr-4"}`;
-      div.innerHTML = `<p class="text-[10px] uppercase text-ink-500">${m.sender_role}</p><p class="mt-1 whitespace-pre-wrap text-sand-50">${m.message_text}</p>`;
+      div.className = `rounded-xl p-3 text-sm ${
+        mine
+          ? "ml-4 border border-accent/30 bg-accent/10"
+          : "mr-4 border border-ink-700 bg-ink-900"
+      }`;
+      const roleLabel = mine ? "You" : m.sender_role === "admin" ? "Support" : esc(m.sender_role);
+      const ts = when(m.created_at);
+      div.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-[10px] font-semibold uppercase tracking-wide text-ink-500">${roleLabel}</p>
+          ${ts ? `<p class="text-[10px] text-ink-500">${esc(ts)}</p>` : ""}
+        </div>
+        <p class="mt-1 whitespace-pre-wrap text-sand-50">${esc(m.message_text)}</p>`;
       thread.appendChild(div);
     }
   }
-  load();
+
+  load().catch(() => {
+    const loadErr = document.getElementById("load-err");
+    if (loadErr) {
+      loadErr.textContent = "Network error loading ticket.";
+      loadErr.classList.remove("hidden");
+    }
+  });
+
   document.getElementById("reply")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
-    const res = await fetch(`${apiBase}/api/public/tickets/${code}/messages`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: fd.get("message") }),
-    });
-    if (res.ok) {
-      e.target.reset();
-      load();
+    const btn = document.getElementById("reply-btn");
+    const err = document.getElementById("reply-err");
+    if (btn) btn.disabled = true;
+    if (err) {
+      err.classList.add("hidden");
+      err.textContent = "";
+    }
+    try {
+      const res = await fetch(
+        `${apiBase}/api/public/tickets/${encodeURIComponent(code)}/messages`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: fd.get("message") }),
+        },
+      );
+      if (res.ok) {
+        e.target.reset();
+        await load();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        if (err) {
+          err.textContent = data.error || "Reply failed.";
+          err.classList.remove("hidden");
+        }
+        if (btn) btn.disabled = false;
+      }
+    } catch (_) {
+      if (err) {
+        err.textContent = "Network error.";
+        err.classList.remove("hidden");
+      }
+      if (btn) btn.disabled = false;
     }
   });
 </script>

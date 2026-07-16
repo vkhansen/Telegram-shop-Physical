@@ -4,7 +4,7 @@
 > **Parity** = same service + same domain outcomes + same capability keys — not the same UI.  
 > Status legend: **done** · **debt** · **web-only** · **tg-ops-only** · **shared** (mask-gated)
 
-Last updated: 2026-07-17 (Tier A freeze)
+Last updated: 2026-07-17 (Tier E+F non-parity + scorecard freeze)
 
 ## 1. How to read
 
@@ -36,8 +36,8 @@ Default masks come from `PLATFORM_CAPS ∩ ROLE_FEATURES ∩ CHANNEL_DEFAULT_OFF
 | `payment_crypto` | `checkout` | follows checkout | follows checkout | **shared** |
 | `payment_cash` | `checkout` | follows checkout | follows checkout | **shared** |
 | `order_status` | `order_query` | ON | ON | **shared** — parity required |
-| `tickets` | `tickets_web` → unify TG | ON | ON | **shared** — Tier C unify |
-| `auth` | `web_auth` + identities | ON (OAuth) | **OFF** (implicit TG identity) | adapter differs; same user spine |
+| `tickets` | `services/tickets` (+ `tickets_web` facade) | ON | ON | **shared** — Tier C ✅ |
+| `auth` | `web_auth` + identities | ON (OAuth) | **OFF** (implicit TG identity) | adapter differs; same user spine — C4 ✅ |
 | `ai_customer` | Grok tools → services | optional later | ON | **shared tools** when mask on (Tier D) |
 | `referrals` | domain / later service | ON | ON | shared if product uses |
 | `reviews` | domain / later service | ON | ON | shared if product uses |
@@ -124,10 +124,10 @@ if not cap_enabled(caps, "checkout"):
 |------|--------|----------------|
 | **A** ✅ | Contract freeze | This file + tests |
 | **B** ✅ | Commerce spine | cart/checkout/order_status via services + `commerce_api.py` |
-| **C** | Tickets + identity + Messenger | tickets row → unify; notify via Messenger |
-| **D** | Grok tools | `ai_customer` tools respect mask + services |
-| **E** | Explicit non-parity | leads/booking/ops enforcement tests |
-| **F** | Scorecard + PR gate | checklist green |
+| **C** ✅ | Tickets + identity + Messenger | tickets row → unify; notify via Messenger |
+| **D** ✅ | Grok tools | `ai_customer` tools respect mask + services |
+| **E** ✅ | Explicit non-parity | `WEB_ONLY_CAPS` / `TG_OPS_CAPS` + deep_links + API gates |
+| **F** ✅ | Scorecard + PR gate | [scorecard](CARD-40-parity-scorecard.md) + PR template |
 
 ---
 

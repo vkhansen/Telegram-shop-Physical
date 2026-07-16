@@ -1,0 +1,32 @@
+---
+/** Strength indicator 1–7 as filled circles (geometry only). */
+interface Props {
+  strength?: number | null;
+  max?: number;
+  accent?: string | null;
+  class?: string;
+}
+
+const { strength = null, max = 7, accent = null, class: className = "" } = Astro.props;
+const n = strength != null ? Math.max(0, Math.min(max, Math.floor(strength))) : 0;
+---
+
+{
+  n > 0 && (
+    <div class={`flex items-center gap-1 ${className}`} aria-label={`Strength ${n} of ${max}`}>
+      {Array.from({ length: max }, (_, i) => (
+        <span
+          class="inline-block h-1.5 w-1.5 rounded-full"
+          style={
+            i < n
+              ? `background:${accent || "var(--brand-sea)"};`
+              : "background:var(--brand-line);opacity:0.5;"
+          }
+        />
+      ))}
+      <span class="ml-1 font-mono text-[10px] uppercase tracking-wider text-[color:var(--brand-muted)]">
+        {n}/{max}
+      </span>
+    </div>
+  )
+}

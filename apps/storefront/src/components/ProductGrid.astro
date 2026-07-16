@@ -1,19 +1,102 @@
 ---
 import type { CatalogItem } from "../lib/api";
 import { ctaLabel } from "../lib/api";
+import VectorCan from "./VectorCan.astro";
+import StrengthPips from "./StrengthPips.astro";
 
 interface Props {
   items: CatalogItem[];
   brandSlug: string;
   storeSlug: string;
+  /** ig_grid (default) | flavor_tiles */
+  variant?: string;
+  /** vector_only | photo_or_vector | photo */
+  productMedia?: string;
 }
 
-const { items, brandSlug, storeSlug } = Astro.props;
+const {
+  items,
+  brandSlug,
+  storeSlug,
+  variant = "ig_grid",
+  productMedia = "photo_or_vector",
+} = Astro.props;
+
+const flavor = variant === "flavor_tiles";
+const vectorOnly = productMedia === "vector_only";
 ---
 
 {
   items.length === 0 ? (
-    <p class="py-12 text-center text-ink-500">No items to show.</p>
+    <p class="py-12 text-center text-[color:var(--brand-muted,#6b6b73)]">No items to show.</p>
+  ) : flavor ? (
+    <div class="flavor-grid">
+      {items.map((item) => {
+        const c1 = item.accent_hex || "#0a4ea2";
+        const c2 = item.accent_hex_2 || "#062f63";
+        const motif = item.visual_motif || "ice";
+        // vector_only never uses photos; photo_or_vector prefers photo when present
+        const useVector = vectorOnly || !item.image_url;
+        return (
+          <a
+            href={`/${brandSlug}/${storeSlug}/i/${item.slug}`}
+            class:list={["flavor-tile group", item.featured_xl && "xl", `motif-${motif}`]}
+            style={`--c1:${c1};--c2:${c2};--tile-bg:${c1};`}
+          >
+            <div class="flavor-tile-inner relative z-[1]">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  {item.tag && (
+                    <p class="font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-white/80">
+                      {item.tag}
+                    </p>
+                  )}
+                  <p class="mt-1 text-sm font-bold tracking-tight text-white drop-shadow sm:text-base">
+                    {item.name}
+                  </p>
+                </div>
+                {item.strength != null && (
+                  <span class="rounded-full bg-white/90 px-2 py-0.5 font-mono text-[10px] font-semibold text-[color:var(--brand-ink,#06122e)]">
+                    {item.strength}/7
+                  </span>
+                )}
+              </div>
+              <div class="flex flex-1 items-center justify-center py-2">
+                {useVector ? (
+                  <VectorCan
+                    name={item.name}
+                    accent={c1}
+                    accent2={c2}
+                    strength={item.strength}
+                    motif={motif}
+                    size={item.featured_xl ? 150 : 120}
+                  />
+                ) : item.image_url ? (
+                  <img
+                    src={item.image_url}
+                    alt={item.name}
+                    class="max-h-[70%] max-w-[70%] object-contain drop-shadow-lg"
+                    loading="lazy"
+                  />
+                ) : null}
+              </div>
+              <div class="flex items-end justify-between gap-2">
+                <StrengthPips strength={item.strength} accent="#fff" />
+                <div class="text-right">
+                  {item.price && <p class="text-xs font-semibold text-white/90">{item.price}</p>}
+                  {!item.available && (
+                    <span class="text-[9px] uppercase text-white/70">Sold out</span>
+                  )}
+                  <span class="block text-[9px] uppercase tracking-wide text-white/70">
+                    {ctaLabel(item.cta)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </a>
+        );
+      })}
+    </div>
   ) : (
     <div class="grid grid-cols-3 gap-0.5 sm:gap-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {items.map((item) => (
@@ -28,6 +111,20 @@ const { items, brandSlug, storeSlug } = Astro.props;
               class="h-full w-full object-cover transition duration-300 group-hover:scale-105"
               loading="lazy"
             />
+          ) : item.accent_hex ? (
+            <div
+              class="flex h-full w-full flex-col items-center justify-center p-2"
+              style={`background:linear-gradient(145deg,${item.accent_hex},${item.accent_hex_2 || item.accent_hex});`}
+            >
+              <VectorCan
+                name={item.name}
+                accent={item.accent_hex}
+                accent2={item.accent_hex_2}
+                strength={item.strength}
+                motif={item.visual_motif}
+                size={90}
+              />
+            </div>
           ) : (
             <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-ink-800 to-ink-900 p-2 text-center text-xs text-sand-200">
               {item.name}
