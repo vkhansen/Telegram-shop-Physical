@@ -1,94 +1,85 @@
 ---
-import BaseLayout from "../../layouts/BaseLayout.astro";
-import AgeGate from "../../components/AgeGate.astro";
+import BrandShell from "../../layouts/BrandShell.astro";
 import ProfileHeader from "../../components/ProfileHeader.astro";
 import StoryChips from "../../components/StoryChips.astro";
-import SiteFooter from "../../components/SiteFooter.astro";
-import { fetchBrand, fetchStoreMenu } from "../../lib/api";
-import ProductGrid from "../../components/ProductGrid.astro";
+import BenefitsStrip from "../../components/BenefitsStrip.astro";
+import FeaturedItem from "../../components/FeaturedItem.astro";
+import CatalogSection from "../../components/CatalogSection.astro";
+import {
+  buildHeaderActions,
+  buildNavChips,
+  can,
+  catalogSubline,
+  loadBrandContext,
+  loadHomeCatalog,
+} from "../../lib/brandContext";
 
 export const prerender = false;
 
 const { brand: brandSlug } = Astro.params;
-if (!brandSlug) {
-  return Astro.redirect("/");
-}
+if (!brandSlug) return Astro.redirect("/");
 
-const brand = await fetchBrand(brandSlug);
-if (!brand) {
-  return new Response(null, { status: 404, statusText: "Not Found" });
-}
+const ctx = await loadBrandContext(brandSlug);
+if (!ctx) return new Response(null, { status: 404, statusText: "Not Found" });
 
-const web = brand.web || {};
-const hero = (web.hero as Record<string, string>) || {};
-const compliance = (web.compliance as Record<string, unknown>) || {};
-const ageGate = (compliance.age_gate as Record<string, string>) || {};
-const warnings = (compliance.footer_warnings as string[]) || [];
-const tagline = (web.tagline as string) || hero.headline || null;
-
-const stores = brand.stores || [];
-const defaultStore = stores.find((s) => s.is_default) || stores[0];
-
-let menuItems: import("../../lib/api").CatalogItem[] = [];
-let storeSlug = defaultStore?.slug || "";
-if (defaultStore) {
-  const menu = await fetchStoreMenu(brandSlug, defaultStore.slug);
-  if (menu) {
-    menuItems = menu.categories.flatMap((c) => c.items);
-    storeSlug = menu.store.slug;
-  }
-}
-
-const chips = [
-  { href: `/${brandSlug}`, label: "Home", active: true },
-  ...stores.map((s) => ({
-    href: `/${brandSlug}/${s.slug}`,
-    label: s.name,
-    active: false,
-  })),
-  { href: `/${brandSlug}/about`, label: "About" },
-  { href: `/${brandSlug}/contact`, label: "Contact" },
-];
+const home = await loadHomeCatalog(ctx);
+const chips = buildNavChips(ctx, { active: "home", includeCatalogAnchor: true });
+const actions = buildHeaderActions(ctx);
+const L = ctx.labels;
+const b = ctx.brand;
 ---
 
-<BaseLayout title={brand.name} description={brand.description || ""} brandName={brand.name}>
-  <AgeGate
-    enabled={brand.age_gate_enabled}
-    minAge={brand.min_age}
-    title={ageGate.title}
-    body={ageGate.body_md || ageGate.body}
-    brandSlug={brand.slug}
-  />
+<BrandShell ctx={ctx} title={b.name}>
   <ProfileHeader
-    name={brand.name}
-    description={brand.description}
-    logoUrl={brand.logo_url}
-    tagline={tagline}
-    brandSlug={brand.slug}
-    commerceMode={brand.commerce_mode}
+    name={b.name}
+    description={b.description}
+    logoUrl={b.logo_url}
+    tagline={ctx.tagline}
+    actions={actions}
   />
   <StoryChips chips={chips} />
+
   {
-    defaultStore ? (
-      <section class="pb-8">
-        <div class="mb-3 flex items-baseline justify-between gap-2">
-          <h2 class="text-sm font-semibold uppercase tracking-wider text-ink-500">
-            {defaultStore.name}
-          </h2>
-          <a class="text-sm text-accent hover:underline" href={`/${brand.slug}/${storeSlug}`}>
-            Open branch →
-          </a>
-        </div>
-        <ProductGrid items={menuItems} brandSlug={brand.slug} storeSlug={storeSlug} />
-      </section>
-    ) : (
-      <p class="py-12 text-center text-ink-500">No active stores for this brand.</p>
+    can(ctx, "benefits") && ctx.benefits.length > 0 && (
+      <BenefitsStrip
+        benefits={ctx.benefits}
+        eyebrow={L.benefitsEyebrow}
+        headline={L.benefitsHeadline}
+      />
     )
   }
-  <SiteFooter
-    brandSlug={brand.slug}
-    legalName={brand.legal?.legal_name}
-    dbdNumber={brand.legal?.dbd_number}
-    warnings={warnings}
-  />
-</BaseLayout>
+
+  {
+    can(ctx, "featured") && home.featured && home.storeSlug && (
+      <FeaturedItem
+        item={home.featured}
+        brandSlug={b.slug}
+        storeSlug={home.storeSlug}
+        eyebrow={L.featuredEyebrow}
+        badge={L.featuredBadge}
+        ctaLabel={L.featuredCta}
+        ctaHref="#catalog"
+        fallbackBody={ctx.hero.subhead || null}
+      />
+    )
+  }
+
+  {
+    can(ctx, "catalog") && home.storeSlug ? (
+      <CatalogSection
+        eyebrow={L.catalogEyebrow}
+        headline={L.catalogHeadline}
+        subline={catalogSubline(ctx, home)}
+        items={home.items}
+        brandSlug={b.slug}
+        storeSlug={home.storeSlug}
+        branchHref={`/${b.slug}/${home.storeSlug}`}
+        branchLabel={L.openBranch}
+      />
+    ) : (
+      !can(ctx, "catalog") ? null : (
+        <p class="py-12 text-center text-ink-500">No active stores for this brand.</p>
+      )
+    )
+  }
+</BrandShell>

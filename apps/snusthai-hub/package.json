@@ -1,0 +1,25 @@
+{
+  "name": "snusthai-hub",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/netlify": "^6.3.0",
+    "@astrojs/sitemap": "^3.3.1",
+    "@astrojs/tailwind": "^6.0.2",
+    "astro": "^5.7.10",
+    "photoswipe": "^5.4.4",
+    "resend": "^4.5.1",
+    "tailwindcss": "^3.4.17"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -84,6 +84,14 @@ async def start(message: Message, state: FSMContext):
     existing_user = await check_user_cached(user_id)
 
     if existing_user:
+        # CARD-30: lazy dual-write telegram identity for pre-migration users
+        from bot.platform.identity import ensure_telegram_identity
+
+        try:
+            ensure_telegram_identity(user_id)
+        except Exception:
+            logger.exception("ensure_telegram_identity failed user_id=%s", user_id)
+
         # Check if user has selected a language yet
         user_locale = get_user_locale(user_id)
         if user_locale:

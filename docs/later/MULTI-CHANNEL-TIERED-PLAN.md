@@ -1,10 +1,44 @@
-# Multi-Channel Tiered Plan — Telegram Primary (historical + detail)
+# Multi-Channel Tiered Plan — Unified Backend First
 
-> **⚠️ Priority source of truth (2026-07-16):** [`CLEAR-START.md`](../CLEAR-START.md) + [`FEATURE_CARDS.md`](../FEATURE_CARDS.md).  
-> **Next epic:** [CARD-38 white-label brand/branch sites](CARD-38-white-label-brand-branch-sites.md) — **before** Instagram DM (CARD-33) or vertical demos (CARD-37).  
-> This file retains multi-channel design detail; **do not** use its old “IG Phase 2 first” order when starting work.
+> **⚠️ Priority source of truth:** [`CLEAR-START.md`](../CLEAR-START.md) + [`FEATURE_CARDS.md`](../FEATURE_CARDS.md)  
+> **Binding interface law:** [`Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md`](../Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md)  
+> **Last updated:** 2026-07-17
 
-Last updated: 2026-07-16
+---
+
+## 0. Directive (2026-07-17) — read first
+
+### What changed
+
+Older drafts said *“Telegram handlers may call domain directly forever.”*  
+**That is revoked for all new work.**
+
+| Principle | Meaning |
+|-----------|---------|
+| **Unified backend** | Catalog, cart, checkout, orders, tickets, leads, booking, media, notify, identity are **standardized application services** |
+| **Adapters only at edges** | Telegram · LINE · WhatsApp · Instagram DM · web storefront · web forms · chatbox — all call the **same** services |
+| **Masks, not forks** | Each frontend implements a **subset** of capabilities; it must not invent parallel business logic |
+| **No TG-only feature paths** | A capability is not “done” until it has a channel-agnostic service entry (even if only Telegram adapter uses it today) |
+| **Legacy debt** | Existing handler→domain paths may remain until CARD-32 migrates them; **do not add new ones** |
+
+### North star diagram
+
+```text
+   Telegram   LINE   Web UI   Web forms   Chatbox/AI
+       \        \      |         |            /
+        \        \     |         |           /
+         ▼        ▼    ▼         ▼          ▼
+              ┌────────────────────────────┐
+              │  Application services      │  ← single contract
+              │  + platform capabilities   │
+              └─────────────┬──────────────┘
+                            ▼
+              ┌────────────────────────────┐
+              │  Domain (DB, payments, …)  │
+              └────────────────────────────┘
+```
+
+Full rules: [UNIFIED-BACKEND-CHANNEL-INTERFACE.md](../Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md).
 
 ---
 
@@ -12,276 +46,223 @@ Last updated: 2026-07-16
 
 | Goal | Meaning |
 |------|---------|
-| Preserve Telegram | Handlers, FSM, keyboards, kitchen/rider groups, admin, dispatch stay first-class |
 | Shared backend | Same DB, inventory, payments, order state machine, multi-brand context |
-| Clean seams | Small ports (`Messenger`, identity, media, capabilities) — not a full UI framework |
-| Instagram = Phase 2 | First *customer* channel after foundation; **masked** feature set |
-| Privilege levels | Elevated roles (admin/kitchen/driver) stay Telegram until a deliberate ops UI exists |
+| Clean seams | Services + ports (`Messenger`, identity, media, capabilities) — not a full UI framework |
+| Surface freedom | Any frontend may expose a **mask** of features; backend feature set is complete and standard |
+| Telegram as adapter | Telegram remains the richest **ops + customer** adapter today — not a special-case domain API |
+| Privilege levels | Elevated roles (admin/kitchen/driver) stay on ops adapters (Telegram groups/UI) until an ops web exists; still no duplicate order math |
 
 ---
 
-## 2. Architecture (Telegram-first)
+## 2. Architecture (unified)
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  TELEGRAM (primary app — never demoted)                       │
-│  handlers · keyboards · FSM · middleware · BotPool · admin    │
-└───────────────┬────────────────────────────┬─────────────────┘
-                │ optional extract           │ always
-                ▼                            ▼
-┌───────────────────────────┐    ┌────────────────────────────┐
-│ Application services      │───▶│ Domain (unchanged APIs)    │
-│ cart · checkout · orders  │    │ methods · payments ·       │
-│ tickets (customer)        │    │ inventory · matching · AI  │
-└─────────────┬─────────────┘    └─────────────▲──────────────┘
-              │                                │
-              ▼                                │
-┌───────────────────────────┐                  │
-│ Ports                     │                  │
-│ Messenger · UserDirectory │                  │
-│ MediaRef · Capabilities   │                  │
-└───────┬───────────────────┘                  │
-        │                                      │
-   ┌────┴─────┬────────────┐                   │
-   ▼          ▼            ▼                   │
-Telegram   Instagram    LINE / Web             │
-Messenger  (Phase 2)    (later tiers) ─────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│ ADAPTERS (I/O only — no business ownership)                        │
+│  Telegram handlers · Web /api/public · Astro SSR · forms · AI tools│
+│  (future: LINE / IG / WA webhooks)                                 │
+└────────────────────────────┬─────────────────────────────────────┘
+                             │ DTOs + capability check
+                             ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ APPLICATION SERVICES (standardized)                                │
+│  catalog_public · leads_bookings · tickets_web · web_auth          │
+│  + CARD-32: cart · checkout · order_query · tickets                │
+│  platform: capabilities · media_ref · messaging                    │
+└────────────────────────────┬─────────────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ DOMAIN                                                             │
+│  database/methods · payments · inventory · matching · AI core      │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-**Rule:** Telegram handlers may call domain directly forever. Services are shared paths for multi-channel reuse, not a mandatory choke point for Telegram.
+**Rule:** Adapters call services. Services call domain.  
+**Forbidden for new code:** Adapter → domain business methods with channel-specific rules.
+
+**Landed (partial):**
+
+| Piece | Status |
+|-------|--------|
+| `bot/platform/capabilities.py` | ✅ brand + channel masks; public brand DTO |
+| `bot/platform/media_ref.py` | ✅ local / tg / https schemes |
+| `bot/platform/messaging.py` | ✅ protocol + registry (adapters TBD) |
+| Public web catalog / media / leads / tickets | ✅ service-shaped |
+| Storefront BrandShell + capability gating | ✅ |
+| Messenger wire into notifications | ❌ CARD-29 |
+| Identities dual-write complete | ◐ CARD-30 / 39 partial |
+| Platform×role matrix full | ◐ CARD-31 (extend platform) |
+| Cart/checkout services + TG migration | ❌ CARD-32 |
 
 ---
 
 ## 3. Tier overview
 
-| Tier | Milestone | Theme | Second channel? | Cards | Effort (est.) |
-|------|-----------|--------|-----------------|-------|----------------|
-| **T0-Spec** | M3-Specs | Formal workflow & chat specs | No | [CARD-34](CARD-34-conversation-workflow-specifications.md) | 3–6d |
-| **T0** | M3-Foundation | Ports under Telegram only | No | [CARD-29](CARD-29-messenger-port.md), [CARD-30](CARD-30-user-identities.md), [CARD-31](CARD-31-platform-capabilities.md) | 2–4d |
-| **T1** | M3-Services | Customer application services | No | [CARD-32](CARD-32-customer-application-services.md) | 2–4d |
-| **T2** | M3-Instagram | Instagram Messaging (masked customer) | **Yes — Instagram DM** | [CARD-33](CARD-33-instagram-messaging-channel.md) | 5–8d |
-| **T2-Web** | M3-Web | Instagram-style web + **SnusThai Hub** Astro MVP | **Yes — Web** | [CARD-35](CARD-35-instagram-style-web-storefront.md), [CARD-37](CARD-37-snusthai-hub-astro-mvp.md) | 5–8d |
-| **T2-Funnel** | M3-Funnel | IG → web forms → private bot/staff | **Bridge** | [CARD-36](CARD-36-instagram-web-telegram-funnel.md) | 3–5d |
-| **T3** | M3-Expand | Additional channels | LINE | [CARD-16](CARD-16-line-api-integration.md) (re-scoped) | 5–8d each |
+| Tier | Theme | Cards | Effort |
+|------|--------|-------|--------|
+| **T0-Spec** | Formal flow IDs | CARD-34 | 3–6d |
+| **T0** | Ports under unified law | CARD-29, 30, 31 | 2–4d |
+| **T1** | Customer application services (kill TG-only paths) | **CARD-32** | 2–4d |
+| **T1.5** | Web↔Telegram **abstracted** feature parity (masks) | **[CARD-40](CARD-40-web-telegram-abstracted-feature-parity.md)** | tiered ~7–13d |
+| **T-Web** | White-label web as first-class adapter | CARD-38 ✅ · 39 · 36 | — |
+| **T2** | Second messaging channel (masked) | CARD-33 IG | 5–8d |
+| **T3** | LINE / more | CARD-16 | 5–8d each |
 
 ```
-T0-Spec  CARD-34 Conversation & workflow specifications
-         (as-built Telegram catalog + Instagram mask package)
-              │ can parallel T0 ports
-              ▼
-T0  CARD-29 Messenger ──┬──▶ CARD-30 Identities
-                        └──▶ CARD-31 Capabilities
-                                      │
-                                      ▼
-T1  CARD-32 Customer services  ◀── soft-gated by CARD-34 customer core
-                                      │
-                                      ▼
-T2  CARD-33 Instagram Messaging  ◀── Phase 2 DM; HARD-gated by CARD-34 IG package
-T2-Web  CARD-35 Instagram-style web storefront
-        Brand → Store → Menu → Items (auto from Telegram backend)
-        Spec: docs/Specifications/WEB-INSTAGRAM-STYLE-STOREFRONT.md
-                                      │
-                                      ▼
-T3  CARD-16 LINE (optional) · full web checkout (later)
+T-Web  CARD-38/39/36  public web already on services  ─────────┐
+                                                                │
+T0     CARD-29 Messenger · 30 Identities · 31 Caps ─────────────┤
+                                                                │
+T1     CARD-32 Customer services  ◀── HARD for second channel   │
+       (migrate Telegram handlers onto services)                │
+                                                                │
+T1.5   CARD-40 Web↔TG abstracted parity                         │
+       shared services + intentional non-parity                 │
+       (leads / Google booking = web-only by mask)              │
+                                                                ▼
+T2     CARD-33 / 16  only if T1 + T1.5 spine + masks green
 ```
 
----
-
-## 3b. Tier 0-Spec — Conversation & workflow specifications
-
-**Card:** [CARD-34](CARD-34-conversation-workflow-specifications.md)  
-**Index:** [`docs/Specifications/README.md`](../Specifications/README.md)
-
-**Exit criteria:** Customer flows inventoried and core commerce paths specified as-built; Instagram In/Out package **accepted**; template + index live.
-
-| Gate | Effect |
-|------|--------|
-| Soft | CARD-32 service boundaries should match named flow IDs |
-| **Hard** | CARD-33 / CARD-16 must not invent chat paths outside accepted specs |
-
-Can run **in parallel** with T0 ports (29–31). Prefer finishing **customer core + IG package** before T2 coding starts.
+**Hard gate:** No second messaging channel ships until CARD-32 has checkout + order_query services and at least one Telegram payment path uses them.
 
 ---
 
-## 4. Tier 0 — Foundation ports (Telegram-only behavior)
+## 4. Capability masks (product policy)
 
-**Exit criteria:** all outbound order/status/kitchen/rider notifies go through `Messenger`; users dual-write a Telegram identity row; capability matrix exists and is unit-tested; **zero customer-visible Telegram UX change**.
+Frontends **do not** need parity. Backend **does** need a complete service map.
 
-| Card | Deliverable | Risk if skipped |
-|------|-------------|-----------------|
-| **CARD-29** | `Messenger` protocol + `TelegramMessenger`; wire `notifications.py` (broadcast/dispatch optional same PR series) | Every channel reimplements send |
-| **CARD-30** | `user_identities` table; dual-write on Telegram user create/login; resolve API | Cannot map IG PSID → internal user |
-| **CARD-31** | `PLATFORM_CAPS` + `features_for(platform, role)`; docs for masks | Feature creep / unsupported IG flows |
+| Feature | Telegram adapter | Web storefront | Web forms | IG/LINE (later) |
+|---------|------------------|----------------|-----------|-----------------|
+| Catalog browse | Full | Full | — | Limited |
+| Cart + modifiers | Full | Optional mask | — | Simplified |
+| Checkout / payments | Full | Per `commerce_mode` | — | Masked |
+| Live GPS / rider chat | Full | Off (default) | — | Off |
+| Leads / inquire | Optional | Full (portfolio) | Full | Optional |
+| Booking | Optional | Full | Full | Optional |
+| Tickets | Full | Full (OAuth) | — | Text |
+| Age gate / disclaimers | Soft | Full | Footer | Policy text |
+| Admin / kitchen / driver | Full ops | Off | Off | Off |
 
-**Telegram compatibility:** `get_shared_bot()` may remain as an implementation detail of `TelegramMessenger`. Public helpers (`notify_order_confirmed`, etc.) keep signatures.
+Machine form: `resolve_capabilities(brand, channel)` + CARD-31 platform×role intersection.
 
 ---
 
-## 5. Tier 1 — Customer application services
+## 5. Tier 0 — Foundation ports
 
-**Exit criteria:** PromptPay/cash/crypto order creation and cart ops usable as pure functions returning DTOs; at least one Telegram payment path calls the service without behavior change; tests cover service success/failure paths.
+**Exit criteria:** outbound notify via Messenger; identities dual-write; capability matrix tested; **no new handler→domain business paths**.
 
 | Card | Deliverable |
 |------|-------------|
-| **CARD-32** | `bot/services/{cart,checkout,order_query,tickets}.py` — thin over existing methods |
-
-**Does not include:** admin goods FSM, kitchen/rider UI, driver live location, full keyboard abstraction.
+| **CARD-29** | `Messenger` / align with `bot/platform/messaging.py`; wire `notifications.py` |
+| **CARD-30** | `user_identities` dual-write + resolve (extend web OAuth rows) |
+| **CARD-31** | Full platform×role matrix merged into `bot/platform/capabilities` |
 
 ---
 
-## 6. Tier 2 — Instagram (Phase 2 channel)
+## 6. Tier 1 — Customer application services (critical)
 
-**Exit criteria:** Meta Instagram Messaging webhook live (flag-gated); customer can complete a **masked** journey on IG that shares the same orders/payments backend; elevated roles remain Telegram-only; Telegram regression suite green.
+**Exit criteria:** cart/checkout/order_query/tickets are pure services; **Telegram payment paths call services**; inventory reserve identical; suite green.
 
 | Card | Deliverable |
 |------|-------------|
-| **CARD-33** | Instagram adapter + webhook + masked customer flows + outbound via Messenger router |
+| **CARD-32** | `bot/services/{cart,checkout,order_query,tickets,dto}.py` |
 
-### Instagram capability mask (by design)
-
-| Feature | Telegram | Instagram (T2) |
-|---------|----------|----------------|
-| Browse menu / search | Full | Limited (carousel / text list) |
-| Cart + modifiers | Full | Simplified (core modifiers only or text) |
-| Checkout address + phone | Full | Full (text + optional location) |
-| Live GPS / rider ETA stream | Full | **Off** |
-| Delivery chat live location | Full | **Off** (text status only) |
-| PromptPay QR + slip photo | Full | QR image + slip image (Meta media) |
-| Crypto payment instructions | Full | Text + copyable address |
-| Order status / history | Full | Full (text + quick replies) |
-| Support tickets | Full | Open + reply text |
-| Customer AI assistant | Full | Optional short-turn |
-| Admin / kitchen / driver | Full | **Off** |
-| Broadcasts | Full | Template/policy constrained (opt-in later) |
-
-### Privilege policy
-
-| Actor | Surface |
-|-------|---------|
-| Customer | Telegram (full) + Instagram (mask) |
-| Admin / Owner / Superadmin | **Telegram only** |
-| Kitchen / Rider staff | **Telegram groups only** |
-| Driver dispatch | **Telegram only** |
+This is the **main anti-Telegram-coupling** milestone. Until done, multi-channel remains incomplete by law of §0.
 
 ---
 
-## 7. Tier 3 — Later channels (not Phase 2)
+## 7. Web adapter (already in flight)
 
-| Channel | Card | When |
-|---------|------|------|
-| LINE | CARD-16 (re-scoped: ports + services first, no full handler rewrite) | After T2 stable |
-| Webchat | Future card | When product wants full map/UI control |
+Web is not a second-class “brochure”:
 
-LINE remains valuable for Thailand reach but is **not** Phase 2 in this plan.
-
----
-
-## 8. Implementation order (execution checklist)
-
-### Sprint A0 — T0-Spec (can parallel A)
-
-1. [ ] CARD-34 template + index + inventory  
-2. [ ] Customer core flows C-05…C-18 + cross-cutting order/payment  
-3. [ ] Accept Instagram Phase 2 In/Out package in Specs README  
-
-### Sprint A — T0 (ports)
-
-4. [ ] CARD-29 Messenger + Telegram adapter + notifications wiring  
-5. [ ] CARD-30 `user_identities` migration + dual-write  
-6. [ ] CARD-31 capabilities module + unit tests  
-7. [ ] Flag: none required (behavior-preserving)
-
-### Sprint B — T1 (services)
-
-8. [ ] CARD-32 cart + checkout DTOs; migrate one Telegram payment path  
-9. [ ] Migrate remaining customer payment paths when stable  
-10. [ ] order_query + tickets services for IG reuse  
-
-### Sprint C — T2 (Instagram DM) — requires CARD-34 IG package accepted
-
-11. [ ] Meta app, Instagram Business + Page, webhooks, secrets in env  
-12. [ ] CARD-33 inbound adapter → identity resolve → services  
-13. [ ] Outbound Messenger multi-backend (`telegram` default, `instagram` if linked)  
-14. [ ] Implement **only** flows in accepted IG package  
-15. [ ] `INSTAGRAM_CHANNEL_ENABLED` flag (default off)  
-16. [ ] E2E: IG happy path + Telegram regression  
-
-### Sprint C-Web — T2-Web / SnusThai Hub (can parallel C; does not need Meta)
-
-17. [ ] **CARD-37 SnusThai Hub** Astro setup + age gate + hero + social (LINE/WA/IG)  
-18. [ ] Product gallery (MD content Mode A) + filters + PhotoSwipe + inquire CTA  
-19. [ ] Lead form + Resend (+ optional CARD-36 webhook)  
-20. [ ] Blog MDX + sitemap/SEO  
-21. [ ] CARD-35 Mode B later: catalog API from Telegram backend  
-22. [ ] Spec acceptance: SNUSTHAI-HUB-MVP §10
-
-### Sprint D — T3 (optional)
-
-21. [ ] CARD-16 LINE using same ports/services + LINE flow masks in specs  
-22. [ ] In-web checkout (CARD-32) if product wants full web ordering  
+- Public API + media + leads/booking + OAuth tickets already service-shaped  
+- Storefront uses capability mask from API  
+- Must keep calling **only** public/services APIs (never invent domain rules in Astro)
 
 ---
 
-## 9. Config / ops (preview)
+## 8. Tier 2+ messaging channels
+
+Instagram / LINE / WhatsApp:
+
+1. Webhook adapter  
+2. Identity resolve  
+3. `can(channel, feature)`  
+4. Call CARD-32 services  
+5. Outbound via Messenger multi-backend  
+
+**Hard-gated** by accepted flow specs (CARD-34) + T1 services.
+
+---
+
+## 9. Implementation order (execution checklist)
+
+### Now (directive + web)
+
+1. [x] Document unified interface law  
+2. [x] `bot/platform` capabilities / media_ref / messaging protocol  
+3. [x] CARD-38 public catalog + storefront capability gating  
+4. [ ] Keep all new web/form features on services only  
+
+### Sprint A — T0 ports
+
+5. [ ] CARD-29 Messenger + notifications  
+6. [ ] CARD-30 identity dual-write + resolve helpers  
+7. [ ] CARD-31 complete matrix + tests  
+
+### Sprint B — T1 services (mandatory)
+
+8. [ ] CARD-32 cart + checkout DTOs  
+9. [ ] Migrate Telegram PromptPay (then cash/crypto) onto services  
+10. [ ] order_query + tickets services; deprecate duplicate handler logic  
+
+### Sprint C — second channel (optional)
+
+11. [ ] CARD-34 IG package accepted  
+12. [ ] CARD-33 or CARD-16 using **only** services  
+
+---
+
+## 10. Config / ops (preview)
 
 ```bash
-# Existing Telegram (unchanged)
 TOKEN=...
 OWNER_ID=...
-MULTI_BOT_ENABLED=false
-
-# Instagram (CARD-33)
-INSTAGRAM_CHANNEL_ENABLED=false
-INSTAGRAM_PAGE_ACCESS_TOKEN=
-INSTAGRAM_APP_SECRET=
-INSTAGRAM_VERIFY_TOKEN=
-INSTAGRAM_WEBHOOK_PATH=/webhooks/instagram
-# Optional: default brand for IG entry
-INSTAGRAM_DEFAULT_BRAND_ID=1
+# Brand web_profile.channels + modules control masks (DB)
+# INSTAGRAM_CHANNEL_ENABLED=false  # later
 ```
-
-Webhook hosting: HTTPS endpoint co-located with bot process (aiohttp/FastAPI) or reverse-proxied — same deployment unit preferred.
 
 ---
 
-## 10. Risks
+## 11. Risks
 
 | Risk | Mitigation |
 |------|------------|
-| Meta app review / messaging permissions | Start with test IG account; feature-flag production |
-| 24h messaging window / policy | Prefer user-initiated threads; status push within window |
-| Limited interactive UI on IG | Masked flows; deep-link to Telegram for full UX when needed |
-| Identity collision (same person on TG + IG) | Manual or code-based account link later; dual identity rows OK |
-| Scope creep to “full parity” | Capability matrix + PR checklist against mask |
-| Handler rewrite pressure | Reject PRs that force PlatformContext on all Telegram handlers |
+| Scope creep “full parity every channel” | Capability matrix + PR checklist |
+| Handler rewrite pressure | Incremental CARD-32 migration; reject new dual paths |
+| Identity collision | user_identities + explicit link flows |
+| Half-migrated payments | Parity tests service vs legacy until cutover |
 
 ---
 
-## 11. Success metrics
+## 12. Success metrics
 
-| Tier | Done when |
-|------|-----------|
-| T0-Spec | Spec index complete for customer core; IG package accepted; template in use |
-| T0 | Notify path uses Messenger; identities dual-written; caps tested; Telegram UX identical |
-| T1 | Checkout service creates same order rows as legacy path; inventory reserve identical |
-| T2 | Flag-on: IG user places PromptPay (or cash) order visible in Telegram admin; status notifies on IG |
-| T3 | Second non-TG channel reuses ≥80% of services without new domain logic |
+| Milestone | Done when |
+|-----------|-----------|
+| Directive | Spec linked from CLEAR-START / FEATURE_CARDS; team uses R1–R8 |
+| T0 | Messenger + identities + caps tests green |
+| T1 | ≥1 TG checkout path uses services; no new handler domain logic in review |
+| Multi-channel ready | Web + TG share services; second adapter can ship on masks only |
 
 ---
 
-## 12. Related docs
+## 13. Related docs
 
 | Doc | Role |
 |-----|------|
-| [CARD-34](CARD-34-conversation-workflow-specifications.md) | Formal workflow & chat specs |
-| [Specifications/README.md](../Specifications/README.md) | Spec index |
-| [CARD-29](CARD-29-messenger-port.md) | Messenger port |
-| [CARD-30](CARD-30-user-identities.md) | Identity dual-write |
-| [CARD-31](CARD-31-platform-capabilities.md) | Feature masks |
-| [CARD-32](CARD-32-customer-application-services.md) | Services |
-| [CARD-33](CARD-33-instagram-messaging-channel.md) | Instagram Phase 2 DMs |
-| [CARD-35](CARD-35-instagram-style-web-storefront.md) | Auto web storefront |
-| [WEB-INSTAGRAM-STYLE-STOREFRONT.md](../Specifications/WEB-INSTAGRAM-STYLE-STOREFRONT.md) | Web storefront full spec |
-| [CARD-16](CARD-16-line-api-integration.md) | LINE Tier 3 (re-scoped) |
-| [FEATURE_CARDS.md](../FEATURE_CARDS.md) | Status board |
-| [MASTER-PLAN.md](../MASTER-PLAN.md) | Milestone sequencing |
+| [UNIFIED-BACKEND-CHANNEL-INTERFACE](../Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md) | **Binding law** |
+| [CARD-29](CARD-29-messenger-port.md) · [30](CARD-30-user-identities.md) · [31](CARD-31-platform-capabilities.md) · [32](CARD-32-customer-application-services.md) | Execution |
+| [CARD-38](CARD-38-white-label-brand-branch-sites.md) | Web adapter |
+| [FEATURE_CARDS](../FEATURE_CARDS.md) | Status board |
+| [MASTER-PLAN](../MASTER-PLAN.md) | Milestones |

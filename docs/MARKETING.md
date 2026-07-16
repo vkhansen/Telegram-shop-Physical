@@ -1,5 +1,8 @@
 # Baan Thai Kitchen Bot
 
+> **Platform blurb, multi-channel pitch, and WIP archive:** [`MASTER-DOCUMENT.md`](MASTER-DOCUMENT.md)  
+> This file is the **merchant-facing restaurant story** (Telegram-first product brochure).
+
 **A complete restaurant ordering and delivery platform built entirely inside Telegram.**
 
 No app store. No download. No sign-up forms. Your customers open Telegram, tap Start, and order food in their own language -- in under 60 seconds.

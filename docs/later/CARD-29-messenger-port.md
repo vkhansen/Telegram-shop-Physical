@@ -2,14 +2,15 @@
 
 ## Implementation Status
 
-> **0% Complete** | `░░░░░░░░░░░░░░░░░░░` | Design only — not started.
+> **~90% Complete** | `██████████████████░░` | **2026-07-17:** `Messenger` + `TelegramMessenger` + `notifications.py` wired. Optional: broadcast/dispatch still direct Bot.
 
 **Tier:** T0 — Multi-Channel Foundation  
 **Phase:** M3 — Multi-Platform Growth  
-**Priority:** High (blocks Instagram / LINE outbound)  
+**Priority:** High (blocks multi-channel outbound)  
 **Effort:** Low–Medium (1–2 days)  
-**Dependencies:** None (uses existing `notifications.py` / Bot)  
-**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](MULTI-CHANNEL-TIERED-PLAN.md)
+**Dependencies:** Align with [UNIFIED-BACKEND-CHANNEL-INTERFACE](../Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md) §6  
+**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](MULTI-CHANNEL-TIERED-PLAN.md)  
+**Code (partial):** `bot/platform/messaging.py`
 
 ---
 
@@ -30,10 +31,9 @@ Telegram remains the only implementation in this card.
 ### In
 
 ```
-bot/ports/
-  __init__.py
-  messenger.py          # Protocol + types
-  telegram_messenger.py # TelegramMessenger (or same file)
+bot/platform/messaging.py            # Messenger protocol + get/set_messenger + RecordingMessenger
+bot/platform/telegram_messenger.py   # TelegramMessenger + shared Bot session
+bot/payments/notifications.py        # all sends via get_messenger()
 ```
 
 ```python
@@ -83,9 +83,11 @@ class Messenger(Protocol):
 
 ## Exit criteria
 
-- [ ] `Messenger` protocol + `TelegramMessenger` in tree  
-- [ ] All functions in `notifications.py` use Messenger (no direct `get_shared_bot` outside adapter)  
-- [ ] Suite green; no Telegram UX regression  
+- [x] `Messenger` protocol + `TelegramMessenger` in tree  
+- [x] All functions in `notifications.py` use Messenger (no direct `get_shared_bot` for sends; re-export only)  
+- [x] Unit tests: `tests/unit/platform/test_messaging_card29.py`  
+- [ ] Optional: `broadcast_system` / dispatch DMs via Messenger  
+- [x] Suite green on platform tests; no Telegram UX regression (signatures preserved)  
 
 ---
 

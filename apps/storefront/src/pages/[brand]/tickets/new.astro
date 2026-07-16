@@ -1,20 +1,29 @@
 ---
-import BaseLayout from "../../../layouts/BaseLayout.astro";
-import { fetchBrand } from "../../../lib/api";
+import BrandShell from "../../../layouts/BrandShell.astro";
+import PageHeader from "../../../components/PageHeader.astro";
+import { can, loadBrandContext } from "../../../lib/brandContext";
 
 export const prerender = false;
 
 const { brand: brandSlug } = Astro.params;
 if (!brandSlug) return Astro.redirect("/");
-const brand = await fetchBrand(brandSlug);
-if (!brand) return new Response(null, { status: 404 });
-const apiBase = (import.meta.env.PUBLIC_API_BASE || "http://127.0.0.1:9090").replace(/\/$/, "");
+
+const ctx = await loadBrandContext(brandSlug);
+if (!ctx) return new Response(null, { status: 404 });
+if (!can(ctx, "tickets", true)) return new Response(null, { status: 404 });
+
+const apiBase = ctx.apiBase;
 ---
 
-<BaseLayout title="New ticket" brandName={brand.name}>
-  <main class="mx-auto max-w-lg py-8">
-    <a href={`/${brandSlug}/tickets`} class="text-xs text-accent hover:underline">← Tickets</a>
-    <h1 class="mt-3 text-3xl font-bold">New support ticket</h1>
+<BrandShell ctx={ctx} title="New ticket">
+  <main class="mx-auto max-w-lg py-2">
+    <PageHeader
+      brandSlug={ctx.slug}
+      brandName={ctx.brand.name}
+      title="New support ticket"
+      backHref={`/${brandSlug}/tickets`}
+      backLabel="← Tickets"
+    />
     <form id="new-ticket" class="mt-8 space-y-4">
       <label class="block text-sm">
         <span class="text-ink-500">Subject</span>
@@ -28,10 +37,9 @@ const apiBase = (import.meta.env.PUBLIC_API_BASE || "http://127.0.0.1:9090").rep
       <p id="err" class="hidden text-xs text-red-400"></p>
     </form>
   </main>
-</BaseLayout>
+</BrandShell>
 
 <script define:vars={{ apiBase, brandSlug }}>
-  // require auth
   fetch(`${apiBase}/api/public/auth/me`, { credentials: "include" }).then((r) => {
     if (!r.ok) window.location.href = `/${brandSlug}/login?next=/${brandSlug}/tickets/new`;
   });

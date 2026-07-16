@@ -1,26 +1,27 @@
 ---
-import BaseLayout from "../../../../layouts/BaseLayout.astro";
-import SiteFooter from "../../../../components/SiteFooter.astro";
-import { ctaLabel, fetchBrand, fetchItem } from "../../../../lib/api";
+import BrandShell from "../../../../layouts/BrandShell.astro";
+import DisclaimerPanel from "../../../../components/DisclaimerPanel.astro";
+import { ctaLabel, fetchItem } from "../../../../lib/api";
+import { can, loadBrandContext } from "../../../../lib/brandContext";
 
 export const prerender = false;
 
 const { brand: brandSlug, store: storeSlug, item: itemSlug } = Astro.params;
 if (!brandSlug || !storeSlug || !itemSlug) return Astro.redirect("/");
 
-const brand = await fetchBrand(brandSlug);
-const item = await fetchItem(brandSlug, storeSlug, itemSlug);
-if (!brand || !item) {
-  return new Response(null, { status: 404, statusText: "Not Found" });
-}
+const ctx = await loadBrandContext(brandSlug);
+if (!ctx) return new Response(null, { status: 404, statusText: "Not Found" });
+if (!can(ctx, "item_detail", true)) return new Response(null, { status: 404 });
 
-const web = brand.web || {};
-const compliance = (web.compliance as Record<string, unknown>) || {};
-const warnings = (compliance.footer_warnings as string[]) || [];
+const item = await fetchItem(brandSlug, storeSlug, itemSlug);
+if (!item) return new Response(null, { status: 404, statusText: "Not Found" });
+
 const cta = item.cta || "inquire";
+const L = ctx.labels;
+const cmp = ctx.compliance;
 ---
 
-<BaseLayout title={item.name} description={item.description || brand.name} brandName={brand.name}>
+<BrandShell ctx={ctx} title={item.name} description={item.description || ctx.brand.name}>
   <article class="py-6 lg:grid lg:grid-cols-2 lg:gap-10 lg:py-10">
     <div class="aspect-[4/5] overflow-hidden rounded-2xl bg-ink-800 lg:aspect-square">
       {
@@ -36,19 +37,11 @@ const cta = item.cta || "inquire";
         href={`/${brandSlug}/${storeSlug}`}
         class="text-xs font-medium uppercase tracking-wider text-accent hover:underline"
       >
-        ← Back to menu
+        {L.backToMenu}
       </a>
       <h1 class="mt-2 text-3xl font-bold tracking-tight">{item.name}</h1>
-      {
-        item.price && (
-          <p class="mt-2 text-xl font-semibold text-accent">{item.price}</p>
-        )
-      }
-      {
-        !item.available && (
-          <p class="mt-2 text-sm font-medium text-red-400">Currently unavailable</p>
-        )
-      }
+      {item.price && <p class="mt-2 text-xl font-semibold text-accent">{item.price}</p>}
+      {!item.available && <p class="mt-2 text-sm font-medium text-red-400">Currently unavailable</p>}
       {
         item.badges?.length > 0 && (
           <div class="mt-3 flex flex-wrap gap-2">
@@ -63,9 +56,18 @@ const cta = item.cta || "inquire";
           <p class="mt-4 text-sm leading-relaxed text-sand-200 lg:text-base">{item.description}</p>
         )
       }
+      {item.allergens && <p class="mt-3 text-xs text-ink-500">Allergens: {item.allergens}</p>}
+
       {
-        item.allergens && (
-          <p class="mt-3 text-xs text-ink-500">Allergens: {item.allergens}</p>
+        (cmp.footerWarnings.length > 0 || cmp.productDisclaimer) && (
+          <div class="mt-6">
+            <DisclaimerPanel
+              blocks={cmp.footerWarnings.map((w) => ({ body: w }))}
+              body={cmp.productDisclaimer}
+              title="Product notice"
+              compact
+            />
+          </div>
         )
       }
 
@@ -76,7 +78,7 @@ const cta = item.cta || "inquire";
               href={`/${brandSlug}/contact`}
               class="rounded-xl bg-accent px-6 py-3 text-center text-sm font-semibold text-ink-950 hover:bg-accent-glow"
             >
-              {ctaLabel("order")} — contact / Telegram
+              {ctaLabel("order")} — {L.contact}
             </a>
           ) : (
             <a
@@ -87,19 +89,17 @@ const cta = item.cta || "inquire";
             </a>
           )
         }
-        <a
-          href={`/${brandSlug}/book`}
-          class="rounded-xl border border-ink-700 px-6 py-3 text-center text-sm font-medium hover:bg-ink-800"
-        >
-          Book a meeting
-        </a>
+        {
+          can(ctx, "booking") && (
+            <a
+              href={`/${brandSlug}/book`}
+              class="rounded-xl border border-ink-700 px-6 py-3 text-center text-sm font-medium hover:bg-ink-800"
+            >
+              {L.book}
+            </a>
+          )
+        }
       </div>
     </div>
   </article>
-  <SiteFooter
-    brandSlug={brandSlug}
-    legalName={brand.legal?.legal_name}
-    dbdNumber={brand.legal?.dbd_number}
-    warnings={warnings}
-  />
-</BaseLayout>
+</BrandShell>

@@ -8,7 +8,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class WebProfileV1(BaseModel):
-    """Loose schema — extra keys allowed for forward compatibility."""
+    """Loose schema — extra keys allowed for forward compatibility.
+
+    Channel-agnostic white-label config (not Telegram-specific):
+      modules / capabilities — feature toggles
+      channels — per-surface enable + mask (web, telegram, line, …)
+      compliance — age gate + disclaimers (tenant legal prose)
+      nav / sections / cta — UI labels
+    """
 
     model_config = ConfigDict(extra="allow")
 
@@ -17,14 +24,23 @@ class WebProfileV1(BaseModel):
     theme: str | None = None
     tagline: str | None = None
     tagline_i18n: dict[str, str] | None = None
+    ticker: str | None = None
     about: dict[str, Any] | None = None
     hero: dict[str, Any] | None = None
     social: dict[str, Any] | None = None
     faq: list[dict[str, Any]] | None = None
     seo: dict[str, Any] | None = None
     modules: dict[str, Any] | None = None
+    # Explicit capability overrides (see bot.platform.capabilities)
+    capabilities: dict[str, Any] | None = None
+    # Per-channel enable + mask: { "web": {"enabled": true, "mask": {...}}, ... }
+    channels: dict[str, Any] | None = None
     compliance: dict[str, Any] | None = None
     booking: dict[str, Any] | None = None
+    nav: dict[str, Any] | None = None
+    sections: dict[str, Any] | None = None
+    cta: dict[str, Any] | None = None
+    benefits: list[dict[str, Any]] | None = None
 
 
 class StoreWebProfileV1(BaseModel):
@@ -35,6 +51,8 @@ class StoreWebProfileV1(BaseModel):
     amenities: list[str] | None = None
     pickup_notes_md: str | None = None
     seo: dict[str, Any] | None = None
+    # Prefer gallery_media_refs; gallery_file_ids kept as legacy alias
+    gallery_media_refs: list[str] | None = None
     gallery_file_ids: list[str] | None = None
 
 

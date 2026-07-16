@@ -13,9 +13,13 @@ from bot.logger_mesh import logger
 def create_user(
     telegram_id: int, registration_date: datetime, referral_id: int | None, role: int = 1, locale: str | None = None
 ) -> None:
-    """Create user if missing; commit."""
+    """Create user if missing; dual-write telegram identity (CARD-30)."""
+    from bot.platform.identity import ensure_telegram_identity
+
     with Database().session() as s:
         if s.query(exists().where(User.telegram_id == telegram_id)).scalar():
+            # Existing user: ensure identity row (lazy backfill on re-touch)
+            ensure_telegram_identity(telegram_id, session=s)
             return
         s.add(
             User(
@@ -26,6 +30,8 @@ def create_user(
                 locale=locale,
             )
         )
+        s.flush()
+        ensure_telegram_identity(telegram_id, session=s)
 
 
 def create_item(

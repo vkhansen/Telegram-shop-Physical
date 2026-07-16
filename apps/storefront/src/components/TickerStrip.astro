@@ -1,0 +1,20 @@
+---
+/**
+ * Optional top marquee / ticker — fully tenant-configured (web_profile ticker).
+ * Hidden when no text is set.
+ */
+interface Props {
+  text?: string | null;
+}
+
+const { text = null } = Astro.props;
+const line = (text || "").trim();
+---
+
+{
+  line && (
+    <div class="overflow-hidden border-b border-ink-800 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
+      <p class="whitespace-nowrap text-center sm:tracking-[0.35em]">{line}</p>
+    </div>
+  )
+}

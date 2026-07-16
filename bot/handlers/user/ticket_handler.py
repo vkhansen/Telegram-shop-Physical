@@ -1,23 +1,13 @@
 """
-User Support Ticket Handler.
+User Support Ticket Handler (Telegram adapter).
 
-Provides:
-- /support command — opens support menu
-- Bug report with subject + description + optional screenshot
-- Feedback submission
-- Live chat session with maintainers (relayed via SUPPORT_CHAT_ID / MAINTAINER_IDS)
-- View user's support tickets
-- Create new tickets (optionally linked to an order)
-- View ticket details and message history
-- Reply to existing tickets (text + photo)
-- Close own tickets
+CARD-40 Tier C: all ticket domain writes go through ``bot.services.tickets``.
+Identity: Telegram ``from_user.id`` is the internal user_id (dual-write spine).
+No OAuth / web auth adapter here — capability ``auth`` is web-only.
 """
 
 import contextlib
 import logging
-import random
-import string
-from datetime import UTC, datetime
 
 from aiogram import F, Router
 from aiogram.enums.chat_type import ChatType
@@ -27,12 +17,12 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from bot.config.env import EnvKeys
-from bot.database import Database
-from bot.database.models.main import SupportTicket, TicketMessage
 from bot.i18n import localize
 from bot.keyboards.inline import back, simple_buttons
+from bot.services import tickets as tickets_svc
 
 router = Router()
+logger = logging.getLogger(__name__)
 
 
 class TicketStates(StatesGroup):
@@ -41,11 +31,6 @@ class TicketStates(StatesGroup):
     waiting_reply = State()
     waiting_screenshot = State()  # Optional screenshot attachment
     live_chatting = State()  # Active live chat with maintainer
-
-
-def _generate_ticket_code() -> str:
-    """Generate a unique 8-character ticket code."""
-    return "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
 
 def _get_maintainer_ids() -> list[int]:
@@ -63,24 +48,29 @@ def _get_maintainer_ids() -> list[int]:
 
 
 async def _notify_maintainers(bot, text: str, photo_id: str | None = None):
-    """Send notification to all maintainers and support group."""
+    """Send notification to maintainers / support group (Telegram adapter I/O)."""
+    from bot.platform.messaging import get_messenger
+
+    messenger = get_messenger()
     for mid in _get_maintainer_ids():
         try:
             if photo_id:
-                await bot.send_photo(mid, photo_id, caption=text)
+                await messenger.send_photo(mid, photo_id, caption=text)
             else:
-                await bot.send_message(mid, text)
+                await messenger.send_text(mid, text)
         except Exception as e:
-            logging.getLogger(__name__).warning("Failed to notify maintainer %s: %s", mid, e)
+            logger.warning("Failed to notify maintainer %s: %s", mid, e)
     support_chat = EnvKeys.SUPPORT_CHAT_ID
     if support_chat:
         try:
+            # Group key: raw chat id string via Messenger port
             if photo_id:
+                # send_photo is DM-shaped; fall back to bot for group photo if needed
                 await bot.send_photo(int(support_chat), photo_id, caption=text)
             else:
-                await bot.send_message(int(support_chat), text)
+                await messenger.send_group(str(support_chat), text)
         except Exception as e:
-            logging.getLogger(__name__).warning("Failed to notify support chat: %s", e)
+            logger.warning("Failed to notify support chat: %s", e)
 
 
 # -- /support command ---------------------------------------------------------
@@ -156,27 +146,22 @@ async def start_live_chat(call: CallbackQuery, state: FSMContext):
 
     await call.answer()
     user_id = call.from_user.id
-    ticket_code = _generate_ticket_code()
 
-    with Database().session() as session:
-        ticket = SupportTicket(
-            ticket_code=ticket_code,
-            user_id=user_id,
-            subject="[LIVE_CHAT] Live support session",
-            priority="high",
+    res = tickets_svc.create_ticket(
+        user_id,
+        "[LIVE_CHAT] Live support session",
+        "Live chat session started",
+        priority="high",
+    )
+    if not res.ok:
+        await call.message.edit_text(
+            localize("ticket.no_tickets"),
+            reply_markup=back("support_menu"),
         )
-        session.add(ticket)
-        session.flush()
-        session.add(
-            TicketMessage(
-                ticket_id=ticket.id,
-                sender_id=user_id,
-                sender_role="user",
-                message_text="Live chat session started",
-            )
-        )
-        session.commit()
-        ticket_id = ticket.id
+        return
+
+    ticket_id = res.data["id"]
+    ticket_code = res.data["ticket_code"]
 
     await state.set_state(TicketStates.live_chatting)
     await state.update_data(live_chat_ticket_id=ticket_id, live_chat_ticket_code=ticket_code)
@@ -211,16 +196,7 @@ async def live_chat_message(message: Message, state: FSMContext):
     msg_text = message.text or message.caption or "(attachment)"
     photo_id = message.photo[-1].file_id if message.photo else None
 
-    with Database().session() as session:
-        session.add(
-            TicketMessage(
-                ticket_id=ticket_id,
-                sender_id=user_id,
-                sender_role="user",
-                message_text=msg_text,
-            )
-        )
-        session.commit()
+    tickets_svc.append_message(user_id, msg_text, ticket_id=ticket_id)
 
     relay_text = f"💬 [{ticket_code}] <b>User {user_id}:</b>\n{msg_text}"
     await _notify_maintainers(message.bot, relay_text, photo_id)
@@ -235,18 +211,11 @@ async def end_live_chat(call: CallbackQuery, state: FSMContext):
     ticket_code = data.get("live_chat_ticket_code")
 
     if ticket_id:
-        with Database().session() as session:
-            ticket = session.query(SupportTicket).filter_by(id=ticket_id).first()
-            if ticket:
-                session.add(
-                    TicketMessage(
-                        ticket_id=ticket.id,
-                        sender_id=call.from_user.id,
-                        sender_role="user",
-                        message_text="Live chat session ended by user",
-                    )
-                )
-                session.commit()
+        tickets_svc.append_message(
+            call.from_user.id,
+            "Live chat session ended by user",
+            ticket_id=ticket_id,
+        )
         await _notify_maintainers(call.bot, f"💬 [{ticket_code}] Live chat ended by user.")
 
     await state.clear()
@@ -265,10 +234,8 @@ async def support_tickets(call: CallbackQuery, state: FSMContext):
     await state.clear()
     user_id = call.from_user.id
 
-    with Database().session() as session:
-        tickets = (
-            session.query(SupportTicket).filter_by(user_id=user_id).order_by(SupportTicket.created_at.desc()).all()
-        )
+    res = tickets_svc.list_tickets(user_id)
+    tickets = res.data.get("tickets") if res.ok else []
 
     if not tickets:
         actions = [
@@ -283,9 +250,11 @@ async def support_tickets(call: CallbackQuery, state: FSMContext):
 
     buttons = []
     for ticket in tickets:
-        status_icon = {"open": "🟢", "in_progress": "🔵", "resolved": "✅", "closed": "⚫"}.get(ticket.status, "")
-        label = f"{status_icon} [{ticket.ticket_code}] {ticket.subject}"
-        buttons.append((label, f"view_ticket_{ticket.id}"))
+        status_icon = {"open": "🟢", "in_progress": "🔵", "resolved": "✅", "closed": "⚫"}.get(
+            ticket.get("status"), ""
+        )
+        label = f"{status_icon} [{ticket['ticket_code']}] {ticket['subject']}"
+        buttons.append((label, f"view_ticket_{ticket['id']}"))
 
     buttons.append((localize("btn.create_ticket"), "create_ticket"))
     buttons.append((localize("btn.back"), "back_to_menu"))
@@ -392,7 +361,7 @@ async def skip_screenshot(call: CallbackQuery, state: FSMContext):
 
 
 async def _finalize_ticket(message: Message, state: FSMContext, from_callback: bool = False):
-    """Create the ticket in DB and notify maintainers."""
+    """Create the ticket via application service and notify maintainers."""
     data = await state.get_data()
     user_id = message.chat.id
     if not from_callback and message.from_user:
@@ -404,35 +373,29 @@ async def _finalize_ticket(message: Message, state: FSMContext, from_callback: b
     screenshot = data.get("ticket_screenshot")
     ticket_type = data.get("ticket_type", "general")
     priority = data.get("ticket_priority", "normal")
-    ticket_code = _generate_ticket_code()
 
     # Prefix subject with type tag for bug reports / feedback
     if ticket_type in ("bug_report", "feedback"):
         subject = f"[{ticket_type.upper()}] {subject}"
 
-    with Database().session() as session:
-        ticket = SupportTicket(
-            ticket_code=ticket_code,
-            user_id=user_id,
-            subject=subject,
-            status="open",
-            priority=priority,
-            order_id=order_id,
-        )
-        session.add(ticket)
-        session.flush()
+    res = tickets_svc.create_ticket(
+        user_id,
+        subject,
+        msg_text,
+        priority=priority,
+        order_id=order_id,
+    )
+    if not res.ok:
+        await state.clear()
+        err = localize("ticket.no_tickets")
+        if from_callback:
+            await message.edit_text(err, reply_markup=back("support_menu"))
+        else:
+            await message.answer(err, reply_markup=back("support_menu"))
+        return
 
-        session.add(
-            TicketMessage(
-                ticket_id=ticket.id,
-                sender_id=user_id,
-                sender_role="user",
-                message_text=msg_text,
-            )
-        )
-        session.commit()
+    ticket_code = res.data["ticket_code"]
 
-    # Notify maintainers
     notification = (
         f"🎫 <b>New Ticket</b>\n\n"
         f"Code: <b>{ticket_code}</b>\n"
@@ -459,34 +422,34 @@ async def _finalize_ticket(message: Message, state: FSMContext, from_callback: b
 async def view_ticket(call: CallbackQuery, state: FSMContext):
     """View ticket details and message history."""
     ticket_id = int(call.data.replace("view_ticket_", ""))
+    user_id = call.from_user.id
 
-    with Database().session() as session:
-        ticket = session.query(SupportTicket).filter_by(id=ticket_id).first()
-        if not ticket or ticket.user_id != call.from_user.id:
-            await call.answer("Ticket not found", show_alert=True)
-            return
+    res = tickets_svc.get_ticket(user_id, ticket_id=ticket_id)
+    if not res.ok:
+        await call.answer("Ticket not found", show_alert=True)
+        return
 
-        messages = (
-            session.query(TicketMessage).filter_by(ticket_id=ticket.id).order_by(TicketMessage.created_at.asc()).all()
-        )
+    ticket = res.data["ticket"]
+    created = (ticket.get("created_at") or "")[:16].replace("T", " ")
 
-        text = (
-            f"<b>{localize('ticket.view')}</b>\n\n"
-            f"Code: <b>{ticket.ticket_code}</b>\n"
-            f"Subject: {ticket.subject}\n"
-            f"Status: {ticket.status}\n"
-            f"Created: {ticket.created_at.strftime('%Y-%m-%d %H:%M')}\n"
-        )
-        if ticket.order_id:
-            text += f"Order ID: {ticket.order_id}\n"
+    text = (
+        f"<b>{localize('ticket.view')}</b>\n\n"
+        f"Code: <b>{ticket['ticket_code']}</b>\n"
+        f"Subject: {ticket['subject']}\n"
+        f"Status: {ticket['status']}\n"
+        f"Created: {created}\n"
+    )
+    if ticket.get("order_id"):
+        text += f"Order ID: {ticket['order_id']}\n"
 
-        text += "\n--- Messages ---\n\n"
-        for msg in messages:
-            role_label = "You" if msg.sender_role == "user" else "Support"
-            text += f"<b>[{role_label}]</b> {msg.created_at.strftime('%Y-%m-%d %H:%M')}\n{msg.message_text}\n\n"
+    text += "\n--- Messages ---\n\n"
+    for msg in ticket.get("messages") or []:
+        role_label = "You" if msg.get("sender_role") == "user" else "Support"
+        ts = (msg.get("created_at") or "")[:16].replace("T", " ")
+        text += f"<b>[{role_label}]</b> {ts}\n{msg.get('message_text', '')}\n\n"
 
     buttons = []
-    if ticket.status in ("open", "in_progress"):
+    if ticket["status"] in ("open", "in_progress"):
         buttons.append((localize("ticket.reply_prompt"), f"reply_ticket_{ticket_id}"))
         buttons.append((localize("ticket.closed"), f"close_ticket_{ticket_id}"))
     buttons.append((localize("btn.my_tickets"), "support_tickets"))
@@ -514,7 +477,7 @@ async def reply_ticket(call: CallbackQuery, state: FSMContext):
 
 @router.message(TicketStates.waiting_reply, F.text)
 async def process_ticket_reply(message: Message, state: FSMContext):
-    """Save the user's reply to the ticket. LOGIC-18 fix: Added F.text filter."""
+    """Save the user's reply via tickets service."""
     msg_text = message.text.strip()
     if not msg_text:
         await message.answer(localize("ticket.reply_prompt"))
@@ -524,27 +487,15 @@ async def process_ticket_reply(message: Message, state: FSMContext):
     ticket_id = data.get("reply_ticket_id")
     user_id = message.from_user.id
 
-    with Database().session() as session:
-        ticket = session.query(SupportTicket).filter_by(id=ticket_id).first()
-        if not ticket or ticket.user_id != user_id:
-            await state.clear()
-            await message.answer("Ticket not found", reply_markup=back("support_tickets"))
-            return
-
-        ticket_message = TicketMessage(
-            ticket_id=ticket.id,
-            sender_id=user_id,
-            sender_role="user",
-            message_text=msg_text,
-            created_at=datetime.now(UTC),
-        )
-        session.add(ticket_message)
-        ticket.updated_at = datetime.now(UTC)
-        session.commit()
+    res = tickets_svc.reply_ticket(user_id, msg_text, ticket_id=ticket_id)
+    if not res.ok:
+        await state.clear()
+        await message.answer("Ticket not found", reply_markup=back("support_tickets"))
+        return
 
     await state.clear()
     await message.answer(
-        localize("ticket.reply_prompt") + "\n\n" + localize("ticket.created", code=ticket_id),
+        localize("ticket.reply_sent"),
         reply_markup=back(f"view_ticket_{ticket_id}"),
     )
 
@@ -556,17 +507,10 @@ async def process_ticket_reply(message: Message, state: FSMContext):
 async def close_ticket(call: CallbackQuery, state: FSMContext):
     """User closes their own ticket."""
     ticket_id = int(call.data.replace("close_ticket_", ""))
-
-    with Database().session() as session:
-        ticket = session.query(SupportTicket).filter_by(id=ticket_id).first()
-        if not ticket or ticket.user_id != call.from_user.id:
-            await call.answer("Ticket not found", show_alert=True)
-            return
-
-        ticket.status = "closed"
-        ticket.updated_at = datetime.now(UTC)
-        ticket.resolved_at = datetime.now(UTC)
-        session.commit()
+    res = tickets_svc.close_ticket(call.from_user.id, ticket_id=ticket_id)
+    if not res.ok:
+        await call.answer("Ticket not found", show_alert=True)
+        return
 
     await call.message.edit_text(
         localize("ticket.closed"),

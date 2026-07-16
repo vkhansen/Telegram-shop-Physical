@@ -34,7 +34,7 @@ async def cors_public_middleware(request: web.Request, handler):
     if origin in allowed_origins or (origin and os.getenv("PUBLIC_CORS_ALLOW_ALL", "").lower() in ("1", "true")):
         resp.headers["Access-Control-Allow-Origin"] = origin or allowed
         resp.headers["Access-Control-Allow-Credentials"] = "true"
-        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
         resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         resp.headers["Vary"] = "Origin"
     return resp
@@ -55,12 +55,17 @@ def register_public_catalog_routes(app: web.Application) -> None:
         "/api/public/brands/{brand_slug}/stores/{store_slug}/items/{item_slug}",
         get_item,
     )
+    app.router.add_get("/media/local/{filename}", serve_local_media)
     app.router.add_get("/media/{token}", serve_media)
     # CARD-39: OAuth session + ticket portal API
     from bot.web.auth_api import register_auth_and_ticket_routes
 
     register_auth_and_ticket_routes(app)
-    logger.info("Public catalog + media + auth/ticket routes registered")
+    # CARD-40 Tier B: cart / checkout / order_query via same services as Telegram
+    from bot.web.commerce_api import register_commerce_routes
+
+    register_commerce_routes(app)
+    logger.info("Public catalog + media + auth/ticket + commerce routes registered")
 
 
 async def list_brands(_request: web.Request) -> web.Response:
@@ -74,8 +79,10 @@ async def list_brands(_request: web.Request) -> web.Response:
 
 async def get_brand(request: web.Request) -> web.Response:
     brand_slug = request.match_info["brand_slug"]
+    # Optional surface mask: web (default) | telegram | line | whatsapp | instagram
+    channel = request.rel_url.query.get("channel", "web")
     try:
-        data = catalog.get_brand_public(brand_slug)
+        data = catalog.get_brand_public(brand_slug, channel=channel)
         if not data:
             return web.json_response({"error": "not_found"}, status=404)
         return web.json_response(data)
@@ -121,6 +128,26 @@ async def get_item(request: web.Request) -> web.Response:
     except Exception:
         logger.exception("get_item failed %s/%s/%s", brand_slug, store_slug, item_slug)
         return web.json_response({"error": "internal_error"}, status=500)
+
+
+async def serve_local_media(request: web.Request) -> web.Response:
+    """Serve demo images from tests/test-data (local: file_id scheme)."""
+    from bot.services.media_proxy import read_local_media_file
+
+    filename = request.match_info["filename"]
+    try:
+        result = read_local_media_file(filename)
+        if not result:
+            return web.Response(status=404, text="not found")
+        data, ctype = result
+        return web.Response(
+            body=data,
+            content_type=ctype,
+            headers={"Cache-Control": "public, max-age=3600"},
+        )
+    except Exception:
+        logger.exception("serve_local_media failed name=%s", filename)
+        return web.Response(status=500, text="error")
 
 
 async def serve_media(request: web.Request) -> web.Response:

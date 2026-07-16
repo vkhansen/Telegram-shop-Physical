@@ -1,31 +1,32 @@
 ---
-import BaseLayout from "../../layouts/BaseLayout.astro";
-import SiteFooter from "../../components/SiteFooter.astro";
-import { fetchBrand } from "../../lib/api";
+import BrandShell from "../../layouts/BrandShell.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import DisclaimerPanel from "../../components/DisclaimerPanel.astro";
+import { can, loadBrandContext } from "../../lib/brandContext";
 
 export const prerender = false;
 
 const { brand: brandSlug } = Astro.params;
 if (!brandSlug) return Astro.redirect("/");
-const brand = await fetchBrand(brandSlug);
-if (!brand) return new Response(null, { status: 404 });
+
+const ctx = await loadBrandContext(brandSlug);
+if (!ctx) return new Response(null, { status: 404 });
+if (!can(ctx, "leads", true)) return new Response(null, { status: 404 });
 
 const item = Astro.url.searchParams.get("item") || "";
-const web = brand.web || {};
-const compliance = (web.compliance as Record<string, unknown>) || {};
-const warnings = (compliance.footer_warnings as string[]) || [];
-const apiBase = (import.meta.env.PUBLIC_API_BASE || "http://127.0.0.1:9090").replace(/\/$/, "");
+const L = ctx.labels;
+const ageConfirmLabel = ctx.compliance.ageGate.confirmLabel;
+const apiBase = ctx.apiBase;
 ---
 
-<BaseLayout title="Inquire" brandName={brand.name}>
-  <main class="mx-auto max-w-lg py-8 lg:py-12">
-    <a href={`/${brandSlug}`} class="text-xs font-medium uppercase tracking-wider text-accent hover:underline">
-      ← {brand.name}
-    </a>
-    <h1 class="mt-3 text-3xl font-bold">Inquire</h1>
-    <p class="mt-2 text-sm text-sand-200">
-      Request information{item ? ` about “${item}”` : ""}. We’ll contact you on your preferred channel.
-    </p>
+<BrandShell ctx={ctx} title={L.inquire}>
+  <main class="mx-auto max-w-lg py-2">
+    <PageHeader
+      brandSlug={ctx.slug}
+      brandName={ctx.brand.name}
+      title={L.inquire}
+      lead={`Request information${item ? ` about “${item}”` : ""}. We’ll contact you on your preferred channel.`}
+    />
     <form id="lead-form" class="mt-8 space-y-4">
       <label class="block text-sm">
         <span class="text-ink-500">Name</span>
@@ -59,11 +60,19 @@ const apiBase = (import.meta.env.PUBLIC_API_BASE || "http://127.0.0.1:9090").rep
         <span>I consent to be contacted about this inquiry.</span>
       </label>
       {
-        brand.age_gate_enabled && (
+        ctx.brand.age_gate_enabled && (
           <label class="flex items-start gap-2 text-xs text-sand-200">
             <input type="checkbox" name="age_confirmed" required class="mt-0.5" />
-            <span>I confirm I am of legal age{brand.min_age ? ` (${brand.min_age}+)` : ""}.</span>
+            <span>
+              {ageConfirmLabel}
+              {ctx.brand.min_age ? ` (${ctx.brand.min_age}+)` : ""}.
+            </span>
           </label>
+        )
+      }
+      {
+        ctx.compliance.footerWarnings.length > 0 && (
+          <DisclaimerPanel blocks={ctx.compliance.footerWarnings.map((w) => ({ body: w }))} compact />
         )
       }
       <button type="submit" class="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-ink-950">
@@ -72,10 +81,9 @@ const apiBase = (import.meta.env.PUBLIC_API_BASE || "http://127.0.0.1:9090").rep
       <p id="msg" class="hidden text-sm"></p>
     </form>
   </main>
-  <SiteFooter brandSlug={brandSlug} legalName={brand.legal?.legal_name} dbdNumber={brand.legal?.dbd_number} warnings={warnings} />
-</BaseLayout>
+</BrandShell>
 
-<script define:vars={{ apiBase, brandSlug }}>
+<script define:vars={{ apiBase, brandSlug: ctx.slug }}>
   document.getElementById("lead-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
@@ -99,17 +107,17 @@ const apiBase = (import.meta.env.PUBLIC_API_BASE || "http://127.0.0.1:9090").rep
         name: fd.get("name"),
         phone: phone || null,
         email: email || null,
-        preferred_channel: fd.get("channel"),
-        item_slug: fd.get("item") || null,
+        channel: fd.get("channel"),
         message: fd.get("message"),
+        item_slug: fd.get("item") || null,
         consent: true,
-        age_confirmed: !!fd.get("age_confirmed"),
+        age_confirmed: fd.get("age_confirmed") === "on",
       }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       if (msg) {
-        msg.textContent = data.error || "Submit failed";
+        msg.textContent = data.error || "Request failed";
         msg.className = "text-sm text-red-400";
         msg.classList.remove("hidden");
       }

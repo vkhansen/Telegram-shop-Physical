@@ -2,14 +2,15 @@
 
 ## Implementation Status
 
-> **0% Complete** | `░░░░░░░░░░░░░░░░░░░` | Design only — not started.
+> **~95% Complete** | `███████████████████░` | Platform×role matrix + `features_for`/`can` merged into `bot/platform/capabilities.py` (2026-07-17). Adapter enforcement mandatory at IG (CARD-33); TG handler churn optional.
 
 **Tier:** T0 — Multi-Channel Foundation  
 **Phase:** M3 — Multi-Platform Growth  
-**Priority:** Medium-High  
-**Effort:** Low (0.5–1 day)  
-**Dependencies:** None  
-**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](MULTI-CHANNEL-TIERED-PLAN.md)
+**Priority:** High (masks are law for every adapter)  
+**Effort:** Low (0.5–1 day remaining)  
+**Dependencies:** Align with [UNIFIED-BACKEND-CHANNEL-INTERFACE](../Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md)  
+**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](MULTI-CHANNEL-TIERED-PLAN.md)  
+**Code (partial):** `bot/platform/capabilities.py`, `bot/platform/channels.py` · public brand DTO `capabilities` / `channels`
 
 ---
 
@@ -23,8 +24,17 @@ This card defines **what each platform may expose**, intersected with **role pri
 
 ## Scope
 
+**Prefer extending existing module (do not invent a second matrix):**
+
 ```
-bot/ports/capabilities.py
+bot/platform/capabilities.py   # already: resolve_capabilities(brand, channel)
+bot/platform/channels.py
+```
+
+Optional legacy path name from original design (merge, don’t duplicate):
+
+```
+bot/ports/capabilities.py  → re-export from bot.platform.capabilities
 ```
 
 ```python
@@ -107,9 +117,13 @@ Optional: brand-level override via `BotSettings` key `channel_features_json` (la
 
 ## Exit criteria
 
-- [ ] `capabilities.py` landed  
-- [ ] Unit tests for matrix  
-- [ ] Referenced from CARD-33 and tier plan  
+- [x] Brand + channel resolve landed (`bot/platform/capabilities`) + unit tests  
+- [x] Public API exposes `capabilities` / `channels`  
+- [x] Storefront gates UI via mask  
+- [x] Full platform×role matrix (`PLATFORM_CAPS` ∩ `ROLE_FEATURES`) merged  
+- [x] Adapter enforcement helpers (`can`, `features_for`, `cap_enabled`) + docs for CARD-33 / handlers  
+- [x] Referenced from CARD-33 and tier plan ✅  
+- [x] CARD-40 Tier A default channel OFF masks + parity matrix doc
 
 ---
 

@@ -16,7 +16,6 @@ import logging
 import os
 import sys
 from datetime import UTC, datetime
-from decimal import Decimal
 from pathlib import Path
 
 # project root on path
@@ -30,65 +29,15 @@ logger = logging.getLogger("public_api")
 
 
 def seed_demo_if_empty() -> None:
-    from bot.database.main import Database
-    from bot.database.models.main import Brand, Categories, Goods, Role, Store
+    """Ensure NOVA-style snus demo (tests/test-data images) is present.
 
-    with Database().session() as s:
-        if s.query(Brand).first() is not None:
-            return
-        if s.query(Role).filter_by(name="USER").first() is None:
-            s.add(Role(name="USER", permissions=1))
-        brand = Brand(
-            name="Demo Brand",
-            slug="demo",
-            description="White-label demo storefront — Instagram-like grid.",
-            legal_name="Demo Brand Co., Ltd.",
-            dbd_number="0105550000000",
-            support_email="hello@demo.local",
-            support_phone="+66812345678",
-            commerce_mode="hybrid",
-            age_gate_enabled=False,
-            web_profile={
-                "schema_version": 1,
-                "tagline": "Clean kicks · Desktop & mobile",
-                "about": {"title": "About Demo", "body_md": "Demo brand for local white-label testing."},
-                "compliance": {"footer_warnings": ["Demo environment only."]},
-                "modules": {"show_lead_form": True, "show_booking": True},
-            },
-        )
-        s.add(brand)
-        s.flush()
-        store = Store(
-            name="Main Branch",
-            slug="main",
-            brand_id=brand.id,
-            address="123 Demo Road, Bangkok",
-            phone="+66812345678",
-            latitude=13.7563,
-            longitude=100.5018,
-            is_default=True,
-            is_active=True,
-        )
-        s.add(store)
-        s.add(Categories(name="Featured", brand_id=brand.id, sort_order=1))
-        s.flush()
-        for i, (name, price) in enumerate(
-            [("Aurora Mint", "120"), ("Citrus Wave", "130"), ("Berry Night", "140"), ("Coffee Ember", "125")],
-            start=1,
-        ):
-            s.add(
-                Goods(
-                    name=name,
-                    price=Decimal(price),
-                    description=f"Demo product {name}.",
-                    category_name="Featured",
-                    brand_id=brand.id,
-                    item_type="prepared",
-                    is_active=True,
-                )
-            )
-        s.commit()
-        logger.info("Seeded demo brand slug=demo store=main")
+    Set SEED_SNUS_FORCE=1 to refresh web_profile, lineup, and local media paths.
+    """
+    from bot.services.seed_snus_demo import seed_snus_demo
+
+    force = os.getenv("SEED_SNUS_FORCE", "").lower() in ("1", "true", "yes")
+    summary = seed_snus_demo(force=force)
+    logger.info("Snus demo seed: %s", summary)
 
 
 async def main() -> None:

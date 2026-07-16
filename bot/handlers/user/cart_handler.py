@@ -4,11 +4,11 @@ from aiogram.types import CallbackQuery
 
 from bot.config import EnvKeys
 from bot.database import Database
-from bot.database.methods import add_to_cart, clear_cart, get_cart_items, remove_from_cart
 from bot.database.models.main import CustomerInfo, Goods
 from bot.handlers.other import is_safe_item_name
 from bot.i18n import localize
 from bot.keyboards import back, modifier_group_keyboard, simple_buttons
+from bot.services import cart as cart_svc
 from bot.states import CartStates, ModifierSelectionFSM
 from bot.utils.cart_stub import async_build_cart_stub, flash_cart_added, inject_cart_stub
 from bot.utils.message_utils import safe_edit_text
@@ -104,11 +104,17 @@ async def add_to_cart_handler(call: CallbackQuery, state: FSMContext):
         await call.answer()
         return
 
-    # No modifiers - add directly
+    # No modifiers - add via cart service (CARD-32)
     _cart_data = await state.get_data()
-    success, message = await add_to_cart(user_id, item_name, quantity=1, brand_id=_cart_data.get("current_brand_id"))
+    add_res = await cart_svc.add_item(
+        user_id,
+        item_name,
+        quantity=1,
+        brand_id=_cart_data.get("current_brand_id"),
+        store_id=_cart_data.get("current_store_id"),
+    )
 
-    if success:
+    if add_res.ok:
         track_event("cart_add", user_id, {"item": item_name, "quantity": 1})
         track_conversion("customer_journey", "cart_add", user_id)
         await call.answer(localize("cart.add_success", item_name=item_name), show_alert=False)
@@ -129,6 +135,7 @@ async def add_to_cart_handler(call: CallbackQuery, state: FSMContext):
                 user_id,
             )
     else:
+        message = add_res.data.get("message") or add_res.error_detail or ""
         await call.answer(localize("cart.add_error", message=message), show_alert=True)
 
 
@@ -245,12 +252,17 @@ async def _finish_modifier_selection(call: CallbackQuery, state: FSMContext, sel
     # Clear FSM state
     await state.clear()
 
-    # Add to cart with modifiers
-    success, message = await add_to_cart(
-        user_id, item_name, quantity=1, selected_modifiers=clean_selected or None, brand_id=data.get("current_brand_id")
+    # Add to cart with modifiers via cart service (CARD-32)
+    add_res = await cart_svc.add_item(
+        user_id,
+        item_name,
+        quantity=1,
+        selected_modifiers=clean_selected or None,
+        brand_id=data.get("current_brand_id"),
+        store_id=data.get("current_store_id"),
     )
 
-    if success:
+    if add_res.ok:
         track_event("cart_add", user_id, {"item": item_name, "quantity": 1, "modifiers": clean_selected})
         track_conversion("customer_journey", "cart_add", user_id)
         await call.answer(localize("cart.add_success", item_name=item_name), show_alert=False)
@@ -271,23 +283,26 @@ async def _finish_modifier_selection(call: CallbackQuery, state: FSMContext, sel
             user_id,
         )
     else:
+        message = add_res.data.get("message") or add_res.error_detail or ""
         await call.answer(localize("cart.add_error", message=message), show_alert=True)
 
 
 @router.callback_query(F.data == "view_cart")
 async def view_cart_handler(call: CallbackQuery, state: FSMContext):
     """
-    Display user's shopping cart
+    Display user's shopping cart (list via cart service — CARD-32).
     """
     user_id = call.from_user.id
-    cart_items = await get_cart_items(user_id)
+    cart_res = await cart_svc.list_items(user_id)
+    cart_items = cart_res.data.get("items") or []
 
     if not cart_items:
         await call.message.edit_text(localize("cart.empty"), reply_markup=back("back_to_menu"))
         return
 
-    # Calculate total once (avoid duplicate DB query)
-    total = sum(item["total"] for item in cart_items)
+    total = cart_res.data.get("total")
+    if total is None:
+        total = sum(item["total"] for item in cart_items)
 
     track_event("cart_view", user_id, {"items_count": len(cart_items), "total": float(total)})
 
@@ -333,36 +348,38 @@ async def view_cart_handler(call: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data.startswith("remove_cart_"))
 async def remove_cart_item_handler(call: CallbackQuery, state: FSMContext):
     """
-    Remove specific item from cart
+    Remove specific item from cart via cart service (CARD-32).
     """
     cart_id = int(call.data[len("remove_cart_") :])
     user_id = call.from_user.id
 
-    success, message = await remove_from_cart(cart_id, user_id)
+    rem_res = await cart_svc.remove_item(cart_id, user_id)
 
-    if success:
+    if rem_res.ok:
         track_event("cart_remove", user_id, {"cart_id": cart_id})
         # Refresh cart view
         await view_cart_handler(call, state)
         await call.answer(localize("cart.removed_success"), show_alert=False)
     else:
+        message = rem_res.data.get("message") or rem_res.error_detail or ""
         await call.answer(localize("cart.add_error", message=message), show_alert=True)
 
 
 @router.callback_query(F.data == "clear_cart")
 async def clear_cart_handler(call: CallbackQuery):
     """
-    Clear all items from cart
+    Clear all items from cart via cart service (CARD-32).
     """
     user_id = call.from_user.id
 
-    success, message = await clear_cart(user_id)
+    clear_res = await cart_svc.clear(user_id)
 
-    if success:
+    if clear_res.ok:
         track_event("cart_clear", user_id)
         await call.message.edit_text(localize("cart.cleared_success"), reply_markup=back("back_to_menu"))
         await call.answer()
     else:
+        message = clear_res.data.get("message") or clear_res.error_detail or ""
         await call.answer(localize("cart.add_error", message=message), show_alert=True)
 
 
@@ -372,7 +389,8 @@ async def checkout_cart_handler(call: CallbackQuery, state: FSMContext):
     Start checkout process - collect delivery information
     """
     user_id = call.from_user.id
-    cart_items = await get_cart_items(user_id)
+    cart_res = await cart_svc.list_items(user_id)
+    cart_items = cart_res.data.get("items") or []
 
     if not cart_items:
         await call.answer(localize("cart.empty_alert"), show_alert=True)

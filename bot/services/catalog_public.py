@@ -15,7 +15,8 @@ from zoneinfo import ZoneInfo
 
 from bot.database.main import Database
 from bot.database.models.main import BranchInventory, Brand, Categories, Goods, Store
-from bot.services.media_proxy import media_url_for
+from bot.platform.capabilities import channel_status, resolve_capabilities
+from bot.platform.media_ref import media_url_for_ref
 from bot.services.web_profile import normalize_commerce_mode
 
 
@@ -59,8 +60,8 @@ def _maps_url(lat: float | None, lng: float | None) -> str | None:
 
 
 def _file_ref(file_id: str | None, brand_id: int | None = None) -> str | None:
-    """Public media URL via proxy (CARD-38 Phase B)."""
-    return media_url_for(file_id, brand_id=brand_id)
+    """Public media URL only — never raw Telegram file_ids (channel-agnostic media refs)."""
+    return media_url_for_ref(file_id, brand_id=brand_id)
 
 
 def resolve_item_cta(
@@ -195,8 +196,12 @@ def list_active_brands() -> list[dict[str, Any]]:
         ]
 
 
-def get_brand_public(brand_slug: str) -> dict[str, Any] | None:
-    """Brand home payload: identity + web_profile + store summaries."""
+def get_brand_public(brand_slug: str, *, channel: str = "web") -> dict[str, Any] | None:
+    """Brand home payload: identity + web_profile + store summaries + capability mask.
+
+    ``channel`` selects per-surface mask (web / telegram / line / …). Public web
+    always uses channel=web. Raw messaging file_ids are never exposed.
+    """
     with Database().session() as s:
         brand = s.query(Brand).filter(Brand.slug == brand_slug, Brand.is_active.is_(True)).one_or_none()
         if not brand:
@@ -209,15 +214,27 @@ def get_brand_public(brand_slug: str) -> dict[str, Any] | None:
         )
         mode = normalize_commerce_mode(brand.commerce_mode)
         web = brand.web_profile if isinstance(brand.web_profile, dict) else {}
+        caps = resolve_capabilities(
+            commerce_mode=mode,
+            age_gate_enabled=bool(brand.age_gate_enabled),
+            web_profile=web,
+            channel=channel,
+        )
+        # Channel fully disabled → not found on that surface
+        if not any(caps.values()):
+            return None
         return {
             "slug": brand.slug,
             "name": brand.name,
             "description": brand.description,
-            "logo_url": _file_ref(brand.logo_file_id, brand.id),
+            "logo_url": _file_ref(brand.logo_file_id, brand.id) if caps.get("media") else None,
             "timezone": brand.timezone,
             "commerce_mode": mode,
-            "age_gate_enabled": bool(brand.age_gate_enabled),
+            "age_gate_enabled": bool(brand.age_gate_enabled) and caps.get("age_gate", False),
             "min_age": brand.min_age,
+            "channel": channel,
+            "capabilities": caps,
+            "channels": channel_status(web),
             "legal": {
                 "legal_name": brand.legal_name,
                 "dbd_number": brand.dbd_number,
@@ -237,7 +254,9 @@ def get_brand_public(brand_slug: str) -> dict[str, Any] | None:
                     "longitude": st.longitude,
                     "maps_url": _maps_url(st.latitude, st.longitude),
                     "is_default": bool(st.is_default),
-                    "menu_image_url": _file_ref(st.menu_image_file_id, brand.id),
+                    "menu_image_url": (
+                        _file_ref(st.menu_image_file_id, brand.id) if caps.get("media") else None
+                    ),
                 }
                 for st in stores
             ],
@@ -315,14 +334,23 @@ def get_store_menu(brand_slug: str, store_slug: str) -> dict[str, Any] | None:
 
         store_web = matched.web_profile if isinstance(matched.web_profile, dict) else {}
         brand_web = brand.web_profile if isinstance(brand.web_profile, dict) else {}
+        caps = resolve_capabilities(
+            commerce_mode=mode,
+            age_gate_enabled=bool(brand.age_gate_enabled),
+            web_profile=brand_web,
+            channel="web",
+        )
+        if not caps.get("catalog"):
+            return None
 
         return {
             "brand": {
                 "slug": brand.slug,
                 "name": brand.name,
                 "commerce_mode": mode,
-                "age_gate_enabled": bool(brand.age_gate_enabled),
+                "age_gate_enabled": bool(brand.age_gate_enabled) and caps.get("age_gate", False),
                 "min_age": brand.min_age,
+                "capabilities": caps,
                 "web": brand_web,
                 "legal": {"legal_name": brand.legal_name, "dbd_number": brand.dbd_number},
             },
@@ -339,6 +367,91 @@ def get_store_menu(brand_slug: str, store_slug: str) -> dict[str, Any] | None:
             },
             "categories": categories_out,
         }
+
+
+def resolve_brand_store(
+    brand_slug: str,
+    store_slug: str | None = None,
+) -> dict[str, Any] | None:
+    """Resolve brand (+ optional store) ids for commerce adapters.
+
+    Returns ``{brand_id, brand_slug, store_id, store_slug, commerce_mode, age_gate_enabled, web_profile}``
+    or None if brand/store missing.
+    """
+    with Database().session() as s:
+        brand = s.query(Brand).filter(Brand.slug == brand_slug, Brand.is_active.is_(True)).one_or_none()
+        if not brand:
+            return None
+        store = None
+        if store_slug:
+            store = (
+                s.query(Store)
+                .filter(Store.brand_id == brand.id, Store.slug == store_slug, Store.is_active.is_(True))
+                .one_or_none()
+            )
+            if store is None:
+                candidates = (
+                    s.query(Store).filter(Store.brand_id == brand.id, Store.is_active.is_(True)).all()
+                )
+                for st in candidates:
+                    if slugify(st.name) == store_slug:
+                        store = st
+                        break
+            if store is None:
+                return None
+        else:
+            # Prefer default active store when store_slug omitted
+            store = (
+                s.query(Store)
+                .filter(Store.brand_id == brand.id, Store.is_active.is_(True))
+                .order_by(Store.is_default.desc(), Store.name)
+                .first()
+            )
+        web = brand.web_profile if isinstance(brand.web_profile, dict) else {}
+        return {
+            "brand_id": brand.id,
+            "brand_slug": brand.slug,
+            "store_id": store.id if store else None,
+            "store_slug": (store.slug or slugify(store.name)) if store else None,
+            "commerce_mode": normalize_commerce_mode(brand.commerce_mode),
+            "age_gate_enabled": bool(brand.age_gate_enabled),
+            "web_profile": web,
+        }
+
+
+def resolve_goods_name(
+    brand_slug: str,
+    *,
+    item_slug: str | None = None,
+    item_name: str | None = None,
+) -> str | None:
+    """Map public item_slug (or explicit name) to Goods.name for cart ops."""
+    if item_name:
+        with Database().session() as s:
+            brand = s.query(Brand).filter(Brand.slug == brand_slug, Brand.is_active.is_(True)).one_or_none()
+            if not brand:
+                return None
+            good = (
+                s.query(Goods)
+                .filter(
+                    Goods.name == item_name,
+                    (Goods.brand_id == brand.id) | (Goods.brand_id.is_(None)),
+                )
+                .first()
+            )
+            return good.name if good else None
+    if not item_slug:
+        return None
+    # Prefer store-agnostic name match via slugify
+    with Database().session() as s:
+        brand = s.query(Brand).filter(Brand.slug == brand_slug, Brand.is_active.is_(True)).one_or_none()
+        if not brand:
+            return None
+        goods = s.query(Goods).filter((Goods.brand_id == brand.id) | (Goods.brand_id.is_(None))).all()
+        for g in goods:
+            if slugify(g.name) == item_slug:
+                return g.name
+    return None
 
 
 def get_store_item(brand_slug: str, store_slug: str, item_slug: str) -> dict[str, Any] | None:

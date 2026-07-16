@@ -1,0 +1,46 @@
+---
+import ProductGrid from "./ProductGrid.astro";
+import type { CatalogItem } from "../lib/api";
+
+interface Props {
+  eyebrow: string;
+  headline: string;
+  subline: string;
+  items: CatalogItem[];
+  brandSlug: string;
+  storeSlug: string;
+  branchHref?: string | null;
+  branchLabel?: string | null;
+  id?: string;
+}
+
+const {
+  eyebrow,
+  headline,
+  subline,
+  items,
+  brandSlug,
+  storeSlug,
+  branchHref = null,
+  branchLabel = null,
+  id = "catalog",
+} = Astro.props;
+---
+
+<section id={id} class="border-t border-ink-800 pb-10 pt-8">
+  <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">{eyebrow}</p>
+  <div class="mt-2 mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h2 class="mt-1 text-2xl font-bold tracking-tight text-sand-50 sm:text-3xl">{headline}</h2>
+      {subline && <p class="mt-1 text-sm text-sand-200">{subline}</p>}
+    </div>
+    {
+      branchHref && branchLabel && (
+        <a class="text-sm text-accent hover:underline" href={branchHref}>
+          {branchLabel}
+        </a>
+      )
+    }
+  </div>
+  <ProductGrid items={items} brandSlug={brandSlug} storeSlug={storeSlug} />
+</section>

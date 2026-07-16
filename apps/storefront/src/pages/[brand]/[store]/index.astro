@@ -1,89 +1,61 @@
 ---
-import BaseLayout from "../../../layouts/BaseLayout.astro";
-import AgeGate from "../../../components/AgeGate.astro";
-import StoryChips from "../../../components/StoryChips.astro";
+import BrandShell from "../../../layouts/BrandShell.astro";
+import PageHeader from "../../../components/PageHeader.astro";
 import ProductGrid from "../../../components/ProductGrid.astro";
-import SiteFooter from "../../../components/SiteFooter.astro";
-import { fetchBrand, fetchStoreMenu } from "../../../lib/api";
+import { buildNavChips, loadBrandContext } from "../../../lib/brandContext";
+import { fetchStoreMenu } from "../../../lib/api";
 
 export const prerender = false;
 
 const { brand: brandSlug, store: storeSlug } = Astro.params;
 if (!brandSlug || !storeSlug) return Astro.redirect("/");
 
-const brand = await fetchBrand(brandSlug);
+const ctx = await loadBrandContext(brandSlug);
+if (!ctx) return new Response(null, { status: 404, statusText: "Not Found" });
+
 const menu = await fetchStoreMenu(brandSlug, storeSlug);
-if (!brand || !menu) {
-  return new Response(null, { status: 404, statusText: "Not Found" });
-}
+if (!menu) return new Response(null, { status: 404, statusText: "Not Found" });
 
-const compliance = ((menu.brand.web || {}).compliance as Record<string, unknown>) || {};
-const ageGate = (compliance.age_gate as Record<string, string>) || {};
-const warnings = (compliance.footer_warnings as string[]) || [];
+const chips = buildNavChips(ctx, { active: "store", storeSlug: menu.store.slug });
 const cats = menu.categories || [];
-const allItems = cats.flatMap((c) => c.items);
-
-const chips = [
-  { href: `/${brandSlug}`, label: brand.name },
-  ...brand.stores.map((s) => ({
-    href: `/${brandSlug}/${s.slug}`,
-    label: s.name,
-    active: s.slug === menu.store.slug,
-  })),
-];
 ---
 
-<BaseLayout title={menu.store.name} description={menu.store.address || brand.name} brandName={brand.name}>
-  <AgeGate
-    enabled={menu.brand.age_gate_enabled}
-    minAge={menu.brand.min_age}
-    title={ageGate.title}
-    body={ageGate.body_md || ageGate.body}
-    brandSlug={brandSlug}
-  />
-  <header class="border-b border-ink-800 py-6">
-    <a href={`/${brandSlug}`} class="text-xs font-medium uppercase tracking-wider text-accent hover:underline">
-      ← {brand.name}
-    </a>
-    <h1 class="mt-2 text-2xl font-bold lg:text-3xl">{menu.store.name}</h1>
+<BrandShell ctx={ctx} title={menu.store.name} description={menu.store.address || ctx.brand.name} chips={chips}>
+  <PageHeader brandSlug={ctx.slug} brandName={ctx.brand.name} title={menu.store.name}>
     {
       menu.store.address && (
         <p class="mt-1 text-sm text-sand-200">{menu.store.address}</p>
       )
     }
     <div class="mt-2 flex flex-wrap gap-3 text-sm text-sand-200">
-      {menu.store.phone && (
-        <a class="hover:text-accent" href={`tel:${menu.store.phone}`}>
-          {menu.store.phone}
-        </a>
-      )}
-      {menu.store.maps_url && (
-        <a class="hover:text-accent" href={menu.store.maps_url} target="_blank" rel="noopener">
-          Maps
-        </a>
-      )}
+      {
+        menu.store.phone && (
+          <a class="hover:text-accent" href={`tel:${menu.store.phone}`}>
+            {menu.store.phone}
+          </a>
+        )
+      }
+      {
+        menu.store.maps_url && (
+          <a class="hover:text-accent" href={menu.store.maps_url} target="_blank" rel="noopener">
+            Maps
+          </a>
+        )
+      }
     </div>
-  </header>
-  <StoryChips chips={chips} />
+  </PageHeader>
 
   {
     cats.map((cat) => (
-      <section class="mb-8" id={cat.slug}>
-        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wider text-ink-500">{cat.name}</h2>
+      <section class="mb-8 border-t border-ink-800 pt-6" id={cat.slug}>
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-500">{cat.name}</h2>
         <ProductGrid items={cat.items} brandSlug={brandSlug} storeSlug={menu.store.slug} />
       </section>
     ))
   }
   {
-    allItems.length === 0 && (
+    cats.every((c) => c.items.length === 0) && (
       <p class="py-12 text-center text-ink-500">No listable items for this branch right now.</p>
     )
   }
-
-  <SiteFooter
-    brandSlug={brandSlug}
-    legalName={menu.brand.legal?.legal_name}
-    dbdNumber={menu.brand.legal?.dbd_number}
-    warnings={warnings}
-  />
-</BaseLayout>
+</BrandShell>

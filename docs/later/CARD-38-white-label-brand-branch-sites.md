@@ -10,7 +10,8 @@
 **Dependencies:** CARD-19 multi-brand runtime ✅ · CARD-28 store assets ✅ · domain models Brand/Store/Goods/BranchInventory ✅  
 **Supersedes for sequencing:** CARD-35 as standalone “one storefront”; CARD-37 as platform path  
 **Clear-start:** [`docs/CLEAR-START.md`](../CLEAR-START.md)  
-**Astro build contract:** [`docs/Specifications/WHITE-LABEL-ASTRO-IMPLEMENTATION.md`](../Specifications/WHITE-LABEL-ASTRO-IMPLEMENTATION.md)
+**Astro build contract:** [`docs/Specifications/WHITE-LABEL-ASTRO-IMPLEMENTATION.md`](../Specifications/WHITE-LABEL-ASTRO-IMPLEMENTATION.md)  
+**Backend law:** Web is an **adapter** on the same services as bots — [`UNIFIED-BACKEND-CHANNEL-INTERFACE.md`](../Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md)
 
 ---
 

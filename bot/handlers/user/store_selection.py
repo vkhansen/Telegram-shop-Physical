@@ -21,12 +21,12 @@ from aiogram.types import CallbackQuery
 
 from bot.database.main import Database
 from bot.database.methods.create import save_cart_snapshot
-from bot.database.methods.delete import clear_cart, remove_items_from_cart
-from bot.database.methods.read import get_all_brands, get_brand, get_cart_items, get_stores_for_brand
+from bot.database.methods.read import get_all_brands, get_brand, get_stores_for_brand
 from bot.database.methods.update import bulk_update_cart_store
 from bot.database.models.main import BranchInventory, Goods
 from bot.i18n import localize
 from bot.keyboards.inline import back, brand_switch_confirm_keyboard, simple_buttons, store_switch_confirm_keyboard
+from bot.services import cart as cart_svc
 from bot.states import ShopStates
 from bot.utils.cart_stub import async_build_cart_stub, async_get_cart_stub_data, inject_cart_stub
 
@@ -187,7 +187,8 @@ async def select_branch(call: CallbackQuery, state: FSMContext):
         return
 
     # Card 21 Phase 5: availability check when switching stores with an active cart
-    cart_items = await get_cart_items(call.from_user.id)
+    cart_res = await cart_svc.list_items(call.from_user.id)
+    cart_items = cart_res.data.get("items") or [] if cart_res.ok else []
     current_store_id = data.get("current_store_id")
 
     if cart_items and current_store_id != store_id:
@@ -263,7 +264,7 @@ async def _show_categories(call: CallbackQuery, state: FSMContext):
 
 
 def _serialize_cart_items(cart_items: list) -> tuple[list, Decimal]:
-    """Convert get_cart_items result into SavedCart items_json format."""
+    """Convert cart service line items into SavedCart items_json format."""
     items_json = []
     total = Decimal(0)
     for ci in cart_items:
@@ -286,7 +287,8 @@ async def save_cart_callback(call: CallbackQuery, state: FSMContext):
     pending_brand_id = int(call.data.split(":")[1])
     user_id = call.from_user.id
 
-    cart_items = await get_cart_items(user_id)
+    cart_res = await cart_svc.list_items(user_id)
+    cart_items = cart_res.data.get("items") or [] if cart_res.ok else []
     cart_stub_data = await async_get_cart_stub_data(user_id)
     brand_id = cart_stub_data["brand_id"] if cart_stub_data else None
     store_id = cart_stub_data["store_id"] if cart_stub_data else None
@@ -295,7 +297,7 @@ async def save_cart_callback(call: CallbackQuery, state: FSMContext):
         items_json, total = _serialize_cart_items(cart_items)
         save_cart_snapshot(user_id, brand_id, store_id, items_json, total)
 
-    await clear_cart(user_id)
+    await cart_svc.clear(user_id)
 
     brand = get_brand(pending_brand_id)
     if not brand or not brand["is_active"]:
@@ -319,7 +321,7 @@ async def delete_cart_callback(call: CallbackQuery, state: FSMContext):
     pending_brand_id = int(call.data.split(":")[1])
     user_id = call.from_user.id
 
-    await clear_cart(user_id)
+    await cart_svc.clear(user_id)
 
     brand = get_brand(pending_brand_id)
     if not brand or not brand["is_active"]:
@@ -391,7 +393,7 @@ async def switch_and_remove_callback(call: CallbackQuery, state: FSMContext):
     store_name = data.get("pending_store_name", "")
 
     if unavailable:
-        remove_items_from_cart(user_id, unavailable)
+        cart_svc.remove_items_by_name(user_id, unavailable)
 
     bulk_update_cart_store(user_id, store_id)
 

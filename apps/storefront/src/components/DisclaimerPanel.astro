@@ -1,0 +1,52 @@
+---
+/**
+ * Informational disclaimer panel for about / item / form pages.
+ * Renders tenant-configured blocks only.
+ */
+interface Block {
+  id?: string;
+  title?: string;
+  body: string;
+}
+
+interface Props {
+  blocks?: Block[];
+  /** Single free-form body (product_disclaimer_md). */
+  body?: string | null;
+  title?: string | null;
+  compact?: boolean;
+}
+
+const { blocks = [], body = null, title = null, compact = false } = Astro.props;
+
+const list: Block[] = [
+  ...blocks.filter((b) => b?.body),
+  ...(body && !blocks.some((b) => b.body === body)
+    ? [{ title: title || undefined, body }]
+    : []),
+];
+---
+
+{
+  list.length > 0 && (
+    <aside
+      class:list={[
+        "rounded-2xl border border-ink-700 bg-ink-900/50",
+        compact ? "px-3 py-2.5 text-[11px]" : "px-4 py-4 text-xs",
+      ]}
+      role="note"
+      aria-label="Notices"
+    >
+      <div class="space-y-3">
+        {list.map((b) => (
+          <div>
+            {b.title && (
+              <p class="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">{b.title}</p>
+            )}
+            <p class="whitespace-pre-wrap leading-relaxed text-sand-200">{b.body}</p>
+          </div>
+        ))}
+      </div>
+    </aside>
+  )
+}

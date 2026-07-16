@@ -1,38 +1,43 @@
 ---
-import BaseLayout from "../../../layouts/BaseLayout.astro";
-import { fetchBrand } from "../../../lib/api";
+import BrandShell from "../../../layouts/BrandShell.astro";
+import PageHeader from "../../../components/PageHeader.astro";
+import { can, loadBrandContext } from "../../../lib/brandContext";
 
 export const prerender = false;
 
 const { brand: brandSlug } = Astro.params;
 if (!brandSlug) return Astro.redirect("/");
-const brand = await fetchBrand(brandSlug);
-if (!brand) return new Response(null, { status: 404 });
 
-const apiBase = (import.meta.env.PUBLIC_API_BASE || "http://127.0.0.1:9090").replace(/\/$/, "");
+const ctx = await loadBrandContext(brandSlug);
+if (!ctx) return new Response(null, { status: 404 });
+if (!can(ctx, "tickets", true)) return new Response(null, { status: 404 });
+
+const apiBase = ctx.apiBase;
+const L = ctx.labels;
 ---
 
-<BaseLayout title="Support tickets" brandName={brand.name}>
-  <main class="py-8 lg:py-10">
+<BrandShell ctx={ctx} title={L.support}>
+  <main class="py-2">
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <a href={`/${brandSlug}`} class="text-xs font-medium uppercase tracking-wider text-accent hover:underline">
-          ← {brand.name}
-        </a>
-        <h1 class="mt-2 text-3xl font-bold">Support tickets</h1>
-        <p id="who" class="mt-1 text-sm text-sand-200">Checking session…</p>
-      </div>
+      <PageHeader brandSlug={ctx.slug} brandName={ctx.brand.name} title={L.support} />
       <div class="flex gap-2">
         <a href={`/${brandSlug}/tickets/new`} class="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-ink-950">
           New ticket
         </a>
-        <a href={`/${brandSlug}/account`} class="rounded-xl border border-ink-700 px-4 py-2 text-sm">Account</a>
+        {
+          can(ctx, "auth") && (
+            <a href={`/${brandSlug}/account`} class="rounded-xl border border-ink-700 px-4 py-2 text-sm">
+              Account
+            </a>
+          )
+        }
       </div>
     </div>
+    <p id="who" class="mt-1 text-sm text-sand-200">Checking session…</p>
     <ul id="ticket-list" class="mt-8 space-y-3"></ul>
     <p id="empty" class="mt-8 hidden text-center text-ink-500">No tickets yet.</p>
   </main>
-</BaseLayout>
+</BrandShell>
 
 <script define:vars={{ apiBase, brandSlug }}>
   async function load() {
@@ -41,27 +46,26 @@ const apiBase = (import.meta.env.PUBLIC_API_BASE || "http://127.0.0.1:9090").rep
       window.location.href = `/${brandSlug}/login?next=/${brandSlug}/tickets`;
       return;
     }
-    const meData = await me.json();
+    const profile = await me.json();
     const who = document.getElementById("who");
-    if (who) {
-      who.textContent = meData.profile?.email || meData.session?.email || meData.profile?.name || "Signed in";
-    }
-    const res = await fetch(`${apiBase}/api/public/tickets`, { credentials: "include" });
-    if (!res.ok) return;
-    const data = await res.json();
+    if (who) who.textContent = profile.profile?.email || profile.profile?.name || "Signed in";
+    const res = await fetch(`${apiBase}/api/public/tickets?brand=${encodeURIComponent(brandSlug)}`, {
+      credentials: "include",
+    });
     const list = document.getElementById("ticket-list");
     const empty = document.getElementById("empty");
-    if (!data.tickets?.length) {
+    if (!res.ok || !list) return;
+    const data = await res.json();
+    const tickets = data.tickets || data || [];
+    list.innerHTML = "";
+    if (!tickets.length) {
       empty?.classList.remove("hidden");
       return;
     }
-    for (const t of data.tickets) {
+    for (const t of tickets) {
       const li = document.createElement("li");
-      li.innerHTML = `<a href="/${brandSlug}/tickets/${t.ticket_code}" class="block rounded-xl border border-ink-700 bg-ink-900 p-4 hover:border-accent">
-        <div class="flex justify-between gap-2"><span class="font-semibold">${t.subject}</span><span class="text-xs uppercase text-ink-500">${t.status}</span></div>
-        <p class="mt-1 text-xs text-ink-500">${t.ticket_code}</p>
-      </a>`;
-      list?.appendChild(li);
+      li.innerHTML = `<a class="block rounded-xl border border-ink-700 bg-ink-900 p-4 hover:border-accent" href="/${brandSlug}/tickets/${t.ticket_code}"><p class="font-semibold text-sand-50">${t.subject}</p><p class="mt-1 text-xs text-ink-500">${t.ticket_code} · ${t.status}</p></a>`;
+      list.appendChild(li);
     }
   }
   load();

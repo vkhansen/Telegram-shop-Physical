@@ -2,18 +2,21 @@
 
 > **Source of truth for chat interactions and workflows.**  
 > Owned by **[CARD-34](../later/CARD-34-conversation-workflow-specifications.md)**.  
-> Multi-channel plan: [MULTI-CHANNEL-TIERED-PLAN.md](../later/MULTI-CHANNEL-TIERED-PLAN.md).
+> Multi-channel plan: [MULTI-CHANNEL-TIERED-PLAN.md](../later/MULTI-CHANNEL-TIERED-PLAN.md).  
+> **Backend law (all surfaces):** [UNIFIED-BACKEND-CHANNEL-INTERFACE.md](UNIFIED-BACKEND-CHANNEL-INTERFACE.md).
 
-**Default mode:** document **as-built** Telegram behavior. Platform masks define Instagram / LINE subsets.
+**Default mode:** document **as-built** flows against **application services** where they exist; note adapter (Telegram/web) only for I/O. Capability masks define LINE / IG / web subsets.
 
 | Resource | Path |
 |----------|------|
+| **Unified backend interface** | [UNIFIED-BACKEND-CHANNEL-INTERFACE.md](UNIFIED-BACKEND-CHANNEL-INTERFACE.md) |
 | Flow template | [`_TEMPLATE-FLOW.md`](_TEMPLATE-FLOW.md) |
 | Flow docs | [`flows/`](flows/) (created as specs are written) |
 | Cross-cutting | [`cross-cutting/`](cross-cutting/) |
 | Existing deep specs | [AI-CUSTOMER-ASSISTANT.md](AI-CUSTOMER-ASSISTANT.md), [MENU-SYSTEM.md](MENU-SYSTEM.md), [WEB-INSTAGRAM-STYLE-STOREFRONT.md](WEB-INSTAGRAM-STYLE-STOREFRONT.md), [FUNNEL-INSTAGRAM-WEB-TELEGRAM.md](FUNNEL-INSTAGRAM-WEB-TELEGRAM.md), [SNUSTHAI-HUB-MVP.md](SNUSTHAI-HUB-MVP.md), [BRAND-BRANCH-WEB-CONTENT-MODEL.md](BRAND-BRANCH-WEB-CONTENT-MODEL.md), [WHITE-LABEL-SITE-MODES-COMPLIANCE-LEADS.md](WHITE-LABEL-SITE-MODES-COMPLIANCE-LEADS.md), [WHITE-LABEL-ASTRO-IMPLEMENTATION.md](WHITE-LABEL-ASTRO-IMPLEMENTATION.md), [WHITE-LABEL-OAUTH-TICKETS.md](WHITE-LABEL-OAUTH-TICKETS.md) |
 | Gallery research | [research/GALLERY-JS-INSPIRATION.md](research/GALLERY-JS-INSPIRATION.md) |
 | **Session start** | [../CLEAR-START.md](../CLEAR-START.md) |
+| **Master archive (blurb · pitch · WIP · index)** | [../MASTER-DOCUMENT.md](../MASTER-DOCUMENT.md) |
 
 ---
 

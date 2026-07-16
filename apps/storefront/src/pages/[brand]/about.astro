@@ -1,37 +1,51 @@
 ---
-import BaseLayout from "../../layouts/BaseLayout.astro";
-import SiteFooter from "../../components/SiteFooter.astro";
-import { fetchBrand } from "../../lib/api";
+import BrandShell from "../../layouts/BrandShell.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import DisclaimerPanel from "../../components/DisclaimerPanel.astro";
+import { buildNavChips, can, loadBrandContext } from "../../lib/brandContext";
 
 export const prerender = false;
 
 const { brand: brandSlug } = Astro.params;
 if (!brandSlug) return Astro.redirect("/");
-const brand = await fetchBrand(brandSlug);
-if (!brand) return new Response(null, { status: 404 });
 
-const web = brand.web || {};
-const about = (web.about as Record<string, string>) || {};
-const compliance = (web.compliance as Record<string, unknown>) || {};
-const warnings = (compliance.footer_warnings as string[]) || [];
-const title = about.title || "About us";
-const body = about.body_md || about.body || brand.description || "More information coming soon.";
+const ctx = await loadBrandContext(brandSlug);
+if (!ctx) return new Response(null, { status: 404 });
+if (!can(ctx, "about", true)) return new Response(null, { status: 404 });
+
+const chips = buildNavChips(ctx, { active: "about" });
+const pageDisclaimers = ctx.compliance.disclaimerBlocks.filter(
+  (b) => !b.placement || b.placement === "page" || b.placement === "footer",
+);
 ---
 
-<BaseLayout title={title} brandName={brand.name}>
-  <main class="py-8 lg:py-12">
-    <a href={`/${brandSlug}`} class="text-xs font-medium uppercase tracking-wider text-accent hover:underline">
-      ← {brand.name}
-    </a>
-    <h1 class="mt-3 text-3xl font-bold">{title}</h1>
-    <div class="prose prose-invert mt-6 max-w-2xl whitespace-pre-wrap text-sm leading-relaxed text-sand-200 lg:text-base">
-      {body}
-    </div>
-  </main>
-  <SiteFooter
-    brandSlug={brandSlug}
-    legalName={brand.legal?.legal_name}
-    dbdNumber={brand.legal?.dbd_number}
-    warnings={warnings}
-  />
-</BaseLayout>
+<BrandShell ctx={ctx} title={ctx.about.title} chips={chips}>
+  <PageHeader brandSlug={ctx.slug} brandName={ctx.brand.name} title={ctx.about.title} />
+  <div class="prose prose-invert mt-6 max-w-2xl whitespace-pre-wrap text-sm leading-relaxed text-sand-200 lg:text-base">
+    {ctx.about.body}
+  </div>
+
+  {
+    can(ctx, "faq") && ctx.faq.length > 0 && (
+      <section class="mt-12 max-w-2xl border-t border-ink-800 pt-8">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-ink-500">FAQ</h2>
+        <dl class="mt-4 space-y-4">
+          {ctx.faq.map((f) => (
+            <div>
+              <dt class="font-semibold text-sand-50">{f.q}</dt>
+              <dd class="mt-1 text-sm leading-relaxed text-sand-200 whitespace-pre-wrap">{f.a}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+    )
+  }
+
+  {
+    pageDisclaimers.length > 0 && (
+      <div class="mt-10 max-w-2xl">
+        <DisclaimerPanel blocks={pageDisclaimers} />
+      </div>
+    )
+  }
+</BrandShell>

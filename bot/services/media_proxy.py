@@ -1,10 +1,15 @@
 """Catalog media proxy (CARD-38 Phase B).
 
-Resolves Telegram ``file_id`` values that appear on public catalog entities
-(brand logo, store menu image, category cover, goods images) to cached bytes
-served under ``/media/...``.
+Resolves **media refs** on public catalog entities (brand logo, store menu,
+category cover, goods images) to bytes under ``/media/...``.
+
+Schemes (see ``bot.platform.media_ref``):
+  - ``local:<file>`` — tests/test-data (demo)
+  - bare / ``tg:<id>`` — Telegram Bot API adapter (optional backend)
+  - ``https://...`` — pass-through URLs (not proxied)
 
 Private media (payment slips, delivery proof, chat photos) is never allowlisted.
+Public APIs return only resolved URLs — never raw transport file ids.
 """
 
 from __future__ import annotations
@@ -41,9 +46,28 @@ def media_url_for(file_id: str | None, *, brand_id: int | None = None) -> str | 
     """Public relative/absolute URL for a catalog file_id, or None."""
     if not file_id:
         return None
+    # Local demo assets: local:filename.jpg → /media/local/filename.jpg
+    if file_id.startswith("local:"):
+        name = file_id[6:].lstrip("/").replace("..", "")
+        return f"{media_public_base()}/media/local/{name}"
     # Opaque token: brand-scoped when known (helps multi-bot token pick)
     token = _encode_token(file_id, brand_id)
     return f"{media_public_base()}/media/{token}"
+
+
+def test_data_dir() -> Path:
+    return Path(__file__).resolve().parents[2] / "tests" / "test-data"
+
+
+def resolve_local_media_path(filename: str) -> Path | None:
+    """Resolve a safe path under tests/test-data for local: media."""
+    name = Path(filename).name  # strip any path components
+    if not name or name.startswith("."):
+        return None
+    path = test_data_dir() / name
+    if path.is_file() and path.resolve().is_relative_to(test_data_dir().resolve()):
+        return path
+    return None
 
 
 def _encode_token(file_id: str, brand_id: int | None) -> str:
@@ -71,6 +95,9 @@ def _cache_dir() -> Path:
 
 def is_catalog_file_id(file_id: str, brand_id: int | None = None) -> bool:
     """True if file_id is referenced by public catalog fields for an active brand."""
+    if file_id.startswith("local:"):
+        return resolve_local_media_path(file_id[6:]) is not None
+
     with Database().session() as s:
         # Brand logos
         q = s.query(Brand).filter(Brand.is_active.is_(True), Brand.logo_file_id == file_id)
@@ -237,10 +264,32 @@ async def fetch_telegram_file(file_id: str, brand_id: int | None) -> tuple[bytes
 
 async def get_media_bytes(token: str) -> tuple[bytes, str] | None:
     """Resolve URL token → cached catalog media bytes."""
+    # Local test-data files: token is the raw filename when path is /media/local/{name}
+    # (handled in public_api) — this function only handles hashed telegram tokens.
     file_id, brand_id = resolve_file_id_from_token(token)
     if not file_id:
         return None
+    if file_id.startswith("local:"):
+        path = resolve_local_media_path(file_id[6:])
+        if not path:
+            return None
+        data = path.read_bytes()
+        return data, "image/jpeg"
     if not is_catalog_file_id(file_id, brand_id):
         logger.warning("Rejected non-catalog media token=%s", token[:16])
         return None
     return await fetch_telegram_file(file_id, brand_id)
+
+
+def read_local_media_file(filename: str) -> tuple[bytes, str] | None:
+    path = resolve_local_media_path(filename)
+    if not path:
+        return None
+    lower = path.name.lower()
+    if lower.endswith(".png"):
+        ctype = "image/png"
+    elif lower.endswith(".webp"):
+        ctype = "image/webp"
+    else:
+        ctype = "image/jpeg"
+    return path.read_bytes(), ctype

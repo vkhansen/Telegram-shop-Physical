@@ -2,28 +2,29 @@
 
 ## Implementation Status
 
-> **0% Complete** | `░░░░░░░░░░░░░░░░░░░` | Design only — not started.
+> **~95% Complete** | `███████████████████░` | **2026-07-17:** TG cart + payments + store_selection/bonus on cart service; web commerce API (CARD-40-B). Tickets polish still open.
 
-**Tier:** T1 — Shared customer domain API  
+**Tier:** T1 — Shared customer domain API (**hard gate for second channel**)  
 **Phase:** M3 — Multi-Platform Growth  
-**Priority:** High  
+**Priority:** **Critical** (unified backend directive 2026-07-17)  
 **Effort:** Medium (2–4 days)  
-**Dependencies:** Prefer [CARD-29](CARD-29-messenger-port.md) for notify DTOs; domain methods already exist. Prefer [CARD-34](CARD-34-conversation-workflow-specifications.md) customer core flow IDs so service boundaries match named workflows (soft gate).
+**Dependencies:** Prefer [CARD-29](CARD-29-messenger-port.md) for notify DTOs; domain methods already exist. Prefer [CARD-34](CARD-34-conversation-workflow-specifications.md) customer core flow IDs (soft gate).  
+**Law:** [UNIFIED-BACKEND-CHANNEL-INTERFACE](../Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md)  
 **Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](MULTI-CHANNEL-TIERED-PLAN.md)
 
 ---
 
 ## Why
 
-Customer flows today mix **business rules** with **Telegram I/O** inside handlers (`order_handler.py`, `cart_handler.py`, …). Instagram (CARD-33) must not copy that logic.
+Customer flows still mix **business rules** with **Telegram I/O** inside handlers (`order_handler.py`, `cart_handler.py`, …). Web already uses services for catalog/leads/tickets. **Every frontend** (Telegram, LINE, web, forms, chatbox) must call the **same** cart/checkout/order services.
 
 Extract **thin application services** that:
 
 - Call existing `database/methods` and `payments/*`
-- Return **DTOs** (no `Message`, no `CallbackQuery`)
+- Return **DTOs** (no `Message`, no `CallbackQuery`, no HTTP request objects)
 - Preserve CARD-23 rules: no DB session held across awaits
 
-Telegram handlers stay; they gradually call services and render the same UI.
+Telegram handlers become **adapters only**; they call services and render UI. **No new business logic in handlers.**
 
 ---
 
@@ -94,9 +95,16 @@ Admin/driver handlers: **out of scope**.
 
 ## Exit criteria
 
-- [ ] Services package exists and is imported by at least one Telegram payment path  
-- [ ] Inventory reservation and order status transitions unchanged  
-- [ ] Suite green; no new session-across-await patterns  
+- [x] Web catalog / leads / tickets already service-shaped (do not re-fork)  
+- [x] `cart` + `checkout` + `order_query` modules landed  
+- [x] Telegram **PromptPay** path uses checkout service (`process_promptpay_payment`)  
+- [x] Telegram **cash** path uses checkout service (`process_cash_payment_new_message` → `start_cash_order`)  
+- [x] Telegram **crypto** paths use checkout (`start_crypto_order`: legacy BTC + multi-coin + CryptoPayment)  
+- [x] `cart_handler` uses cart service only (list/add/remove/clear)  
+- [x] Inventory reservation and order status transitions unchanged (parity via service tests + CARD-23 cash)  
+- [x] Optional: store_selection / leftover `get_cart_items` call sites (CARD-40-B)  
+- [x] Suite green on touched paths; no new session-across-await patterns  
+- [ ] PR checklist: reject new handler→domain commerce code
 
 ---
 

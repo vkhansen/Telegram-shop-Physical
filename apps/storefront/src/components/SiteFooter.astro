@@ -1,34 +1,106 @@
 ---
+/**
+ * White-label footer: legal identity, tenant warnings, structured disclaimers.
+ * Nav links come from capability-filtered builder — no hard-coded vertical links.
+ */
+interface DisclaimerBlock {
+  id?: string;
+  title?: string;
+  body: string;
+}
+
+interface FooterLink {
+  href: string;
+  label: string;
+}
+
 interface Props {
   legalName?: string | null;
   dbdNumber?: string | null;
   warnings?: string[];
+  disclaimers?: DisclaimerBlock[];
+  legalNote?: string | null;
+  showDbd?: boolean;
   brandSlug: string;
+  links?: FooterLink[];
 }
 
-const { legalName, dbdNumber, warnings = [], brandSlug } = Astro.props;
+const {
+  legalName,
+  dbdNumber,
+  warnings = [],
+  disclaimers = [],
+  legalNote = null,
+  showDbd = true,
+  brandSlug,
+  links = [],
+} = Astro.props;
+
+const strips = (warnings || []).filter(Boolean);
+const blocks = (disclaimers || []).filter((d) => {
+  if (!d?.body) return false;
+  if (strips.some((w) => w === d.body)) return false;
+  return true;
+});
+
+const nav =
+  links.length > 0
+    ? links
+    : [
+        { href: `/${brandSlug}`, label: "Home" },
+        { href: `/${brandSlug}/about`, label: "About" },
+        { href: `/${brandSlug}/contact`, label: "Contact" },
+      ];
 ---
 
 <footer class="mt-12 border-t border-ink-800 py-8 text-sm text-ink-500">
+  {
+    strips.length > 0 && (
+      <div
+        class="mb-4 rounded-xl border border-amber-900/40 bg-amber-950/20 px-4 py-3 text-xs leading-relaxed text-sand-100"
+        role="note"
+        aria-label="Legal warnings"
+      >
+        {strips.map((w) => (
+          <p class="font-medium">{w}</p>
+        ))}
+      </div>
+    )
+  }
+
+  {
+    blocks.length > 0 && (
+      <div class="mb-6 space-y-3">
+        {blocks.map((d) => (
+          <div class="rounded-xl border border-ink-700 bg-ink-900/60 px-4 py-3 text-xs leading-relaxed text-sand-200">
+            {d.title && (
+              <p class="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-500">{d.title}</p>
+            )}
+            <p class="whitespace-pre-wrap">{d.body}</p>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
     <div class="space-y-1">
       {legalName && <p class="font-medium text-sand-200">{legalName}</p>}
-      {dbdNumber && <p>DBD / Reg. No. {dbdNumber}</p>}
-      <nav class="mt-2 flex flex-wrap gap-3 text-sand-200">
-        <a class="hover:text-accent" href={`/${brandSlug}`}>Home</a>
-        <a class="hover:text-accent" href={`/${brandSlug}/about`}>About</a>
-        <a class="hover:text-accent" href={`/${brandSlug}/contact`}>Contact</a>
-        <a class="hover:text-accent" href={`/${brandSlug}/inquire`}>Inquire</a>
-        <a class="hover:text-accent" href={`/${brandSlug}/book`}>Book</a>
+      {showDbd && dbdNumber && <p>DBD / Reg. No. {dbdNumber}</p>}
+      <nav class="mt-2 flex flex-wrap gap-3 text-sand-200" aria-label="Footer">
+        {nav.map((l) => (
+          <a class="hover:text-accent" href={l.href}>
+            {l.label}
+          </a>
+        ))}
       </nav>
     </div>
-    <div class="max-w-md space-y-2 text-xs leading-relaxed">
-      {warnings.map((w) => (
-        <p>{w}</p>
-      ))}
-      <p class="text-ink-500">
-        Site generated from live brand data. Ordering may complete via private channels where configured.
-      </p>
-    </div>
+    {
+      legalNote && (
+        <div class="max-w-md space-y-2 text-xs leading-relaxed">
+          <p class="text-ink-500">{legalNote}</p>
+        </div>
+      )
+    }
   </div>
 </footer>

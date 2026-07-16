@@ -1,172 +1,179 @@
-# Clear Start — White-Label Brand Sites (Astro)
+# Clear Start — Session Bootstrap
 
 > **Open this file first in any new session.**  
-> **Status board:** [`FEATURE_CARDS.md`](FEATURE_CARDS.md) · **Epic:** [`CARD-38`](later/CARD-38-white-label-brand-branch-sites.md)  
-> **Build contract:** [`Specifications/WHITE-LABEL-ASTRO-IMPLEMENTATION.md`](Specifications/WHITE-LABEL-ASTRO-IMPLEMENTATION.md)  
-> **Last updated:** 2026-07-16
+> **Product blurb · pitch · full WIP archive · docs index:** [`MASTER-DOCUMENT.md`](MASTER-DOCUMENT.md)  
+> **Last updated:** 2026-07-17 (CARD-40 Tier B commerce spine)
 
 ---
 
-## 1. Context (one minute)
+## 0. Where we are (handoff)
 
-| | |
-|--|--|
-| **What we have** | Multi-brand **Telegram** shop platform: Brand → Store → Menu/Goods → Inventory → Orders/Payments; kitchen, riders, multi-bot (CARD-19). M0–M2 done. |
-| **What we’re building** | **White-label auto websites** for every brand + every branch from that DB — any vertical (food, physical goods, portfolio-only restricted catalogs). |
-| **How sites look** | **Astro + Tailwind**, **Instagram-like** experience that works on **desktop and mobile** (responsive profile grid, chips, sheets/lightbox, age gate). |
-| **How sites get data** | Public catalog API + media proxy + hybrid content (columns + tables + `web_profile` JSON). **Not** hand-written Markdown products per brand. |
-| **What Telegram stays** | Primary **ops + order engine** (and full_store checkout). Web is projection + leads/booking. |
+| Area | Status |
+|------|--------|
+| **M0–M2** | Done (payments integrity, cart stub, dispatch) |
+| **CARD-38** white-label web | A+B+C done — Astro storefront + public API + media |
+| **Unified backend law** | Documented — adapters → services → domain |
+| **CARD-32 migration** | **~95%** — TG + web commerce on cart/checkout/order_query |
+| **CARD-29 Messenger** | **~90%** — `TelegramMessenger` + notifications via port |
+| **CARD-30 Identities** | **~90%** — TG dual-write + backfill + resolve/link helpers |
+| **CARD-31 Caps** | **~95%** — platform×role + default masks (`bot/platform/capabilities.py`) |
+| **CARD-40 Web↔TG parity** | **~35%** — Tier A+B ✅ (matrix + web commerce API); C–F open |
+| **Next slice** | **CARD-40 Tier C** — tickets unify + Messenger status + identity edge |
 
-**North star:**
-
-> One platform · N brands · each brand gets bot + web · each branch gets a page · menu/inventory/about/contact/disclaimers from DB · one Astro deploy serves all tenants.
-
----
-
-## 2. Documented decisions (do not re-litigate)
-
-| Topic | Decision | Spec |
-|-------|----------|------|
-| Storage | Hybrid: columns for address/phone/DBD; tables for catalog; JSON for about/FAQ/disclaimers/theme | [BRAND-BRANCH-WEB-CONTENT-MODEL](Specifications/BRAND-BRANCH-WEB-CONTENT-MODEL.md) |
-| Commerce | `full_store` \| `portfolio` \| `hybrid` (call/book to order OK) | [WHITE-LABEL-SITE-MODES…](Specifications/WHITE-LABEL-SITE-MODES-COMPLIANCE-LEADS.md) |
-| Compliance | Age gate + disclaimer text per brand in DB | same |
-| Leads + booking | Lead form + in-person / Google Meet **request** (CARD-36) | same + CARD-36 |
-| Frontend | **Astro**, multi-tenant, IG-like mobile | [WHITE-LABEL-ASTRO-IMPLEMENTATION](Specifications/WHITE-LABEL-ASTRO-IMPLEMENTATION.md) |
-| Gallery | CSS Grid 3-col primary; PhotoSwipe/sheet; research done | [GALLERY-JS-INSPIRATION](Specifications/research/GALLERY-JS-INSPIRATION.md) |
-| Not next | SnusThai as architecture, IG DM first, handler rewrite | P3 / P2 |
+**Do not re-litigate:** hybrid content model, commerce modes, age gate from DB, Telegram-as-adapter (not special domain).
 
 ---
 
-## 3. Done vs open
-
-### Done (leave alone)
-
-M0 launch gate · M1 hardening · M2 dispatch · CARD-19 multi-brand · CARD-28 store assets · full restaurant/payment/i18n suite.  
-Index: [`FEATURE_CARDS.md`](FEATURE_CARDS.md) DONE table · files in `docs/done/`.
-
-### Open priority
+## 1. North star
 
 ```text
-P0  CARD-38  White-label sites
-      A  DB fields + public API
-      B  Media proxy
-      C  Astro multi-tenant IG-like shell
-P1  CARD-29 → 30 → 31 → 32   Messenger, identities, caps, services
-P2  CARD-36 leads+booking · 34 specs · 33 IG · 16 LINE
-P3  CARD-37 vertical demo only
+One domain · many adapters (Telegram, web, forms, LINE, chatbox)
+Frontends implement capability MASKS
+Backend features are STANDARDIZED services
+No new handler → domain business shortcuts
 ```
+
+**Binding law:** [`Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md`](Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md)  
+**Plan:** [`later/MULTI-CHANNEL-TIERED-PLAN.md`](later/MULTI-CHANNEL-TIERED-PLAN.md)  
+**Board:** [`FEATURE_CARDS.md`](FEATURE_CARDS.md)
 
 ---
 
-## 4. Architecture (runtime)
+## 2. Architecture (current)
 
 ```text
-                    PostgreSQL (source of truth)
-         Brand · Store · Goods · Inventory · web_profile · BotConfig
-                              │
-              ┌───────────────┴───────────────┐
-              ▼                               ▼
-     Public Catalog API                 Telegram BotPool
-     + Media proxy                      (admin, order, kitchen)
-              │
-              ▼
-     apps/storefront (Astro)
-     /{brand}  /{brand}/{store}  /{brand}/about  …
-     Instagram-like UI (desktop + mobile)
-              │
-              ▼  (later CARD-36)
-     Lead form · Book meeting → staff notify
+PostgreSQL  Brand · Store · Goods · Orders · web_profile · identities
+                    │
+                    ▼
+         Application services
+    catalog_public · leads_bookings · tickets_web · web_auth
+    cart · checkout · order_query          ◄── CARD-32 (new)
+    platform: capabilities · media_ref · messaging
+                    │
+     ┌──────────────┼──────────────┐
+     ▼              ▼              ▼
+ Public API    Telegram        (LINE/IG later)
+ storefront    handlers        webhooks
+               (thin adapters)
 ```
 
+### Code map (know these paths)
+
+| Path | Role |
+|------|------|
+| `bot/services/dto.py` | `ServiceResult` |
+| `bot/services/cart.py` | Cart list/add/remove/clear |
+| `bot/services/checkout.py` | `create_pending_order`, cash/PromptPay/crypto, QR, `ensure_delivery_profile` |
+| `bot/services/order_query.py` | List/get orders as DTOs |
+| `bot/services/tickets_web.py` | Web tickets (Tier C: unify with TG `ticket_handler`) |
+| `bot/platform/capabilities.py` | `CAPABILITY_KEYS`, `PLATFORM_CAPS`×role, `CHANNEL_DEFAULT_OFF`, `resolve_capabilities` / `can` |
+| `bot/web/commerce_api.py` | **Web commerce adapter** — cart/checkout/orders (session cookie) |
+| `bot/web/auth_api.py` | OAuth session + tickets/leads HTTP |
+| `bot/web/public_api.py` | Catalog + media + mounts auth + commerce |
+| `bot/handlers/user/cart_handler.py` | TG cart → **cart service** |
+| `bot/handlers/user/order_handler.py` | TG payments → **checkout service** |
+| `bot/handlers/user/ticket_handler.py` | TG tickets still domain-heavy → **Tier C target** |
+| `bot/handlers/user/grok_customer.py` | Customer AI → **Tier D target** |
+| `bot/platform/messaging.py` | `Messenger` / `get_messenger` |
+| `bot/platform/identity.py` | `resolve_user_id` / `link_identity` / `ensure_telegram_identity` |
+| `apps/storefront` | BrandShell + capability-gated UI (cart UI may lag API) |
+| `docs/later/CARD-40-parity-matrix.md` | Shared vs web-only vs tg-ops table |
+| `docs/Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md` | Law R1–R8 |
+
 ---
 
-## 5. Responsive UX bar (desktop + mobile)
-
-Must-have for Phase C — **both** viewports:
-
-| | Mobile | Desktop |
-|--|--------|---------|
-| Grid | 3-col IG-style | 3–5 col, wider max-width (~960–1200px) |
-| Item | Sheet / full page | Modal or page + keyboard/hover |
-| Header / chips | Stack + horizontal scroll | Wider hero; chips wrap or scroll |
-| CTAs | Full-width touch targets | Inline + hover/focus |
-| Legal | Age gate + footer DBD/disclaimers from DB | Same |
-
-- Responsive Tailwind breakpoints (not mobile-only)  
-- Profile header, store/category chips, mode-aware CTAs  
-- Fast loads (lazy images via media proxy)
-
----
-
-## 6. Clear-and-start engineering order
-
-### Done → CARD-38 A + B + C ✅ (2026-07-16)
-
-| Phase | Deliverable |
-|-------|-------------|
-| A | Schema, `catalog_public`, `/api/public/*` |
-| B | `media_proxy`, `/media/{token}`, catalog allowlist |
-| C | `apps/storefront` Astro IG-like UI (desktop + mobile) |
-
-### Run locally
+## 3. Local run
 
 ```bash
-# API (with bot monitoring server)
-# PUBLIC catalog on MONITORING_PORT (default 9090)
+# API (SQLite demo + snus seed)
+# SEED_SNUS_FORCE=1 optional
+python scripts/run_public_api.py
+# → http://127.0.0.1:9090
 
 cd apps/storefront
-cp .env.example .env   # PUBLIC_API_BASE=http://127.0.0.1:9090
-npm install && npm run dev   # http://127.0.0.1:4321
+# PUBLIC_API_BASE=http://127.0.0.1:9090
+npm run dev -- --host 127.0.0.1 --port 4321
+# → http://127.0.0.1:4321/snus-demo
 ```
 
-### Auth + tickets (CARD-39)
+```bash
+# Prefer venv on Windows
+.\.venv\Scripts\python.exe -m pytest tests/unit/services/test_commerce_parity_card40b.py tests/unit/services/test_checkout_service.py tests/unit/platform/ -q --no-cov
+.\.venv\Scripts\python.exe -m pytest tests/unit/services/ -q --no-cov
+```
 
-- Spec: [WHITE-LABEL-OAUTH-TICKETS.md](Specifications/WHITE-LABEL-OAUTH-TICKETS.md)  
-- Login: `/{brand}/login` · Account · **Tickets** (list / new / thread)  
-- Dev: `OAUTH_DEV_LOGIN=true` · Google: `OAUTH_GOOGLE_CLIENT_ID/SECRET` + redirect URI  
-- API: `/api/public/auth/*`, `/api/public/tickets*` with session cookie  
+### Web commerce auth (any frontend)
 
-### Next product work
-
-1. Finish Google OAuth deploy config; optional brand-scoped tickets  
-2. **CARD-36** — wire lead + booking forms to DB + staff notify  
-3. **CARD-29** — Messenger port for staff alerts
-
-**Do not start with:** CARD-37 Markdown demo · IG Messaging · full web checkout.
+- Session cookie: `wl_session` (from Google OAuth or `POST /api/public/auth/dev-login` when enabled)
+- Cart/checkout/orders require cookie + credentials; gated by brand `capabilities` (`checkout` off → 403)
+- **Not** a second order writer — same `cart` / `checkout` / `order_query` as Telegram
 
 ---
 
-## 7. Session checklist
+## 4. Migration checklist (CARD-32)
 
-- [ ] Read this file  
-- [ ] CARD-38 A+B+C done — run storefront against live API  
-- [ ] Next: CARD-36 lead/booking wire-up  
-- [ ] Keep Telegram tests green  
+### Done this wave
+
+- [x] `ServiceResult` DTO  
+- [x] `cart` / `checkout` / `order_query` services  
+- [x] Telegram **PromptPay** → `checkout.start_promptpay_order`  
+- [x] Telegram **cash** → `checkout.start_cash_order`  
+- [x] Telegram **crypto** → `checkout.start_crypto_order` (legacy BTC + LTC/SOL/USDT + CryptoPayment)  
+- [x] Telegram **cart_handler** → `cart` service (list/add/remove/clear; no domain cart methods)  
+- [x] Unit tests: `tests/unit/services/test_checkout_service.py` (cart + checkout)  
+- [x] Unified interface + multi-channel plan docs  
+- [x] **CARD-32 TG commerce hard paths cleared** (cart + all payments)  
+
+### Next migration slices (pick one per session)
+
+1. **CARD-40 Tier C** (~1–2d) — tickets unify + Messenger customer status + identity edge  
+2. **CARD-40 Tier D** (~2–3d) — customer Grok tools → services + masks  
+3. **CARD-40 Tier E+F** (~2–3d) — intentional non-parity harden + scorecard/PR gate  
+4. **Only then** CARD-33 / CARD-16 (second channel)  
+
+**Hard gates (met):** TG + web commerce on services; Messenger; identities; CARD-31; CARD-40 A+B.  
+**Next gates:** CARD-40 C (tickets/notify) then D (Grok) before second channel.
+
+### Tier C task checklist (next session)
+
+- [ ] **C1** Extract/share tickets application service; TG `ticket_handler` → service (web already `tickets_web`)  
+- [ ] **C2** Document/identity edge only — web OAuth + TG dual-write; no fake OAuth in bot  
+- [ ] **C3** Grep remaining customer order-status pings → `get_messenger()`  
+- [ ] **C4** Auth mask honesty (web OAuth vs TG identity)  
+- [ ] Tests: ticket create/list parity for same `user_id`; no dual ticket writers
 
 ---
 
-## 8. Full doc index
+## 5. Session checklist
+
+- [ ] Read this file + UNIFIED-BACKEND law  
+- [ ] Prefer **CARD-40 Tier C tickets + Messenger** next  
+- [ ] New code: adapter → service only  
+- [ ] Run targeted pytest for touched services  
+- [ ] Keep Telegram UX unchanged when migrating  
+
+---
+
+## 6. Doc index
 
 | Doc | Role |
 |-----|------|
-| **This file** | Session bootstrap |
-| [WHITE-LABEL-ASTRO-IMPLEMENTATION.md](Specifications/WHITE-LABEL-ASTRO-IMPLEMENTATION.md) | **Astro build contract** |
-| [CARD-38](later/CARD-38-white-label-brand-branch-sites.md) | Epic phases A–C |
-| [BRAND-BRANCH-WEB-CONTENT-MODEL.md](Specifications/BRAND-BRANCH-WEB-CONTENT-MODEL.md) | Hybrid data model |
-| [WHITE-LABEL-SITE-MODES-COMPLIANCE-LEADS.md](Specifications/WHITE-LABEL-SITE-MODES-COMPLIANCE-LEADS.md) | Portfolio, disclaimers, leads, booking |
-| [WEB-INSTAGRAM-STYLE-STOREFRONT.md](Specifications/WEB-INSTAGRAM-STYLE-STOREFRONT.md) | Routes/UI detail |
-| [GALLERY-JS-INSPIRATION.md](Specifications/research/GALLERY-JS-INSPIRATION.md) | Gallery libraries |
-| [FEATURE_CARDS.md](FEATURE_CARDS.md) | Board |
-| [MASTER-PLAN.md](MASTER-PLAN.md) | Milestones |
-| [FUNNEL-…](Specifications/FUNNEL-INSTAGRAM-WEB-TELEGRAM.md) | Funnel narrative |
-| Claude.md / CLAUDE.md | Commands, bug class rule |
+| **This file** | Bootstrap / handoff |
+| [UNIFIED-BACKEND-CHANNEL-INTERFACE](Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md) | Backend law |
+| [MULTI-CHANNEL-TIERED-PLAN](later/MULTI-CHANNEL-TIERED-PLAN.md) | Tiers |
+| [CARD-32](later/CARD-32-customer-application-services.md) | Customer services epic |
+| [CARD-40](later/CARD-40-web-telegram-abstracted-feature-parity.md) | Web↔TG abstracted parity (masks) |
+| [CARD-40 parity matrix](later/CARD-40-parity-matrix.md) | Tier A capability × adapter table |
+| [CARD-29](later/CARD-29-messenger-port.md) | Messenger |
+| [CARD-38](later/CARD-38-white-label-brand-branch-sites.md) | Web shell (done) |
+| [FEATURE_CARDS](FEATURE_CARDS.md) | Status board |
+| [MASTER-PLAN](MASTER-PLAN.md) | Milestones |
+| Claude.md | Commands + architecture notes |
 
 ---
 
-## 9. Ready statement
+## 7. Ready statement
 
-**Documentation is complete for a clean start.**
+**Context is clear for a clean continue.**
 
-Next concrete work: **implement CARD-38 Phase A** (schema + public catalog API), then media proxy, then **Astro multi-tenant Instagram-like storefront** in `apps/storefront`.
-
-When starting code, say: *“Implement CARD-38 Phase A”* or *“Scaffold apps/storefront after API.”*
+Say next: *“CARD-40 Tier C tickets and Messenger.”*

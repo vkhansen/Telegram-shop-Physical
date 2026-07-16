@@ -463,11 +463,12 @@ async def cleanup_expired_reservations() -> tuple[int, list[str]]:
         session.commit()
 
     # Phase 2: Send notifications OUTSIDE the DB session (LOGIC-03 fix)
+    # CARD-40 C3 / CARD-29: customer status pings via Messenger port.
     if notifications_to_send:
         try:
-            from bot.payments.notifications import get_shared_bot
+            from bot.platform.messaging import get_messenger
 
-            bot = get_shared_bot()
+            messenger = get_messenger()
 
             for notif in notifications_to_send:
                 try:
@@ -480,11 +481,11 @@ async def cleanup_expired_reservations() -> tuple[int, list[str]]:
                         f"Your referral bonus has been returned to your account.\n"
                         f"You can use it for your next order!"
                     )
-                    await bot.send_message(notif["buyer_id"], notification_text)
+                    await messenger.send_text(notif["buyer_id"], notification_text)
                     logger.info(f"Bonus refund notification sent for expired order {notif['order_code']}")
                 except Exception as e:
                     logger.warning(f"Failed to send bonus refund notification for order {notif['order_code']}: {e}")
         except Exception as e:
-            logger.warning(f"Failed to initialize bot for notifications: {e}")
+            logger.warning(f"Failed to initialize messenger for notifications: {e}")
 
     return count, order_codes

@@ -1,0 +1,34 @@
+---
+/** Numbered benefit cards — copy entirely from web_profile.benefits + section labels. */
+interface Benefit {
+  n?: string;
+  title: string;
+  body: string;
+}
+
+interface Props {
+  benefits: Benefit[];
+  eyebrow: string;
+  headline: string;
+}
+
+const { benefits, eyebrow, headline } = Astro.props;
+---
+
+{
+  benefits.length > 0 && (
+    <section class="border-t border-ink-800 py-10 lg:py-14">
+      <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">{eyebrow}</p>
+      <h2 class="mt-2 max-w-xl text-2xl font-bold tracking-tight text-sand-50 sm:text-3xl">{headline}</h2>
+      <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {benefits.map((b, i) => (
+          <article class="rounded-2xl border border-ink-800 bg-ink-900/60 p-5">
+            <p class="text-xs font-semibold text-accent">{b.n || String(i + 1).padStart(2, "0")}</p>
+            <h3 class="mt-2 text-base font-semibold text-sand-50">{b.title}</h3>
+            <p class="mt-2 text-sm leading-relaxed text-sand-200">{b.body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}

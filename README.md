@@ -1003,7 +1003,12 @@ The bot uses finite state machines (aiogram FSM) to manage multi-step interactio
 
 | Document | Description |
 |----------|-------------|
-| [Slip Verification Setup](docs/SLIP-VERIFICATION-SETUP.md) | How to sign up for SlipOK, EasySlip, RDCW — API keys, pricing, bank coverage |
+| [Master Document](docs/MASTER-DOCUMENT.md) | **Blurb · pitch · WIP summary · full docs index** |
+| [Clear Start](docs/CLEAR-START.md) | Session bootstrap for active multi-channel / web work |
+| [Feature Cards](docs/FEATURE_CARDS.md) | Status board (done vs backlog) |
+| [Master Plan](docs/MASTER-PLAN.md) | Milestone sequencing |
+| [Marketing](docs/MARKETING.md) | Merchant-facing restaurant product story |
+| [Slip Verification Setup](docs/backlog/SLIP-VERIFICATION-SETUP.md) | SlipOK, EasySlip, RDCW — API keys, pricing, bank coverage |
 | [.env.example](.env.example) | Complete environment variable reference with all defaults |
 | `bot_cli.py --help` | Full CLI usage help |
 

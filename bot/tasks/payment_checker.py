@@ -159,6 +159,13 @@ def _expire_order(session, order_id: int):
         order.order_status = STATUS_EXPIRED
 
 
+async def _notify_customer(buyer_id: int, text: str) -> None:
+    """Customer ping via Messenger port (CARD-40 C3 / CARD-29)."""
+    from bot.platform.messaging import get_messenger
+
+    await get_messenger().send_text(buyer_id, text)
+
+
 async def _notify_payment_detected(bot, payment: CryptoPayment):
     """Notify customer that a transaction was found on-chain."""
     try:
@@ -174,7 +181,7 @@ async def _notify_payment_detected(bot, payment: CryptoPayment):
                 confirmations=payment.confirmations,
                 required=payment.required_confirmations,
             )
-            await bot.send_message(order.buyer_id, text)
+            await _notify_customer(order.buyer_id, text)
     except Exception:
         logger.exception("Failed to notify payment detected for order %s", payment.order_id)
 
@@ -194,7 +201,7 @@ async def _notify_payment_confirmed(bot, payment: CryptoPayment):
                 confirmations=payment.confirmations,
                 required=payment.required_confirmations,
             )
-            await bot.send_message(order.buyer_id, text)
+            await _notify_customer(order.buyer_id, text)
     except Exception:
         logger.exception("Failed to notify payment confirmed for order %s", payment.order_id)
 
@@ -211,6 +218,6 @@ async def _notify_payment_expired(bot, payment: CryptoPayment):
                 coin=payment.coin.upper(),
                 order_code=order.order_code or str(order.id),
             )
-            await bot.send_message(order.buyer_id, text)
+            await _notify_customer(order.buyer_id, text)
     except Exception:
         logger.exception("Failed to notify payment expired for order %s", payment.order_id)

@@ -17,7 +17,11 @@ Fix all instances, not just the one you found.
 - **Run tests**: `pytest tests/`
 
 ## Architecture Notes
-- Telegram bot using aiogram 3.22, SQLAlchemy 2.0, PostgreSQL 16, Redis 7
+- Telegram is an **adapter** (aiogram 3.22), not a special domain API — SQLAlchemy 2.0, PostgreSQL 16, Redis 7
+- **Unified backend law:** adapters (Telegram/web/LINE/forms/chatbox) → application services → domain. No new handler→domain business shortcuts. Spec: `docs/Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md`
+- Platform contracts: `bot/platform/` (capabilities, media_ref, messaging)
+- Capability masks: frontends implement subsets; backend features are standardized services
 - `prepared` items have unlimited stock (stock_quantity=0 means unlimited)
 - `product` items are inventory-tracked
 - Locale priority: explicit param > request contextvar > BOT_LOCALE env > DEFAULT_LOCALE ("th")
+- Session bootstrap: `docs/CLEAR-START.md`

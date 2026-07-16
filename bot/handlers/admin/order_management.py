@@ -597,13 +597,21 @@ async def _send_rider_notification(bot: Bot, order: Order, session):
 
 
 async def _notify_customer_status(bot: Bot, order: Order):
-    """Send status update notification to customer."""
-    status_key = f"order.status.{order.order_status}"
-    if order.order_status == "delivered":
-        status_key = "order.status.delivered_notify"
-
+    """Send status update to customer via Messenger port (CARD-40 C3 / CARD-29)."""
     try:
+        from bot.payments.notifications import notify_customer_status
+
+        # Prefer shared notify helper (Messenger-backed). Fallback for statuses
+        # not in its map uses the same messenger path.
+        ok = await notify_customer_status(bot, order, order.order_status)
+        if ok:
+            return
+        status_key = f"order.status.{order.order_status}"
+        if order.order_status == "delivered":
+            status_key = "order.status.delivered_notify"
         message = localize(status_key, order_code=order.order_code)
-        await bot.send_message(order.buyer_id, message)
+        from bot.platform.messaging import get_messenger
+
+        await get_messenger().send_text(order.buyer_id, message)
     except Exception as e:
         audit_logger.warning(f"Failed to notify customer for order {order.order_code}: {e}")

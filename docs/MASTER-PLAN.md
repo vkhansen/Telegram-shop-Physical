@@ -2,12 +2,13 @@
 
 > **The single source of truth for sequencing.** This file answers one question: *what stands between us and a safe go-live, and in what order do we close it?*
 >
+> - **Master archive** (blurb · pitch · WIP · full doc index): [`MASTER-DOCUMENT.md`](MASTER-DOCUMENT.md)
 > - **Clear start / next work:** [`CLEAR-START.md`](CLEAR-START.md)
 > - **Status board** (what shipped + prioritized backlog): [`FEATURE_CARDS.md`](FEATURE_CARDS.md)
 > - **Card details:** `docs/done/`, `docs/later/`
 > - This plan supersedes the milestone ordering in [`ROADMAP.md`](ROADMAP.md), which is retained for the growth-track narrative. On conflict with older multi-channel notes, **CLEAR-START + FEATURE_CARDS win**.
 
-Last reviewed: 2026-07-16 (backlog reprioritized: white-label sites CARD-38 first — see CLEAR-START.md)
+Last reviewed: 2026-07-17 (unified backend directive — services for all channels; see UNIFIED-BACKEND-CHANNEL-INTERFACE.md)
 
 ---
 
@@ -78,43 +79,43 @@ The differentiator that turns a kitchen-notification tool into a delivery platfo
 
 ### M3 — White-label public surfaces + multi-channel — *active*
 
-> **Session bootstrap:** [`CLEAR-START.md`](CLEAR-START.md) · **Astro contract:** [`Specifications/WHITE-LABEL-ASTRO-IMPLEMENTATION.md`](Specifications/WHITE-LABEL-ASTRO-IMPLEMENTATION.md) · **Board:** [`FEATURE_CARDS.md`](FEATURE_CARDS.md)  
-> **North star:** Auto-generated Brand + Branch sites from backend (any vertical), **Astro Instagram-like UI on desktop and mobile**. Telegram stays primary for orders/ops.  
-> **Next epic:** [CARD-38](later/CARD-38-white-label-brand-branch-sites.md)
+> **Session bootstrap:** [`CLEAR-START.md`](CLEAR-START.md)  
+> **Unified backend law:** [`Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md`](Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md)  
+> **Plan:** [`later/MULTI-CHANNEL-TIERED-PLAN.md`](later/MULTI-CHANNEL-TIERED-PLAN.md) · **Board:** [`FEATURE_CARDS.md`](FEATURE_CARDS.md)  
+> **North star:** One domain · many adapters (Telegram, web, forms, LINE, …) · capability masks · **no new Telegram-only business paths**.  
+> **Web epic:** [CARD-38](later/CARD-38-white-label-brand-branch-sites.md) ✅ A+B+C · **Service epic:** [CARD-32](later/CARD-32-customer-application-services.md)
 
 | Priority | Card | What | Effort |
 |----------|------|------|--------|
-| **P0** | [CARD-38](later/CARD-38-white-label-brand-branch-sites.md) | White-label brand/branch auto-sites (API → media → web shell) | 6–10d phased |
-| P1 | [CARD-29](later/CARD-29-messenger-port.md) | Messenger port | 1–2d |
-| P1 | [CARD-30](later/CARD-30-user-identities.md) | User identities dual-write | 1–2d |
-| P1 | [CARD-31](later/CARD-31-platform-capabilities.md) | Capability masks | 0.5–1d |
-| P1 | [CARD-32](later/CARD-32-customer-application-services.md) | Customer services DTOs | 2–4d |
-| P2 | [CARD-36](later/CARD-36-instagram-web-telegram-funnel.md) | Leads/forms bridge | 3–5d |
+| **P0** | [CARD-38](later/CARD-38-white-label-brand-branch-sites.md) | White-label sites (API → media → shell) | ✅ phased |
+| **P1** | [CARD-32](later/CARD-32-customer-application-services.md) | Customer services — kill TG→domain shortcuts | 2–4d |
+| P1 | [CARD-29](later/CARD-29-messenger-port.md) | Messenger / MessageTransport wire-up | 1–2d |
+| P1 | [CARD-30](later/CARD-30-user-identities.md) | Identities dual-write + resolve | 1–2d |
+| P1 | [CARD-31](later/CARD-31-platform-capabilities.md) | Platform×role caps (extend `bot/platform`) | ✅ ~95% |
+| P2 | [CARD-36](later/CARD-36-instagram-web-telegram-funnel.md) | Leads/forms polish + staff notify | polish |
 | P2 | [CARD-34](later/CARD-34-conversation-workflow-specifications.md) | Chat/workflow specs | 3–6d |
-| P2 | [CARD-33](later/CARD-33-instagram-messaging-channel.md) | Instagram DM | 5–8d |
-| P2 | [CARD-16](later/CARD-16-line-api-integration.md) | LINE | 5–8d |
+| P2 | [CARD-33](later/CARD-33-instagram-messaging-channel.md) | Instagram DM (**after T1**) | 5–8d |
+| P2 | [CARD-16](later/CARD-16-line-api-integration.md) | LINE (**after T1**) | 5–8d |
 | P3 | [CARD-37](later/CARD-37-snusthai-hub-astro-mvp.md) | Vertical demo only | parked |
 
-**Exit criteria (CARD-38):** Two brands expose distinct brand+branch pages from one deploy; menu/inventory updates without redeploy; flag-off safe.  
-**Already shipped on growth track:** multi-brand runtime ([CARD-19](done/CARD-19-multi-brand-bot-coordination.md)), Grok admin/customer ([CARD-17](done/CARD-17-grok-admin-assistant.md), [CARD-22](done/CARD-22-grok-customer-assistant.md)).
+**Exit criteria (M3 backend):** Customer capabilities have service entrypoints; Telegram payment paths call services; web + bot share ≥80% of commerce call sites; second channel can ship on masks only.  
+**Already shipped:** multi-brand ([CARD-19](done/CARD-19-multi-brand-bot-coordination.md)), public web catalog/media/storefront, partial `bot/platform/*`.
 
 ---
 
 ## 4. Dependency graph
 
 ```
-M0 ✅ Launch gate (CARD-25, 23, 24)
-M1 ✅ Hardening (CARD-27, 21)
-M2 ✅ Dispatch (CARD-26)
+M0 ✅ · M1 ✅ · M2 ✅
         │
         ▼
-M3  White-label + multi-channel
+M3  White-label + unified multi-channel
         │
-        ├─ P0  CARD-38 Brand/Branch auto-sites
-        │         A Catalog API → B Media → C Web shell
-        ├─ P1  CARD-29 / 30 / 31 / 32
-        ├─ P2  CARD-36 leads · 34 specs · 33 IG · 16 LINE
-        └─ P3  CARD-37 vertical demo (parked)
+        ├─ ✅ CARD-38 web adapter (catalog/media/shell)
+        ├─ P1  CARD-32 services  ← hard gate for new channels
+        ├─ P1  CARD-29 / 30 / 31 ports
+        ├─ P2  CARD-36 · 34 · 33 · 16  (adapters only on services)
+        └─ P3  CARD-37 demo (parked)
 ```
 
 ## 5. Launch checklist (M0 exit)

@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-> **0% Complete** | `░░░░░░░░░░░░░░░░░░░` | Design only — not started.
+> **~90% Complete** | `██████████████████░░` | **2026-07-17:** Model + table (CARD-39), TG dual-write on `create_user` + `/start`, resolve/link helpers, backfill migration. Account-linking UI out of scope.
 
 **Tier:** T0 — Multi-Channel Foundation  
 **Phase:** M3 — Multi-Platform Growth  
@@ -35,10 +35,13 @@ CREATE TABLE user_identities (
 CREATE INDEX ix_user_identities_user ON user_identities(user_id);
 ```
 
+**Shipped:** table + model in CARD-39 migration `e5b9a3d4c1f2`.  
+**Backfill:** migration `a1c30b0e4d2f` inserts `platform=telegram` for existing users.
+
 **Phase T0 policy:**
 
 - Keep `users.telegram_id` as PK and all existing FKs.
-- On Telegram user create (and optional login path): upsert `(platform='telegram', external_id=str(telegram_id))`.
+- On Telegram user create (and `/start` for existing): upsert `(platform='telegram', external_id=str(telegram_id))`.
 - Backfill migration for existing users.
 
 **Instagram (CARD-33):** create or link rows with `platform='instagram'`. New IG-only users need a stable `users` row strategy (see below).
@@ -64,18 +67,22 @@ CARD-33 chooses one; CARD-30 only ships table + Telegram dual-write + resolve he
 ## Code
 
 ```
-bot/ports/identity.py
+bot/platform/identity.py      # resolve / link / ensure / backfill
 bot/database/models/main.py   # UserIdentity model
-migrations/versions/..._user_identities.py
+bot/database/methods/create.py  # create_user dual-write
+bot/handlers/user/main.py     # /start ensure for existing users
+migrations/versions/e5b9a3d4c1f2_oauth_identities_card_39.py  # table
+migrations/versions/a1c30b0e4d2f_backfill_telegram_identities_card_30.py
 ```
 
 ```python
 def resolve_user_id(platform: str, external_id: str) -> int | None: ...
-def link_identity(user_id: int, platform: str, external_id: str) -> None: ...
-def ensure_telegram_identity(telegram_id: int) -> None: ...
+def link_identity(user_id: int, platform: str, external_id: str) -> bool: ...
+def ensure_telegram_identity(telegram_id: int) -> bool: ...
+def backfill_telegram_identities() -> int: ...
 ```
 
-Wire `ensure_telegram_identity` into `create_user` / auth middleware first-seen path.
+Wire: `ensure_telegram_identity` in `create_user` + `/start` for existing users.
 
 ---
 
@@ -94,15 +101,18 @@ Wire `ensure_telegram_identity` into `create_user` / auth middleware first-seen 
 - Backfill creates one telegram identity per user
 - resolve returns correct user_id
 
+`tests/unit/platform/test_identity_card30.py`
+
 ---
 
 ## Exit criteria
 
-- [ ] Table + model + Alembic migration  
-- [ ] Backfill of existing users  
-- [ ] Dual-write on new Telegram users  
-- [ ] Resolve/link helpers unit-tested  
-- [ ] No change to order/cart FK behavior  
+- [x] Table + model + Alembic migration (table via CARD-39; backfill via `a1c30b0e4d2f`)  
+- [x] Backfill of existing users  
+- [x] Dual-write on new Telegram users  
+- [x] Resolve/link helpers unit-tested  
+- [x] No change to order/cart FK behavior  
+- [ ] Optional: account linking UI (later card)  
 
 ---
 

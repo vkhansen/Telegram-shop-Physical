@@ -1,0 +1,74 @@
+---
+/**
+ * Standard white-label chrome for every brand page.
+ * AgeGate + Ticker + chips + body + SiteFooter — all from BrandContext (DB + capabilities).
+ */
+import BaseLayout from "./BaseLayout.astro";
+import AgeGate from "../components/AgeGate.astro";
+import TickerStrip from "../components/TickerStrip.astro";
+import StoryChips from "../components/StoryChips.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import { type BrandContext, type NavChip, buildFooterLinks, can } from "../lib/brandContext";
+
+interface Props {
+  ctx: BrandContext;
+  title: string;
+  description?: string;
+  chips?: NavChip[];
+  showTicker?: boolean;
+  ageGate?: boolean;
+}
+
+const {
+  ctx,
+  title,
+  description = "",
+  chips = [],
+  showTicker = true,
+  ageGate = true,
+} = Astro.props;
+
+const { brand, compliance: cmp } = ctx;
+const desc = description || brand.description || "";
+const footerLinks = buildFooterLinks(ctx);
+const gateOn = ageGate && can(ctx, "age_gate", brand.age_gate_enabled);
+const tickerOn = showTicker && can(ctx, "ticker", true);
+---
+
+<BaseLayout title={title} description={desc} brandName={brand.name}>
+  {
+    gateOn && (
+      <AgeGate
+        enabled={brand.age_gate_enabled}
+        minAge={brand.min_age}
+        title={cmp.ageGate.title}
+        body={cmp.ageGate.body}
+        confirmLabel={cmp.ageGate.confirmLabel}
+        denyLabel={cmp.ageGate.denyLabel}
+        footerNote={cmp.ageGate.footerNote}
+        denyRedirectUrl={cmp.ageGate.denyRedirectUrl}
+        disclaimerLines={cmp.ageGate.disclaimerLines}
+        brandName={brand.name}
+        brandSlug={brand.slug}
+        logoUrl={brand.logo_url}
+      />
+    )
+  }
+
+  {tickerOn && <TickerStrip text={cmp.ticker} />}
+
+  {chips.length > 0 && <StoryChips chips={chips} />}
+
+  <slot />
+
+  <SiteFooter
+    brandSlug={brand.slug}
+    legalName={brand.legal?.legal_name}
+    dbdNumber={brand.legal?.dbd_number}
+    warnings={cmp.footerWarnings}
+    disclaimers={cmp.disclaimerBlocks}
+    legalNote={cmp.legalNote}
+    showDbd={cmp.showDbd}
+    links={footerLinks}
+  />
+</BaseLayout>

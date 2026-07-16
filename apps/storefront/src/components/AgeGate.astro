@@ -1,10 +1,29 @@
 ---
+/**
+ * White-label age gate — full-screen click-through before brand content.
+ *
+ * State (per brand slug):
+ *  1. Cookie `age_ok_<slug>=1` (primary) — survives reloads, readable by SSR
+ *  2. localStorage backup — same browser, longer lived
+ *
+ * SSR skips rendering the gate when the cookie is already present so navigation
+ * does not flash the wall again after confirm.
+ */
 interface Props {
   enabled: boolean;
   minAge?: number | null;
   title?: string;
   body?: string;
+  confirmLabel?: string;
+  denyLabel?: string;
+  footerNote?: string;
+  denyRedirectUrl?: string;
+  disclaimerLines?: string[];
+  brandName?: string;
   brandSlug: string;
+  logoUrl?: string | null;
+  /** Cookie / storage lifetime in days (default 30). */
+  rememberDays?: number;
 }
 
 const {
@@ -12,63 +31,178 @@ const {
   minAge = 18,
   title = "Are you of legal age?",
   body = "You must be of legal age in your country to enter this site.",
+  confirmLabel = "I am of legal age",
+  denyLabel = "I am under age",
+  footerNote = "For adults of legal age only",
+  denyRedirectUrl = "https://www.google.com",
+  disclaimerLines = [],
+  brandName = "",
   brandSlug,
+  logoUrl = null,
+  rememberDays = 30,
 } = Astro.props;
 
-const storageKey = `age_ok_${brandSlug}`;
+const lines = (disclaimerLines || []).filter(Boolean);
+
+/** Cookie-safe key (hyphens allowed; keep alnum + _ -) */
+const storageKey = `age_ok_${String(brandSlug).replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+const maxAgeSec = Math.max(1, Math.floor(rememberDays * 24 * 60 * 60));
+
+function hasAgeCookie(cookieHeader: string | null, key: string): boolean {
+  if (!cookieHeader) return false;
+  const parts = cookieHeader.split(";");
+  for (const part of parts) {
+    const [rawName, ...rest] = part.trim().split("=");
+    if (rawName === key && rest.join("=").trim() === "1") return true;
+  }
+  return false;
+}
+
+const cookieHeader = Astro.request.headers.get("cookie");
+const alreadyConfirmed = hasAgeCookie(cookieHeader, storageKey);
+const showGate = Boolean(enabled) && !alreadyConfirmed;
 ---
 
 {
-  enabled && (
+  showGate && (
     <div
       id="age-gate"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/95 p-4 backdrop-blur-sm"
-      hidden
+      class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-ink-950 p-4 sm:p-8"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="age-gate-title"
+      data-age-key={storageKey}
     >
-      <div class="w-full max-w-md rounded-2xl border border-ink-700 bg-ink-900 p-6 shadow-card sm:p-8">
-        <p class="text-xs font-semibold uppercase tracking-widest text-accent">Restricted</p>
-        <h1 class="mt-2 text-2xl font-bold text-sand-50">{title}</h1>
-        <p class="mt-3 text-sm leading-relaxed text-sand-200">{body}</p>
-        {minAge != null && (
-          <p class="mt-2 text-xs text-ink-500">Minimum age: {minAge}+</p>
-        )}
-        <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+      <div class="flex w-full max-w-md flex-col items-center text-center">
+        <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">
+          Restricted · {(minAge ?? 18)}+
+        </p>
+
+        {
+          logoUrl ? (
+            <img
+              src={logoUrl}
+              alt=""
+              class="mt-8 h-20 w-20 rounded-full border border-ink-700 object-cover sm:h-24 sm:w-24"
+            />
+          ) : (
+            <div class="mt-8 flex h-20 w-20 items-center justify-center rounded-full border border-ink-700 bg-ink-900 text-2xl font-bold text-accent sm:h-24 sm:w-24">
+              {(brandName || "B").slice(0, 1)}
+            </div>
+          )
+        }
+
+        {brandName && <p class="mt-4 text-sm font-medium tracking-wide text-sand-200">{brandName}</p>}
+
+        <h1 id="age-gate-title" class="mt-6 text-3xl font-bold tracking-tight text-sand-50 sm:text-4xl">
+          {title}
+        </h1>
+        <p class="mt-4 text-sm leading-relaxed text-sand-200 sm:text-base">{body}</p>
+
+        <div class="mt-10 flex w-full flex-col gap-3 sm:flex-row">
           <button
             type="button"
             id="age-confirm"
-            class="flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-ink-950 transition hover:bg-accent-glow"
+            class="flex-1 cursor-pointer rounded-full bg-sand-50 px-5 py-3.5 text-sm font-semibold text-ink-950 transition hover:bg-accent"
           >
-            I am of legal age
+            {confirmLabel}
           </button>
           <button
             type="button"
             id="age-deny"
-            class="flex-1 rounded-xl border border-ink-700 px-4 py-3 text-sm font-medium text-sand-200 hover:bg-ink-800"
+            class="flex-1 cursor-pointer rounded-full border border-ink-600 px-5 py-3.5 text-sm font-medium text-sand-200 transition hover:bg-ink-900"
           >
-            I am under age
+            {denyLabel}
           </button>
         </div>
+
+        <p class="mt-8 text-[11px] font-medium uppercase tracking-wider text-ink-500">{footerNote}</p>
+
+        {
+          lines.length > 0 && (
+            <div class="mt-4 max-w-sm space-y-2 text-[11px] leading-relaxed text-ink-500">
+              {lines.map((line) => (
+                <p>{line}</p>
+              ))}
+            </div>
+          )
+        }
       </div>
     </div>
   )
 }
 
 {
-  enabled && (
-    <script define:vars={{ storageKey }}>
-      const gate = document.getElementById("age-gate");
-      if (gate && !sessionStorage.getItem(storageKey)) {
-        gate.hidden = false;
+  showGate && (
+    <script is:inline define:vars={{ storageKey, denyRedirectUrl, maxAgeSec }}>
+      (function () {
+        var gate = document.getElementById("age-gate");
+        if (!gate) return;
+
+        function setCookie(name, value, maxAge) {
+          var secure = location.protocol === "https:" ? "; Secure" : "";
+          document.cookie =
+            name +
+            "=" +
+            value +
+            "; Path=/" +
+            "; Max-Age=" +
+            maxAge +
+            "; SameSite=Lax" +
+            secure;
+        }
+
+        function rememberAge() {
+          setCookie(storageKey, "1", maxAgeSec);
+          try {
+            localStorage.setItem(storageKey, "1");
+          } catch (e) {}
+          try {
+            sessionStorage.setItem(storageKey, "1");
+          } catch (e) {}
+        }
+
+        function dismissGate() {
+          rememberAge();
+          // Hide hard — attribute, class, and inline style so nothing keeps it up
+          gate.setAttribute("hidden", "");
+          gate.classList.add("hidden");
+          gate.style.display = "none";
+          gate.setAttribute("aria-hidden", "true");
+          document.documentElement.style.overflow = "";
+          document.body.style.overflow = "";
+        }
+
+        // Lock scroll while gate is up
+        document.documentElement.style.overflow = "hidden";
         document.body.style.overflow = "hidden";
-      }
-      document.getElementById("age-confirm")?.addEventListener("click", () => {
-        sessionStorage.setItem(storageKey, "1");
-        if (gate) gate.hidden = true;
-        document.body.style.overflow = "";
-      });
-      document.getElementById("age-deny")?.addEventListener("click", () => {
-        window.location.href = "https://www.google.com";
-      });
+
+        // Client-side backup: if storage already has confirm (cookie missing on this request), dismiss
+        try {
+          if (localStorage.getItem(storageKey) === "1" || sessionStorage.getItem(storageKey) === "1") {
+            dismissGate();
+            return;
+          }
+        } catch (e) {}
+
+        var confirmBtn = document.getElementById("age-confirm");
+        var denyBtn = document.getElementById("age-deny");
+
+        if (confirmBtn) {
+          confirmBtn.addEventListener("click", function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            dismissGate();
+          });
+        }
+
+        if (denyBtn) {
+          denyBtn.addEventListener("click", function (ev) {
+            ev.preventDefault();
+            window.location.href = denyRedirectUrl || "https://www.google.com";
+          });
+        }
+      })();
     </script>
   )
 }

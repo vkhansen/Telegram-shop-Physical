@@ -1,6 +1,11 @@
-/** Client for CARD-38 public catalog API. */
+/** Client for public catalog API — channel-agnostic brand/catalog DTOs. */
 
 const API_BASE = (import.meta.env.PUBLIC_API_BASE || "http://127.0.0.1:9090").replace(/\/$/, "");
+
+/** Surface this storefront represents when requesting capability masks. */
+export const CLIENT_CHANNEL = "web" as const;
+
+export type Capabilities = Record<string, boolean>;
 
 export type BrandPublic = {
   slug: string;
@@ -11,6 +16,9 @@ export type BrandPublic = {
   commerce_mode: string;
   age_gate_enabled: boolean;
   min_age?: number | null;
+  channel?: string;
+  capabilities?: Capabilities;
+  channels?: Record<string, boolean>;
   legal: { legal_name?: string | null; dbd_number?: string | null };
   contact: { support_email?: string | null; support_phone?: string | null };
   web: Record<string, unknown>;
@@ -53,6 +61,7 @@ export type StoreMenu = {
     commerce_mode: string;
     age_gate_enabled: boolean;
     min_age?: number | null;
+    capabilities?: Capabilities;
     web: Record<string, unknown>;
     legal: { legal_name?: string | null; dbd_number?: string | null };
   };
@@ -84,8 +93,9 @@ export function getApiBase() {
   return API_BASE;
 }
 
-export async function fetchBrand(slug: string) {
-  return getJson<BrandPublic>(`/api/public/brands/${encodeURIComponent(slug)}`);
+export async function fetchBrand(slug: string, channel: string = CLIENT_CHANNEL) {
+  const q = channel && channel !== "web" ? `?channel=${encodeURIComponent(channel)}` : "?channel=web";
+  return getJson<BrandPublic>(`/api/public/brands/${encodeURIComponent(slug)}${q}`);
 }
 
 export async function fetchStoreMenu(brand: string, store: string) {
@@ -107,13 +117,19 @@ export async function fetchBrands() {
   return data?.brands ?? [];
 }
 
-export function ctaLabel(cta: string): string {
+/** CTA labels — prefer brand.web.cta when passed; keep neutral defaults. */
+export function ctaLabel(cta: string, labels?: { inquire?: string; order?: string; contact?: string }): string {
   switch (cta) {
     case "order":
-      return "Order";
+      return labels?.order || "Order";
     case "inquire":
-      return "Inquire";
+      return labels?.inquire || "Inquire";
     default:
-      return "Contact";
+      return labels?.contact || "Contact";
   }
+}
+
+export function cap(caps: Capabilities | undefined | null, key: string, fallback = true): boolean {
+  if (!caps || !(key in caps)) return fallback;
+  return Boolean(caps[key]);
 }

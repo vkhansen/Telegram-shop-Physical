@@ -111,7 +111,7 @@ Full sequencing: [`docs/later/MULTI-CHANNEL-TIERED-PLAN.md`](later/MULTI-CHANNEL
   - Instagram In/Out package **accepted** before CARD-33 coding
 - [ ] **T0 — CARD-29** Messenger port + Telegram default *(1–2d)*
 - [ ] **T0 — CARD-30** User identities dual-write *(1–2d)*
-- [ ] **T0 — CARD-31** Platform capability / feature mask *(0.5–1d)*
+- [x] **T0 — CARD-31** Platform capability / feature mask *(done: PLATFORM_CAPS×ROLE + resolve)*
 - [ ] **T1 — CARD-32** Customer application services *(2–4d)*
 - [ ] **T2 — CARD-33** Instagram Messaging channel — **Phase 2** *(5–8d)*
   - Meta webhook + **only** flows from accepted CARD-34 IG package

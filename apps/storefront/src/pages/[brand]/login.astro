@@ -1,28 +1,26 @@
 ---
-import BaseLayout from "../../layouts/BaseLayout.astro";
-import { fetchBrand } from "../../lib/api";
+import BrandShell from "../../layouts/BrandShell.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import { can, loadBrandContext } from "../../lib/brandContext";
 
 export const prerender = false;
 
 const { brand: brandSlug } = Astro.params;
 if (!brandSlug) return Astro.redirect("/");
-const brand = await fetchBrand(brandSlug);
-if (!brand) return new Response(null, { status: 404 });
+
+const ctx = await loadBrandContext(brandSlug);
+if (!ctx) return new Response(null, { status: 404 });
+if (!can(ctx, "auth", true)) return new Response(null, { status: 404 });
 
 const next = Astro.url.searchParams.get("next") || `/${brandSlug}/tickets`;
-const apiBase = (import.meta.env.PUBLIC_API_BASE || "http://127.0.0.1:9090").replace(/\/$/, "");
+const apiBase = ctx.apiBase;
 const googleUrl = `${apiBase}/api/public/auth/google/start?brand=${encodeURIComponent(brandSlug)}&next=${encodeURIComponent(next)}`;
+const L = ctx.labels;
 ---
 
-<BaseLayout title="Log in" brandName={brand.name}>
-  <main class="mx-auto max-w-md py-12">
-    <a href={`/${brandSlug}`} class="text-xs font-medium uppercase tracking-wider text-accent hover:underline">
-      ← {brand.name}
-    </a>
-    <h1 class="mt-4 text-3xl font-bold">Log in</h1>
-    <p class="mt-2 text-sm text-sand-200">
-      Sign in to access support tickets. We match your OAuth email, name, and profile to your account.
-    </p>
+<BrandShell ctx={ctx} title={L.login}>
+  <main class="mx-auto max-w-md py-2">
+    <PageHeader brandSlug={ctx.slug} brandName={ctx.brand.name} title={L.login} lead="Sign in to access support tickets. We match your OAuth profile to your account." />
 
     <div class="mt-8 space-y-3">
       <a
@@ -56,7 +54,7 @@ const googleUrl = `${apiBase}/api/public/auth/google/start?brand=${encodeURIComp
       </form>
     </div>
   </main>
-</BaseLayout>
+</BrandShell>
 
 <script define:vars={{ apiBase, next }}>
   document.getElementById("dev-login")?.addEventListener("submit", async (e) => {

@@ -117,18 +117,33 @@ def _make_state(data: dict | None = None):
     return state
 
 
-def _patch_handler_io(total=Decimal("199.98"), cart=None, reserve=None):
-    """Patch the async/I-O collaborators of order_handler, leaving the DB real."""
+def _cart_list_result(total=Decimal("199.98"), cart=None):
+    """ServiceResult-shaped cart list used by CARD-32 cash adapter."""
+    from bot.services.dto import ServiceResult
+
     cart = CART_ITEMS if cart is None else cart
+    return ServiceResult.success(
+        items=cart,
+        total=total,
+        empty=not cart,
+        item_count=len(cart) if cart else 0,
+    )
+
+
+def _patch_handler_io(total=Decimal("199.98"), cart=None, reserve=None):
+    """Patch async/I-O collaborators of cash adapter; DB + checkout service stay real."""
     patches = [
         patch("bot.handlers.user.order_handler.get_telegram_username", new=AsyncMock(return_value="tester")),
-        patch("bot.handlers.user.order_handler.get_cart_items", new=AsyncMock(return_value=cart)),
-        patch("bot.handlers.user.order_handler.calculate_cart_total", new=AsyncMock(return_value=total)),
+        patch(
+            "bot.services.cart.list_items",
+            new=AsyncMock(return_value=_cart_list_result(total=total, cart=cart)),
+        ),
         patch("bot.handlers.user.order_handler.notify_admin_new_cash_order", new=AsyncMock()),
         patch("bot.handlers.user.order_handler.sync_customer_to_csv", new=MagicMock()),
     ]
     if reserve is not None:
-        patches.append(patch("bot.handlers.user.order_handler.reserve_inventory", new=MagicMock(return_value=reserve)))
+        # reserve_inventory is called from checkout service (CARD-32)
+        patches.append(patch("bot.services.checkout.reserve_inventory", new=MagicMock(return_value=reserve)))
     return patches
 
 
