@@ -8,7 +8,7 @@
 > **Base repo:** multi-brand commerce + kitchen/delivery · Telegram = richest **adapter** today, not a special domain API  
 > **North star:** White-label Brand + Branch sites + **one application service layer** for web, bots, forms, chatbox
 
-Last board update: **2026-07-17**
+Last board update: **2026-07-17** (post CARD-40 freeze · IG/LINE foundations · portal/funnel polish)
 
 ---
 
@@ -53,60 +53,56 @@ All of the following live under [`docs/done/`](done/). Do not re-open unless reg
 
 ---
 
-### BACKLOG (Open) — prioritized 2026-07-16
+### BACKLOG (Open) — prioritized 2026-07-17
 
-> **North star:** White-label Brand + Branch auto-sites from backend (any vertical).  
-> **Do not start** with single-vertical marketing sites (CARD-37) or IG DMs (CARD-33) as the main path.
+> **North star:** White-label Brand + Branch sites + one service layer (web, TG, LINE, IG, forms).  
+> **Spine frozen:** CARD-40 A–F · adapters → services → domain.  
+> **Do not** clone web leads into Telegram · **do not** put ops on IG/LINE.
 
-#### P0 — Next (start here)
+#### P0 — Platform spine (near-complete; only leftovers)
 
-| # | Card | Name | Progress | Effort | Detail |
-|---|------|------|----------|--------|--------|
-| **1** | **CARD-38** | **White-Label Brand & Branch Auto-Sites** | ~90% (A+B+C done) | High | [later/CARD-38](later/CARD-38-white-label-brand-branch-sites.md) · `apps/storefront` |
+| # | Card | Name | Progress | Effort left | Detail |
+|---|------|------|----------|-------------|--------|
+| — | **CARD-38** | White-Label Brand & Branch Sites | **~90%** A+B+C ✅ | polish | [later/CARD-38](later/CARD-38-white-label-brand-branch-sites.md) |
+| — | **CARD-40** | Web↔TG Abstracted Parity | **~100% freeze** | none (law) | [CARD-40](later/CARD-40-web-telegram-abstracted-feature-parity.md) · [scorecard](later/CARD-40-parity-scorecard.md) |
+| — | **CARD-32** | Customer Application Services | **~98%** | small leftovers | [later/CARD-32](later/CARD-32-customer-application-services.md) |
+| — | CARD-29 / 30 / 31 | Messenger · Identities · Caps | **~95%** each | optional polish | later/CARD-29…31 |
 
-Phases: **A ✅** API · **B ✅** media proxy · **C ✅** Astro shell (desktop+mobile). Forms API → CARD-36.
-**Build contract:** [WHITE-LABEL-ASTRO-IMPLEMENTATION.md](Specifications/WHITE-LABEL-ASTRO-IMPLEMENTATION.md) · **Bootstrap:** [CLEAR-START.md](CLEAR-START.md)
+#### P1 — Product surfaces (high value, mostly code-complete)
 
-#### P1 — Unified backend foundation (**priority after 38**)
+| # | Card | Name | Progress | Effort left | Detail |
+|---|------|------|----------|-------------|--------|
+| 1 | **CARD-39** | Web OAuth + Ticket Portal | **~90%** | **ops:** live Google OAuth env | [later/CARD-39](later/CARD-39-web-oauth-ticket-portal.md) |
+| 2 | **CARD-36** | Web leads + meeting booking | **~90%** | optional CAPTCHA / TG opt-in | [later/CARD-36](later/CARD-36-instagram-web-telegram-funnel.md) |
 
-> **Law:** adapters → services → domain. No new Telegram→domain business paths.  
-> Frontends implement **masks**; backend features are **standard services**.
+#### P2 — Messaging channels (foundations landed; production depth open)
 
-| # | Card | Name | Progress | Effort | Detail |
-|---|------|------|----------|--------|--------|
-| 2 | **CARD-39** | **Web OAuth + Ticket Portal** | **~90%** (portal polish ✅; live Google env ops) | Med–High | [later/CARD-39](later/CARD-39-web-oauth-ticket-portal.md) · [spec](Specifications/WHITE-LABEL-OAUTH-TICKETS.md) |
-| 3 | **CARD-32** | **Customer Application Services** | **~98%** (TG + web commerce + tickets + Grok tools on services) | 2–4d | [later/CARD-32](later/CARD-32-customer-application-services.md) · **critical** |
-| 4 | CARD-29 | Messenger Port | ~95% (customer status + crypto/inventory/ticket/AI pings via port; broadcast optional) | 1–2d | [later/CARD-29](later/CARD-29-messenger-port.md) |
-| 5 | CARD-30 | User Identities Dual-Write | ~95% (table + TG dual-write + backfill + resolve; link UI out) | 1–2d | [later/CARD-30](later/CARD-30-user-identities.md) |
-| 6 | CARD-31 | Platform Capabilities & Feature Mask | **~95%** (`PLATFORM_CAPS`×`ROLE_FEATURES` + resolve + tests) | done-ish | [later/CARD-31](later/CARD-31-platform-capabilities.md) · code: `bot/platform/capabilities.py` |
-| 7 | **CARD-40** | **Web ↔ Telegram Abstracted Feature Parity** | **~100%** (Tier A–F ✅ freeze) | High / tiered | [later/CARD-40](later/CARD-40-web-telegram-abstracted-feature-parity.md) · [matrix](later/CARD-40-parity-matrix.md) · [scorecard](later/CARD-40-parity-scorecard.md) |
-
-#### P2 — Conversion & channels (after catalog tenants work)
-
-| # | Card | Name | Progress | Effort | Detail |
-|---|------|------|----------|--------|--------|
-| 8 | CARD-35 | Web storefront UI patterns (gallery/theme) | subsumed by 38C | — | [later/CARD-35](later/CARD-35-instagram-style-web-storefront.md) |
-| 9 | **CARD-36** | Web leads + **meeting booking** | **~90%** (staff notify + form UX ✅) | polish | [later/CARD-36](later/CARD-36-instagram-web-telegram-funnel.md) |
-| 10 | CARD-34 | Conversation & Workflow Specs | 0% | 3–6d | [later/CARD-34](later/CARD-34-conversation-workflow-specifications.md) |
-| 11 | **CARD-33** | **Instagram Messaging Channel** | **~55%** (webhook + identity + masked shop + router) | 5–8d | [later/CARD-33](later/CARD-33-instagram-messaging-channel.md) |
-| 12 | **CARD-16** | **LINE API Integration** | **~55%** (webhook + identity + masked shop + Messenger) | 5–8d | [later/CARD-16](later/CARD-16-line-api-integration.md) |
+| # | Card | Name | Progress | Effort left | Detail |
+|---|------|------|----------|-------------|--------|
+| 3 | **CARD-33** | Instagram Messaging | **~55%** | QR host, slip, Redis, Meta review | [later/CARD-33](later/CARD-33-instagram-messaging-channel.md) · `bot/channels/instagram/` |
+| 4 | **CARD-16** | LINE Messaging | **~55%** | Flex UI, QR host, Redis, multi-OA | [later/CARD-16](later/CARD-16-line-api-integration.md) · `bot/channels/line/` |
+| 5 | CARD-34 | Conversation & Workflow Specs | 0% | 3–6d docs | [later/CARD-34](later/CARD-34-conversation-workflow-specifications.md) |
+| 6 | CARD-35 | Storefront UI patterns | subsumed by 38C | — | [later/CARD-35](later/CARD-35-instagram-style-web-storefront.md) |
 
 #### P3 — Parked / demo only
 
 | # | Card | Name | Progress | Note | Detail |
 |---|------|------|----------|------|--------|
-| 11 | CARD-37 | SnusThai Hub Astro MVP | 0% | Vertical demo theme — **not** platform architecture | [later/CARD-37](later/CARD-37-snusthai-hub-astro-mvp.md) |
+| 7 | CARD-37 | SnusThai Hub Astro MVP | 0% | Vertical demo — **not** platform architecture | [later/CARD-37](later/CARD-37-snusthai-hub-astro-mvp.md) |
 
 ---
 
 ### Next Up (execute)
 
-1. **CARD-38 ✅** · **CARD-32 ~98%** · **CARD-29–31 ~95%** · **CARD-40 A–F ✅** · **CARD-39/36 ~90%** · **CARD-33/16 ~55%**.  
-2. **Next:** Finish messaging adapters (QR/Flex/Redis) · or live Google OAuth.  
-3. CARD-40 frozen; IG + LINE flag-off by default; same service bus.  
-4. Run: `pytest tests/unit/channels/ -q --no-cov`
+1. **Spine:** CARD-38/32/29–31/40 frozen or near-done.  
+2. **Recommended next (pick one):**  
+   - **A — Ship web auth:** live Google OAuth credentials + redirect (CARD-39 ops)  
+   - **B — Finish one channel:** CARD-33 QR/slip/Redis **or** CARD-16 Flex/QR  
+   - **C — Spec debt:** CARD-34 flow docs (gates clean multi-channel QA)  
+3. IG + LINE stay **flag-off** until Meta/LINE credentials + depth polish.  
+4. Smoke: `pytest tests/unit/channels/ tests/unit/platform/test_card40ef_nonparity.py -q --no-cov`
 
-**Reject for “next PR”:** new business logic only in Telegram handlers · “parity” by cloning lead forms into Telegram · IG ops/admin surfaces · skipping service + capability row for shared features.
+**Reject for “next PR”:** new business logic only in Telegram handlers · “parity” by cloning lead forms into Telegram · IG/LINE ops surfaces · skipping service + capability row for shared features.
 
 ---
 
@@ -119,25 +115,21 @@ Shipped as RC/FC suites (menu media, prep time, allergens, windows, multi-curren
 ## Dependency graph (open work only)
 
 ```text
-DONE: M0–M2 · CARD-19 · CARD-28 · CARD-38 A+B+C (web adapter)
+DONE: M0–M2 · CARD-19 · CARD-28 · CARD-38 A+B+C
         │
         ▼
-   UNIFIED BACKEND LAW (Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE)
+UNIFIED BACKEND LAW + CARD-40 A–F freeze ✅
+  (services · Messenger · identities · caps · parity scorecard)
         │
-        ▼
-P1  CARD-32 Customer services  ◀── migrate TG handlers off domain
+        ├─► CARD-39 live Google OAuth (ops)     ◄── recommended ship path
+        ├─► CARD-36 optional CAPTCHA / opt-in
         │
-        ├─ CARD-29 Messenger port
-        ├─ CARD-30 Identities
-        └─ CARD-31 Caps (extend bot/platform)
-        │
-        ▼
-    CARD-40 Web↔TG abstracted parity (T1.5)
-        │  shared services; leads/booking = web-only mask
-        ▼
-P2  CARD-36 polish · CARD-34 specs · CARD-33 IG · CARD-16 LINE
-        │     (second channel only on services + masks + 40 spine)
-P3  CARD-37 vertical demo (optional)
+        ├─► CARD-33 finish (QR · slip · Redis · Meta)
+        ├─► CARD-16 finish (Flex · QR · Redis · multi-OA)
+        └─► CARD-34 workflow specs (docs)
+                │
+P3              ▼
+            CARD-37 vertical demo (optional)
 ```
 
 ---
@@ -149,11 +141,13 @@ P3  CARD-37 vertical demo (optional)
 | [MASTER-DOCUMENT.md](MASTER-DOCUMENT.md) | **Blurb · pitch · WIP archive · full index** |
 | [CLEAR-START.md](CLEAR-START.md) | **Session bootstrap** |
 | [UNIFIED-BACKEND-CHANNEL-INTERFACE.md](Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md) | **Backend law** |
+| [CARD-40-parity-scorecard.md](later/CARD-40-parity-scorecard.md) | **Parity freeze + PR gate** |
 | [MULTI-CHANNEL-TIERED-PLAN.md](later/MULTI-CHANNEL-TIERED-PLAN.md) | Multi-channel tiers |
 | [MASTER-PLAN.md](MASTER-PLAN.md) | Milestone history + M3 |
-| [later/CARD-38-…](later/CARD-38-white-label-brand-branch-sites.md) | Web epic |
-| [later/CARD-32-…](later/CARD-32-customer-application-services.md) | Service extract |
-| [later/CARD-40-…](later/CARD-40-web-telegram-abstracted-feature-parity.md) | Web↔TG abstracted parity |
+| [later/CARD-33-…](later/CARD-33-instagram-messaging-channel.md) | IG adapter |
+| [later/CARD-16-…](later/CARD-16-line-api-integration.md) | LINE adapter |
+| [later/CARD-39-…](later/CARD-39-web-oauth-ticket-portal.md) | Web ticket portal |
+| [later/CARD-36-…](later/CARD-36-instagram-web-telegram-funnel.md) | Leads/booking funnel |
 | [later/](later/) | Open cards |
 | [done/](done/) | Completed cards |
 | [Specifications/](Specifications/) | Deep specs |

@@ -2,7 +2,7 @@
 
 > **Open this file first in any new session.**  
 > **Product blurb · pitch · full WIP archive · docs index:** [`MASTER-DOCUMENT.md`](MASTER-DOCUMENT.md)  
-> **Last updated:** 2026-07-17 (CARD-16 LINE adapter foundation)
+> **Last updated:** 2026-07-17 (board review · processes stopped · next-step refresh)
 
 ---
 
@@ -22,7 +22,7 @@
 | **CARD-33 Instagram** | **~55%** — webhook + identity + masked shop FSM + messenger router; Meta prod + slip polish open |
 | **CARD-16 LINE** | **~55%** — webhook + identity + masked shop FSM + LineMessenger; Flex/QR polish open |
 | **CARD-36 funnel** | **~90%** — leads/bookings + staff Messenger notify + form UX |
-| **Next slice** | CARD-33/16 finish (QR, Flex, Redis) · live Google OAuth deploy |
+| **Next slice** | **Recommended:** live Google OAuth (CARD-39) · **or** CARD-33/16 channel finish · **or** CARD-34 specs |
 
 **Do not re-litigate:** hybrid content model, commerce modes, age gate from DB, Telegram-as-adapter (not special domain), web lead forms into Telegram “for parity.”
 
@@ -149,11 +149,12 @@ npm run dev -- --host 127.0.0.1 --port 4321
 
 ### Next migration slices (pick one per session)
 
-1. **CARD-33 / CARD-16 finish** — hosted QR, Flex UI, Redis sessions, multi-brand map  
-2. Live Google OAuth credentials in deploy  
-3. Optional CARD-36 CAPTCHA / TG opt-in  
+1. **CARD-39 ops** — live Google OAuth client + redirect on deploy (portal already polished)  
+2. **CARD-33 or CARD-16 finish** — hosted QR / Flex UI / Redis sessions / multi-brand map  
+3. **CARD-34** conversation workflow specs (docs; QA independence)  
+4. Optional: CARD-36 CAPTCHA / signed TG opt-in  
 
-**Hard gates (met):** TG + web commerce + tickets on services; Grok as masked adapter; Messenger; identities; CARD-31; **CARD-40 A–F freeze**; IG + LINE foundations.
+**Hard gates (met):** TG + web commerce + tickets on services; Grok as masked adapter; Messenger; identities; CARD-31; **CARD-40 A–F freeze**; IG + LINE foundations (flag-off).
 
 ### Tier E+F exit (done)
 
@@ -168,10 +169,11 @@ npm run dev -- --host 127.0.0.1 --port 4321
 ## 5. Session checklist
 
 - [ ] Read this file + UNIFIED-BACKEND law + [parity scorecard](later/CARD-40-parity-scorecard.md)  
-- [ ] Prefer second-channel adapter **or** product polish — not re-opening parity  
+- [ ] Prefer ship path (OAuth ops / one channel finish / specs) — not re-opening parity  
 - [ ] New code: adapter → service only; new caps need matrix row  
 - [ ] Run targeted pytest for touched services  
 - [ ] Keep Telegram UX unchanged when migrating  
+- [ ] Local run: `docker compose up -d` only when needed; stop when done  
 
 ---
 
@@ -180,15 +182,19 @@ npm run dev -- --host 127.0.0.1 --port 4321
 | Doc | Role |
 |-----|------|
 | **This file** | Bootstrap / handoff |
+| [FEATURE_CARDS](FEATURE_CARDS.md) | **Status board** |
+| [MASTER-DOCUMENT](MASTER-DOCUMENT.md) | Blurb · pitch · WIP archive · full index |
 | [UNIFIED-BACKEND-CHANNEL-INTERFACE](Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md) | Backend law |
 | [MULTI-CHANNEL-TIERED-PLAN](later/MULTI-CHANNEL-TIERED-PLAN.md) | Tiers |
-| [CARD-32](later/CARD-32-customer-application-services.md) | Customer services epic |
-| [CARD-40](later/CARD-40-web-telegram-abstracted-feature-parity.md) | Web↔TG abstracted parity (masks) |
-| [CARD-40 parity matrix](later/CARD-40-parity-matrix.md) | Tier A capability × adapter table |
+| [CARD-40](later/CARD-40-web-telegram-abstracted-feature-parity.md) | Web↔TG abstracted parity |
 | [CARD-40 scorecard](later/CARD-40-parity-scorecard.md) | **F freeze** + PR gate |
-| [CARD-29](later/CARD-29-messenger-port.md) | Messenger |
-| [CARD-38](later/CARD-38-white-label-brand-branch-sites.md) | Web shell (done) |
-| [FEATURE_CARDS](FEATURE_CARDS.md) | Status board |
+| [CARD-40 matrix](later/CARD-40-parity-matrix.md) | Capability × adapter table |
+| [CARD-33](later/CARD-33-instagram-messaging-channel.md) | IG adapter |
+| [CARD-16](later/CARD-16-line-api-integration.md) | LINE adapter |
+| [CARD-39](later/CARD-39-web-oauth-ticket-portal.md) | Web ticket portal |
+| [CARD-36](later/CARD-36-instagram-web-telegram-funnel.md) | Leads/booking funnel |
+| [CARD-32](later/CARD-32-customer-application-services.md) | Customer services epic |
+| [CARD-38](later/CARD-38-white-label-brand-branch-sites.md) | Web shell |
 | [MASTER-PLAN](MASTER-PLAN.md) | Milestones |
 | Claude.md | Commands + architecture notes |
 
@@ -196,24 +202,16 @@ npm run dev -- --host 127.0.0.1 --port 4321
 
 ## 7. Ready statement
 
-**CARD-40 frozen · CARD-33 foundation live (flag-off default).**
+**Processes stopped. Spine frozen. Board refreshed.**
 
-```bash
-INSTAGRAM_CHANNEL_ENABLED=true
-INSTAGRAM_PAGE_ACCESS_TOKEN=...
-INSTAGRAM_APP_SECRET=...
-INSTAGRAM_VERIFY_TOKEN=...
-INSTAGRAM_DEFAULT_BRAND_ID=1
-# Webhook: GET/POST {MONITORING}/webhooks/instagram
-```
+| Flag (default off) | Webhook |
+|--------------------|---------|
+| `INSTAGRAM_CHANNEL_ENABLED` | `/webhooks/instagram` |
+| `LINE_CHANNEL_ENABLED` | `/webhooks/line` |
 
-```bash
-# LINE (flag-off by default)
-LINE_CHANNEL_ENABLED=true
-LINE_CHANNEL_ACCESS_TOKEN=...
-LINE_CHANNEL_SECRET=...
-LINE_DEFAULT_BRAND_ID=1
-# Webhook: POST {MONITORING}/webhooks/line
-```
+Say next (recommended order):
 
-Say next: *“CARD-33 finish QR/slip/Redis”* · *“CARD-16 finish Flex/QR”* · *“live Google OAuth deploy.”*
+1. *“Live Google OAuth deploy (CARD-39 ops).”*  
+2. *“CARD-33 finish QR/slip/Redis.”*  
+3. *“CARD-16 finish Flex/QR.”*  
+4. *“CARD-34 conversation workflow specs.”*

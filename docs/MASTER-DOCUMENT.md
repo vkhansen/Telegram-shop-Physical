@@ -108,7 +108,7 @@ Adapters (Telegram · Web · forms · LINE/IG later)
 | White-label Instagram-style web | **~90%** — CARD-38 A+B+C (API, media, Astro shell) |
 | Unified multi-channel backend | **Spine frozen** — law + services + ports + CARD-40 A–F parity freeze |
 | Instagram DM / LINE | **IG ~55%** (CARD-33) · **LINE ~55%** (CARD-16 foundation) |
-| Web-only leads / booking | **Partial** — services + forms; not forced into Telegram |
+| Web-only leads / booking | **~90%** — services + forms + staff Messenger notify; not forced into Telegram |
 
 **Best one-sentence truth today:**
 
