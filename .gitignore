@@ -149,3 +149,8 @@ logs
 
 # Alembic scratch DBs (local autogenerate)
 _alembic_*.db
+
+# Local doc archives (not source of truth)
+docs-archive-*.zip
+*.zip
+
