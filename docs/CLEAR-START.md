@@ -2,7 +2,8 @@
 
 > **Open this file first in any new session.**  
 > **Product blurb · pitch · full WIP archive · docs index:** [`MASTER-DOCUMENT.md`](MASTER-DOCUMENT.md)  
-> **Last updated:** 2026-07-17 (CARD-42 Google OAuth secrets runbook · storefront commerce + CARD-39 ops wiring · open = 39 live secrets / 33 / 36 / 37)
+> **Last updated:** 2026-07-17 **SESSION SIGN-OFF**  
+> **Resume file:** [`memory/session-2026-07-17-storefront-commerce-signoff.md`](../memory/session-2026-07-17-storefront-commerce-signoff.md)
 
 ---
 
@@ -26,7 +27,10 @@
 | **CARD-33 Instagram** | **~55% open** — foundation in `bot/channels/instagram/`; Meta + slip polish · [PACKAGE-instagram](Specifications/flows/PACKAGE-instagram.md) |
 | **CARD-16 LINE** | **✅ code done** — Flex/QR host/Redis/multi-OA; **ops:** live tokens + HTTPS media base · [done/CARD-16](done/CARD-16-line-api-integration.md) |
 | **CARD-34 specs** | **✅ done** — flows C-01–C-24 + cross-cutting + IG/LINE packages · [done/CARD-34](done/CARD-34-conversation-workflow-specifications.md) |
-| **Next slice** | **CARD-42 → live Google client in `.env`** · or CARD-33 · or LINE credential go-live |
+| **Next slice** | **Paste Google secrets** ([CARD-42](done/CARD-42-google-oauth-credentials-runbook.md)) · or CARD-33 · or LINE go-live |
+| **Git** | `master` @ `0d6fe8e` pushed to `origin` |
+| **Runtime** | **Docker + Tailscale Funnel only** — not local :9090/:4321 |
+| **Funnel URL** | https://telegram-shop-1.tail31319c.ts.net/ · demo `/snus-demo` |
 
 **Do not re-litigate:** hybrid content model, commerce modes, age gate from DB, Telegram-as-adapter (not special domain), web lead forms into Telegram “for parity,” reopening spine cards without a regression.
 
@@ -95,32 +99,39 @@ PostgreSQL  Brand · Store · Goods · Orders · web_profile · identities
 | `bot/handlers/user/grok_customer.py` | Customer AI adapter — masked tools + Messenger |
 | `bot/platform/messaging.py` | `Messenger` / `get_messenger` |
 | `bot/platform/identity.py` | `resolve_user_id` / `link_identity` / `ensure_telegram_identity` |
-| `apps/storefront` | BrandShell + capability-gated UI (cart UI may lag API) |
+| `apps/storefront` | BrandShell + cart/checkout/orders (parity with TG C-08–C-17 via commerce_api) |
 | `docs/done/CARD-40-parity-matrix.md` | Shared vs web-only vs tg-ops table |
 | `docs/done/CARD-40-parity-scorecard.md` | **F freeze** checklist + PR gate |
 | `docs/Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md` | Law R1–R8 |
 
 ---
 
-## 3. Local run
+## 3. Run (Docker preferred)
 
-```bash
-# API (SQLite demo + snus seed)
-# SEED_SNUS_FORCE=1 optional
-python scripts/run_public_api.py
-# → http://127.0.0.1:9090
+```powershell
+# Production-like stack (Funnel)
+docker compose up -d --build
+docker compose ps
+docker compose logs -f bot
 
-cd apps/storefront
-# PUBLIC_API_BASE=http://127.0.0.1:9090
-npm run dev -- --host 127.0.0.1 --port 4321
-# → http://127.0.0.1:4321/snus-demo
+# Full stop
+docker compose down
 ```
 
-```bash
-# Prefer venv on Windows
-.\.venv\Scripts\python.exe -m pytest tests/unit/platform/test_card40ef_nonparity.py tests/unit/platform/ -q --no-cov
-.\.venv\Scripts\python.exe -m pytest tests/unit/ai/test_customer_card40d.py tests/unit/services/test_tickets_parity_card40c.py tests/unit/services/test_commerce_parity_card40b.py -q --no-cov
-.\.venv\Scripts\python.exe -m pytest tests/unit/services/ -q --no-cov
+**Live site (when up):** https://telegram-shop-1.tail31319c.ts.net/snus-demo  
+
+```powershell
+# Local dev only (do not mix with Docker on same ports)
+# python scripts/run_public_api.py   → :9090
+# cd apps/storefront && npm run dev  → :4321/snus-demo
+# SEED_SNUS_COMMERCE_MODE=full_store for cart/checkout on snus-demo
+```
+
+```powershell
+# Tests
+.\.venv\Scripts\python.exe -m pytest tests/unit/services/test_order_flow_parity.py tests/unit/services/test_commerce_http_parity.py -q --no-cov
+.\.venv\Scripts\python.exe -m pytest tests/unit/platform/test_card40ef_nonparity.py tests/unit/services/test_commerce_parity_card40b.py -q --no-cov
+# Playwright (API + storefront must be up): cd apps/storefront && npm run test:e2e
 ```
 
 ### Web commerce auth (any frontend)
