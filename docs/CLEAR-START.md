@@ -2,7 +2,7 @@
 
 > **Open this file first in any new session.**  
 > **Product blurb · pitch · full WIP archive · docs index:** [`MASTER-DOCUMENT.md`](MASTER-DOCUMENT.md)  
-> **Last updated:** 2026-07-17 (board review · processes stopped · next-step refresh)
+> **Last updated:** 2026-07-17 (CARD-42 Google OAuth secrets runbook · storefront commerce + CARD-39 ops wiring · open = 39 live secrets / 33 / 36 / 37)
 
 ---
 
@@ -11,20 +11,24 @@
 | Area | Status |
 |------|--------|
 | **M0–M2** | Done (payments integrity, cart stub, dispatch) |
-| **CARD-38** white-label web | A+B+C done — Astro storefront + public API + media |
+| **M3 spine** | **Archived in `docs/done/`** — CARD-29 · 30 · 31 · 32 · 35 · 38 · 40 |
+| **CARD-38** white-label web | ✅ A+B+C — Astro storefront + public API + media |
 | **Unified backend law** | Documented — adapters → services → domain |
-| **CARD-32 migration** | **~98%** — commerce + tickets + customer Grok tools on services |
-| **CARD-29 Messenger** | **~95%** — customer status + crypto + inventory expire + ticket/AI pings via port |
-| **CARD-30 Identities** | **~95%** — edge resolve only; no TG↔web link UI |
-| **CARD-31 Caps** | **~95%** — platform×role + default masks (`bot/platform/capabilities.py`) |
-| **CARD-39 OAuth/tickets** | **~90%** — portal polish (safe OAuth next, auth config, ticket UX); live Google env ops |
-| **CARD-40 Web↔TG parity** | **~100%** — Tier A+B+C+D+E+F ✅ freeze |
-| **CARD-33 Instagram** | **~55%** — webhook + identity + masked shop FSM + messenger router; Meta prod + slip polish open |
-| **CARD-16 LINE** | **~55%** — webhook + identity + masked shop FSM + LineMessenger; Flex/QR polish open |
-| **CARD-36 funnel** | **~90%** — leads/bookings + staff Messenger notify + form UX |
-| **Next slice** | **Recommended:** live Google OAuth (CARD-39) · **or** CARD-33/16 channel finish · **or** CARD-34 specs |
+| **CARD-32 services** | ✅ commerce + tickets + customer Grok tools on services |
+| **CARD-29 Messenger** | ✅ customer status + crypto + inventory expire + ticket/AI pings via port |
+| **CARD-30 Identities** | ✅ edge resolve; no TG↔web link UI (out of scope) |
+| **CARD-31 Caps** | ✅ platform×role + default masks (`bot/platform/capabilities.py`) |
+| **CARD-40 Web↔TG parity** | ✅ Tier A–F freeze — [scorecard](done/CARD-40-parity-scorecard.md) |
+| **CARD-39 OAuth/tickets** | **~95%** — code + preflight done; **paste Google secrets** per [CARD-42](done/CARD-42-google-oauth-credentials-runbook.md) |
+| **CARD-42 Google secrets** | **✅ runbook done** — where to get Client ID/secret · env · verify · [done/CARD-42](done/CARD-42-google-oauth-credentials-runbook.md) |
+| **Storefront commerce** | **✅** cart/checkout/orders = TG C-08–C-17 via `commerce_api` · Playwright e2e |
+| **CARD-36 funnel** | **~90% open** — leads/bookings + staff notify; optional CAPTCHA / TG opt-in |
+| **CARD-33 Instagram** | **~55% open** — foundation in `bot/channels/instagram/`; Meta + slip polish · [PACKAGE-instagram](Specifications/flows/PACKAGE-instagram.md) |
+| **CARD-16 LINE** | **✅ code done** — Flex/QR host/Redis/multi-OA; **ops:** live tokens + HTTPS media base · [done/CARD-16](done/CARD-16-line-api-integration.md) |
+| **CARD-34 specs** | **✅ done** — flows C-01–C-24 + cross-cutting + IG/LINE packages · [done/CARD-34](done/CARD-34-conversation-workflow-specifications.md) |
+| **Next slice** | **CARD-42 → live Google client in `.env`** · or CARD-33 · or LINE credential go-live |
 
-**Do not re-litigate:** hybrid content model, commerce modes, age gate from DB, Telegram-as-adapter (not special domain), web lead forms into Telegram “for parity.”
+**Do not re-litigate:** hybrid content model, commerce modes, age gate from DB, Telegram-as-adapter (not special domain), web lead forms into Telegram “for parity,” reopening spine cards without a regression.
 
 ---
 
@@ -40,7 +44,7 @@ No new handler → domain business shortcuts
 **Binding law:** [`Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md`](Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md)  
 **Plan:** [`later/MULTI-CHANNEL-TIERED-PLAN.md`](later/MULTI-CHANNEL-TIERED-PLAN.md)  
 **Board:** [`FEATURE_CARDS.md`](FEATURE_CARDS.md)  
-**Parity freeze:** [`later/CARD-40-parity-scorecard.md`](later/CARD-40-parity-scorecard.md)
+**Parity freeze:** [`done/CARD-40-parity-scorecard.md`](done/CARD-40-parity-scorecard.md)
 
 ---
 
@@ -92,8 +96,8 @@ PostgreSQL  Brand · Store · Goods · Orders · web_profile · identities
 | `bot/platform/messaging.py` | `Messenger` / `get_messenger` |
 | `bot/platform/identity.py` | `resolve_user_id` / `link_identity` / `ensure_telegram_identity` |
 | `apps/storefront` | BrandShell + capability-gated UI (cart UI may lag API) |
-| `docs/later/CARD-40-parity-matrix.md` | Shared vs web-only vs tg-ops table |
-| `docs/later/CARD-40-parity-scorecard.md` | **F freeze** checklist + PR gate |
+| `docs/done/CARD-40-parity-matrix.md` | Shared vs web-only vs tg-ops table |
+| `docs/done/CARD-40-parity-scorecard.md` | **F freeze** checklist + PR gate |
 | `docs/Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md` | Law R1–R8 |
 
 ---
@@ -168,7 +172,7 @@ npm run dev -- --host 127.0.0.1 --port 4321
 
 ## 5. Session checklist
 
-- [ ] Read this file + UNIFIED-BACKEND law + [parity scorecard](later/CARD-40-parity-scorecard.md)  
+- [ ] Read this file + UNIFIED-BACKEND law + [parity scorecard](done/CARD-40-parity-scorecard.md)  
 - [ ] Prefer ship path (OAuth ops / one channel finish / specs) — not re-opening parity  
 - [ ] New code: adapter → service only; new caps need matrix row  
 - [ ] Run targeted pytest for touched services  
@@ -186,15 +190,17 @@ npm run dev -- --host 127.0.0.1 --port 4321
 | [MASTER-DOCUMENT](MASTER-DOCUMENT.md) | Blurb · pitch · WIP archive · full index |
 | [UNIFIED-BACKEND-CHANNEL-INTERFACE](Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md) | Backend law |
 | [MULTI-CHANNEL-TIERED-PLAN](later/MULTI-CHANNEL-TIERED-PLAN.md) | Tiers |
-| [CARD-40](later/CARD-40-web-telegram-abstracted-feature-parity.md) | Web↔TG abstracted parity |
-| [CARD-40 scorecard](later/CARD-40-parity-scorecard.md) | **F freeze** + PR gate |
-| [CARD-40 matrix](later/CARD-40-parity-matrix.md) | Capability × adapter table |
-| [CARD-33](later/CARD-33-instagram-messaging-channel.md) | IG adapter |
-| [CARD-16](later/CARD-16-line-api-integration.md) | LINE adapter |
-| [CARD-39](later/CARD-39-web-oauth-ticket-portal.md) | Web ticket portal |
-| [CARD-36](later/CARD-36-instagram-web-telegram-funnel.md) | Leads/booking funnel |
-| [CARD-32](later/CARD-32-customer-application-services.md) | Customer services epic |
-| [CARD-38](later/CARD-38-white-label-brand-branch-sites.md) | Web shell |
+| [CARD-40](done/CARD-40-web-telegram-abstracted-feature-parity.md) | Web↔TG abstracted parity ✅ |
+| [CARD-40 scorecard](done/CARD-40-parity-scorecard.md) | **F freeze** + PR gate |
+| [CARD-40 matrix](done/CARD-40-parity-matrix.md) | Capability × adapter table |
+| [CARD-32](done/CARD-32-customer-application-services.md) | Customer services epic ✅ |
+| [CARD-38](done/CARD-38-white-label-brand-branch-sites.md) | Web shell ✅ |
+| [CARD-33](later/CARD-33-instagram-messaging-channel.md) | IG adapter (open) |
+| [CARD-16](done/CARD-16-line-api-integration.md) | LINE adapter ✅ (ops residual) |
+| [CARD-34](done/CARD-34-conversation-workflow-specifications.md) | Workflow specs ✅ |
+| [Spec flows index](Specifications/README.md) | CARD-34 flow catalog |
+| [CARD-39](later/CARD-39-web-oauth-ticket-portal.md) | Web ticket portal (open) |
+| [CARD-36](later/CARD-36-instagram-web-telegram-funnel.md) | Leads/booking funnel (open) |
 | [MASTER-PLAN](MASTER-PLAN.md) | Milestones |
 | Claude.md | Commands + architecture notes |
 
@@ -202,16 +208,21 @@ npm run dev -- --host 127.0.0.1 --port 4321
 
 ## 7. Ready statement
 
-**Processes stopped. Spine frozen. Board refreshed.**
+**Session signed off. Spine frozen. CARD-16 code + CARD-34 specs archived. Board is truth.**
 
 | Flag (default off) | Webhook |
 |--------------------|---------|
 | `INSTAGRAM_CHANNEL_ENABLED` | `/webhooks/instagram` |
 | `LINE_CHANNEL_ENABLED` | `/webhooks/line` |
 
+Smoke:
+
+```bash
+pytest tests/unit/channels/test_line_card16.py tests/unit/platform/test_card40ef_nonparity.py -q --no-cov
+```
+
 Say next (recommended order):
 
 1. *“Live Google OAuth deploy (CARD-39 ops).”*  
-2. *“CARD-33 finish QR/slip/Redis.”*  
-3. *“CARD-16 finish Flex/QR.”*  
-4. *“CARD-34 conversation workflow specs.”*
+2. *“CARD-33 finish QR/slip/Redis/Meta.”* (use PACKAGE-instagram)  
+3. *“LINE go-live ops”* (tokens + `PUBLIC_MEDIA_BASE_URL` HTTPS — code already done)

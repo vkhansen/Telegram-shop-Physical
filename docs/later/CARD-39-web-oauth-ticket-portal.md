@@ -46,7 +46,7 @@ Catalog can be public; **support tickets must be authenticated**. OAuth gives em
 - [x] Preflight: `OAUTH_GOOGLE`, `WEB_SESSION_SECRET`, `PUBLIC_SITE_URL`, `WEB_COOKIE_SECURE`  
 - [x] Browser OAuth errors redirect to `/{brand}/login?error=…` (not raw JSON)  
 - [x] Canonical redirect URI prefers `PUBLIC_SITE_URL` same-origin `/api/public/auth/google/callback`  
-- [ ] **Operator:** create Google OAuth client + paste secrets into deploy `.env`  
+- [ ] **Operator:** create Google OAuth client + paste secrets into deploy `.env` — **how:** [CARD-42](../done/CARD-42-google-oauth-credentials-runbook.md)  
 - [ ] **Operator:** disable `OAUTH_DEV_LOGIN` on public Funnel  
 - [ ] Optional email-link to existing Telegram user (nice-to-have)  
 - [ ] Staff multi-tenant queue UI (ops — out of customer portal)
@@ -65,6 +65,8 @@ Catalog can be public; **support tickets must be authenticated**. OAuth gives em
 ---
 
 ## Ops checklist — live Google OAuth
+
+> **Full “where do secrets come from?” runbook:** [CARD-42](../done/CARD-42-google-oauth-credentials-runbook.md)
 
 Do this once per production / Funnel hostname.
 
