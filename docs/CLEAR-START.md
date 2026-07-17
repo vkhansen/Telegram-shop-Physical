@@ -2,8 +2,8 @@
 
 > **Open this file first in any new session.**  
 > **Product blurb · pitch · full WIP archive · docs index:** [`MASTER-DOCUMENT.md`](MASTER-DOCUMENT.md)  
-> **Last updated:** 2026-07-17 **SESSION SIGN-OFF**  
-> **Resume file:** [`memory/session-2026-07-17-storefront-commerce-signoff.md`](../memory/session-2026-07-17-storefront-commerce-signoff.md)
+> **Last updated:** 2026-07-18 **SESSION SIGN-OFF**  
+> **Resume file:** [`memory/session-2026-07-18-demo-verticals-signoff.md`](../memory/session-2026-07-18-demo-verticals-signoff.md)
 
 ---
 
@@ -23,14 +23,15 @@
 | **CARD-39 OAuth/tickets** | **~95%** — code + preflight done; **paste Google secrets** per [CARD-42](done/CARD-42-google-oauth-credentials-runbook.md) |
 | **CARD-42 Google secrets** | **✅ runbook done** — where to get Client ID/secret · env · verify · [done/CARD-42](done/CARD-42-google-oauth-credentials-runbook.md) |
 | **Storefront commerce** | **✅** cart/checkout/orders = TG C-08–C-17 via `commerce_api` · Playwright e2e |
+| **Multi-vertical demos** | **✅** snus/food/coffee/herb/bakery/grocery · 3 branches · contrast law · coffee/food stock photos |
 | **CARD-36 funnel** | **~90% open** — leads/bookings + staff notify; optional CAPTCHA / TG opt-in |
 | **CARD-33 Instagram** | **~55% open** — foundation in `bot/channels/instagram/`; Meta + slip polish · [PACKAGE-instagram](Specifications/flows/PACKAGE-instagram.md) |
 | **CARD-16 LINE** | **✅ code done** — Flex/QR host/Redis/multi-OA; **ops:** live tokens + HTTPS media base · [done/CARD-16](done/CARD-16-line-api-integration.md) |
 | **CARD-34 specs** | **✅ done** — flows C-01–C-24 + cross-cutting + IG/LINE packages · [done/CARD-34](done/CARD-34-conversation-workflow-specifications.md) |
 | **Next slice** | **Paste Google secrets** ([CARD-42](done/CARD-42-google-oauth-credentials-runbook.md)) · or CARD-33 · or LINE go-live |
-| **Git** | `master` @ `0d6fe8e` pushed to `origin` |
+| **Git** | `master` @ `8b110dc` pushed to `origin` |
 | **Runtime** | **Docker + Tailscale Funnel only** — not local :9090/:4321 |
-| **Funnel URL** | https://telegram-shop-1.tail31319c.ts.net/ · demo `/snus-demo` |
+| **Funnel URL** | https://telegram-shop-1.tail31319c.ts.net/ · demos `/snus-demo` `/coffee-demo` `/food-demo` `/herb-demo` `/bakery-demo` `/grocery-demo` |
 
 **Do not re-litigate:** hybrid content model, commerce modes, age gate from DB, Telegram-as-adapter (not special domain), web lead forms into Telegram “for parity,” reopening spine cards without a regression.
 
@@ -114,11 +115,17 @@ docker compose up -d --build
 docker compose ps
 docker compose logs -f bot
 
+# Re-seed all white-label demo brands (3 branches each; coffee/food stock photos)
+docker compose exec bot python scripts/seed_site_templates.py --template all --force --snus-mode full_store
+# Optional: re-fetch Unsplash JPGs into tests/test-data/
+# python scripts/fetch_demo_stock_images.py
+
 # Full stop
 docker compose down
 ```
 
-**Live site (when up):** https://telegram-shop-1.tail31319c.ts.net/snus-demo  
+**Live sites (when up):**  
+https://telegram-shop-1.tail31319c.ts.net/snus-demo · `/coffee-demo` · `/food-demo` · `/herb-demo` · `/bakery-demo` · `/grocery-demo`
 
 ```powershell
 # Local dev only (do not mix with Docker on same ports)
