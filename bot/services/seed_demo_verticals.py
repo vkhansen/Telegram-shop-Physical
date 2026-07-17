@@ -371,7 +371,7 @@ def _coffee_spec() -> dict[str, Any]:
         "commerce_mode": "full_store",
         "age_gate_enabled": False,
         "min_age": None,
-        "logo": "ph-coffee-logo.png",
+        "logo": "stock-coffee-logo.jpg",
         "web_profile": _base_web(
             theme_name="ig_default",
             tokens=PALETTE_COFFEE,
@@ -434,22 +434,22 @@ def _coffee_spec() -> dict[str, Any]:
         # Goods.name is global PK — unique across verticals.
         "menu": {
             ("Coffee Drinks", 1): [
-                ("Café Espresso", 65, "Double ristretto demo shot.", "prepared", 0, 3, None, {**SIZE_DRINK}, "ph-coffee-espresso.png", False),
-                ("Café Flat White", 95, "Silky microfoam over double espresso.", "prepared", 0, 5, "dairy", {**SIZE_DRINK, **MILK}, "ph-coffee-latte.png", True),
-                ("Café Oat Latte", 110, "Espresso + oat milk (default oat).", "prepared", 0, 5, None, {**SIZE_DRINK, **MILK}, "ph-coffee-latte.png", False),
-                ("Café Cold Brew", 120, "12-hour steep, served over ice.", "prepared", 0, 2, None, {**SIZE_DRINK}, "ph-coffee-cold.png", False),
+                ("Café Espresso", 65, "Double ristretto demo shot.", "prepared", 0, 3, None, {**SIZE_DRINK}, "stock-coffee-espresso.jpg", False),
+                ("Café Flat White", 95, "Silky microfoam over double espresso.", "prepared", 0, 5, "dairy", {**SIZE_DRINK, **MILK}, "stock-coffee-latte.jpg", True),
+                ("Café Oat Latte", 110, "Espresso + oat milk (default oat).", "prepared", 0, 5, None, {**SIZE_DRINK, **MILK}, "stock-coffee-latte.jpg", False),
+                ("Café Cold Brew", 120, "12-hour steep, served over ice.", "prepared", 0, 2, None, {**SIZE_DRINK}, "stock-coffee-cold.jpg", False),
             ],
             ("Tea & Alt", 2): [
-                ("Café Matcha Latte", 125, "Ceremonial-style matcha demo.", "prepared", 0, 6, "dairy", {**SIZE_DRINK, **MILK}, "ph-coffee-tea.png", False),
-                ("Café Thai Iced Tea", 70, "Sweet tea demo (café style).", "prepared", 0, 4, "dairy", {**SIZE_DRINK}, "ph-coffee-tea.png", False),
+                ("Café Matcha Latte", 125, "Ceremonial-style matcha demo.", "prepared", 0, 6, "dairy", {**SIZE_DRINK, **MILK}, "stock-coffee-matcha.jpg", False),
+                ("Café Thai Iced Tea", 70, "Sweet tea demo (café style).", "prepared", 0, 4, "dairy", {**SIZE_DRINK}, "stock-coffee-tea.jpg", False),
             ],
             ("Pastry Case", 3): [
-                ("Café Butter Croissant", 75, "Flaky demo croissant.", "product", 40, None, "gluten,dairy", None, "ph-coffee-pastry.png", False),
-                ("Café Banana Bread", 65, "Slice of banana loaf.", "product", 25, None, "gluten,egg", None, "ph-coffee-pastry.png", False),
+                ("Café Butter Croissant", 75, "Flaky demo croissant.", "product", 40, None, "gluten,dairy", None, "stock-coffee-croissant.jpg", False),
+                ("Café Banana Bread", 65, "Slice of banana loaf.", "product", 25, None, "gluten,egg", None, "stock-coffee-banana.jpg", False),
             ],
             ("Retail Beans", 4): [
-                ("Café House Blend 250g", 320, "Medium roast demo bag.", "product", 80, None, None, {**GRIND}, "ph-coffee-logo.png", False),
-                ("Café Single Origin 250g", 420, "Rotating origin demo bag.", "product", 40, None, None, {**GRIND}, "ph-coffee-logo.png", False),
+                ("Café House Blend 250g", 320, "Medium roast demo bag.", "product", 80, None, None, {**GRIND}, "stock-coffee-beans.jpg", False),
+                ("Café Single Origin 250g", 420, "Rotating origin demo bag.", "product", 40, None, None, {**GRIND}, "stock-coffee-beans.jpg", False),
             ],
         },
     }
@@ -844,7 +844,7 @@ def _food_kitchen_spec() -> dict[str, Any]:
         "commerce_mode": "full_store",
         "age_gate_enabled": False,
         "min_age": None,
-        "logo": "ph-food-logo.png",
+        "logo": "stock-food-logo.jpg",
         "web_profile": _base_web(
             theme_name="ig_default",
             tokens=PALETTE_FOOD,
@@ -906,22 +906,22 @@ def _food_kitchen_spec() -> dict[str, Any]:
         ],
         "menu": {
             ("Food Starters", 1): [
-                ("Demo Spring Rolls", 80, "Crispy vegetable rolls.", "prepared", 0, 8, "gluten", None, "ph-food-salad.png", False),
-                ("Demo Papaya Salad", 90, "Som tam style demo.", "prepared", 0, 7, "fish,peanut", {**SPICE}, "ph-food-salad.png", False),
+                ("Demo Spring Rolls", 80, "Crispy vegetable rolls.", "prepared", 0, 8, "gluten", None, "stock-food-rolls.jpg", False),
+                ("Demo Papaya Salad", 90, "Som tam style demo.", "prepared", 0, 7, "fish,peanut", {**SPICE}, "stock-food-salad.jpg", False),
             ],
             ("Food Mains", 2): [
-                ("Demo Pad Thai", 120, "Stir-fried noodles demo.", "prepared", 0, 12, "shellfish,peanut,egg", {**SPICE, **EXTRAS_FOOD}, "ph-food-padthai.png", True),
-                ("Demo Basil Chicken Rice", 130, "Pad krapow style demo.", "prepared", 0, 10, None, {**SPICE, **EXTRAS_FOOD}, "ph-food-rice.png", False),
-                ("Demo Green Curry", 150, "Coconut curry demo.", "prepared", 0, 15, "fish", {**SPICE}, "ph-food-curry.png", False),
+                ("Demo Pad Thai", 120, "Stir-fried noodles demo.", "prepared", 0, 12, "shellfish,peanut,egg", {**SPICE, **EXTRAS_FOOD}, "stock-food-padthai.jpg", True),
+                ("Demo Basil Chicken Rice", 130, "Pad krapow style demo.", "prepared", 0, 10, None, {**SPICE, **EXTRAS_FOOD}, "stock-food-rice.jpg", False),
+                ("Demo Green Curry", 150, "Coconut curry demo.", "prepared", 0, 15, "fish", {**SPICE}, "stock-food-curry.jpg", False),
             ],
             ("Food Drinks", 3): [
-                ("Demo Thai Iced Tea", 60, "Sweet tea demo.", "prepared", 0, 4, "dairy", None, "ph-food-drink.png", False),
-                ("Demo Coconut Water", 55, "Packaged coconut water.", "product", 120, None, None, None, "ph-food-drink.png", False),
-                ("Demo Bottled Water", 25, "Still water 500ml.", "product", 300, None, None, None, "ph-food-drink.png", False),
+                ("Demo Thai Iced Tea", 60, "Sweet tea demo.", "prepared", 0, 4, "dairy", None, "stock-food-drink.jpg", False),
+                ("Demo Coconut Water", 55, "Packaged coconut water.", "product", 120, None, None, None, "stock-food-coconut.jpg", False),
+                ("Demo Bottled Water", 25, "Still water 500ml.", "product", 300, None, None, None, "stock-food-water.jpg", False),
             ],
             ("Food Desserts", 4): [
-                ("Demo Mango Sticky Rice", 95, "Sweet rice demo.", "prepared", 0, 6, None, None, "ph-food-dessert.png", False),
-                ("Demo Coconut Ice Cream", 70, "Scoop demo product.", "product", 80, None, "dairy", None, "ph-food-dessert.png", False),
+                ("Demo Mango Sticky Rice", 95, "Sweet rice demo.", "prepared", 0, 6, None, None, "stock-food-dessert.jpg", False),
+                ("Demo Coconut Ice Cream", 70, "Scoop demo product.", "product", 80, None, "dairy", None, "stock-food-icecream.jpg", False),
             ],
         },
     }
@@ -1125,6 +1125,17 @@ def seed_vertical(spec: dict[str, Any], *, force: bool = False) -> dict[str, Any
                     created += 1
                 if itype == "product":
                     product_names.append(name)
+
+        # On force: hide brand goods not in this template menu (avoids orphan
+        # rows from older seeds without stock photos).
+        if force:
+            menu_names = {
+                row[0] for items in spec["menu"].values() for row in items
+            }
+            for g in s.query(Goods).filter_by(brand_id=brand.id).all():
+                if g.name not in menu_names:
+                    g.web_listable = False
+                    g.is_active = False
         s.flush()
 
         inv_created = 0

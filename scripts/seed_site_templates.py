@@ -72,6 +72,20 @@ def main() -> int:
 
     names = ensure_all_placeholders(force=args.force_placeholders)
     logging.info("Placeholders ready: %s files", len(names))
+
+    # Free stock photos for coffee/food (Unsplash license) — best-effort
+    try:
+        sys.path.insert(0, _PROJECT_ROOT)
+        from scripts.fetch_demo_stock_images import STOCK, download_one
+
+        stock_ok = 0
+        for fname, url, _desc in STOCK:
+            if download_one(fname, url, force=args.force_placeholders):
+                stock_ok += 1
+        logging.info("Stock photos ready: %s / %s", stock_ok, len(STOCK))
+    except Exception as e:
+        logging.warning("Stock photo fetch skipped: %s", e)
+
     if args.placeholders_only:
         print({"ok": True, "placeholders": names})
         return 0
