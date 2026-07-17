@@ -10,10 +10,12 @@ def test_test_data_has_images():
     assert len(files) >= 4, "expected images under tests/test-data"
 
 
-def test_seed_snus_demo_and_catalog(db_engine):
+def test_seed_snus_demo_and_catalog(db_engine, monkeypatch):
+    monkeypatch.setenv("SEED_SNUS_COMMERCE_MODE", "portfolio")
     summary = seed_snus_demo(force=True)
     assert summary["slug"] == "snus-demo"
     assert summary["products"] >= 12
+    assert summary.get("commerce_mode") == "portfolio"
 
     brand = get_brand_public("snus-demo")
     assert brand is not None
@@ -61,6 +63,22 @@ def test_seed_snus_demo_and_catalog(db_engine):
     assert len(with_img) >= 12
     assert all("/media/local/" in (i["image_url"] or "") for i in with_img)
     assert any(i["name"] == "Cola Lime" for i in items)
+
+
+def test_seed_snus_full_store_enables_checkout(db_engine, monkeypatch):
+    """Local storefront commerce UI / Playwright uses SEED_SNUS_COMMERCE_MODE=full_store."""
+    monkeypatch.setenv("SEED_SNUS_COMMERCE_MODE", "full_store")
+    summary = seed_snus_demo(force=True)
+    assert summary.get("commerce_mode") == "full_store"
+    brand = get_brand_public("snus-demo")
+    assert brand is not None
+    assert brand["commerce_mode"] == "full_store"
+    assert brand["capabilities"].get("checkout") is True
+    assert brand["capabilities"].get("cart") is True
+    menu = get_store_menu("snus-demo", "bangkok")
+    assert menu is not None
+    items = [i for c in menu["categories"] for i in c["items"]]
+    assert any(i["cta"] == "order" for i in items)
 
 
 def test_local_media_bytes():

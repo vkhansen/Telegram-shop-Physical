@@ -1,8 +1,12 @@
 ---
+/**
+ * C-06 item detail + C-08 add to cart.
+ * Order CTA uses commerce API (same cart service as Telegram), not contact form.
+ */
 import BrandShell from "../../../../layouts/BrandShell.astro";
 import DisclaimerPanel from "../../../../components/DisclaimerPanel.astro";
 import { ctaLabel, fetchItem } from "../../../../lib/api";
-import { can, loadBrandContext } from "../../../../lib/brandContext";
+import { buildNavChips, can, loadBrandContext } from "../../../../lib/brandContext";
 
 export const prerender = false;
 
@@ -19,10 +23,16 @@ if (!item) return new Response(null, { status: 404, statusText: "Not Found" });
 const cta = item.cta || "inquire";
 const L = ctx.labels;
 const cmp = ctx.compliance;
+const chips = buildNavChips(ctx, { active: "store", storeSlug });
+const cartOn = can(ctx, "cart", true) || can(ctx, "checkout", true);
+const canOrder = cta === "order" && cartOn && item.available !== false;
+const apiBase = ctx.apiBase;
+const cartUrl = `/${brandSlug}/cart`;
+const loginUrl = `/${brandSlug}/login?next=${encodeURIComponent(`/${brandSlug}/${storeSlug}/i/${itemSlug}`)}`;
 ---
 
-<BrandShell ctx={ctx} title={item.name} description={item.description || ctx.brand.name}>
-  <article class="py-6 lg:grid lg:grid-cols-2 lg:gap-10 lg:py-10">
+<BrandShell ctx={ctx} title={item.name} description={item.description || ctx.brand.name} chips={chips}>
+  <article class="py-6 lg:grid lg:grid-cols-2 lg:gap-10 lg:py-10" data-page="item">
     <div class="aspect-[4/5] overflow-hidden rounded-2xl bg-ink-800 lg:aspect-square">
       {
         item.image_url ? (
@@ -39,8 +49,8 @@ const cmp = ctx.compliance;
       >
         {L.backToMenu}
       </a>
-      <h1 class="mt-2 text-3xl font-bold tracking-tight">{item.name}</h1>
-      {item.price && <p class="mt-2 text-xl font-semibold text-accent">{item.price}</p>}
+      <h1 class="mt-2 text-3xl font-bold tracking-tight" data-testid="item-name">{item.name}</h1>
+      {item.price && <p class="mt-2 text-xl font-semibold text-accent" data-testid="item-price">{item.price}</p>}
       {!item.available && <p class="mt-2 text-sm font-medium text-red-400">Currently unavailable</p>}
       {
         item.badges?.length > 0 && (
@@ -71,9 +81,58 @@ const cmp = ctx.compliance;
         )
       }
 
-      <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+      <div
+        id="cart-msg"
+        class="mt-4 hidden rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200"
+        role="status"
+        data-testid="add-cart-msg"
+      >
+      </div>
+      <div
+        id="cart-err"
+        class="mt-4 hidden rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+        role="alert"
+        data-testid="add-cart-err"
+      >
+      </div>
+
+      <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         {
-          cta === "order" ? (
+          canOrder ? (
+            <>
+              <label class="flex items-center gap-2 text-sm text-sand-200">
+                <span class="text-ink-500">Qty</span>
+                <input
+                  id="qty"
+                  type="number"
+                  min="1"
+                  max="99"
+                  value="1"
+                  class="w-16 rounded-lg border border-ink-700 bg-ink-900 px-2 py-2 text-center outline-none focus:border-accent"
+                  data-testid="item-qty"
+                />
+              </label>
+              <button
+                type="button"
+                id="btn-add"
+                class="rounded-xl bg-accent px-6 py-3 text-center text-sm font-semibold text-ink-950 hover:bg-accent-glow disabled:opacity-50"
+                data-testid="add-to-cart"
+              >
+                {L.addToCart}
+              </button>
+              <a
+                href={cartUrl}
+                class="rounded-xl border border-ink-700 px-6 py-3 text-center text-sm font-medium hover:bg-ink-800"
+                data-testid="go-cart"
+              >
+                {L.cart}
+              </a>
+            </>
+          ) : cta === "order" && !item.available ? (
+            <span class="rounded-xl border border-ink-700 px-6 py-3 text-center text-sm text-ink-500">
+              Unavailable
+            </span>
+          ) : cta === "order" && !cartOn ? (
             <a
               href={`/${brandSlug}/contact`}
               class="rounded-xl bg-accent px-6 py-3 text-center text-sm font-semibold text-ink-950 hover:bg-accent-glow"
@@ -84,6 +143,7 @@ const cmp = ctx.compliance;
             <a
               href={`/${brandSlug}/inquire?item=${encodeURIComponent(item.slug)}`}
               class="rounded-xl bg-accent px-6 py-3 text-center text-sm font-semibold text-ink-950 hover:bg-accent-glow"
+              data-testid="inquire-cta"
             >
               {ctaLabel("inquire")}
             </a>
@@ -103,3 +163,77 @@ const cmp = ctx.compliance;
     </div>
   </article>
 </BrandShell>
+
+{
+  canOrder && (
+    <script
+      define:vars={{
+        apiBase,
+        brandSlug,
+        storeSlug,
+        itemSlug,
+        loginUrl,
+        cartUrl,
+      }}
+    >
+      const btn = document.getElementById("btn-add");
+      const qtyEl = document.getElementById("qty");
+      const msg = document.getElementById("cart-msg");
+      const err = document.getElementById("cart-err");
+
+      function showMsg(t) {
+        if (msg) {
+          msg.textContent = t;
+          msg.classList.remove("hidden");
+        }
+        err?.classList.add("hidden");
+      }
+      function showErr(t) {
+        if (err) {
+          err.textContent = t;
+          err.classList.remove("hidden");
+        }
+        msg?.classList.add("hidden");
+      }
+
+      btn?.addEventListener("click", async () => {
+        btn.disabled = true;
+        const qty = Math.max(1, Math.min(99, parseInt(qtyEl?.value || "1", 10) || 1));
+        try {
+          const res = await fetch(`${apiBase}/api/public/cart/items`, {
+            method: "POST",
+            credentials: "include",
+            headers: { Accept: "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({
+              brand_slug: brandSlug,
+              store_slug: storeSlug,
+              item_slug: itemSlug,
+              quantity: qty,
+            }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.status === 401) {
+            window.location.href = loginUrl;
+            return;
+          }
+          if (!res.ok) {
+            const k = data.error_key || data.error || "add_failed";
+            if (k === "cap.cart_disabled") showErr("Cart is disabled for this brand.");
+            else if (k === "cart.item_not_found") showErr("Item not found.");
+            else showErr(data.detail || k);
+            return;
+          }
+          const count = data.cart?.item_count ?? qty;
+          showMsg(`Added to cart (${count} item(s)).`);
+          // Optional: jump to cart after short delay on second click affordance
+          const go = document.querySelector("[data-testid=go-cart]");
+          if (go) go.classList.add("ring-2", "ring-accent");
+        } catch {
+          showErr("Network error — is the API running?");
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    </script>
+  )
+}

@@ -1,0 +1,333 @@
+---
+/**
+ * Checkout wizard — mirrors Telegram C-11 → C-12 → C-13/C-14.
+ * delivery type · phone/address/note · cash | PromptPay
+ * All mutations via commerce_api → checkout service.
+ */
+import BrandShell from "../../layouts/BrandShell.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import { buildNavChips, can, loadBrandContext } from "../../lib/brandContext";
+
+export const prerender = false;
+
+const { brand: brandSlug } = Astro.params;
+if (!brandSlug) return Astro.redirect("/");
+
+const ctx = await loadBrandContext(brandSlug);
+if (!ctx) return new Response(null, { status: 404 });
+if (!can(ctx, "checkout", true)) return new Response(null, { status: 404 });
+
+const apiBase = ctx.apiBase;
+const chips = buildNavChips(ctx, { active: "cart" });
+const storeSlug = ctx.defaultStore?.slug || "";
+const payCash = can(ctx, "payment_cash", true);
+const payPp = can(ctx, "payment_promptpay", true);
+const loginUrl = `/${brandSlug}/login?next=${encodeURIComponent(`/${brandSlug}/checkout`)}`;
+const cartUrl = `/${brandSlug}/cart`;
+---
+
+<BrandShell ctx={ctx} title="Checkout" chips={chips}>
+  <main class="mx-auto max-w-lg py-2" data-page="checkout">
+    <PageHeader
+      brandSlug={ctx.slug}
+      brandName={ctx.brand.name}
+      title="Checkout"
+      lead="Same steps as Telegram: delivery details → type → payment."
+    />
+
+    <p class="mt-2 text-sm">
+      <a href={cartUrl} class="text-accent hover:underline">← Back to cart</a>
+    </p>
+
+    <div
+      id="banner"
+      class="mt-4 hidden rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+      role="alert"
+      data-testid="checkout-error"
+    >
+    </div>
+
+    <div id="cart-summary" class="mt-6 rounded-2xl border border-ink-700 bg-ink-900/50 p-4 text-sm" data-testid="checkout-summary">
+      <p class="text-xs uppercase tracking-wider text-ink-500">Order summary</p>
+      <p id="summary-lines" class="mt-2 text-sand-200">Loading cart…</p>
+      <p id="summary-total" class="mt-2 text-lg font-bold text-accent"></p>
+    </div>
+
+    <form id="checkout-form" class="mt-8 space-y-6" data-testid="checkout-form">
+      <!-- C-12 phone / address / note -->
+      <fieldset class="space-y-3">
+        <legend class="text-sm font-semibold text-sand-50">Contact & delivery</legend>
+        <label class="block text-sm">
+          <span class="text-ink-500">Phone</span>
+          <input
+            name="phone"
+            type="tel"
+            required
+            autocomplete="tel"
+            placeholder="+66812345678"
+            class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+            data-testid="checkout-phone"
+          />
+        </label>
+        <label class="block text-sm">
+          <span class="text-ink-500">Address</span>
+          <textarea
+            name="address"
+            required
+            rows="2"
+            placeholder="Street, soi, district, Bangkok"
+            class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+            data-testid="checkout-address"
+          ></textarea>
+        </label>
+        <label class="block text-sm">
+          <span class="text-ink-500">Note (optional)</span>
+          <input
+            name="note"
+            type="text"
+            placeholder="Ring doorbell / landmark"
+            class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+            data-testid="checkout-note"
+          />
+        </label>
+      </fieldset>
+
+      <!-- C-11 delivery type -->
+      <fieldset class="space-y-2">
+        <legend class="text-sm font-semibold text-sand-50">Delivery type</legend>
+        <div class="flex flex-wrap gap-2">
+          <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-ink-700 px-3 py-2 has-[:checked]:border-accent">
+            <input type="radio" name="delivery_type" value="door" checked data-testid="delivery-door" />
+            <span class="text-sm">Door delivery</span>
+          </label>
+          <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-ink-700 px-3 py-2 has-[:checked]:border-accent">
+            <input type="radio" name="delivery_type" value="pickup" data-testid="delivery-pickup" />
+            <span class="text-sm">Pickup</span>
+          </label>
+          <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-ink-700 px-3 py-2 has-[:checked]:border-accent">
+            <input type="radio" name="delivery_type" value="dead_drop" data-testid="delivery-drop" />
+            <span class="text-sm">Dead drop</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <!-- C-13 / C-14 payment -->
+      <fieldset class="space-y-2">
+        <legend class="text-sm font-semibold text-sand-50">Payment</legend>
+        <div class="flex flex-wrap gap-2">
+          {
+            payCash && (
+              <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-ink-700 px-3 py-2 has-[:checked]:border-accent">
+                <input type="radio" name="payment_method" value="cash" checked data-testid="pay-cash" />
+                <span class="text-sm">Cash on delivery</span>
+              </label>
+            )
+          }
+          {
+            payPp && (
+              <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-ink-700 px-3 py-2 has-[:checked]:border-accent">
+                <input
+                  type="radio"
+                  name="payment_method"
+                  value="promptpay"
+                  checked={!payCash}
+                  data-testid="pay-promptpay"
+                />
+                <span class="text-sm">PromptPay QR</span>
+              </label>
+            )
+          }
+          {
+            !payCash && !payPp && (
+              <p class="text-sm text-red-300">No payment methods enabled for this brand.</p>
+            )
+          }
+        </div>
+      </fieldset>
+
+      <button
+        type="submit"
+        id="submit"
+        class="w-full rounded-xl bg-accent py-3 text-sm font-semibold text-ink-950 disabled:opacity-50"
+        data-testid="checkout-submit"
+        disabled={!payCash && !payPp}
+      >
+        Place order
+      </button>
+    </form>
+
+    <div id="success" class="mt-8 hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6" data-testid="checkout-success">
+      <p class="text-sm font-semibold text-emerald-200">Order placed</p>
+      <p class="mt-2 text-2xl font-bold tracking-wide text-sand-50" id="order-code" data-testid="order-code"></p>
+      <p class="mt-1 text-sm text-sand-200" id="order-pay"></p>
+      <div id="qr-box" class="mt-4 hidden">
+        <p class="text-xs text-ink-500">Scan PromptPay QR</p>
+        <img id="qr-img" alt="PromptPay QR" class="mt-2 max-w-[220px] rounded-xl bg-white p-2" />
+        <p id="qr-meta" class="mt-2 text-xs text-ink-500"></p>
+      </div>
+      <div class="mt-6 flex flex-wrap gap-2">
+        <a id="view-order" href="#" class="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-ink-950" data-testid="view-order">
+          View order
+        </a>
+        <a href={`/${brandSlug}/orders`} class="rounded-xl border border-ink-700 px-4 py-2 text-sm hover:border-accent">
+          My orders
+        </a>
+      </div>
+    </div>
+  </main>
+</BrandShell>
+
+<script define:vars={{ apiBase, brandSlug, storeSlug, loginUrl, cartUrl }}>
+  const banner = document.getElementById("banner");
+  const form = document.getElementById("checkout-form");
+  const summaryLines = document.getElementById("summary-lines");
+  const summaryTotal = document.getElementById("summary-total");
+  const success = document.getElementById("success");
+  const submitBtn = document.getElementById("submit");
+
+  function showErr(msg) {
+    if (!banner) return;
+    banner.textContent = msg;
+    banner.classList.remove("hidden");
+  }
+  function clearErr() {
+    banner?.classList.add("hidden");
+  }
+
+  async function api(path, init = {}) {
+    const res = await fetch(`${apiBase}${path}`, {
+      ...init,
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        ...(init.body ? { "Content-Type": "application/json" } : {}),
+        ...(init.headers || {}),
+      },
+    });
+    const data = await res.json().catch(() => null);
+    return { res, data };
+  }
+
+  function human(data, status) {
+    const k = data?.error_key || data?.error;
+    if (status === 401 || k === "auth.required") return "Please sign in.";
+    if (k === "cart.empty") return "Cart is empty.";
+    if (k === "cap.checkout_disabled") return "Checkout is disabled for this brand.";
+    if (k === "order.payment.customer_not_found") return "Delivery profile incomplete.";
+    if (k === "order.inventory.unable_to_reserve") return "Not enough stock.";
+    return data?.detail || k || "Checkout failed";
+  }
+
+  (async () => {
+    const me = await api("/api/public/auth/me");
+    if (!me.res.ok || !me.data?.authenticated) {
+      window.location.href = loginUrl;
+      return;
+    }
+
+    const cart = await api("/api/public/cart");
+    if (cart.res.status === 401) {
+      window.location.href = loginUrl;
+      return;
+    }
+    if (!cart.res.ok) {
+      showErr(human(cart.data, cart.res.status));
+      return;
+    }
+    if (cart.data.empty || !cart.data.items?.length) {
+      if (summaryLines) summaryLines.textContent = "Cart is empty.";
+      showErr("Your cart is empty — add items first.");
+      submitBtn && (submitBtn.disabled = true);
+      return;
+    }
+    if (summaryLines) {
+      summaryLines.innerHTML = cart.data.items
+        .map((i) => `${i.quantity}× ${i.item_name} <span class="text-ink-500">(${i.total})</span>`)
+        .join("<br/>");
+    }
+    if (summaryTotal) summaryTotal.textContent = `Total ${cart.data.total}`;
+  })();
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearErr();
+    const fd = new FormData(form);
+    const phone = String(fd.get("phone") || "").trim();
+    const address = String(fd.get("address") || "").trim();
+    const note = String(fd.get("note") || "").trim();
+    const delivery_type = String(fd.get("delivery_type") || "door");
+    const payment_method = String(fd.get("payment_method") || "cash");
+
+    if (!phone || !address) {
+      showErr("Phone and address are required.");
+      return;
+    }
+
+    submitBtn && (submitBtn.disabled = true);
+    if (submitBtn) submitBtn.textContent = "Placing order…";
+
+    // C-12: ensure delivery profile (same as TG customer info)
+    const deliv = await api("/api/public/customer/delivery", {
+      method: "POST",
+      body: JSON.stringify({ phone, address, note }),
+    });
+    if (!deliv.res.ok) {
+      showErr(human(deliv.data, deliv.res.status));
+      submitBtn && (submitBtn.disabled = false);
+      if (submitBtn) submitBtn.textContent = "Place order";
+      return;
+    }
+
+    // C-13 / C-14
+    const body = {
+      brand_slug: brandSlug,
+      store_slug: storeSlug || undefined,
+      payment_method,
+      delivery_type,
+      phone,
+      address,
+      note: note || undefined,
+    };
+    const co = await api("/api/public/checkout", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+
+    if (!co.res.ok) {
+      showErr(human(co.data, co.res.status));
+      submitBtn && (submitBtn.disabled = false);
+      if (submitBtn) submitBtn.textContent = "Place order";
+      return;
+    }
+
+    form.classList.add("hidden");
+    document.getElementById("cart-summary")?.classList.add("hidden");
+    success?.classList.remove("hidden");
+
+    const code = co.data.order_code;
+    const codeEl = document.getElementById("order-code");
+    if (codeEl) codeEl.textContent = code;
+    const payEl = document.getElementById("order-pay");
+    if (payEl) {
+      payEl.textContent = `${co.data.payment_method} · ${co.data.final_amount ?? co.data.total_amount}`;
+    }
+    const view = document.getElementById("view-order");
+    if (view) view.setAttribute("href", `/${brandSlug}/orders/${encodeURIComponent(code)}`);
+
+    const pp = co.data.promptpay;
+    if (pp && (pp.qr_png_base64 || pp.promptpay_id)) {
+      const qrBox = document.getElementById("qr-box");
+      qrBox?.classList.remove("hidden");
+      if (pp.qr_png_base64) {
+        const img = document.getElementById("qr-img");
+        if (img) img.src = `data:image/png;base64,${pp.qr_png_base64}`;
+      }
+      const meta = document.getElementById("qr-meta");
+      if (meta) {
+        meta.textContent = [pp.promptpay_id && `ID ${pp.promptpay_id}`, pp.amount && `฿${pp.amount}`]
+          .filter(Boolean)
+          .join(" · ");
+      }
+    }
+  });
+</script>

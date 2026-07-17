@@ -83,6 +83,8 @@ if __name__ == "__main__":
     os.environ.setdefault("PUBLIC_SITE_URL", "http://127.0.0.1:4321")
     os.environ.setdefault("MONITORING_HOST", "0.0.0.0")
     os.environ.setdefault("MONITORING_PORT", "9090")
+    # Enable web cart/checkout on snus-demo (Telegram C-08–C-14 parity). Override with portfolio.
+    os.environ.setdefault("SEED_SNUS_COMMERCE_MODE", "full_store")
     if not os.environ.get("DATABASE_URL") and not os.environ.get("POSTGRES_DB"):
         os.environ.setdefault("DATABASE_URL", f"sqlite:///{ROOT / 'data' / 'local_public.db'}")
         os.environ.setdefault("TOKEN", "000000000:LOCAL-DEV-TOKEN-NOT-FOR-PRODUCTION")

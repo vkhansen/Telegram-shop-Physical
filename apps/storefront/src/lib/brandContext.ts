@@ -35,6 +35,10 @@ export type SectionLabels = {
   book: string;
   support: string;
   login: string;
+  cart: string;
+  orders: string;
+  checkout: string;
+  addToCart: string;
   openBranch: string;
   featuredEyebrow: string;
   featuredBadge: string;
@@ -94,6 +98,10 @@ function parseLabels(web: Record<string, unknown>): SectionLabels {
     book: asString(nav.book) || asString(cta.book) || "Book meeting",
     support: asString(nav.support) || asString(cta.support) || "Support",
     login: asString(nav.login) || asString(cta.login) || "Log in",
+    cart: asString(nav.cart) || asString(cta.cart) || "Cart",
+    orders: asString(nav.orders) || asString(cta.orders) || "Orders",
+    checkout: asString(nav.checkout) || asString(cta.checkout) || "Checkout",
+    addToCart: asString(cta.add_to_cart) || asString(cta.order) || "Add to cart",
     openBranch: asString(sections.open_branch) || asString(cta.open_branch) || "Open branch →",
     featuredEyebrow:
       asString(hero.featured_eyebrow) || asString(sections.featured_eyebrow) || "Featured",
@@ -236,7 +244,7 @@ export async function loadHomeCatalog(ctx: BrandContext): Promise<HomeCatalog> {
 export function buildNavChips(
   ctx: BrandContext,
   opts: {
-    active?: "home" | "about" | "contact" | "store" | string;
+    active?: "home" | "about" | "contact" | "store" | "cart" | "orders" | string;
     storeSlug?: string;
     includeCatalogAnchor?: boolean;
   } = {},
@@ -262,6 +270,14 @@ export function buildNavChips(
     }
   }
 
+  // C-08 / C-17 — commerce nav (shared caps with Telegram)
+  if (cap(C, "cart", true) || cap(C, "checkout", true)) {
+    chips.push({ href: `/${s}/cart`, label: L.cart, active: active === "cart" });
+  }
+  if (cap(C, "order_status", true)) {
+    chips.push({ href: `/${s}/orders`, label: L.orders, active: active === "orders" });
+  }
+
   if (cap(C, "about", true)) {
     chips.push({ href: `/${s}/about`, label: L.about, active: active === "about" });
   }
@@ -280,8 +296,14 @@ export function buildHeaderActions(
   const C = ctx.capabilities;
   const actions: { href: string; label: string; primary?: boolean }[] = [];
 
-  if (cap(C, "contact", true)) {
+  // Prefer cart as primary when commerce is on (TG shop parity)
+  if (cap(C, "cart", true) || cap(C, "checkout", true)) {
+    actions.push({ href: `/${s}/cart`, label: L.cart, primary: true });
+  } else if (cap(C, "contact", true)) {
     actions.push({ href: `/${s}/contact`, label: L.contact, primary: true });
+  }
+  if (cap(C, "order_status", true)) {
+    actions.push({ href: `/${s}/orders`, label: L.orders });
   }
   if (cap(C, "leads", true) || cap(C, "portfolio", false)) {
     actions.push({ href: `/${s}/inquire`, label: L.inquire });
@@ -298,6 +320,11 @@ export function buildHeaderActions(
   if (cap(C, "about", true)) {
     actions.push({ href: `/${s}/about`, label: L.about });
   }
+  if (cap(C, "contact", true) && !(cap(C, "cart", true) || cap(C, "checkout", true))) {
+    // already primary above when no cart
+  } else if (cap(C, "contact", true)) {
+    actions.push({ href: `/${s}/contact`, label: L.contact });
+  }
   return actions;
 }
 
@@ -309,6 +336,10 @@ export function buildFooterLinks(ctx: BrandContext): { href: string; label: stri
   const links: { href: string; label: string }[] = [{ href: `/${s}`, label: L.home }];
   if (cap(C, "about", true)) links.push({ href: `/${s}/about`, label: L.about });
   if (cap(C, "contact", true)) links.push({ href: `/${s}/contact`, label: L.contact });
+  if (cap(C, "cart", true) || cap(C, "checkout", true)) {
+    links.push({ href: `/${s}/cart`, label: L.cart });
+  }
+  if (cap(C, "order_status", true)) links.push({ href: `/${s}/orders`, label: L.orders });
   if (cap(C, "leads", true)) links.push({ href: `/${s}/inquire`, label: L.inquire });
   if (cap(C, "booking", true)) links.push({ href: `/${s}/book`, label: L.book });
   if (cap(C, "tickets", true)) links.push({ href: `/${s}/tickets`, label: L.support });

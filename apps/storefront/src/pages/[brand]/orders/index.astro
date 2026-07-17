@@ -1,0 +1,165 @@
+---
+/**
+ * C-17 My orders — order_query via commerce API (same as TG orders_view).
+ */
+import BrandShell from "../../../layouts/BrandShell.astro";
+import PageHeader from "../../../components/PageHeader.astro";
+import { buildNavChips, can, loadBrandContext } from "../../../lib/brandContext";
+
+export const prerender = false;
+
+const { brand: brandSlug } = Astro.params;
+if (!brandSlug) return Astro.redirect("/");
+
+const ctx = await loadBrandContext(brandSlug);
+if (!ctx) return new Response(null, { status: 404 });
+if (!can(ctx, "order_status", true)) return new Response(null, { status: 404 });
+
+const apiBase = ctx.apiBase;
+const chips = buildNavChips(ctx, { active: "orders" });
+const loginUrl = `/${brandSlug}/login?next=${encodeURIComponent(`/${brandSlug}/orders`)}`;
+---
+
+<BrandShell ctx={ctx} title="My orders" chips={chips}>
+  <main class="py-2" data-page="orders">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <PageHeader
+        brandSlug={ctx.slug}
+        brandName={ctx.brand.name}
+        title="My orders"
+        lead="Track status the same way as in Telegram — confirmed → preparing → delivered."
+      />
+      {
+        can(ctx, "cart") && (
+          <a
+            href={`/${brandSlug}/cart`}
+            class="rounded-xl border border-ink-700 px-4 py-2 text-sm hover:border-accent"
+          >
+            Cart
+          </a>
+        )
+      }
+    </div>
+
+    <p id="who" class="mt-2 text-sm text-sand-200">Checking session…</p>
+
+    <div
+      id="load-err"
+      class="mt-4 hidden rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+      role="alert"
+    >
+    </div>
+
+    <div id="skeleton" class="mt-6 space-y-3">
+      <div class="h-20 animate-pulse rounded-xl bg-ink-900"></div>
+      <div class="h-20 animate-pulse rounded-xl bg-ink-900"></div>
+    </div>
+
+    <ul id="order-list" class="mt-6 space-y-3" aria-live="polite" data-testid="order-list"></ul>
+
+    <div id="empty" class="mt-10 hidden text-center" data-testid="orders-empty">
+      <p class="text-ink-500">No orders yet.</p>
+      {
+        can(ctx, "catalog") && (
+          <a
+            href={`/${brandSlug}`}
+            class="mt-4 inline-flex rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-ink-950"
+          >
+            Browse menu
+          </a>
+        )
+      }
+    </div>
+  </main>
+</BrandShell>
+
+<script define:vars={{ apiBase, brandSlug, loginUrl }}>
+  const who = document.getElementById("who");
+  const list = document.getElementById("order-list");
+  const empty = document.getElementById("empty");
+  const skeleton = document.getElementById("skeleton");
+  const errEl = document.getElementById("load-err");
+
+  function esc(s) {
+    return String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function statusCls(st) {
+    const s = (st || "").toLowerCase();
+    if (s === "delivered") return "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30";
+    if (s === "cancelled" || s === "expired") return "bg-ink-700 text-ink-400 ring-ink-600";
+    if (s === "out_for_delivery" || s === "ready") return "bg-sky-500/15 text-sky-300 ring-sky-500/30";
+    if (s === "preparing" || s === "confirmed") return "bg-amber-500/15 text-amber-200 ring-amber-500/30";
+    return "bg-ink-800 text-sand-200 ring-ink-600";
+  }
+
+  function label(st) {
+    const m = {
+      pending: "Pending",
+      reserved: "Reserved",
+      confirmed: "Confirmed",
+      preparing: "Preparing",
+      ready: "Ready",
+      out_for_delivery: "Out for delivery",
+      delivered: "Delivered",
+      cancelled: "Cancelled",
+      expired: "Expired",
+    };
+    return m[(st || "").toLowerCase()] || st;
+  }
+
+  async function api(path) {
+    const res = await fetch(`${apiBase}${path}`, { credentials: "include", headers: { Accept: "application/json" } });
+    const data = await res.json().catch(() => null);
+    return { res, data };
+  }
+
+  (async () => {
+    const me = await api("/api/public/auth/me");
+    if (!me.res.ok || !me.data?.authenticated) {
+      window.location.href = loginUrl;
+      return;
+    }
+    if (who) who.textContent = `Signed in as ${me.data.session?.name || me.data.session?.email || "you"}`;
+
+    const { res, data } = await api("/api/public/orders?limit=30");
+    skeleton?.classList.add("hidden");
+    if (res.status === 401) {
+      window.location.href = loginUrl;
+      return;
+    }
+    if (!res.ok) {
+      if (errEl) {
+        errEl.textContent = data?.error_key || data?.error || "Failed to load orders";
+        errEl.classList.remove("hidden");
+      }
+      return;
+    }
+    const orders = data?.orders || [];
+    if (!orders.length) {
+      empty?.classList.remove("hidden");
+      return;
+    }
+    list.innerHTML = orders
+      .map((o) => {
+        const items = (o.items || []).map((i) => `${i.quantity}× ${i.item_name}`).join(", ");
+        return `<li>
+          <a href="/${brandSlug}/orders/${encodeURIComponent(o.order_code)}"
+             class="block rounded-xl border border-ink-700 bg-ink-900 p-4 transition hover:border-accent"
+             data-testid="order-row">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="font-mono text-sm font-semibold tracking-wide text-sand-50">${esc(o.order_code)}</span>
+              <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset ${statusCls(o.order_status)}">${esc(label(o.order_status))}</span>
+            </div>
+            <p class="mt-2 text-xs text-ink-500">${esc(items)}</p>
+            <p class="mt-1 text-sm text-accent">${esc(o.total_price)} · ${esc(o.payment_method)}</p>
+          </a>
+        </li>`;
+      })
+      .join("");
+  })();
+</script>

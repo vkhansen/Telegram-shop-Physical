@@ -305,6 +305,57 @@ def list_test_data_images() -> list[str]:
 test_data_filenames = list_test_data_images
 
 
+def _snus_commerce_mode() -> str:
+    """Brand commerce_mode for seed.
+
+    Env ``SEED_SNUS_COMMERCE_MODE``: portfolio (default) | hybrid | full_store.
+    full_store/hybrid enable cart + checkout (Telegram C-08–C-14 web parity).
+    """
+    import os
+
+    m = (os.getenv("SEED_SNUS_COMMERCE_MODE") or "portfolio").strip().lower()
+    if m in ("full_store", "hybrid", "portfolio"):
+        return m
+    return "portfolio"
+
+
+def _snus_web_profile(mode: str) -> dict:
+    """web_profile with channel mask matching commerce_mode (checkout on for full_store/hybrid)."""
+    import copy
+
+    profile = copy.deepcopy(SNUS_WEB_PROFILE)
+    channels = profile.setdefault("channels", {})
+    web = channels.setdefault("web", {"enabled": True})
+    mask = dict(web.get("mask") or {})
+    if mode in ("full_store", "hybrid"):
+        mask["checkout"] = True
+        mask["cart"] = True
+        mask["payment_cash"] = True
+        mask["payment_promptpay"] = True
+        mask["order_status"] = True
+        mask["portfolio"] = mode == "hybrid"
+    else:
+        mask["checkout"] = False
+        mask["portfolio"] = True
+    web["mask"] = mask
+    channels["web"] = web
+    profile["channels"] = channels
+    return profile
+
+
+def _apply_commerce_flags(goods, *, mode: str) -> None:
+    """Align goods flags with brand commerce mode (web CTA + cart)."""
+    if mode == "portfolio":
+        goods.web_orderable = False
+        goods.inquiry_only = True
+    elif mode == "hybrid":
+        goods.web_orderable = True
+        goods.inquiry_only = False
+    else:  # full_store
+        goods.web_orderable = True
+        goods.inquiry_only = False
+
+
 def seed_snus_demo(*, force: bool = False) -> dict:
     """
     Create or refresh the ``snus-demo`` brand with lineup images from tests/test-data.
@@ -314,6 +365,7 @@ def seed_snus_demo(*, force: bool = False) -> dict:
     images = list_test_data_images()
     if not images:
         logger.warning("No images in %s — seeding without local media", TEST_DATA)
+    commerce_mode = _snus_commerce_mode()
     # Map lineup to available images (cycle if fewer files)
     with Database().session() as s:
         if s.query(Role).filter_by(name="USER").first() is None:
@@ -327,9 +379,10 @@ def seed_snus_demo(*, force: bool = False) -> dict:
             n_goods = s.query(Goods).filter_by(brand_id=brand.id).count()
             if store and n_goods > 0:
                 # Refresh theme tokens + product visual DNA without full recreate
-                brand.web_profile = SNUS_WEB_PROFILE
+                brand.web_profile = _snus_web_profile(commerce_mode)
                 brand.age_gate_enabled = True
                 brand.min_age = 18
+                brand.commerce_mode = commerce_mode
                 for name, _price, desc, _img, strength, accent, accent2, tag, motif, featured_xl in SNUS_LINEUP:
                     g = s.query(Goods).filter_by(name=name).one_or_none()
                     if not g:
@@ -345,8 +398,20 @@ def seed_snus_demo(*, force: bool = False) -> dict:
                         )
                     ]
                     g.description = f"{desc}\n\nStrength {strength}/7 · Slim format · Demo SKU."
+                    _apply_commerce_flags(g, mode=commerce_mode)
+                    # full_store needs stock for availability + reserve at checkout
+                    if commerce_mode == "portfolio":
+                        g.stock_quantity = 0
+                    elif (g.stock_quantity or 0) < 1:
+                        g.stock_quantity = 500
                 s.commit()
-                return {"slug": "snus-demo", "products": n_goods, "skipped": True, "refreshed_theme": True}
+                return {
+                    "slug": "snus-demo",
+                    "products": n_goods,
+                    "skipped": True,
+                    "refreshed_theme": True,
+                    "commerce_mode": commerce_mode,
+                }
 
         if brand is None:
             brand = Brand(
@@ -360,11 +425,11 @@ def seed_snus_demo(*, force: bool = False) -> dict:
                 dbd_number="0105551234567",
                 support_email="hello@snus-demo.local",
                 support_phone="+66812345678",
-                commerce_mode="portfolio",
+                commerce_mode=commerce_mode,
                 age_gate_enabled=True,
                 min_age=18,
                 timezone="Asia/Bangkok",
-                web_profile=SNUS_WEB_PROFILE,
+                web_profile=_snus_web_profile(commerce_mode),
             )
             # logo from first image if present
             if images:
@@ -374,8 +439,8 @@ def seed_snus_demo(*, force: bool = False) -> dict:
         else:
             brand.age_gate_enabled = True
             brand.min_age = 18
-            brand.commerce_mode = "portfolio"
-            brand.web_profile = SNUS_WEB_PROFILE
+            brand.commerce_mode = commerce_mode
+            brand.web_profile = _snus_web_profile(commerce_mode)
             brand.description = (
                 "Fifteen all-white nicotine pouches built for clean kicks and loud flavor. "
                 "Adults only — demo white-label storefront."
@@ -443,6 +508,8 @@ def seed_snus_demo(*, force: bool = False) -> dict:
                 motif=motif,
                 featured_xl=featured_xl,
             )
+            # Portfolio: display-only. full_store/hybrid: stock for checkout reserve.
+            stock = 0 if commerce_mode == "portfolio" else 500
             existing = s.query(Goods).filter_by(name=name).one_or_none()
             if existing:
                 existing.brand_id = brand.id
@@ -451,9 +518,9 @@ def seed_snus_demo(*, force: bool = False) -> dict:
                 existing.description = f"{desc}\n\nStrength {strength}/7 · Slim format · Demo SKU."
                 existing.is_active = True
                 existing.web_listable = True
-                existing.web_orderable = False
-                existing.inquiry_only = True
+                _apply_commerce_flags(existing, mode=commerce_mode)
                 existing.item_type = "product"
+                existing.stock_quantity = stock
                 existing.media = [visual]
                 if img_name:
                     existing.image_file_id = local_file_id(img_name)
@@ -465,12 +532,11 @@ def seed_snus_demo(*, force: bool = False) -> dict:
                 category_name="The Lineup",
                 brand_id=brand.id,
                 item_type="product",
-                stock_quantity=0,  # portfolio — not branch stock
+                stock_quantity=stock,
                 is_active=True,
             )
             g.web_listable = True
-            g.web_orderable = False
-            g.inquiry_only = True
+            _apply_commerce_flags(g, mode=commerce_mode)
             g.media = [visual]
             if img_name:
                 g.image_file_id = local_file_id(img_name)
@@ -479,5 +545,17 @@ def seed_snus_demo(*, force: bool = False) -> dict:
 
         s.commit()
         total = s.query(Goods).filter_by(brand_id=brand.id).count()
-        logger.info("Snus demo ready slug=snus-demo products=%s created=%s images_dir=%s", total, created, TEST_DATA)
-        return {"slug": "snus-demo", "products": total, "created": created, "images": len(images)}
+        logger.info(
+            "Snus demo ready slug=snus-demo products=%s created=%s commerce_mode=%s images_dir=%s",
+            total,
+            created,
+            commerce_mode,
+            TEST_DATA,
+        )
+        return {
+            "slug": "snus-demo",
+            "products": total,
+            "created": created,
+            "images": len(images),
+            "commerce_mode": commerce_mode,
+        }
