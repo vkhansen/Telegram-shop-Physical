@@ -47,10 +47,14 @@ def register_line_routes(
         except Exception:
             return web.json_response({"error": "invalid_json"}, status=400)
 
+        # destination = LINE bot/OA user id — used for multi-brand OA map
+        destination = payload.get("destination")
+        if isinstance(destination, str):
+            ad.set_destination(destination)
         try:
             for event in payload.get("events") or []:
                 if isinstance(event, dict):
-                    await ad.handle_event(event)
+                    await ad.handle_event(event, destination=destination if isinstance(destination, str) else None)
         except Exception:
             logger.exception("LINE webhook handler failed")
         # LINE expects 200 quickly

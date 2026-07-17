@@ -1,6 +1,31 @@
 /** Client for public catalog API — channel-agnostic brand/catalog DTOs. */
 
-const API_BASE = (import.meta.env.PUBLIC_API_BASE || "http://127.0.0.1:9090").replace(/\/$/, "");
+/**
+ * Resolve API origin:
+ * - Browser: PUBLIC_API_BASE (empty string = same-origin, for Funnel reverse-proxy)
+ * - SSR (Node): API_INTERNAL_BASE (e.g. http://bot:9090) so Docker SSR can reach the API
+ */
+function resolveApiBase(): string {
+  const isServer = import.meta.env.SSR || typeof window === "undefined";
+  if (isServer) {
+    const internal =
+      (typeof process !== "undefined" && process.env.API_INTERNAL_BASE) ||
+      import.meta.env.API_INTERNAL_BASE ||
+      "";
+    if (internal) return String(internal).replace(/\/$/, "");
+  }
+  // Explicit empty PUBLIC_API_BASE means same-origin (do not fall back to localhost)
+  if (import.meta.env.PUBLIC_API_BASE === "" || import.meta.env.PUBLIC_API_BASE === "same-origin") {
+    return "";
+  }
+  const pub = import.meta.env.PUBLIC_API_BASE;
+  if (pub == null || pub === undefined) {
+    return isServer ? "http://127.0.0.1:9090" : "http://127.0.0.1:9090";
+  }
+  return String(pub).replace(/\/$/, "");
+}
+
+const API_BASE = resolveApiBase();
 
 /** Surface this storefront represents when requesting capability masks. */
 export const CLIENT_CHANNEL = "web" as const;

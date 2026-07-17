@@ -643,7 +643,9 @@ class MonitoringServer:
         # Bitcoin address pool check - using SQLAlchemy ORM
         try:
             with Database().session() as s:
-                result = s.query(func.count(BitcoinAddress.address)).filter(not BitcoinAddress.is_used).scalar()
+                result = s.query(func.count(BitcoinAddress.address)).filter(
+                    BitcoinAddress.is_used.is_(False)
+                ).scalar()
 
                 health_status["checks"]["bitcoin_pool"] = {
                     "available": result,

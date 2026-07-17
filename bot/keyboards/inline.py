@@ -368,6 +368,11 @@ def reference_code_admin_keyboard():
     kb = InlineKeyboardBuilder()
     kb.button(text=localize("btn.admin.create_refcode"), callback_data="admin_create_refcode")
     kb.button(text=localize("btn.admin.list_refcodes"), callback_data="admin_list_refcodes")
+    # Physical tear-off cards (QR half + name stub) — batch via CLI for print
+    kb.button(text="🃏 Invite cards (batch)", callback_data="admin_invite_cards_help")
+    kb.button(text="📄 Brand PDF sheet (A4)", callback_data="admin_invite_sheet_start")
+    kb.button(text="📋 Card registry (#↔code)", callback_data="admin_invite_registry")
+    kb.button(text="✍️ Assign stub name", callback_data="admin_invite_assign")
     kb.button(text=localize("btn.admin.back_to_panel"), callback_data="console")
     kb.adjust(1)
     return kb.as_markup()

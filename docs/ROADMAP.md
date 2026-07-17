@@ -2,16 +2,18 @@
 
 > **Sequencing now lives in [`MASTER-PLAN.md`](MASTER-PLAN.md)** — the go-live gate, milestone order, and launch checklist. This file is retained for the **growth-track narrative** (platform scale, AI, multi-platform). [`FEATURE_CARDS.md`](FEATURE_CARDS.md) remains the **status** source of truth; when they disagree, trust `FEATURE_CARDS.md` and update here.
 
-Last reviewed: 2026-07-16
+Last reviewed: 2026-07-17
+
+> **Do not plan from this file for sequencing.** Prefer [`FEATURE_CARDS.md`](FEATURE_CARDS.md) + [`CLEAR-START.md`](CLEAR-START.md) + [`MASTER-PLAN.md`](MASTER-PLAN.md). This document is a growth narrative; several checkboxes below are historical.
 
 ---
 
 ## Where we are
 
-- **28 numbered cards shipped** (Phases 1–5 + M1 hardening + the full M0 launch gate + M2 dispatch + multi-store payment polish) plus the RC/FC menu & feature suites — including the multi-brand runtime (CARD-19), both Grok assistants (CARD-17 admin, CARD-22 customer), the persistent cart (CARD-21) and input hardening (CARD-27), and as of 2026-06-03 the quality gate (CARD-25), payment-session refactor (CARD-23), payment integrity (CARD-24), live GPS driver dispatch (CARD-26), and per-store menu image + payment QR (CARD-28).
-- **The M0 launch gate is fully green and M2 is shipped (2026-06-03).** CARD-25, CARD-23, and CARD-24 closed the launch gate; CARD-26 then shipped automated GPS driver matching & dispatch (flag-gated behind `AUTO_DISPATCH_ENABLED`). Remaining open work is growth (M3 multi-channel: ports → services → **Instagram Phase 2** → LINE Tier 3), tracked in [`MASTER-PLAN.md`](MASTER-PLAN.md) and [`later/MULTI-CHANNEL-TIERED-PLAN.md`](later/MULTI-CHANNEL-TIERED-PLAN.md).
-- Codebase is single-bot, single-brand in runtime but has the multi-brand runtime shipped behind `MULTI_BOT_ENABLED`.
-- **Quality gate is green** (2026-06-03: **1460 passed, 150 skipped, 48.19% coverage** — above the now-30% gate). [CARD-25](done/CARD-25-test-suite-recovery.md) is ✅ done: `smoke` marker registered, marker drift reconciled, `fail_under` ratcheted 25→30; `pytest tests/` collects cleanly. Handler layer, notifications, i18n, and CLI remain comparatively light on tests.
+- **Spine + commerce cards shipped** through CARD-40 (ports, services, white-label web, parity freeze) plus Phases 1–5, M0–M2, RC/FC suites. See [`FEATURE_CARDS.md`](FEATURE_CARDS.md) DONE table and [`done/`](done/).
+- **M0 launch gate green; M2 dispatch shipped; M3 platform spine archived 2026-07-17** (CARD-29–32 · 35 · 38 · 40). Remaining open work: CARD-39 OAuth ops, CARD-36 polish, CARD-33/16 channel depth, CARD-34 specs — tracked on the board.
+- Multi-brand runtime ships behind `MULTI_BOT_ENABLED`.
+- **Quality gate** historically green post-M0 (~47–48% coverage, `fail_under` 30). Re-run `pytest tests/` for current numbers. Handler layer, notifications, i18n, and CLI remain comparatively light on tests.
 
 ## Guiding principles
 

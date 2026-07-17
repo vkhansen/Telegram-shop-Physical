@@ -5,7 +5,7 @@
 > **Spec status:** `draft`  
 > **Date:** 2026-07-16  
 > **Implementation card:** [CARD-37](../later/CARD-37-snusthai-hub-astro-mvp.md)  
-> **Related:** [FUNNEL-INSTAGRAM-WEB-TELEGRAM.md](FUNNEL-INSTAGRAM-WEB-TELEGRAM.md) · [WEB-INSTAGRAM-STYLE-STOREFRONT.md](WEB-INSTAGRAM-STYLE-STOREFRONT.md) · [research/GALLERY-JS-INSPIRATION.md](research/GALLERY-JS-INSPIRATION.md) · [CARD-35](../later/CARD-35-instagram-style-web-storefront.md) · [CARD-36](../later/CARD-36-instagram-web-telegram-funnel.md)
+> **Related:** [FUNNEL-INSTAGRAM-WEB-TELEGRAM.md](FUNNEL-INSTAGRAM-WEB-TELEGRAM.md) · [WEB-INSTAGRAM-STYLE-STOREFRONT.md](WEB-INSTAGRAM-STYLE-STOREFRONT.md) · [research/GALLERY-JS-INSPIRATION.md](research/GALLERY-JS-INSPIRATION.md) · [CARD-35](../done/CARD-35-instagram-style-web-storefront.md) · [CARD-36](../later/CARD-36-instagram-web-telegram-funnel.md)
 
 ---
 

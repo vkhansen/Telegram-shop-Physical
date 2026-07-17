@@ -107,6 +107,22 @@ docker compose up -d --build bot
 docker compose logs -f bot   # Watch for startup confirmation
 ```
 
+#### Tailscale + Funnel (no VPS, optional public HTTPS)
+
+Compose includes a Tailscale node (`telegram-shop`) that keeps Postgres/Redis/pgweb **private** on your tailnet and can publish the bot HTTP API (`:9090`) to the **public internet** via [Funnel](https://tailscale.com/kb/1223/tailscale-funnel).
+
+1. Enable **MagicDNS** + **HTTPS certificates** in the [Tailscale DNS admin](https://login.tailscale.com/admin/dns).
+2. Allow Funnel in [ACLs](https://login.tailscale.com/admin/acls) (`nodeAttrs` → `"funnel"`). Details: [`deploy/tailscale/README.md`](deploy/tailscale/README.md).
+3. Set in `.env`: `TS_AUTHKEY`, `TS_SERVE_CONFIG_FILE=serve-funnel.json`, and a strong `MONITORING_API_KEY`.
+4. `docker compose up -d --build` then check:
+
+```bash
+docker exec telegram_shop_tailscale tailscale funnel status
+```
+
+Public URL (anyone): `https://telegram-shop.<your-tailnet>.ts.net/health`  
+Private admin: pgweb / DB / Redis only via Tailscale (not funnelled).
+
 ### Option 2: Manual
 
 ```bash
@@ -503,7 +519,7 @@ python bot_cli.py export --refcodes --output-dir backups/
 
 ### Web Dashboard
 
-Access at `http://localhost:9090/dashboard`:
+Access at `http://localhost:9090/dashboard` (or via Tailscale Funnel HTTPS if enabled — requires `MONITORING_API_KEY`):
 - Real-time order and event metrics
 - Handler performance timing
 - Error tracking
@@ -511,7 +527,8 @@ Access at `http://localhost:9090/dashboard`:
 
 ### Health Check
 
-`http://localhost:9090/health` — for uptime monitoring services.
+`http://localhost:9090/health` — for uptime monitoring services.  
+With Funnel: `https://telegram-shop.<your-tailnet>.ts.net/health`
 
 ### Prometheus Metrics
 

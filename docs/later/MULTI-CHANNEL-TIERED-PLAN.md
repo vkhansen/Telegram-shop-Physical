@@ -104,7 +104,7 @@ Full rules: [UNIFIED-BACKEND-CHANNEL-INTERFACE.md](../Specifications/UNIFIED-BAC
 | **T0-Spec** | Formal flow IDs | CARD-34 | 3–6d |
 | **T0** | Ports under unified law | CARD-29, 30, 31 | 2–4d |
 | **T1** | Customer application services (kill TG-only paths) | **CARD-32** | 2–4d |
-| **T1.5** | Web↔Telegram **abstracted** feature parity (masks) | **[CARD-40](CARD-40-web-telegram-abstracted-feature-parity.md)** | tiered ~7–13d |
+| **T1.5** | Web↔Telegram **abstracted** feature parity (masks) | **[CARD-40](../done/CARD-40-web-telegram-abstracted-feature-parity.md)** | tiered ~7–13d |
 | **T-Web** | White-label web as first-class adapter | CARD-38 ✅ · 39 · 36 | — |
 | **T2** | Second messaging channel (masked) | CARD-33 IG | 5–8d |
 | **T3** | LINE / more | CARD-16 | 5–8d each |
@@ -262,7 +262,9 @@ OWNER_ID=...
 | Doc | Role |
 |-----|------|
 | [UNIFIED-BACKEND-CHANNEL-INTERFACE](../Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md) | **Binding law** |
-| [CARD-29](CARD-29-messenger-port.md) · [30](CARD-30-user-identities.md) · [31](CARD-31-platform-capabilities.md) · [32](CARD-32-customer-application-services.md) | Execution |
-| [CARD-38](CARD-38-white-label-brand-branch-sites.md) | Web adapter |
+| [CARD-29](../done/CARD-29-messenger-port.md) · [30](../done/CARD-30-user-identities.md) · [31](../done/CARD-31-platform-capabilities.md) · [32](../done/CARD-32-customer-application-services.md) | Execution |
+| [CARD-38](../done/CARD-38-white-label-brand-branch-sites.md) | Web adapter |
+| [CARD-16](../done/CARD-16-line-api-integration.md) | LINE channel (code done) |
+| [CARD-34](../done/CARD-34-conversation-workflow-specifications.md) | Flow specs + packages |
 | [FEATURE_CARDS](../FEATURE_CARDS.md) | Status board |
 | [MASTER-PLAN](../MASTER-PLAN.md) | Milestones |

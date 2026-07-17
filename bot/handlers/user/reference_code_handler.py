@@ -5,11 +5,12 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from bot.config import EnvKeys
-from bot.database.methods import create_user
+from bot.database.methods import create_user, select_max_role_id
 from bot.keyboards import back
 from bot.monitoring import get_metrics
 from bot.referrals.codes import create_reference_code as create_ref_code
 from bot.referrals.codes import use_reference_code, validate_reference_code
+from bot.referrals.invite_cards import parse_start_payload
 from bot.states.user_state import ReferenceCodeStates
 
 router = Router()
@@ -25,10 +26,58 @@ async def prompt_reference_code(message: Message, state: FSMContext):
     """
     await message.answer(
         "🔑 Please enter your reference code to access the shop.\n\n"
-        "If you don't have a reference code, please contact the administrator.",
+        "If you don't have a reference code, please contact the administrator.\n\n"
+        "💡 Or scan your invite card QR — it opens this bot with the code already filled.",
         reply_markup=back("cancel_start"),
     )
     await state.set_state(ReferenceCodeStates.waiting_reference_code)
+
+
+async def try_register_with_reference_code(
+    *,
+    user_id: int,
+    username: str | None,
+    code: str,
+    locale: str | None = None,
+) -> tuple[bool, str]:
+    """Validate + create user + mark invite/reference code used.
+
+    Returns (success, error_message). On success error_message is empty.
+    """
+    code = parse_start_payload(code) if code.startswith("/start") else (code or "").strip().upper()
+    if not code:
+        return False, "No reference code provided"
+
+    is_valid, error_msg, creator_id = validate_reference_code(code, user_id)
+    if not is_valid:
+        return False, error_msg
+
+    owner_max_role = select_max_role_id()
+    user_role = owner_max_role if str(user_id) == EnvKeys.OWNER_ID else 1
+    uname = username or f"user_{user_id}"
+
+    create_user(
+        telegram_id=user_id,
+        registration_date=datetime.datetime.now(),
+        referral_id=creator_id,
+        role=user_role,
+        locale=locale,
+    )
+
+    success, error_msg, referrer_id = use_reference_code(code, user_id, uname)
+    if not success:
+        return False, error_msg
+
+    metrics = get_metrics()
+    if metrics:
+        metrics.track_event(
+            "referral_code_used",
+            user_id,
+            {"code": code, "referrer_id": referrer_id, "via": "deep_link_or_typed"},
+        )
+        metrics.track_conversion("referral_program", "code_used", user_id)
+
+    return True, ""
 
 
 @router.message(ReferenceCodeStates.waiting_reference_code)
@@ -40,51 +89,28 @@ async def process_reference_code(message: Message, state: FSMContext):
         message: Message with reference code
         state: FSM context
     """
-    code = message.text.strip().upper()
+    code = (message.text or "").strip().upper()
     user_id = message.from_user.id
     username = message.from_user.username or f"user_{user_id}"
+    data = await state.get_data()
+    locale = data.get("selected_locale")
 
-    # Validate the reference code
-    is_valid, error_msg, creator_id = validate_reference_code(code, user_id)
-
-    if not is_valid:
-        await message.answer(
-            f"❌ {error_msg}\n\nPlease try again or contact the administrator.", reply_markup=back("cancel_start")
-        )
-        return
-
-    # Create user FIRST (required for foreign key constraint)
-    from bot.database.methods import select_max_role_id
-
-    owner_max_role = select_max_role_id()
-    user_role = owner_max_role if str(user_id) == EnvKeys.OWNER_ID else 1
-
-    create_user(
-        telegram_id=user_id,
-        registration_date=datetime.datetime.now(),
-        referral_id=creator_id,  # Track who referred this user
-        role=user_role,
+    success, error_msg = await try_register_with_reference_code(
+        user_id=user_id,
+        username=username,
+        code=code,
+        locale=locale,
     )
-
-    # Now mark code as used (user must exist first due to FK constraint)
-    success, error_msg, referrer_id = use_reference_code(code, user_id, username)
 
     if not success:
         await message.answer(
-            f"❌ {error_msg}\n\nPlease try again or contact the administrator.", reply_markup=back("cancel_start")
+            f"❌ {error_msg}\n\nPlease try again or contact the administrator.",
+            reply_markup=back("cancel_start"),
         )
         return
 
-    # Track referral code usage
-    metrics = get_metrics()
-    if metrics:
-        metrics.track_event("referral_code_used", user_id, {"code": code, "referrer_id": referrer_id})
-        metrics.track_conversion("referral_program", "code_used", user_id)
-
-    # Clear state
     await state.clear()
 
-    # Welcome message
     from bot.handlers.user.main import show_main_menu
 
     await message.answer("✅ Welcome! Your reference code has been validated.\nYou now have access to the shop.")

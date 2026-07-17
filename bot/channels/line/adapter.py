@@ -14,6 +14,7 @@ from typing import Any
 from bot.channels.line import renderer as R
 from bot.channels.line.config import LineConfig, load_line_config
 from bot.channels.line.messenger import LineMessenger
+from bot.channels.line.qr_host import store_qr_png
 from bot.channels.line.session import LineSession, SessionStore, default_session_store
 from bot.platform.capabilities import can, cap_enabled, resolve_capabilities
 from bot.platform.identity import ensure_line_user
@@ -59,9 +60,19 @@ class LineAdapter:
             reply_url=self.config.reply_url,
             push_url=self.config.push_url,
         )
+        self._destination: str | None = None
+
+    def set_destination(self, destination: str | None) -> None:
+        """LINE webhook ``destination`` (OA bot user id) for multi-brand map."""
+        self._destination = (destination or "").strip() or None
+
+    def _persist(self, line_uid: str, sess: LineSession) -> None:
+        save = getattr(self.sessions, "save", None)
+        if callable(save):
+            save(line_uid, sess)
 
     def _brand_ctx(self) -> dict[str, Any] | None:
-        bid = self.config.default_brand_id
+        bid = self.config.brand_id_for_destination(self._destination)
         if bid is None:
             return None
         from bot.database.main import Database
@@ -121,7 +132,29 @@ class LineAdapter:
         buttons = ButtonSpec(native={"items": quick_items}) if quick_items else None
         return await self.messenger.send_text(line_uid, text, buttons=buttons)
 
-    async def handle_event(self, event: dict[str, Any]) -> None:
+    async def _reply_flex(
+        self,
+        line_uid: str,
+        flex_msg: dict[str, Any],
+        *,
+        fallback_text: str | None = None,
+        quick_items: list[dict[str, Any]] | None = None,
+    ) -> bool:
+        if self.config.use_flex:
+            ok = await self.messenger.send_flex(line_uid, flex_msg)
+            if ok:
+                return True
+        return await self._reply(
+            line_uid,
+            fallback_text or flex_msg.get("altText") or "…",
+            quick_items=quick_items or R.main_menu_items(),
+        )
+
+    async def handle_event(
+        self, event: dict[str, Any], *, destination: str | None = None
+    ) -> None:
+        if destination is not None:
+            self.set_destination(destination)
         etype = (event.get("type") or "").strip()
         if etype in ("unfollow", "leave", "join", "memberJoined", "memberLeft"):
             return
@@ -141,28 +174,34 @@ class LineAdapter:
 
         payload, text = self._extract_intent(event)
 
-        if etype == "follow":
-            await self._reply(
-                line_uid,
-                R.welcome_text((ctx or {}).get("brand_name")),
-                quick_items=R.main_menu_items(),
-            )
-            return
+        try:
+            if etype == "follow":
+                await self._reply_flex(
+                    line_uid,
+                    R.welcome_flex((ctx or {}).get("brand_name")),
+                    fallback_text=R.welcome_text((ctx or {}).get("brand_name")),
+                    quick_items=R.main_menu_items(),
+                )
+                return
 
-        if payload and payload.upper() in _OPS_PAYLOADS:
-            await self._reply(line_uid, R.ops_denied_text(), quick_items=R.main_menu_items())
-            return
+            if payload and payload.upper() in _OPS_PAYLOADS:
+                await self._reply(line_uid, R.ops_denied_text(), quick_items=R.main_menu_items())
+                return
 
-        if sess.state.startswith("checkout_"):
-            await self._handle_checkout_step(line_uid, user_id, sess, ctx, caps, payload, text)
-            return
+            if sess.state.startswith("checkout_"):
+                await self._handle_checkout_step(
+                    line_uid, user_id, sess, ctx, caps, payload, text
+                )
+                return
 
-        if sess.state == "support_wait_body":
-            await self._finish_support(line_uid, user_id, sess, ctx, caps, text)
-            return
+            if sess.state == "support_wait_body":
+                await self._finish_support(line_uid, user_id, sess, ctx, caps, text)
+                return
 
-        intent = (payload or "").upper() or self._text_to_intent(text)
-        await self._dispatch(line_uid, user_id, sess, ctx, caps, intent, text)
+            intent = (payload or "").upper() or self._text_to_intent(text)
+            await self._dispatch(line_uid, user_id, sess, ctx, caps, intent, text)
+        finally:
+            self._persist(line_uid, sess)
 
     def _extract_intent(self, event: dict[str, Any]) -> tuple[str | None, str]:
         etype = event.get("type")
@@ -217,16 +256,20 @@ class LineAdapter:
             return
         if intent in ("LN_HOME", "LN_HELP", ""):
             name = (ctx or {}).get("brand_name")
-            extra = ""
             if intent == "LN_HELP":
-                extra = (
-                    "\n\nCommands: Menu · Cart · Checkout · Orders · Support\n"
+                await self._reply(
+                    line_uid,
+                    R.welcome_text(name)
+                    + "\n\nCommands: Menu · Cart · Checkout · Orders · Support\n"
                     "Add item: add <item name>\n"
-                    "Live tracking & ops → Telegram only."
+                    "Live tracking & ops → Telegram only.",
+                    quick_items=R.main_menu_items(),
                 )
-            await self._reply(
+                return
+            await self._reply_flex(
                 line_uid,
-                R.welcome_text(name) + extra,
+                R.welcome_flex(name),
+                fallback_text=R.welcome_text(name),
                 quick_items=R.main_menu_items(),
             )
             return
@@ -287,22 +330,29 @@ class LineAdapter:
             return
         stores = brand.get("stores") or []
         store_slug = stores[0]["slug"] if stores else None
-        lines = [f"📋 {brand.get('name') or 'Menu'}"]
+        brand_name = brand.get("name") or "Menu"
+        item_lines: list[str] = []
         if store_slug:
             menu = catalog.get_store_menu(ctx["brand_slug"], store_slug)
             if menu:
                 for cat in (menu.get("categories") or [])[:8]:
-                    lines.append(f"\n*{cat.get('name') or 'Items'}*")
+                    item_lines.append(f"[{cat.get('name') or 'Items'}]")
                     for it in (cat.get("items") or [])[:6]:
                         price = it.get("price")
                         name = it.get("name") or it.get("slug")
-                        lines.append(f"• {name} — {price}")
-                lines.append("\nAdd: add <item name>")
+                        item_lines.append(f"• {name} — {price}")
+                item_lines.append("Add: add <item name>")
             else:
-                lines.append("No items listed yet.")
+                item_lines.append("No items listed yet.")
         else:
-            lines.append("No store configured.")
-        await self._reply(line_uid, "\n".join(lines)[:4500], quick_items=R.main_menu_items())
+            item_lines.append("No store configured.")
+        flex = R.menu_flex(brand_name, item_lines, quick_items=R.main_menu_items())
+        await self._reply_flex(
+            line_uid,
+            flex,
+            fallback_text="\n".join([brand_name, *item_lines])[:4500],
+            quick_items=R.main_menu_items(),
+        )
 
     async def _add_item(
         self,
@@ -581,11 +631,20 @@ class LineAdapter:
             )
             return
         code = res.data.get("order_code")
-        msg = (
-            f"✅ Order {code} placed ({res.data.get('payment_method')}). "
-            f"Total {res.data.get('final_amount')}."
+        pay_method = str(res.data.get("payment_method") or "")
+        amount = str(res.data.get("final_amount") or total)
+        await self._reply_flex(
+            line_uid,
+            R.order_confirm_flex(
+                order_code=str(code),
+                payment_method=pay_method,
+                amount=amount,
+            ),
+            fallback_text=(
+                f"✅ Order {code} placed ({pay_method}). Total {amount}."
+            ),
+            quick_items=R.main_menu_items(),
         )
-        await self._reply(line_uid, msg, quick_items=R.main_menu_items())
         if pay_payload == "LN_PAY_PROMPTPAY":
             qr = checkout_svc.build_promptpay_qr_payload(
                 final_amount=res.data.get("final_amount") or total,
@@ -594,9 +653,40 @@ class LineAdapter:
                 brand_id=brand_id,
             )
             if qr.ok and qr.data.get("promptpay_id"):
-                await self._reply(
-                    line_uid,
-                    f"Transfer PromptPay to {qr.data['promptpay_id']} "
-                    f"amount {qr.data.get('amount')}. Upload slip via Telegram or web if needed.",
-                    quick_items=R.main_menu_items(),
-                )
+                qr_url = None
+                raw = qr.data.get("qr_bytes")
+                if raw:
+                    qr_url = store_qr_png(str(code), raw)
+                if qr_url:
+                    # Image first (consumes reply token if any), then flex/text
+                    await self.messenger.send_photo(
+                        line_uid,
+                        qr_url,
+                        caption=(
+                            f"PromptPay {qr.data.get('amount')} → {qr.data['promptpay_id']} "
+                            f"(order {code})"
+                        ),
+                    )
+                    if self.config.use_flex:
+                        await self.messenger.send_flex(
+                            line_uid,
+                            R.payment_qr_flex(
+                                order_code=str(code),
+                                amount=str(qr.data.get("amount")),
+                                promptpay_id=str(qr.data["promptpay_id"]),
+                                qr_image_url=qr_url,
+                            ),
+                        )
+                else:
+                    await self._reply(
+                        line_uid,
+                        f"Transfer PromptPay to {qr.data['promptpay_id']} "
+                        f"amount {qr.data.get('amount')}. "
+                        "Upload slip via Telegram or web if needed."
+                        + (
+                            ""
+                            if qr.data.get("has_dynamic_qr")
+                            else " (Set PUBLIC_MEDIA_BASE_URL for QR images.)"
+                        ),
+                        quick_items=R.main_menu_items(),
+                    )

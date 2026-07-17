@@ -201,7 +201,9 @@ class RecoveryManager:
         try:
             with Database().session() as s:
                 # Check available Bitcoin addresses using SQLAlchemy ORM
-                available = s.query(func.count(BitcoinAddress.address)).filter(not BitcoinAddress.is_used).scalar()
+                available = s.query(func.count(BitcoinAddress.address)).filter(
+                    BitcoinAddress.is_used.is_(False)
+                ).scalar()
 
                 if available < 5:
                     logger.critical(

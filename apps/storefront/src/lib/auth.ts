@@ -1,6 +1,23 @@
 /** Auth + tickets client (CARD-39 portal). Cookie session against PUBLIC_API_BASE. */
 
-const API_BASE = (import.meta.env.PUBLIC_API_BASE || "http://127.0.0.1:9090").replace(/\/$/, "");
+function resolveApiBase(): string {
+  const isServer = import.meta.env.SSR || typeof window === "undefined";
+  if (isServer) {
+    const internal =
+      (typeof process !== "undefined" && process.env.API_INTERNAL_BASE) ||
+      import.meta.env.API_INTERNAL_BASE ||
+      "";
+    if (internal) return String(internal).replace(/\/$/, "");
+  }
+  if (import.meta.env.PUBLIC_API_BASE === "" || import.meta.env.PUBLIC_API_BASE === "same-origin") {
+    return "";
+  }
+  const pub = import.meta.env.PUBLIC_API_BASE;
+  if (pub == null || pub === undefined) return "http://127.0.0.1:9090";
+  return String(pub).replace(/\/$/, "");
+}
+
+const API_BASE = resolveApiBase();
 
 async function api<T>(
   path: string,

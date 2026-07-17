@@ -2,55 +2,48 @@
 
 ## Implementation Status
 
-> **~55% Complete** | `███████████░░░░░░░░░` | Foundation 2026-07-17 — webhook, identity, masked shop FSM, Messenger, router. Live LINE credentials + Flex polish open.
+> **✅ DONE (code)** | `██████████████████░░` | Foundation + Flex + QR host + Redis sessions + multi-OA map (2026-07-17). Residual: live LINE OA credentials / production HTTPS base (ops).
 
-**Tier:** T3 — Additional channels (after Instagram pattern)  
+**Tier:** T3 — Additional channels  
 **Phase:** M3 — Multi-Platform Growth  
 **Priority:** Medium  
-**Effort:** High (5–8 days) after foundation — **~foundation day landed**  
-**Dependencies:**  
-- CARD-29–32 ✅ · CARD-40 freeze ✅ · CARD-33 pattern ✅  
-- [CARD-34](CARD-34-conversation-workflow-specifications.md) flow docs still soft  
+**Dependencies:** CARD-29–32 ✅ · CARD-40 freeze ✅ · [CARD-34](CARD-34-conversation-workflow-specifications.md) LINE package accepted  
 
-**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](MULTI-CHANNEL-TIERED-PLAN.md)
+**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](../later/MULTI-CHANNEL-TIERED-PLAN.md)  
+**Flow package:** [`docs/Specifications/flows/PACKAGE-line.md`](../Specifications/flows/PACKAGE-line.md)
 
 ---
 
 ## Why
 
-LINE is the dominant messaging platform in Thailand. After Telegram (primary) and Instagram (Phase 2), LINE reuses the same:
-
-- `Messenger` port + `messenger_router`  
-- `user_identities` / `ensure_line_user`  
-- `features_for("line", "customer")`  
-- `bot/services/*` cart / checkout / orders / tickets  
-
-Admin, kitchen, riders, and drivers stay on **Telegram**.
+LINE is the dominant messaging platform in Thailand. Reuses Messenger, identities, capability masks, and `bot/services/*`. Admin/kitchen/drivers stay on **Telegram**.
 
 ---
 
-## Architecture (landed)
+## Architecture
 
 ```text
 LINE user ──webhook──▶ LineAdapter
+                          │ destination → brand (OA map)
                           │ resolve identity (CARD-30)
                           │ capability check (CARD-31)
+                          │ session memory|Redis
                           ▼
                      services (CARD-32)
                           ▼
-              LineMessenger reply/push + registry
+              LineMessenger (text / Flex / image QR)
 ```
 
 Flag: `LINE_CHANNEL_ENABLED` (default **false**).
 
 ---
 
-## Feature mask (enforced)
+## Feature mask
 
 | Feature | On LINE? |
 |---------|----------|
-| Browse / cart / checkout | Yes |
-| Cash / PromptPay | Yes |
+| Browse / cart / checkout | Yes (Flex menu) |
+| Cash / PromptPay (hosted QR image) | Yes |
 | Order status / tickets | Yes |
 | Live location / delivery chat | **No** |
 | Admin / kitchen / driver | **No** |
@@ -61,14 +54,15 @@ Flag: `LINE_CHANNEL_ENABLED` (default **false**).
 
 | Path | Role |
 |------|------|
-| `bot/channels/line/config.py` | Env flag + tokens |
-| `bot/channels/line/signature.py` | `X-Line-Signature` HMAC |
-| `bot/channels/line/webhook.py` | POST receive + GET health |
+| `bot/channels/line/config.py` | Env + `LINE_OA_BRAND_MAP` |
+| `bot/channels/line/signature.py` | HMAC signature |
+| `bot/channels/line/webhook.py` | POST + destination brand |
 | `bot/channels/line/adapter.py` | Intents → services |
-| `bot/channels/line/messenger.py` | Reply / push API |
-| `bot/channels/line/renderer.py` | Text + quick replies / postback |
-| `bot/channels/line/session.py` | Per-userId FSM |
-| `bot/platform/identity.py` | `ensure_line_user` |
+| `bot/channels/line/messenger.py` | Reply/push + Flex |
+| `bot/channels/line/renderer.py` | Text, quick reply, Flex |
+| `bot/channels/line/session.py` | Memory + Redis sessions |
+| `bot/channels/line/qr_host.py` | PromptPay PNG cache + public URL |
+| `bot/web/public_api.py` | `GET /media/line-qr/{token}.png` |
 | `tests/unit/channels/test_line_card16.py` | Unit suite |
 
 ---
@@ -81,41 +75,31 @@ LINE_CHANNEL_ACCESS_TOKEN=
 LINE_CHANNEL_SECRET=
 LINE_WEBHOOK_PATH=/webhooks/line
 LINE_DEFAULT_BRAND_ID=1
-# Optional: LINE_API_BASE=https://api.line.me
+LINE_OA_BRAND_MAP=UoaBotId1:1,UoaBotId2:2
+LINE_SESSION_BACKEND=memory   # or redis
+LINE_USE_FLEX=true
+PUBLIC_MEDIA_BASE_URL=https://your.public.host   # required for LINE image QR in prod
 ```
 
-Webhook URL (monitoring host): `https://<host>/webhooks/line`  
-Header: `X-Line-Signature` verified with channel secret.
+Webhook: `https://<host>/webhooks/line` · Header `X-Line-Signature`.
 
 ---
 
 ## Exit criteria
 
 - [x] Foundation cards 29–32 done  
-- [x] Instagram pattern reused  
 - [x] Flag-off: no Telegram impact  
-- [x] Flag-on path: LINE customer can place masked cash/PromptPay order via services (needs tokens + brand id)  
-- [x] `can("line", …)` enforced; no ops surfaces  
+- [x] Masked shop path via services  
+- [x] Flex welcome/menu/order/payment  
+- [x] PromptPay QR image host (`/media/line-qr/…`)  
+- [x] Multi-OA brand map (`destination` + `LINE_OA_BRAND_MAP`)  
+- [x] Redis session backend option  
 - [x] Suite green (`test_line_card16.py`)  
-- [ ] Flex Message rich menus / image QR host polish  
-- [ ] Multi-OA multi-brand map  
-- [ ] Redis session for multi-worker  
-
----
-
-## Effort remaining
-
-| Task | Days |
-|------|------|
-| Flex UI + QR image host | 1–2 |
-| Multi-brand OA mapping | 0.5–1 |
-| Redis sessions + ops docs | 0.5 |
-| Meta/LINE App production | ops |
+- [ ] **Ops:** Live LINE channel secret/token + public HTTPS base for QR  
 
 ---
 
 ## Related
 
-- Tier plan: [MULTI-CHANNEL-TIERED-PLAN.md](MULTI-CHANNEL-TIERED-PLAN.md)  
-- Phase 2: [CARD-33](CARD-33-instagram-messaging-channel.md)  
-- Parity freeze: [CARD-40](CARD-40-web-telegram-abstracted-feature-parity.md)  
+- [CARD-34](CARD-34-conversation-workflow-specifications.md) · [PACKAGE-line](../Specifications/flows/PACKAGE-line.md)  
+- [CARD-33](../later/CARD-33-instagram-messaging-channel.md) · [CARD-40](../done/CARD-40-web-telegram-abstracted-feature-parity.md)  

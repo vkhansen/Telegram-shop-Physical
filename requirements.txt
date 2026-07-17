@@ -21,9 +21,10 @@ watchdog~=6.0.0
 pytz~=2025.2
 httpx~=0.28.1
 
-# PromptPay QR (Card 1)
+# PromptPay QR (Card 1) + invite invite-card PDF sheets
 qrcode[pil]~=8.0
 pyzbar~=0.1.9
+reportlab~=4.2.5
 
 # Grok AI Assistant — Excel import (Card 17)
 openpyxl~=3.1.2

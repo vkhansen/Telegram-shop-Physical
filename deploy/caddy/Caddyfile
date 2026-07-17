@@ -1,0 +1,34 @@
+# Edge reverse proxy for Tailscale Funnel (listens on :8080 inside tailscale netns)
+#   Funnel :443 → 127.0.0.1:8080
+#   /api/public, /media, /health, webhooks, monitoring → bot:9090
+#   everything else → storefront:4321 (pretty site)
+
+:8080 {
+	encode gzip
+
+	# Public API + media + health + channel webhooks (bot monitoring app)
+	handle /api/* {
+		reverse_proxy bot:9090
+	}
+	handle /media/* {
+		reverse_proxy bot:9090
+	}
+	handle /health {
+		reverse_proxy bot:9090
+	}
+	handle /webhooks/* {
+		reverse_proxy bot:9090
+	}
+	# Optional ops (still need MONITORING_API_KEY)
+	handle /dashboard* {
+		reverse_proxy bot:9090
+	}
+	handle /metrics* {
+		reverse_proxy bot:9090
+	}
+
+	# Pretty Astro storefront
+	handle {
+		reverse_proxy storefront:4321
+	}
+}

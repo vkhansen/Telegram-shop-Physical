@@ -105,8 +105,10 @@ async def start(message: Message, state: FSMContext):
         return
 
     # New user — show language picker first (Card 14)
-    # Save referral info in state for after language selection
-    referral_text = message.text[7:] if len(message.text) > 7 else ""
+    # Deep link: t.me/Bot?start=CODE → message is "/start CODE" (invite card QR)
+    from bot.referrals.invite_cards import parse_start_payload
+
+    referral_text = parse_start_payload(message.text or "")
     await state.update_data(after_language="register", referral_text=referral_text)
     await message.answer(LANGUAGE_PICKER_MESSAGE, reply_markup=language_picker_keyboard())
 
@@ -176,11 +178,37 @@ async def set_locale_callback(call: CallbackQuery, state: FSMContext):
             await show_privacy_notice(call.message, state)
             return
 
-        # Reference codes enabled — save locale temporarily and prompt for code
+        # Reference codes enabled — auto-apply invite-card / deep-link payload if present
         await state.update_data(selected_locale=locale_code)
         await call.message.edit_text(confirm_msg)
 
-        from bot.handlers.user.reference_code_handler import prompt_reference_code
+        from bot.handlers.user.reference_code_handler import (
+            prompt_reference_code,
+            try_register_with_reference_code,
+        )
+
+        payload = (referral_text or "").strip()
+        # Invite cards use 8-letter codes; ignore pure numeric telegram-id style payloads here
+        if payload and not payload.isdigit():
+            ok, err = await try_register_with_reference_code(
+                user_id=user_id,
+                username=call.from_user.username,
+                code=payload,
+                locale=locale_code,
+            )
+            if ok:
+                await state.clear()
+                await call.message.answer(
+                    "✅ Welcome! Your invite card / reference code was accepted.\nYou now have access to the shop."
+                )
+                # PDPA notice before main menu
+                await state.update_data(after_privacy="register")
+                from bot.handlers.user.privacy_handler import show_privacy_notice
+
+                await show_privacy_notice(call.message, state)
+                return
+            # Invalid / used code — fall through to manual entry with hint
+            await call.message.answer(f"⚠️ Invite code from link not accepted: {err}\nPlease enter a valid code:")
 
         await prompt_reference_code(call.message, state)
 

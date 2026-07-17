@@ -21,6 +21,10 @@ class ReferenceCodeStates(StatesGroup):
     waiting_refcode_note = State()
     waiting_refcode_expires = State()
     waiting_refcode_max_uses = State()
+    # Branded A4 PDF sheet (admin)
+    waiting_sheet_count = State()
+    # Post-distribution: map stub name → card_number (or code)
+    waiting_assign_names = State()
 
 
 class OrderStates(StatesGroup):

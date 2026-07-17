@@ -1,0 +1,40 @@
+% A4 branded invite-card sheet (business-card cells)
+% Placeholders are filled by bot/referrals/invite_card_sheet.py
+% Compile: pdflatex this file (or use the reportlab PDF path in Docker).
+\documentclass[a4paper,10pt]{article}
+\usepackage[margin=10mm]{geometry}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\definecolor{brandprimary}{HTML}{<<BRAND_PRIMARY>>}
+\definecolor{brandmuted}{HTML}{666666}
+
+\begin{document}
+
+\begin{center}
+  {\Large\bfseries\textcolor{brandprimary}{<<BRAND_NAME>>}}\\[2pt]
+  {\small\textcolor{brandmuted}{<<BRAND_TAGLINE>>}}\\[2pt]
+  {\footnotesize Invite cards · batch \texttt{<<BATCH_ID>>} · <<CARD_COUNT>> codes · scan QR → Telegram}
+\end{center}
+\vspace{3mm}
+
+\begin{center}
+\begin{tabular}{c@{\hspace{4mm}}c}
+<<CARD_CELLS>>
+\end{tabular}
+\end{center}
+
+\vfill
+\begin{center}
+{\scriptsize\textcolor{brandmuted}{Tear along dashed line · give QR half · keep name stub · <<BRAND_FOOTER>>}}
+\end{center}
+
+\end{document}

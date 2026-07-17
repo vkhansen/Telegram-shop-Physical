@@ -59,6 +59,9 @@ def create_reference_code(
     expires_in_hours: int | None = None,
     max_uses: int | None = None,
     note: str | None = None,
+    card_number: int | None = None,
+    card_batch_id: str | None = None,
+    recipient_name: str | None = None,
 ) -> str:
     """
     Create a new reference code
@@ -70,6 +73,9 @@ def create_reference_code(
         expires_in_hours: Hours until expiration (None for no expiry)
         max_uses: Maximum number of uses (None for unlimited)
         note: Optional note
+        card_number: Optional physical invite-card number
+        card_batch_id: Optional print-batch id for invite cards
+        recipient_name: Optional name written on the card stub
 
     Returns:
         Generated reference code
@@ -106,6 +112,9 @@ def create_reference_code(
             max_uses=max_uses,
             note=note,
             is_admin_code=is_admin_code,
+            card_number=card_number,
+            card_batch_id=card_batch_id,
+            recipient_name=recipient_name,
         )
         session.add(ref_code)
         session.commit()

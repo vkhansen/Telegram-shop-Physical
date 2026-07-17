@@ -480,6 +480,12 @@ class ReferenceCode(Database.BASE):
     note = Column(Text, nullable=True)
     is_active = Column(Boolean, nullable=False, default=True, index=True)
     is_admin_code = Column(Boolean, nullable=False, default=False)
+    # Physical invite cards: tear-off stub (name) + QR half (deep link)
+    card_number = Column(Integer, nullable=True, unique=True, index=True)
+    card_batch_id = Column(String(32), nullable=True, index=True)
+    recipient_name = Column(String(200), nullable=True)
+    given_at = Column(DateTime(timezone=True), nullable=True)
+    brand_id = Column(Integer, ForeignKey("brands.id", ondelete="SET NULL"), nullable=True, index=True)
 
     creator = relationship("User", foreign_keys=lambda: [ReferenceCode.created_by])
     usages = relationship("ReferenceCodeUsage", back_populates="reference_code", cascade="all, delete-orphan")
@@ -487,7 +493,19 @@ class ReferenceCode(Database.BASE):
     __table_args__ = (Index("ix_reference_codes_active_expires", "is_active", "expires_at"),)
 
     def __init__(
-        self, code: str, created_by: int, expires_at=None, max_uses=None, note=None, is_admin_code=False, **kw: Any
+        self,
+        code: str,
+        created_by: int,
+        expires_at=None,
+        max_uses=None,
+        note=None,
+        is_admin_code=False,
+        card_number: int | None = None,
+        card_batch_id: str | None = None,
+        recipient_name: str | None = None,
+        given_at=None,
+        brand_id: int | None = None,
+        **kw: Any,
     ):
         super().__init__(**kw)
         self.code = code
@@ -496,6 +514,11 @@ class ReferenceCode(Database.BASE):
         self.max_uses = max_uses
         self.note = note
         self.is_admin_code = is_admin_code
+        self.card_number = card_number
+        self.card_batch_id = card_batch_id
+        self.recipient_name = recipient_name
+        self.given_at = given_at
+        self.brand_id = brand_id
 
 
 class ReferenceCodeUsage(Database.BASE):

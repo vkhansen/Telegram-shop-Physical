@@ -6,7 +6,7 @@
 > **Sequencing / milestones:** [`MASTER-PLAN.md`](MASTER-PLAN.md)  
 > **Backend law:** [`Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md`](Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md)
 
-**Last archived:** 2026-07-17  
+**Last archived:** 2026-07-17 (CARD-16/34 signed off · open backlog 33/39/36/37)  
 **Repo:** Telegram-shop-Physical (multi-brand conversational commerce + kitchen/delivery)
 
 ---
@@ -105,10 +105,11 @@ Adapters (Telegram · Web · forms · LINE/IG later)
 | Chat-first commerce | **Live** — full Telegram customer + kitchen + rider + admin |
 | LLM-based (customer + admin Grok) | **Live** — tool-calling assistants with schema guardrails |
 | Multi-brand / multi-bot | **Live** — CARD-19 (`MULTI_BOT_ENABLED`) |
-| White-label Instagram-style web | **~90%** — CARD-38 A+B+C (API, media, Astro shell) |
-| Unified multi-channel backend | **Spine frozen** — law + services + ports + CARD-40 A–F parity freeze |
-| Instagram DM / LINE | **IG ~55%** (CARD-33) · **LINE ~55%** (CARD-16 foundation) |
+| White-label Instagram-style web | **✅** — CARD-38 A+B+C archived in `done/` (API, media, Astro shell) |
+| Unified multi-channel backend | **✅ Spine frozen** — law + services + ports + CARD-40 A–F; cards in `done/` |
+| Instagram DM / LINE | **IG ~55%** (CARD-33) · **LINE ~55%** (CARD-16 foundation) — open |
 | Web-only leads / booking | **~90%** — services + forms + staff Messenger notify; not forced into Telegram |
+| Web OAuth + tickets | **~90%** — portal polished; live Google OAuth env still ops (CARD-39) |
 
 **Best one-sentence truth today:**
 
@@ -125,12 +126,13 @@ Adapters (Telegram · Web · forms · LINE/IG later)
 | **M0** Launch gate | ✅ | Payment session refactor, payment integrity, test suite recovery |
 | **M1** Hardening | ✅ | Input validation, persistent cart + brand/store switch |
 | **M2** Live dispatch | ✅ | GPS driver matching, offer/accept/escalate (`AUTO_DISPATCH_ENABLED`) |
+| **M3 spine** | ✅ | CARD-29–32 · 35 · 38 · 40 frozen and archived under [`done/`](done/) |
 
-**Shipped cards (numbered):** CARD-01–15, 17–19, 21–28 + Restaurant Core (RC) and Feature (FC) suites. Details: [`FEATURE_CARDS.md`](FEATURE_CARDS.md) · [`done/`](done/).
+**Shipped cards (numbered):** CARD-01–15, 17–19, **21–32**, **35**, **38**, **40** + Restaurant Core (RC) and Feature (FC) suites. Details: [`FEATURE_CARDS.md`](FEATURE_CARDS.md) · [`done/`](done/).
 
 **Quality (historical checkpoint):** suite green post-M0; coverage ~47–48% with gate ≥30%. Re-run locally for current numbers.
 
-### Active epic: M3 — white-label + unified multi-channel
+### Active epic: M3 — open channel & product surfaces
 
 **North star**
 
@@ -141,30 +143,40 @@ Backend features are STANDARDIZED services
 No new handler → domain business shortcuts
 ```
 
+#### Spine (done — do not re-open)
+
+| Card | Name | Status | Detail |
+|------|------|--------|--------|
+| **CARD-38** | White-label brand/branch sites | ✅ A+B+C | [done/CARD-38](done/CARD-38-white-label-brand-branch-sites.md) |
+| **CARD-32** | Customer application services | ✅ | [done/CARD-32](done/CARD-32-customer-application-services.md) |
+| **CARD-29** | Messenger port | ✅ | [done/CARD-29](done/CARD-29-messenger-port.md) |
+| **CARD-30** | User identities | ✅ | [done/CARD-30](done/CARD-30-user-identities.md) |
+| **CARD-31** | Platform capabilities | ✅ | [done/CARD-31](done/CARD-31-platform-capabilities.md) |
+| **CARD-40** | Web ↔ TG abstracted parity | ✅ A–F freeze | [done/CARD-40](done/CARD-40-web-telegram-abstracted-feature-parity.md) · [scorecard](done/CARD-40-parity-scorecard.md) |
+| **CARD-35** | IG-style storefront patterns | ✅ superseded by 38C | [done/CARD-35](done/CARD-35-instagram-style-web-storefront.md) |
+| **CARD-16** | LINE messaging | ✅ code (ops residual) | [done/CARD-16](done/CARD-16-line-api-integration.md) |
+| **CARD-34** | Conversation workflow specs | ✅ | [done/CARD-34](done/CARD-34-conversation-workflow-specifications.md) |
+
+#### Open backlog
+
 | Card | Name | Progress | Role |
 |------|------|----------|------|
-| **CARD-38** | White-label brand/branch sites | **~90%** (A+B+C ✅) | Web adapter: catalog API, media, Astro |
-| **CARD-32** | Customer application services | **~95%** | cart / checkout / order_query shared |
-| **CARD-29** | Messenger port | **~90%** | Outbound notify via `TelegramMessenger` |
-| **CARD-30** | User identities | **~90%** | Dual-write, resolve, link helpers |
-| **CARD-31** | Platform capabilities | **~95%** | Masks: platform × role |
-| **CARD-40** | Web ↔ TG abstracted parity | **~35%** | Tier A+B ✅; **C–F open** |
-| **CARD-39** | Web OAuth + ticket portal | **~50%** | Auth + tickets on web |
-| **CARD-36** | Leads + meeting booking | **~70%** | Funnel polish / staff notify |
-| CARD-34 | Conversation workflow specs | 0% | Spec gate for second chat channels |
-| CARD-33 | Instagram Messaging | 0% | Phase 2 customer channel |
-| CARD-16 | LINE | 0% | Tier 3 |
+| **CARD-39** | Web OAuth + ticket portal | **~90%** | Live Google OAuth env (ops) + portal already polished |
+| **CARD-36** | Leads + meeting booking | **~90%** | Optional CAPTCHA / signed TG opt-in |
+| **CARD-33** | Instagram Messaging | **~55%** | Foundation in `bot/channels/instagram/`; Meta + QR/slip polish |
 | CARD-37 | SnusThai Hub demo | 0% | **Parked** — vertical theme only |
 
 ### Next slice (do this)
 
-1. **CARD-40 Tier C** — unify tickets (web + Telegram) · Messenger for customer status · identity edge cases  
-2. Keep **CARD-40** as abstracted parity (same services, honest masks)—not pixel clones or “put lead forms in Telegram”  
-3. **Reject** PRs that add business logic only in Telegram handlers or open a second chat channel before CARD-40 C/D freeze  
+1. **CARD-39 ops** — live Google OAuth client + redirect on deploy  
+2. **or** finish **CARD-33** (QR/slip/Redis/Meta; PACKAGE-instagram)  
+3. **or** LINE credential go-live (code already in done/CARD-16)  
+4. **Reject** PRs that add business logic only in Telegram handlers or clone web lead forms into Telegram “for parity”
 
 **Verify:**
 
 ```bash
+pytest tests/unit/channels/ tests/unit/platform/test_card40ef_nonparity.py -q --no-cov
 pytest tests/unit/services/test_commerce_parity_card40b.py tests/unit/platform/ -q --no-cov
 ```
 
@@ -179,20 +191,18 @@ cd apps/storefront && npm run dev -- --host 127.0.0.1 --port 4321
 ### Dependency graph (open work)
 
 ```text
-DONE: M0–M2 · CARD-19 · CARD-28 · CARD-38 A+B+C
+DONE: M0–M2 · spine · CARD-16 code · CARD-34 specs
         │
         ▼
-   UNIFIED BACKEND LAW
+   UNIFIED BACKEND LAW (adapters → services → domain)
         │
-        ▼
-P1  CARD-32 services · CARD-29/30/31 ports   (~90–95%)
-        │
-        ▼
-    CARD-40 Web↔TG parity   (A+B ✅ → Tier C next)
-        │
-        ▼
-P2  CARD-36 · 34 · 33 · 16
-P3  CARD-37 demo (parked)
+        ├─► CARD-39 live Google OAuth (ops)     ◄── recommended
+        ├─► CARD-36 optional CAPTCHA / opt-in
+        ├─► CARD-33 finish (Meta + QR/slip)
+        └─► CARD-16 ops (tokens + HTTPS media)
+                │
+P3              ▼
+            CARD-37 vertical demo (optional)
 ```
 
 ### Honest channel map
@@ -201,9 +211,9 @@ P3  CARD-37 demo (parked)
 |---------|-------------------|----------------------------|-----|
 | Telegram | Full | Full (primary) | Customer + admin Grok |
 | Web storefront | Catalog + commerce API (UI may lag) | Off by design | Optional later |
-| Web leads/booking | Forms → services | Staff notify (partial) | — |
-| Instagram DM | Planned (masked) | Off | Optional short-turn |
-| LINE | Planned (masked) | Off | Later |
+| Web leads/booking | Forms → services | Staff notify (Messenger) | — |
+| Instagram DM | Foundation ~55% (flag-off) | Off | Optional short-turn |
+| LINE | Foundation ~55% (flag-off) | Off | Later |
 
 ---
 
@@ -274,8 +284,9 @@ P3  CARD-37 demo (parked)
 |-----|---------|
 | [Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md](Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md) | **Binding law** — adapters → services → domain (R1–R8) |
 | [later/MULTI-CHANNEL-TIERED-PLAN.md](later/MULTI-CHANNEL-TIERED-PLAN.md) | Tier plan T0–T3 (ports, services, IG, LINE, web) |
-| [later/CARD-40-web-telegram-abstracted-feature-parity.md](later/CARD-40-web-telegram-abstracted-feature-parity.md) | Web↔TG parity epic |
-| [later/CARD-40-parity-matrix.md](later/CARD-40-parity-matrix.md) | Shared vs web-only vs TG-ops capability matrix |
+| [done/CARD-40-web-telegram-abstracted-feature-parity.md](done/CARD-40-web-telegram-abstracted-feature-parity.md) | Web↔TG parity epic ✅ |
+| [done/CARD-40-parity-matrix.md](done/CARD-40-parity-matrix.md) | Shared vs web-only vs TG-ops capability matrix ✅ |
+| [done/CARD-40-parity-scorecard.md](done/CARD-40-parity-scorecard.md) | Parity freeze + PR gate ✅ |
 | [Specifications/README.md](Specifications/README.md) | Spec index + customer flow inventory (CARD-34) |
 
 ### 6.3 Specifications (deep)
@@ -298,19 +309,10 @@ P3  CARD-37 demo (parked)
 
 | Card | File |
 |------|------|
-| CARD-16 | [LINE API](later/CARD-16-line-api-integration.md) |
-| CARD-29 | [Messenger port](later/CARD-29-messenger-port.md) |
-| CARD-30 | [User identities](later/CARD-30-user-identities.md) |
-| CARD-31 | [Platform capabilities](later/CARD-31-platform-capabilities.md) |
-| CARD-32 | [Customer application services](later/CARD-32-customer-application-services.md) |
-| CARD-33 | [Instagram messaging](later/CARD-33-instagram-messaging-channel.md) |
-| CARD-34 | [Conversation workflow specs](later/CARD-34-conversation-workflow-specifications.md) |
-| CARD-35 | [IG-style web storefront](later/CARD-35-instagram-style-web-storefront.md) *(subsumed by 38C)* |
-| CARD-36 | [Web leads + booking funnel](later/CARD-36-instagram-web-telegram-funnel.md) |
+| CARD-33 | [Instagram messaging](later/CARD-33-instagram-messaging-channel.md) (~55%) |
+| CARD-36 | [Web leads + booking funnel](later/CARD-36-instagram-web-telegram-funnel.md) (~90%) |
 | CARD-37 | [SnusThai Hub Astro MVP](later/CARD-37-snusthai-hub-astro-mvp.md) *(parked)* |
-| CARD-38 | [White-label brand/branch sites](later/CARD-38-white-label-brand-branch-sites.md) |
-| CARD-39 | [Web OAuth + ticket portal](later/CARD-39-web-oauth-ticket-portal.md) |
-| CARD-40 | [Web↔TG abstracted parity](later/CARD-40-web-telegram-abstracted-feature-parity.md) |
+| CARD-39 | [Web OAuth + ticket portal](later/CARD-39-web-oauth-ticket-portal.md) (~90%) |
 | Plan | [MULTI-CHANNEL-TIERED-PLAN.md](later/MULTI-CHANNEL-TIERED-PLAN.md) |
 
 ### 6.5 Done cards (`docs/done/`)
@@ -343,10 +345,23 @@ P3  CARD-37 demo (parked)
 | [CARD-26](done/CARD-26-live-gps-driver-matching.md) | Live GPS driver matching |
 | [CARD-27](done/CARD-27-input-hardening.md) | Input validation hardening |
 | [CARD-28](done/CARD-28-per-store-menu-image-and-payment-qr.md) | Per-store menu image + payment QR |
+| [CARD-29](done/CARD-29-messenger-port.md) | Messenger port |
+| [CARD-30](done/CARD-30-user-identities.md) | User identities dual-write |
+| [CARD-31](done/CARD-31-platform-capabilities.md) | Platform capabilities & masks |
+| [CARD-32](done/CARD-32-customer-application-services.md) | Customer application services |
+| [CARD-35](done/CARD-35-instagram-style-web-storefront.md) | IG-style storefront *(superseded by 38C)* |
+| [CARD-38](done/CARD-38-white-label-brand-branch-sites.md) | White-label brand/branch sites |
+| [CARD-40](done/CARD-40-web-telegram-abstracted-feature-parity.md) | Web↔TG abstracted parity |
+| [CARD-40 scorecard](done/CARD-40-parity-scorecard.md) | Parity freeze scorecard |
+| [CARD-40 matrix](done/CARD-40-parity-matrix.md) | Parity capability matrix |
+| [CARD-16](done/CARD-16-line-api-integration.md) | LINE messaging (code done; ops residual) |
+| [CARD-34](done/CARD-34-conversation-workflow-specifications.md) | Conversation & workflow specs |
 
 Plus **RC1–RC7** (restaurant core) and **FC1–FC9** (feature suite)—board-closed; see FEATURE_CARDS.
 
 ### 6.6 Audits, backlog, ops notes
+
+> **Status backlog lives in FEATURE_CARDS / `later/`.** `docs/backlog/` is ops setup notes only.
 
 | Doc | Purpose |
 |-----|---------|
@@ -355,7 +370,8 @@ Plus **RC1–RC7** (restaurant core) and **FC1–FC9** (feature suite)—board-c
 | [audit/review-DRY.md](audit/review-DRY.md) | DRY review notes |
 | [audit/MISSING_FEATURES.md](audit/MISSING_FEATURES.md) | Feature gap list |
 | [audit/test-coverage-audit.md](audit/test-coverage-audit.md) | Coverage audit |
-| [backlog/SLIP-VERIFICATION-SETUP.md](backlog/SLIP-VERIFICATION-SETUP.md) | SlipOK / EasySlip / RDCW setup |
+| [backlog/SLIP-VERIFICATION-SETUP.md](backlog/SLIP-VERIFICATION-SETUP.md) | SlipOK / EasySlip / RDCW setup (ops) |
+| [backlog/README.md](backlog/README.md) | Points to FEATURE_CARDS for open work |
 
 ### 6.7 Code & project roots (non-`docs/`)
 

@@ -53,6 +53,36 @@ class LineMessenger:
             items = buttons.native
         return R.text_message(text, quick_items=items)
 
+    async def _send_messages(self, user_ref: UserRef, messages: list[dict[str, Any]]) -> bool:
+        """Reply or push up to 5 LINE messages."""
+        msgs = [m for m in messages if m][:5]
+        if not msgs:
+            return False
+        token = self._pending_reply_token
+        if token:
+            self._pending_reply_token = None
+            return await self._post(
+                self._reply_url,
+                {"replyToken": token, "messages": msgs},
+            )
+        return await self._post(
+            self._push_url,
+            {"to": str(user_ref), "messages": msgs},
+        )
+
+    async def send_flex(
+        self,
+        user_ref: UserRef,
+        flex_message: dict[str, Any],
+        *,
+        extra: list[dict[str, Any]] | None = None,
+    ) -> bool:
+        """Send a Flex message (and optional trailing messages)."""
+        bundle = [flex_message]
+        if extra:
+            bundle.extend(extra)
+        return await self._send_messages(user_ref, bundle)
+
     async def _post(self, url: str, payload: dict[str, Any]) -> bool:
         if not self._token:
             logger.warning("LineMessenger: no channel access token")
@@ -90,18 +120,7 @@ class LineMessenger:
         buttons: ButtonSpec | None = None,
     ) -> bool:
         msg = self._message_body(text, buttons)
-        # Prefer replyToken once if set (webhook response path)
-        token = self._pending_reply_token
-        if token:
-            self._pending_reply_token = None
-            return await self._post(
-                self._reply_url,
-                {"replyToken": token, "messages": [msg]},
-            )
-        return await self._post(
-            self._push_url,
-            {"to": str(user_ref), "messages": [msg]},
-        )
+        return await self._send_messages(user_ref, [msg])
 
     async def send_photo(
         self,
@@ -111,20 +130,10 @@ class LineMessenger:
         caption: str | None = None,
     ) -> bool:
         if photo.startswith("http://") or photo.startswith("https://"):
-            msg: dict[str, Any] = {
-                "type": "image",
-                "originalContentUrl": photo,
-                "previewImageUrl": photo,
-            }
-            token = self._pending_reply_token
-            if token:
-                self._pending_reply_token = None
-                ok = await self._post(self._reply_url, {"replyToken": token, "messages": [msg]})
-            else:
-                ok = await self._post(self._push_url, {"to": str(user_ref), "messages": [msg]})
-            if ok and caption:
-                await self.send_text(user_ref, caption)
-            return ok
+            msgs: list[dict[str, Any]] = [R.image_message(photo)]
+            if caption:
+                msgs.append(R.text_message(caption))
+            return await self._send_messages(user_ref, msgs)
         return await self.send_text(
             user_ref,
             (caption or "Image") + "\n(LINE needs a public HTTPS image URL.)",

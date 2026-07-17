@@ -2,7 +2,7 @@
 
 > **Spec status:** `draft`  
 > **Mode:** desired (new surface; data as-built from Telegram backend)  
-> **Cards:** [CARD-35](../later/CARD-35-instagram-style-web-storefront.md), [CARD-34](../later/CARD-34-conversation-workflow-specifications.md) flow **W-01**  
+> **Cards:** [CARD-35](../done/CARD-35-instagram-style-web-storefront.md), [CARD-34](../done/CARD-34-conversation-workflow-specifications.md) flow **W-01**  
 > **Plan:** [MULTI-CHANNEL-TIERED-PLAN.md](../later/MULTI-CHANNEL-TIERED-PLAN.md)  
 > **Related:** [MENU-SYSTEM.md](MENU-SYSTEM.md), multi-brand CARD-19, media ports CARD-29/30  
 > **Gallery research:** [research/GALLERY-JS-INSPIRATION.md](research/GALLERY-JS-INSPIRATION.md)

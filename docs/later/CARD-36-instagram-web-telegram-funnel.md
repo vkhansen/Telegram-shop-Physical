@@ -11,8 +11,8 @@
 **Dependencies:**  
 - Spec: [`FUNNEL-INSTAGRAM-WEB-TELEGRAM.md`](../Specifications/FUNNEL-INSTAGRAM-WEB-TELEGRAM.md)  
 - Spec: [`WHITE-LABEL-SITE-MODES-COMPLIANCE-LEADS.md`](../Specifications/WHITE-LABEL-SITE-MODES-COMPLIANCE-LEADS.md) (portfolio mode, leads, bookings)  
-- [CARD-38](CARD-38-white-label-brand-branch-sites.md) public brand/store context  
-- [CARD-29](CARD-29-messenger-port.md) preferred for staff notify  
+- [CARD-38](../done/CARD-38-white-label-brand-branch-sites.md) public brand/store context  
+- [CARD-29](../done/CARD-29-messenger-port.md) preferred for staff notify  
 
 **Does not require:** CARD-33 Instagram Messaging API (bio link is enough for v1)
 
@@ -164,6 +164,6 @@ Document in card completion notes or `docs/later/runbooks/ig-funnel-ops.md`:
 | Doc | Role |
 |-----|------|
 | [FUNNEL-INSTAGRAM-WEB-TELEGRAM.md](../Specifications/FUNNEL-INSTAGRAM-WEB-TELEGRAM.md) | Full funnel spec |
-| [CARD-35](CARD-35-instagram-style-web-storefront.md) | Gallery / catalog site |
-| [CARD-29](CARD-29-messenger-port.md) | Staff messages |
-| [CARD-16](CARD-16-line-api-integration.md) | Later LINE automation |
+| [CARD-35](../done/CARD-35-instagram-style-web-storefront.md) | Gallery / catalog site |
+| [CARD-29](../done/CARD-29-messenger-port.md) | Staff messages |
+| [CARD-16](../done/CARD-16-line-api-integration.md) | LINE channel (code done) |

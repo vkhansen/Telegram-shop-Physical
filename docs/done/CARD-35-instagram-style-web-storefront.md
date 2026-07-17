@@ -2,21 +2,21 @@
 
 ## Implementation Status
 
-> **0% Complete** | `░░░░░░░░░░░░░░░░░░░` | Spec drafted — implementation not started.
+> **✅ SUPERSEDED / CLOSED** | Implemented under **CARD-38 Phase C** (multi-tenant Astro shell). Spec retained for gallery UX patterns. Moved to `docs/done/` 2026-07-17.
 
 **Tier:** T2-Web — Public catalog surface (parallel to Instagram messaging)  
 **Phase:** M3 — Multi-Platform Growth  
-**Priority:** **P2** — UI/gallery patterns; **implement under [CARD-38](CARD-38-white-label-brand-branch-sites.md)** multi-tenant shell (not a single-brand site)  
+**Priority:** Closed — **implement under [CARD-38](CARD-38-white-label-brand-branch-sites.md)** multi-tenant shell (not a single-brand site)  
 **Effort:** Medium–High (4–7 days for P1)  
 **Dependencies:**  
 - Spec: [`docs/Specifications/WEB-INSTAGRAM-STYLE-STOREFRONT.md`](../Specifications/WEB-INSTAGRAM-STYLE-STOREFRONT.md)  
-- [CARD-34](CARD-34-conversation-workflow-specifications.md) flow **W-01** (accept web browse handoff)  
-- Brand / Store / Menu data model (shipped); multi-brand [CARD-19](../done/CARD-19-multi-brand-bot-coordination.md)  
+- [CARD-34](../done/CARD-34-conversation-workflow-specifications.md) flow **W-01** (accept web browse handoff)  
+- Brand / Store / Menu data model (shipped); multi-brand [CARD-19](CARD-19-multi-brand-bot-coordination.md)  
 - Prefer media proxy alignment with future MediaRef (CARD-29 related)  
 **Soft dependency:** [CARD-32](CARD-32-customer-application-services.md) only for later in-web checkout  
 **Does not require:** CARD-33 Instagram Messaging to ship  
 
-**Plan:** [`CLEAR-START.md`](../CLEAR-START.md) · [`MULTI-CHANNEL-TIERED-PLAN.md`](MULTI-CHANNEL-TIERED-PLAN.md)  
+**Plan:** [`CLEAR-START.md`](../CLEAR-START.md) · [`MULTI-CHANNEL-TIERED-PLAN.md`](../later/MULTI-CHANNEL-TIERED-PLAN.md)  
 **Parent epic:** [CARD-38](CARD-38-white-label-brand-branch-sites.md)  
 **Gallery JS research:** [`docs/Specifications/research/GALLERY-JS-INSPIRATION.md`](../Specifications/research/GALLERY-JS-INSPIRATION.md)
 
@@ -148,6 +148,6 @@ Reuse availability logic from menu/goods helpers — do not fork rules.
 |-----|------|
 | [WEB-INSTAGRAM-STYLE-STOREFRONT.md](../Specifications/WEB-INSTAGRAM-STYLE-STOREFRONT.md) | Full specification |
 | [MENU-SYSTEM.md](../Specifications/MENU-SYSTEM.md) | Menu rules |
-| [CARD-34](CARD-34-conversation-workflow-specifications.md) | W-01 web flows |
-| [CARD-33](CARD-33-instagram-messaging-channel.md) | IG DMs (parallel channel) |
+| [CARD-34](../done/CARD-34-conversation-workflow-specifications.md) | W-01 web flows |
+| [CARD-33](../later/CARD-33-instagram-messaging-channel.md) | IG DMs (parallel channel) |
 | [CARD-32](CARD-32-customer-application-services.md) | Future web checkout |

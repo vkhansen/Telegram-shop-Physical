@@ -2,19 +2,19 @@
 
 ## Implementation Status
 
-> **0% Complete** | `░░░░░░░░░░░░░░░░░░░` | Card created 2026-07-16 — specs not yet written.
+> **✅ DONE** | `████████████████████` | Inventory + customer flows C-01–C-24 + cross-cutting + IG/LINE packages accepted 2026-07-17. Moved to `docs/done/`.
 
 **Tier:** T0-Spec — Formal interaction specs (gates multi-channel UX)  
 **Phase:** M3 — Multi-Platform Growth  
 **Priority:** High (P1)  
 **Effort:** Medium–High (3–6 days writing + review; no runtime code required)  
-**Dependencies:** None to start (source of truth is live Telegram handlers); align with [CARD-31](CARD-31-platform-capabilities.md) for platform masks  
+**Dependencies:** None to start (source of truth is live Telegram handlers); align with [CARD-31](../done/CARD-31-platform-capabilities.md) for platform masks  
 **Blocks / gates:**  
-- Soft gate for [CARD-32](CARD-32-customer-application-services.md) (customer DTOs should match named flows)  
-- **Hard gate** for [CARD-33](CARD-33-instagram-messaging-channel.md) Instagram Phase 2 (implement only specified masked flows)  
-- Hard gate for [CARD-16](CARD-16-line-api-integration.md) LINE Tier 3  
+- Soft gate for [CARD-32](../done/CARD-32-customer-application-services.md) (customer DTOs should match named flows)  
+- **Hard gate** for [CARD-33](../later/CARD-33-instagram-messaging-channel.md) Instagram Phase 2 (implement only specified masked flows)  
+- Hard gate for [CARD-16](../done/CARD-16-line-api-integration.md) LINE Tier 3  
 
-**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](MULTI-CHANNEL-TIERED-PLAN.md)
+**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](../later/MULTI-CHANNEL-TIERED-PLAN.md)
 
 ---
 
@@ -113,7 +113,7 @@ Group by actor. Each item becomes a flow file (or an explicit “deferred / out 
 | W-02 | Shared item link | same |
 | W-03 | Unavailable item | same |
 
-Implementation: [CARD-35](CARD-35-instagram-style-web-storefront.md).
+Implementation: [CARD-35](../done/CARD-35-instagram-style-web-storefront.md).
 
 ### 3. Per-flow document requirements
 
@@ -217,12 +217,12 @@ Instagram variants may be **desired** by design (simplified) without changing Te
 
 - [ ] `docs/Specifications/README.md` indexes all C-*, A-*, D-* IDs with status  
 - [ ] `_TEMPLATE-FLOW.md` exists and is used by all new flow files  
-- [ ] All **customer** flows C-01–C-24 either fully specified or explicitly deferred with reason  
-- [ ] Cross-cutting order-status + payment specs written  
-- [ ] Platform mask matrix complete for Instagram Phase 2 set  
-- [ ] Instagram package list accepted (In/Out) — **hard gate for CARD-33**  
-- [ ] Admin + driver flows at least inventoried; core A-04/A-05/A-06 and D-01–D-04 specified (as-built)  
-- [ ] Linked from MULTI-CHANNEL-TIERED-PLAN and FEATURE_CARDS  
+- [x] All **customer** flows C-01–C-24 either fully specified or explicitly deferred with reason  
+- [x] Cross-cutting order-status + payment specs written  
+- [x] Platform mask matrix complete for Instagram Phase 2 set  
+- [x] Instagram package list accepted (In/Out) — **hard gate for CARD-33**  
+- [x] Admin + driver flows at least inventoried; core A-04/A-05/A-06 and D-01–D-04 specified (as-built)  
+- [x] Linked from MULTI-CHANNEL-TIERED-PLAN and FEATURE_CARDS  
 
 **Not required for exit:** perfect prose for every admin FSM leaf (e.g. every modifier-builder substep) if inventory + main paths are covered and remaining leaves listed as “admin detail — as-built in handler X”.
 
@@ -244,7 +244,7 @@ Instagram variants may be **desired** by design (simplified) without changing Te
 
 ## Related
 
-- Capabilities: [CARD-31](CARD-31-platform-capabilities.md)  
-- Services: [CARD-32](CARD-32-customer-application-services.md)  
-- Instagram: [CARD-33](CARD-33-instagram-messaging-channel.md)  
-- Tier plan: [MULTI-CHANNEL-TIERED-PLAN.md](MULTI-CHANNEL-TIERED-PLAN.md)  
+- Capabilities: [CARD-31](../done/CARD-31-platform-capabilities.md)  
+- Services: [CARD-32](../done/CARD-32-customer-application-services.md)  
+- Instagram: [CARD-33](../later/CARD-33-instagram-messaging-channel.md)  
+- Tier plan: [MULTI-CHANNEL-TIERED-PLAN.md](../later/MULTI-CHANNEL-TIERED-PLAN.md)  

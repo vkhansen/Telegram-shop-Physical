@@ -2,14 +2,14 @@
 
 ## Implementation Status
 
-> **~90% Complete** | `██████████████████░░` | **2026-07-17:** Model + table (CARD-39), TG dual-write on `create_user` + `/start`, resolve/link helpers, backfill migration. Account-linking UI out of scope.
+> **✅ DONE** | `████████████████████` | **2026-07-17:** Model + table, TG dual-write, resolve/link helpers, backfill migration. Account-linking UI explicitly out of scope. Moved to `docs/done/`.
 
 **Tier:** T0 — Multi-Channel Foundation  
 **Phase:** M3 — Multi-Platform Growth  
 **Priority:** High  
 **Effort:** Medium (1–2 days)  
 **Dependencies:** None hard; pairs with [CARD-29](CARD-29-messenger-port.md)  
-**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](MULTI-CHANNEL-TIERED-PLAN.md)
+**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](../later/MULTI-CHANNEL-TIERED-PLAN.md)
 
 ---
 

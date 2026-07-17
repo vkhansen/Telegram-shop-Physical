@@ -231,11 +231,11 @@ Legacy: most customer commerce still lives in `bot/handlers/user/*` with direct 
 | Doc | Role |
 |-----|------|
 | [MULTI-CHANNEL-TIERED-PLAN](../later/MULTI-CHANNEL-TIERED-PLAN.md) | Execution tiers (updated to this directive) |
-| [CARD-29](../later/CARD-29-messenger-port.md) | Messenger port |
-| [CARD-30](../later/CARD-30-user-identities.md) | Identities |
-| [CARD-31](../later/CARD-31-platform-capabilities.md) | Platform×role matrix |
-| [CARD-32](../later/CARD-32-customer-application-services.md) | Customer services extract |
-| [CARD-38](../later/CARD-38-white-label-brand-branch-sites.md) | Web as first-class surface |
+| [CARD-29](../done/CARD-29-messenger-port.md) | Messenger port |
+| [CARD-30](../done/CARD-30-user-identities.md) | Identities |
+| [CARD-31](../done/CARD-31-platform-capabilities.md) | Platform×role matrix |
+| [CARD-32](../done/CARD-32-customer-application-services.md) | Customer services extract |
+| [CARD-38](../done/CARD-38-white-label-brand-branch-sites.md) | Web as first-class surface |
 | [WHITE-LABEL-SITE-MODES…](WHITE-LABEL-SITE-MODES-COMPLIANCE-LEADS.md) | Commerce modes + compliance |
 | [CLEAR-START](../CLEAR-START.md) | Session entry |
 

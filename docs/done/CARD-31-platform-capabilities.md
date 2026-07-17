@@ -2,14 +2,14 @@
 
 ## Implementation Status
 
-> **~95% Complete** | `███████████████████░` | Platform×role matrix + `features_for`/`can` merged into `bot/platform/capabilities.py` (2026-07-17). Adapter enforcement mandatory at IG (CARD-33); TG handler churn optional.
+> **✅ DONE** | `████████████████████` | Platform×role matrix + `features_for`/`can` in `bot/platform/capabilities.py` (2026-07-17). Residual: more TG handler mask churn optional. Moved to `docs/done/`.
 
 **Tier:** T0 — Multi-Channel Foundation  
 **Phase:** M3 — Multi-Platform Growth  
 **Priority:** High (masks are law for every adapter)  
 **Effort:** Low (0.5–1 day remaining)  
 **Dependencies:** Align with [UNIFIED-BACKEND-CHANNEL-INTERFACE](../Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md)  
-**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](MULTI-CHANNEL-TIERED-PLAN.md)  
+**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](../later/MULTI-CHANNEL-TIERED-PLAN.md)  
 **Code (partial):** `bot/platform/capabilities.py`, `bot/platform/channels.py` · public brand DTO `capabilities` / `channels`
 
 ---

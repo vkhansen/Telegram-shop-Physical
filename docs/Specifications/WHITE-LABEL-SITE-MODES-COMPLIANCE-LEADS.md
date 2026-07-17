@@ -1,7 +1,7 @@
 # White-Label Sites: Content, Compliance, Portfolio Mode, Leads & Bookings
 
 > **Status:** `draft` / design accepted for backlog (2026-07-16)  
-> **Parent:** [CARD-38](../later/CARD-38-white-label-brand-branch-sites.md) · [BRAND-BRANCH-WEB-CONTENT-MODEL.md](BRAND-BRANCH-WEB-CONTENT-MODEL.md)  
+> **Parent:** [CARD-38](../done/CARD-38-white-label-brand-branch-sites.md) · [BRAND-BRANCH-WEB-CONTENT-MODEL.md](BRAND-BRANCH-WEB-CONTENT-MODEL.md)  
 > **Related:** [CARD-36](../later/CARD-36-instagram-web-telegram-funnel.md) leads · funnel spec  
 > **Legal note:** Operators are responsible for what they advertise and where. Platform stores **configurable** age gates, disclaimers, and commerce modes — it does not assert that any restricted category is legal in a given market.
 

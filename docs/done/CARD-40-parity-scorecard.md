@@ -4,7 +4,7 @@
 > Machine checks: `tests/unit/platform/test_card40ef_nonparity.py`  
 > Vocabulary: `bot/platform/capabilities.py` · matrix: [CARD-40-parity-matrix.md](CARD-40-parity-matrix.md)
 
-**Status:** Tier A–F complete (2026-07-17)  
+**Status:** ✅ DONE — Tier A–F freeze (2026-07-17) · archived under `docs/done/`  
 **Law:** [UNIFIED-BACKEND-CHANNEL-INTERFACE.md](../Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md)
 
 ---

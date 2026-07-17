@@ -1,7 +1,7 @@
 # White-Label Site Generation — Astro Implementation Brief
 
 > **Status:** ready to implement  
-> **Epic:** [CARD-38](../later/CARD-38-white-label-brand-branch-sites.md)  
+> **Epic:** [CARD-38](../done/CARD-38-white-label-brand-branch-sites.md)  
 > **Bootstrap:** [CLEAR-START.md](../CLEAR-START.md)  
 > **Last updated:** 2026-07-16
 
@@ -218,7 +218,7 @@ Env: `PUBLIC_API_BASE`, `WEB_STOREFRONT_ENABLED`, media base URL.
 
 1. [CLEAR-START.md](../CLEAR-START.md)  
 2. This file  
-3. [CARD-38](../later/CARD-38-white-label-brand-branch-sites.md)  
+3. [CARD-38](../done/CARD-38-white-label-brand-branch-sites.md)  
 4. [BRAND-BRANCH-WEB-CONTENT-MODEL.md](BRAND-BRANCH-WEB-CONTENT-MODEL.md)  
 5. [WHITE-LABEL-SITE-MODES-COMPLIANCE-LEADS.md](WHITE-LABEL-SITE-MODES-COMPLIANCE-LEADS.md)  
 6. [WEB-INSTAGRAM-STYLE-STOREFRONT.md](WEB-INSTAGRAM-STYLE-STOREFRONT.md)  

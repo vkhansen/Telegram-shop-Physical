@@ -2,15 +2,15 @@
 
 ## Implementation Status
 
-> **~95% Complete** | `███████████████████░` | **2026-07-17:** TG cart + payments + store_selection/bonus on cart service; web commerce API (CARD-40-B). Tickets polish still open.
+> **✅ DONE** | `████████████████████` | **2026-07-17:** cart/checkout/order_query + tickets single writer; TG + web commerce on services (CARD-40). Residual polish only. Moved to `docs/done/`.
 
 **Tier:** T1 — Shared customer domain API (**hard gate for second channel**)  
 **Phase:** M3 — Multi-Platform Growth  
 **Priority:** **Critical** (unified backend directive 2026-07-17)  
 **Effort:** Medium (2–4 days)  
-**Dependencies:** Prefer [CARD-29](CARD-29-messenger-port.md) for notify DTOs; domain methods already exist. Prefer [CARD-34](CARD-34-conversation-workflow-specifications.md) customer core flow IDs (soft gate).  
+**Dependencies:** Prefer [CARD-29](CARD-29-messenger-port.md) for notify DTOs; domain methods already exist. Prefer [CARD-34](../done/CARD-34-conversation-workflow-specifications.md) customer core flow IDs (soft gate).  
 **Law:** [UNIFIED-BACKEND-CHANNEL-INTERFACE](../Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md)  
-**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](MULTI-CHANNEL-TIERED-PLAN.md)
+**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](../later/MULTI-CHANNEL-TIERED-PLAN.md)
 
 ---
 

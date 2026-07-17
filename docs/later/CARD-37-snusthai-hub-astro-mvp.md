@@ -6,14 +6,14 @@
 
 **Tier:** T2-Web product skin (public brand site)  
 **Phase:** M3 — Multi-Platform Growth  
-**Priority:** **P3 — Parked** (vertical demo / theme only; **not** the white-label platform path — see [CLEAR-START.md](../CLEAR-START.md) + [CARD-38](CARD-38-white-label-brand-branch-sites.md))  
+**Priority:** **P3 — Parked** (vertical demo / theme only; **not** the white-label platform path — see [CLEAR-START.md](../CLEAR-START.md) + [CARD-38](../done/CARD-38-white-label-brand-branch-sites.md))  
 **Effort:** Medium–High (5–8 days for polished MVP)  
 **Spec:** [`docs/Specifications/SNUSTHAI-HUB-MVP.md`](../Specifications/SNUSTHAI-HUB-MVP.md)  
 **Dependencies:**  
 - Gallery decisions: [GALLERY-JS-INSPIRATION.md](../Specifications/research/GALLERY-JS-INSPIRATION.md)  
 - Funnel posture: [FUNNEL-INSTAGRAM-WEB-TELEGRAM.md](../Specifications/FUNNEL-INSTAGRAM-WEB-TELEGRAM.md)  
 - Soft: [CARD-36](CARD-36-instagram-web-telegram-funnel.md) for Telegram staff webhook  
-- Soft: [CARD-35](CARD-35-instagram-style-web-storefront.md) Mode B catalog API later  
+- Soft: [CARD-35](../done/CARD-35-instagram-style-web-storefront.md) Mode B catalog API later  
 
 ---
 
@@ -99,6 +99,6 @@ Match [SNUSTHAI-HUB-MVP.md §10](../Specifications/SNUSTHAI-HUB-MVP.md) acceptan
 | Doc | Role |
 |-----|------|
 | [SNUSTHAI-HUB-MVP.md](../Specifications/SNUSTHAI-HUB-MVP.md) | Full product/tech MVP |
-| [CARD-35](CARD-35-instagram-style-web-storefront.md) | Generic multi-brand web catalog |
+| [CARD-35](../done/CARD-35-instagram-style-web-storefront.md) | Generic multi-brand web catalog |
 | [CARD-36](CARD-36-instagram-web-telegram-funnel.md) | Lead bridge to bot |
 | [FUNNEL-INSTAGRAM-WEB-TELEGRAM.md](../Specifications/FUNNEL-INSTAGRAM-WEB-TELEGRAM.md) | Funnel architecture |

@@ -2,14 +2,14 @@
 
 ## Implementation Status
 
-> **~90% Complete** | `██████████████████░░` | **2026-07-17:** `Messenger` + `TelegramMessenger` + `notifications.py` wired. Optional: broadcast/dispatch still direct Bot.
+> **✅ DONE** | `████████████████████` | **2026-07-17:** `Messenger` + `TelegramMessenger` + `notifications.py` wired. Residual (optional): broadcast/dispatch may still use direct Bot. Moved to `docs/done/`.
 
 **Tier:** T0 — Multi-Channel Foundation  
 **Phase:** M3 — Multi-Platform Growth  
 **Priority:** High (blocks multi-channel outbound)  
 **Effort:** Low–Medium (1–2 days)  
 **Dependencies:** Align with [UNIFIED-BACKEND-CHANNEL-INTERFACE](../Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md) §6  
-**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](MULTI-CHANNEL-TIERED-PLAN.md)  
+**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](../later/MULTI-CHANNEL-TIERED-PLAN.md)  
 **Code (partial):** `bot/platform/messaging.py`
 
 ---

@@ -2,11 +2,11 @@
 
 ## Implementation Status
 
-> **~90% Complete** | `██████████████████░░` | **Phases A+B+C shipped 2026-07-16** (API, media proxy, Astro storefront). Leads/booking wire-up remains CARD-36.
+> **✅ DONE (A+B+C)** | `████████████████████` | **Phases A+B+C shipped 2026-07-16** (API, media proxy, Astro storefront). Leads/booking remain CARD-36; OAuth/tickets CARD-39. Moved to `docs/done/` 2026-07-17.
 
-**Priority:** **P0 — Next**  
+**Priority:** Closed spine  
 **Milestone:** M3 — White-label public surfaces  
-**Effort:** High (phased: A 2–3d · B 1–2d · C 3–5d · total ~6–10d)  
+**Effort:** High (phased A–C shipped)  
 **Dependencies:** CARD-19 multi-brand runtime ✅ · CARD-28 store assets ✅ · domain models Brand/Store/Goods/BranchInventory ✅  
 **Supersedes for sequencing:** CARD-35 as standalone “one storefront”; CARD-37 as platform path  
 **Clear-start:** [`docs/CLEAR-START.md`](../CLEAR-START.md)  
@@ -142,6 +142,6 @@ ItemDTO: slug, name, price, image_urls, available, badges, modifiers_schema
 | [WEB-INSTAGRAM-STYLE-STOREFRONT.md](../Specifications/WEB-INSTAGRAM-STYLE-STOREFRONT.md) | UI/IA detail |
 | [GALLERY-JS-INSPIRATION.md](../Specifications/research/GALLERY-JS-INSPIRATION.md) | Gallery libs |
 | [CARD-35](CARD-35-instagram-style-web-storefront.md) | UI patterns under this epic |
-| [CARD-36](CARD-36-instagram-web-telegram-funnel.md) | Leads + booking after shell |
-| [CARD-19](../done/CARD-19-multi-brand-bot-coordination.md) | Telegram multi-brand done |
-| [CARD-28](../done/CARD-28-per-store-menu-image-and-payment-qr.md) | Store assets done |
+| [CARD-36](../later/CARD-36-instagram-web-telegram-funnel.md) | Leads + booking after shell |
+| [CARD-19](CARD-19-multi-brand-bot-coordination.md) | Telegram multi-brand done |
+| [CARD-28](CARD-28-per-store-menu-image-and-payment-qr.md) | Store assets done |

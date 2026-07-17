@@ -56,6 +56,9 @@ def register_public_catalog_routes(app: web.Application) -> None:
         get_item,
     )
     app.router.add_get("/media/local/{filename}", serve_local_media)
+    # CARD-16: PromptPay QR PNGs for LINE image messages (must register before /media/{token})
+    app.router.add_get("/media/line-qr/{token}.png", serve_line_qr)
+    app.router.add_get("/media/line-qr/{token}", serve_line_qr)
     app.router.add_get("/media/{token}", serve_media)
     # CARD-39: OAuth session + ticket portal API
     from bot.web.auth_api import register_auth_and_ticket_routes
@@ -128,6 +131,17 @@ async def get_item(request: web.Request) -> web.Response:
     except Exception:
         logger.exception("get_item failed %s/%s/%s", brand_slug, store_slug, item_slug)
         return web.json_response({"error": "internal_error"}, status=500)
+
+
+async def serve_line_qr(request: web.Request) -> web.Response:
+    """Serve cached PromptPay QR PNG for LINE (CARD-16)."""
+    from bot.channels.line.qr_host import read_qr_png
+
+    token = (request.match_info.get("token") or "").replace(".png", "")
+    data = read_qr_png(token)
+    if not data:
+        return web.Response(status=404, text="not found")
+    return web.Response(body=data, content_type="image/png", headers={"Cache-Control": "public, max-age=600"})
 
 
 async def serve_local_media(request: web.Request) -> web.Response:

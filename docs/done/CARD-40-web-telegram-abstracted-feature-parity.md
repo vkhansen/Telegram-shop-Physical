@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-> **~100% Complete** | `████████████████████` | Tier A–F done 2026-07-17 (masks · commerce · tickets · Grok · non-parity harden · scorecard/PR gate). Builds on CARD-29–32; does **not** require pixel-identical UX.
+> **✅ DONE / FREEZE** | `████████████████████` | Tier A–F complete 2026-07-17. Moved to `docs/done/` 2026-07-17. Builds on CARD-29–32; parity measured at service boundary, not pixels.
 
 **Tier:** T1.5 — Cross-surface parity epic (after T0 ports + T1 services spine)  
 **Phase:** M3 — Multi-Platform Growth  
@@ -14,7 +14,7 @@
 - [CARD-31](CARD-31-platform-capabilities.md) Capability / mask matrix (complete enforcement)  
 - [CARD-32](CARD-32-customer-application-services.md) Customer services (cart/checkout/order_query; finish leftovers)  
 **Soft / related:** CARD-17/22 Grok tools → services · CARD-36 leads/booking · CARD-39 web auth/tickets · [UNIFIED-BACKEND law](../Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md)  
-**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](MULTI-CHANNEL-TIERED-PLAN.md)
+**Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](../later/MULTI-CHANNEL-TIERED-PLAN.md)
 
 ---
 

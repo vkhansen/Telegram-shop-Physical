@@ -1,7 +1,7 @@
 # Research: JS Instagram-Style Gallery Solutions & Inspiration
 
 > **Status:** research note (2026-07-16)  
-> **Feeds:** [WEB-INSTAGRAM-STYLE-STOREFRONT.md](../WEB-INSTAGRAM-STYLE-STOREFRONT.md), [CARD-35](../../later/CARD-35-instagram-style-web-storefront.md), [FUNNEL-INSTAGRAM-WEB-TELEGRAM.md](../FUNNEL-INSTAGRAM-WEB-TELEGRAM.md)  
+> **Feeds:** [WEB-INSTAGRAM-STYLE-STOREFRONT.md](../WEB-INSTAGRAM-STYLE-STOREFRONT.md), [CARD-35](../../done/CARD-35-instagram-style-web-storefront.md), [FUNNEL-INSTAGRAM-WEB-TELEGRAM.md](../FUNNEL-INSTAGRAM-WEB-TELEGRAM.md)  
 > **Stack target:** Astro + Tailwind (+ light React islands)
 
 ---

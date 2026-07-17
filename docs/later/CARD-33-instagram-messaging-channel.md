@@ -9,8 +9,8 @@
 **Priority:** **P2** (after white-label catalog tenants CARD-38; not “start here”)  
 **Effort:** High (5–8 days)  
 **Dependencies:**  
-- **[CARD-34](CARD-34-conversation-workflow-specifications.md)** — Instagram In/Out package **accepted** (hard gate)  
-- [CARD-29](CARD-29-messenger-port.md), [CARD-30](CARD-30-user-identities.md), [CARD-31](CARD-31-platform-capabilities.md), [CARD-32](CARD-32-customer-application-services.md)  
+- **[CARD-34](../done/CARD-34-conversation-workflow-specifications.md)** — Instagram In/Out package **accepted** · [PACKAGE-instagram](../Specifications/flows/PACKAGE-instagram.md)  
+- [CARD-29](../done/CARD-29-messenger-port.md), [CARD-30](../done/CARD-30-user-identities.md), [CARD-31](../done/CARD-31-platform-capabilities.md), [CARD-32](../done/CARD-32-customer-application-services.md)  
 - multi-brand context ([CARD-19](../done/CARD-19-multi-brand-bot-coordination.md))  
 **Plan:** [`MULTI-CHANNEL-TIERED-PLAN.md`](MULTI-CHANNEL-TIERED-PLAN.md)
 
@@ -22,7 +22,7 @@ Instagram is the **Phase 2** channel for multi-platform growth: high reach for f
 
 Telegram remains the **main application** (admin, kitchen, riders, drivers, full UX). Instagram customers share the **same backend** (orders, inventory, PromptPay, multi-brand data).
 
-This replaces “LINE as next channel” sequencing for Phase 2; LINE moves to Tier 3 ([CARD-16](CARD-16-line-api-integration.md)).
+This replaces “LINE as next channel” sequencing for Phase 2; LINE is Tier 3 ([CARD-16](../done/CARD-16-line-api-integration.md) code done).
 
 ---
 

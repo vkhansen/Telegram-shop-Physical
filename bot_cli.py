@@ -40,6 +40,16 @@ from bot.export.customer_csv import (
 from bot.payments.bitcoin import add_bitcoin_address, add_bitcoin_addresses_bulk, get_bitcoin_address_stats
 from bot.payments.notifications import notify_order_confirmed, notify_order_delivered, notify_order_modified
 from bot.referrals.codes import create_reference_code, deactivate_reference_code
+from bot.referrals.invite_card_sheet import export_branded_sheet, load_brand_theme
+from bot.referrals.invite_cards import (
+    assign_invite_card,
+    assign_invite_cards_bulk,
+    create_invite_card_batch,
+    export_invite_cards,
+    format_invite_card_registry,
+    list_invite_cards,
+    telegram_start_link,
+)
 
 
 def get_admin_user_id():
@@ -838,6 +848,12 @@ def create_refcode(args):
         )
 
         print(f"✅ Reference code created: {code}")
+        bot_user = getattr(args, "bot_username", None) or os.getenv("BOT_USERNAME")
+        if bot_user:
+            try:
+                print(f"   Deep link: {telegram_start_link(code, bot_user)}")
+            except ValueError:
+                pass
         if expires_in_hours:
             print(f"   Expires in: {expires_in_hours} hours")
         else:
@@ -853,6 +869,167 @@ def create_refcode(args):
 
     except Exception as e:
         print(f"❌ Error creating reference code: {e}")
+
+
+def invite_cards_generate(args):
+    """Generate numbered physical invite cards (QR + name stub)."""
+    created_by = getattr(args, "created_by", None) or get_admin_user_id()
+    if not created_by:
+        print("❌ Error: No admin user found. Set OWNER_ID or --created-by.")
+        return
+    bot_username = args.bot_username or os.getenv("BOT_USERNAME")
+    if not bot_username:
+        print("❌ Error: pass --bot-username YourBot or set BOT_USERNAME in .env")
+        return
+    brand_id = None
+    if getattr(args, "brand", None):
+        try:
+            theme = load_brand_theme(args.brand)
+            brand_id = theme.brand_id
+            print(f"ℹ️  Brand template: {theme.name} ({theme.slug})")
+        except Exception as e:
+            print(f"❌ Brand error: {e}")
+            return
+    try:
+        cards = create_invite_card_batch(
+            count=args.count,
+            created_by=int(created_by),
+            created_by_username="admin_cli",
+            bot_username=bot_username,
+            max_uses=args.max_uses,
+            expires_in_hours=args.expires_hours if args.expires_hours > 0 else None,
+            start_card_number=args.start_number,
+            brand_id=brand_id,
+        )
+        out = Path(args.output or f"data/invite_cards/{cards[0].batch_id}")
+        result = export_invite_cards(cards, out, bot_username=bot_username)
+        print(f"✅ Generated {len(cards)} invite cards  batch={cards[0].batch_id}")
+        print(f"   Cards #{cards[0].card_number:04d} – #{cards[-1].card_number:04d}")
+        print(f"   Print HTML: {result['html']}")
+        print(f"   CSV:        {result['csv']}")
+        print(f"   QR PNGs:    {result['qr_dir']}")
+        if brand_id:
+            sheet = export_branded_sheet(
+                brand=brand_id,
+                cards=cards,
+                batch_id=cards[0].batch_id,
+                bot_username=bot_username,
+                output_dir=out / "sheet",
+            )
+            print(f"   PDF sheet:  {sheet['pdf']}  (engine={sheet['engine']})")
+            print(f"   LaTeX:      {sheet['tex']}")
+        print("   Print → write name on stub → tear QR half → give to guest.")
+    except Exception as e:
+        print(f"❌ Error generating invite cards: {e}")
+
+
+def invite_cards_sheet(args):
+    """Export brand-templated A4 PDF (+ LaTeX) for codes already in DB."""
+    bot_username = args.bot_username or os.getenv("BOT_USERNAME")
+    if not args.brand:
+        print("❌ --brand required (slug or id)")
+        return
+    try:
+        # Optionally create new codes then sheet
+        if args.count and args.count > 0:
+            created_by = getattr(args, "created_by", None) or get_admin_user_id() or 999000001
+            theme = load_brand_theme(args.brand)
+            cards = create_invite_card_batch(
+                count=args.count,
+                created_by=int(created_by),
+                created_by_username="admin_cli",
+                bot_username=bot_username or "Afghanorder611bot",
+                brand_id=theme.brand_id,
+                max_uses=1,
+            )
+            result = export_branded_sheet(
+                brand=theme.brand_id,
+                cards=cards,
+                batch_id=cards[0].batch_id,
+                bot_username=bot_username,
+                output_dir=args.output,
+            )
+        else:
+            result = export_branded_sheet(
+                brand=args.brand,
+                batch_id=args.batch,
+                only_unused=not args.include_used,
+                limit=args.limit,
+                bot_username=bot_username,
+                output_dir=args.output,
+            )
+        print(f"✅ Branded sheet for {result['brand_name']} ({result['brand']})")
+        print(f"   Cards:  {result['count']}  batch={result['batch_id']}")
+        print(f"   PDF:    {result['pdf']}")
+        print(f"   LaTeX:  {result['tex']}")
+        print(f"   Engine: {result['engine']}")
+    except Exception as e:
+        print(f"❌ {e}")
+
+
+def invite_cards_assign(args):
+    """Write recipient name when you hand out a physical card (by index or code)."""
+    try:
+        if getattr(args, "file", None):
+            text = Path(args.file).read_text(encoding="utf-8")
+            results = assign_invite_cards_bulk(text)
+            ok = sum(1 for o, _, _ in results if o)
+            print(f"Assigned {ok}/{len(results)}")
+            for o, msg, _ in results:
+                print(("✅ " if o else "❌ ") + msg)
+            return
+        if getattr(args, "lines", None):
+            results = assign_invite_cards_bulk(args.lines)
+            for o, msg, _ in results:
+                print(("✅ " if o else "❌ ") + msg)
+            return
+        card = assign_invite_card(
+            getattr(args, "card", None),
+            args.name,
+            code=getattr(args, "code", None),
+        )
+        print(f"✅ Card #{card.card_number:04d} assigned to {card.recipient_name}")
+        print(f"   Code: {card.code}")
+        if card.deep_link.startswith("http"):
+            print(f"   Link: {card.deep_link}")
+    except Exception as e:
+        print(f"❌ {e}")
+
+
+def invite_cards_list(args):
+    """List physical invite cards (# index ↔ code ↔ name)."""
+    cards = list_invite_cards(
+        batch_id=args.batch,
+        only_unused=args.unused_only,
+        only_unassigned=args.unassigned_only,
+        only_assigned=getattr(args, "assigned_only", False),
+        limit=args.limit,
+    )
+    if not cards:
+        print("No invite cards found.")
+        return
+    # Plain-text registry (no HTML)
+    print(f"{'#':>6}  {'CODE':8}  {'USES':6}  {'NAME':24}  GIVEN          LINK")
+    for c in cards:
+        uses = f"{c.current_uses}/{c.max_uses if c.max_uses is not None else '∞'}"
+        name = (c.recipient_name or "—")[:24]
+        given = c.given_at.strftime("%Y-%m-%d") if c.given_at else "—"
+        print(f"{c.card_number:6d}  {c.code:8}  {uses:6}  {name:24}  {given:12}  {c.deep_link}")
+    print()
+    print("After distribution: invite-cards assign --card 7 --name \"Ali\"")
+
+
+def invite_cards_export(args):
+    """Re-export print HTML/CSV/QR for existing cards."""
+    cards = list_invite_cards(batch_id=args.batch, limit=args.limit)
+    if not cards:
+        print("No invite cards to export.")
+        return
+    bot_username = args.bot_username or os.getenv("BOT_USERNAME")
+    out = Path(args.output or f"data/invite_cards/{args.batch or 'export'}")
+    result = export_invite_cards(cards, out, bot_username=bot_username)
+    print(f"✅ Exported {result['count']} cards → {result['output_dir']}")
+    print(f"   HTML: {result['html']}")
 
 
 def disable_refcode(args):
@@ -1425,6 +1602,61 @@ def main():
     list_ref = refcode_sub.add_parser("list", help="List reference codes")
     list_ref.add_argument("--active-only", action="store_true", help="Show only active codes")
     list_ref.set_defaults(func=list_refcodes)
+
+    # Physical invite cards (numbered tear-off + QR deep link)
+    inv = subparsers.add_parser("invite-cards", help="Physical invite cards with QR deep links")
+    inv_sub = inv.add_subparsers(dest="invite_command")
+
+    inv_gen = inv_sub.add_parser("generate", help="Generate numbered cards + print HTML/QR")
+    inv_gen.add_argument("--count", type=int, required=True, help="How many cards (1–500)")
+    inv_gen.add_argument("--bot-username", help="Telegram bot username without @ (or BOT_USERNAME env)")
+    inv_gen.add_argument("--created-by", type=int, help="Creator telegram id (default OWNER_ID/admin)")
+    inv_gen.add_argument("--max-uses", type=int, default=1, help="Max redemptions per card (default 1)")
+    inv_gen.add_argument("--expires-hours", type=int, default=0, help="Expiry hours (0 = never)")
+    inv_gen.add_argument("--start-number", type=int, help="First card number (default auto-increment)")
+    inv_gen.add_argument("--brand", help="Brand slug/id — tags codes + emits branded A4 PDF/LaTeX sheet")
+    inv_gen.add_argument("--output", help="Output folder (default data/invite_cards/<batch>)")
+    inv_gen.set_defaults(func=invite_cards_generate)
+
+    inv_sheet = inv_sub.add_parser(
+        "sheet",
+        help="Brand-templated A4 PDF (+ LaTeX) for invite codes already in DB",
+    )
+    inv_sheet.add_argument("--brand", required=True, help="Brand slug or id (drives name/colours/tagline)")
+    inv_sheet.add_argument("--batch", help="Only this card_batch_id")
+    inv_sheet.add_argument("--count", type=int, default=0, help="If >0, create this many new codes then sheet")
+    inv_sheet.add_argument("--include-used", action="store_true", help="Include already-used codes")
+    inv_sheet.add_argument("--limit", type=int, default=100)
+    inv_sheet.add_argument("--bot-username", help="Bot username for deep links")
+    inv_sheet.add_argument("--created-by", type=int, help="Creator when --count is used")
+    inv_sheet.add_argument("--output", help="Output folder")
+    inv_sheet.set_defaults(func=invite_cards_sheet)
+
+    inv_asg = inv_sub.add_parser(
+        "assign",
+        help="Record name written on stub (by card index # or code) after distribution",
+    )
+    inv_asg.add_argument("--card", type=int, help="Physical card index number (printed on both halves)")
+    inv_asg.add_argument("--code", help="8-letter invite code (alternative to --card)")
+    inv_asg.add_argument("--name", help="Person's name written on the stub")
+    inv_asg.add_argument("--file", help="Bulk file: one assignment per line (7 Ali)")
+    inv_asg.add_argument("--lines", help="Bulk multiline string")
+    inv_asg.set_defaults(func=invite_cards_assign)
+
+    inv_list = inv_sub.add_parser("list", help="List invite cards (# ↔ code ↔ name)")
+    inv_list.add_argument("--batch", help="Filter by batch id")
+    inv_list.add_argument("--unused-only", action="store_true")
+    inv_list.add_argument("--unassigned-only", action="store_true", help="No recipient_name yet")
+    inv_list.add_argument("--assigned-only", action="store_true", help="Has recipient_name")
+    inv_list.add_argument("--limit", type=int, default=200)
+    inv_list.set_defaults(func=invite_cards_list)
+
+    inv_exp = inv_sub.add_parser("export", help="Re-export print HTML/CSV/QR for existing cards")
+    inv_exp.add_argument("--batch", help="Batch id (optional)")
+    inv_exp.add_argument("--bot-username", help="Bot username for deep links")
+    inv_exp.add_argument("--output", help="Output folder")
+    inv_exp.add_argument("--limit", type=int, default=500)
+    inv_exp.set_defaults(func=invite_cards_export)
 
     # Bitcoin address management
     btc_parser = subparsers.add_parser("btc", help="Manage Bitcoin addresses")

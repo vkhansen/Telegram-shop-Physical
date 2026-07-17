@@ -2,7 +2,7 @@
 
 > **Spec status:** `draft`  
 > **Mode:** desired (customer acquisition architecture)  
-> **Cards:** [CARD-36](../later/CARD-36-instagram-web-telegram-funnel.md), [CARD-35](../later/CARD-35-instagram-style-web-storefront.md), [CARD-34](../later/CARD-34-conversation-workflow-specifications.md)  
+> **Cards:** [CARD-36](../later/CARD-36-instagram-web-telegram-funnel.md), [CARD-35](../done/CARD-35-instagram-style-web-storefront.md), [CARD-34](../done/CARD-34-conversation-workflow-specifications.md)  
 > **Related surfaces:** [WEB-INSTAGRAM-STYLE-STOREFRONT.md](WEB-INSTAGRAM-STYLE-STOREFRONT.md), multi-channel [MULTI-CHANNEL-TIERED-PLAN.md](../later/MULTI-CHANNEL-TIERED-PLAN.md)  
 > **Last updated:** 2026-07-16
 

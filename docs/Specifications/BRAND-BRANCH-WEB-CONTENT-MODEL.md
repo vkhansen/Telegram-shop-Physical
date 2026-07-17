@@ -1,7 +1,7 @@
 # Brand & Branch Web Content Model
 
 > **Status:** `accepted` for P0 design (2026-07-16)  
-> **Epic:** [CARD-38](../later/CARD-38-white-label-brand-branch-sites.md)  
+> **Epic:** [CARD-38](../done/CARD-38-white-label-brand-branch-sites.md)  
 > **Clear-start:** [CLEAR-START.md](../CLEAR-START.md)  
 > **Principle:** As much of each brand/branch **website** as possible is **populated from the database**. Vertical (food vs physical goods) does not change the model.
 

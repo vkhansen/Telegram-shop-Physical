@@ -8,13 +8,13 @@
 > - **Card details:** `docs/done/`, `docs/later/`
 > - This plan supersedes the milestone ordering in [`ROADMAP.md`](ROADMAP.md), which is retained for the growth-track narrative. On conflict with older multi-channel notes, **CLEAR-START + FEATURE_CARDS win**.
 
-Last reviewed: 2026-07-17 (unified backend directive — services for all channels; see UNIFIED-BACKEND-CHANNEL-INTERFACE.md)
+Last reviewed: 2026-07-17 (M3 spine archived to `done/` — CARD-29–32 · 35 · 38 · 40; open work = 39/36/33/16/34)
 
 ---
 
 ## 1. Where we actually are
 
-The bot **runs** and a customer can complete a happy-path order end to end (verified live: PromptPay QR is correct, slip/crypto verification call real APIs, the order state machine and rider-group workflow work). **28 cards are shipped** (CARD-21 and CARD-27 closed in the 2026-06-02 audit; CARD-25, CARD-23, CARD-24, CARD-26, and CARD-28 closed 2026-06-03).
+The bot **runs** and a customer can complete a happy-path order end to end (verified live: PromptPay QR is correct, slip/crypto verification call real APIs, the order state machine and rider-group workflow work). **M0–M2 + M3 spine shipped** (CARD-01–19, 21–32, 35, 38, 40 + RC/FC). See FEATURE_CARDS DONE table. Historical M0 close: 2026-06-03.
 
 **The M0 launch gate is fully green and M2 (live delivery dispatch) is shipped** — quality, concurrency, money-safety, and now automated GPS driver dispatch are all closed. The table below reflects the 2026-06-03 state:
 
@@ -77,55 +77,64 @@ The differentiator that turns a kitchen-notification tool into a delivery platfo
 
 ---
 
-### M3 — White-label public surfaces + multi-channel — *active*
+### M3 — White-label + multi-channel
 
 > **Session bootstrap:** [`CLEAR-START.md`](CLEAR-START.md)  
 > **Unified backend law:** [`Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md`](Specifications/UNIFIED-BACKEND-CHANNEL-INTERFACE.md)  
 > **Plan:** [`later/MULTI-CHANNEL-TIERED-PLAN.md`](later/MULTI-CHANNEL-TIERED-PLAN.md) · **Board:** [`FEATURE_CARDS.md`](FEATURE_CARDS.md)  
-> **North star:** One domain · many adapters (Telegram, web, forms, LINE, …) · capability masks · **no new Telegram-only business paths**.  
-> **Web epic:** [CARD-38](later/CARD-38-white-label-brand-branch-sites.md) ✅ A+B+C · **Service epic:** [CARD-32](later/CARD-32-customer-application-services.md)
+> **North star:** One domain · many adapters · capability masks · **no new Telegram-only business paths**.
 
-| Priority | Card | What | Effort |
-|----------|------|------|--------|
-| **P0** | [CARD-38](later/CARD-38-white-label-brand-branch-sites.md) | White-label sites (API → media → shell) | ✅ phased |
-| **P1** | [CARD-32](later/CARD-32-customer-application-services.md) | Customer services — kill TG→domain shortcuts | 2–4d |
-| P1 | [CARD-29](later/CARD-29-messenger-port.md) | Messenger / MessageTransport wire-up | 1–2d |
-| P1 | [CARD-30](later/CARD-30-user-identities.md) | Identities dual-write + resolve | 1–2d |
-| P1 | [CARD-31](later/CARD-31-platform-capabilities.md) | Platform×role caps (extend `bot/platform`) | ✅ ~95% |
-| P2 | [CARD-36](later/CARD-36-instagram-web-telegram-funnel.md) | Leads/forms polish + staff notify | polish |
-| P2 | [CARD-34](later/CARD-34-conversation-workflow-specifications.md) | Chat/workflow specs | 3–6d |
-| P2 | [CARD-33](later/CARD-33-instagram-messaging-channel.md) | Instagram DM (**after T1**) | 5–8d |
-| P2 | [CARD-16](later/CARD-16-line-api-integration.md) | LINE (**after T1**) | 5–8d |
+#### M3 spine — DONE (archived 2026-07-17)
+
+| Card | What | Detail |
+|------|------|--------|
+| [CARD-38](done/CARD-38-white-label-brand-branch-sites.md) | White-label sites A+B+C | done |
+| [CARD-32](done/CARD-32-customer-application-services.md) | Customer services (cart/checkout/orders/tickets) | done |
+| [CARD-29](done/CARD-29-messenger-port.md) | Messenger port | done |
+| [CARD-30](done/CARD-30-user-identities.md) | Identities dual-write + resolve | done |
+| [CARD-31](done/CARD-31-platform-capabilities.md) | Platform x role caps | done |
+| [CARD-40](done/CARD-40-web-telegram-abstracted-feature-parity.md) | Web↔TG abstracted parity A–F | freeze done |
+| [CARD-35](done/CARD-35-instagram-style-web-storefront.md) | Storefront patterns | superseded by 38C |
+
+**Spine exit criteria met:** service entrypoints for customer commerce; TG payments/cart/tickets call services; capability masks + parity scorecard; web adapter shipped.
+
+#### M3 open — channels & product polish
+
+| Priority | Card | What | Effort left |
+|----------|------|------|-------------|
+| **P1** | [CARD-39](later/CARD-39-web-oauth-ticket-portal.md) | Live Google OAuth env (portal code ~90%) | ops |
+| P1 | [CARD-36](later/CARD-36-instagram-web-telegram-funnel.md) | CAPTCHA / signed TG opt-in (optional) | polish |
+| P2 | [CARD-33](later/CARD-33-instagram-messaging-channel.md) | IG depth (QR/slip/Redis/Meta) | ~45% left |
+| ops | [CARD-16](done/CARD-16-line-api-integration.md) | LINE go-live (tokens + HTTPS media) | ops only — code done |
+| — | [CARD-34](done/CARD-34-conversation-workflow-specifications.md) | Flow specs | done |
 | P3 | [CARD-37](later/CARD-37-snusthai-hub-astro-mvp.md) | Vertical demo only | parked |
 
-**Exit criteria (M3 backend):** Customer capabilities have service entrypoints; Telegram payment paths call services; web + bot share ≥80% of commerce call sites; second channel can ship on masks only.  
-**Already shipped:** multi-brand ([CARD-19](done/CARD-19-multi-brand-bot-coordination.md)), public web catalog/media/storefront, partial `bot/platform/*`.
+**Already shipped (earlier):** multi-brand ([CARD-19](done/CARD-19-multi-brand-bot-coordination.md)), public web catalog/media/storefront.
 
 ---
 
 ## 4. Dependency graph
 
 ```
-M0 ✅ · M1 ✅ · M2 ✅
-        │
-        ▼
-M3  White-label + unified multi-channel
-        │
-        ├─ ✅ CARD-38 web adapter (catalog/media/shell)
-        ├─ P1  CARD-32 services  ← hard gate for new channels
-        ├─ P1  CARD-29 / 30 / 31 ports
-        ├─ P2  CARD-36 · 34 · 33 · 16  (adapters only on services)
-        └─ P3  CARD-37 demo (parked)
+M0 done · M1 done · M2 done · M3 spine done (29–32 · 35 · 38 · 40)
+        |
+        v
+M3 open  product + channels
+        |- P1  CARD-39 OAuth ops · CARD-36 optional polish
+        |- P2  CARD-33 · 16 · 34  (adapters only on services)
+        +- P3  CARD-37 demo (parked)
 ```
 
 ## 5. Launch checklist (M0 exit)
 
-- [x] `pytest tests/` passes with 0 failures **and no collection error** (`smoke` marker registered); coverage ≥ 30% *(46.98%; `fail_under` raised 25→30)* — ✅ 2026-06-03
-- [x] Payment flow no longer holds a DB connection across `await` — all 6 handlers refactored, AST-guarded (CARD-23 ✅ 2026-06-03). *(A live concurrent-load test remains a nice-to-have but is no longer the structural risk.)*
-- [ ] Duplicate slip rejected with a user-facing message; refund/cancel reverses bonus + writes a `Refund` record
-- [ ] Crypto address pool self-reclaims expired orders
-- [ ] `.env` reviewed; bot token rotated if exposed; PromptPay/slip keys set or auto-verify intentionally off
-- [ ] Decision recorded: launch with **manual rider dispatch** (CARD-26 is post-launch) — confirmed acceptable for v1
+Code gate closed with CARD-23/24/25. Residual items are **ops / deploy hygiene**, not open engineering cards.
+
+- [x] `pytest tests/` passes with 0 failures **and no collection error** (`smoke` marker registered); coverage >= 30% *(46.98%; `fail_under` raised 25->30)* — done 2026-06-03
+- [x] Payment flow no longer holds a DB connection across `await` — all 6 handlers refactored, AST-guarded (CARD-23 done 2026-06-03)
+- [x] Duplicate slip rejected with user-facing message; refund/cancel reverses bonus + writes a `Refund` record — CARD-24
+- [x] Crypto address pool self-reclaims expired orders — CARD-24
+- [ ] **Ops:** `.env` reviewed; bot token rotated if exposed; PromptPay/slip keys set or auto-verify intentionally off
+- [x] Decision recorded: v1 could launch with **manual rider dispatch**; CARD-26 auto-dispatch shipped flag-gated (`AUTO_DISPATCH_ENABLED`)
 
 ## 6. How to use this document
 

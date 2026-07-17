@@ -2,7 +2,7 @@
 
 > Spec status: `draft` | `reviewed` | `accepted`  
 > Mode: `as-built` (default) | `desired` deltas optional below  
-> Card: [CARD-34](../later/CARD-34-conversation-workflow-specifications.md)
+> Card: [CARD-34](../done/CARD-34-conversation-workflow-specifications.md)
 
 | Field | Value |
 |-------|-------|

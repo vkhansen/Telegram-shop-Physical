@@ -1,22 +1,22 @@
 # Conversation & Workflow Specifications
 
-> **Source of truth for chat interactions and workflows.**  
-> Owned by **[CARD-34](../later/CARD-34-conversation-workflow-specifications.md)**.  
-> Multi-channel plan: [MULTI-CHANNEL-TIERED-PLAN.md](../later/MULTI-CHANNEL-TIERED-PLAN.md).  
-> **Backend law (all surfaces):** [UNIFIED-BACKEND-CHANNEL-INTERFACE.md](UNIFIED-BACKEND-CHANNEL-INTERFACE.md).
+> **Source of truth for chat interactions and workflows.**
+> Owned by **[CARD-34](../done/CARD-34-conversation-workflow-specifications.md)**.
+> Multi-channel plan: [MULTI-CHANNEL-TIERED-PLAN.md](../later/MULTI-CHANNEL-TIERED-PLAN.md).
+> **Backend law:** [UNIFIED-BACKEND-CHANNEL-INTERFACE.md](UNIFIED-BACKEND-CHANNEL-INTERFACE.md).
 
-**Default mode:** document **as-built** flows against **application services** where they exist; note adapter (Telegram/web) only for I/O. Capability masks define LINE / IG / web subsets.
+**Default mode:** document **as-built** flows; adapters only for I/O. Capability masks define LINE / IG / web subsets.
 
 | Resource | Path |
 |----------|------|
-| **Unified backend interface** | [UNIFIED-BACKEND-CHANNEL-INTERFACE.md](UNIFIED-BACKEND-CHANNEL-INTERFACE.md) |
 | Flow template | [`_TEMPLATE-FLOW.md`](_TEMPLATE-FLOW.md) |
-| Flow docs | [`flows/`](flows/) (created as specs are written) |
+| Flow docs | [`flows/`](flows/) |
 | Cross-cutting | [`cross-cutting/`](cross-cutting/) |
-| Existing deep specs | [AI-CUSTOMER-ASSISTANT.md](AI-CUSTOMER-ASSISTANT.md), [MENU-SYSTEM.md](MENU-SYSTEM.md), [WEB-INSTAGRAM-STYLE-STOREFRONT.md](WEB-INSTAGRAM-STYLE-STOREFRONT.md), [FUNNEL-INSTAGRAM-WEB-TELEGRAM.md](FUNNEL-INSTAGRAM-WEB-TELEGRAM.md), [SNUSTHAI-HUB-MVP.md](SNUSTHAI-HUB-MVP.md), [BRAND-BRANCH-WEB-CONTENT-MODEL.md](BRAND-BRANCH-WEB-CONTENT-MODEL.md), [WHITE-LABEL-SITE-MODES-COMPLIANCE-LEADS.md](WHITE-LABEL-SITE-MODES-COMPLIANCE-LEADS.md), [WHITE-LABEL-ASTRO-IMPLEMENTATION.md](WHITE-LABEL-ASTRO-IMPLEMENTATION.md), [WHITE-LABEL-OAUTH-TICKETS.md](WHITE-LABEL-OAUTH-TICKETS.md) |
-| Gallery research | [research/GALLERY-JS-INSPIRATION.md](research/GALLERY-JS-INSPIRATION.md) |
-| **Session start** | [../CLEAR-START.md](../CLEAR-START.md) |
-| **Master archive (blurb · pitch · WIP · index)** | [../MASTER-DOCUMENT.md](../MASTER-DOCUMENT.md) |
+| Platform masks | [`cross-cutting/platform-masks.md`](cross-cutting/platform-masks.md) |
+| IG package | [`flows/PACKAGE-instagram.md`](flows/PACKAGE-instagram.md) |
+| LINE package | [`flows/PACKAGE-line.md`](flows/PACKAGE-line.md) |
+| Deep specs | [AI-CUSTOMER-ASSISTANT.md](AI-CUSTOMER-ASSISTANT.md), [MENU-SYSTEM.md](MENU-SYSTEM.md), [WEB-INSTAGRAM-STYLE-STOREFRONT.md](WEB-INSTAGRAM-STYLE-STOREFRONT.md), … |
+| Session start | [../CLEAR-START.md](../CLEAR-START.md) |
 
 ---
 
@@ -24,85 +24,66 @@
 
 | Status | Meaning |
 |--------|---------|
-| `missing` | Not written yet |
-| `draft` | First pass exists |
-| `reviewed` | Reviewed against code |
-| `accepted` | Ready to gate implementation (esp. Instagram) |
-| `linked` | Covered by an existing deep-spec doc |
+| `missing` | Not written |
+| `draft` | First pass |
+| `reviewed` | Checked vs code |
+| `accepted` | Ready to gate multi-channel |
+| `linked` | Covered by existing deep-spec |
 
 ---
 
 ## Customer flows
 
-| ID | Name | Status | Spec path |
-|----|------|--------|-----------|
-| C-01 | Start / main menu / profile | missing | |
-| C-02 | Language picker | missing | |
-| C-03 | Privacy / PDPA | missing | |
-| C-04 | Rules / help | missing | |
-| C-05 | Store / brand selection + switch | missing | |
-| C-06 | Browse shop | missing | (see also MENU-SYSTEM.md) |
-| C-07 | Product search | missing | |
-| C-08 | Cart + modifiers | missing | |
-| C-09 | Saved carts | missing | |
-| C-10 | Checkout — location methods | missing | |
-| C-11 | Checkout — delivery type | missing | |
-| C-12 | Checkout — phone / address / note | missing | |
-| C-13 | Payment — cash | missing | |
-| C-14 | Payment — PromptPay + slip | missing | |
-| C-15 | Payment — crypto | missing | |
-| C-16 | Bonus at checkout | missing | |
-| C-17 | My orders / reorder | missing | |
-| C-18 | Order status notifications | missing | |
-| C-19 | Delivery chat + live location | missing | |
-| C-20 | Reviews | missing | |
-| C-21 | Referrals / reference codes | missing | |
-| C-22 | Support tickets | missing | |
-| C-23 | Customer AI assistant | linked | [AI-CUSTOMER-ASSISTANT.md](AI-CUSTOMER-ASSISTANT.md) |
-| C-24 | Coupons / promo | missing | |
+| ID | Name | Status | Spec |
+|----|------|--------|------|
+| C-01 | Start / main menu / profile | accepted | [flows/C-01.md](flows/C-01.md) |
+| C-02 | Language picker | accepted | [flows/C-02.md](flows/C-02.md) |
+| C-03 | Privacy / PDPA | accepted | [flows/C-03.md](flows/C-03.md) |
+| C-04 | Rules / help | accepted | [flows/C-04.md](flows/C-04.md) |
+| C-05 | Store / brand selection | accepted | [flows/C-05.md](flows/C-05.md) |
+| C-06 | Browse shop | accepted | [flows/C-06.md](flows/C-06.md) |
+| C-07 | Product search | accepted | [flows/C-07.md](flows/C-07.md) |
+| C-08 | Cart + modifiers | accepted | [flows/C-08.md](flows/C-08.md) |
+| C-09 | Saved carts | accepted | [flows/C-09.md](flows/C-09.md) |
+| C-10 | Checkout — location | accepted | [flows/C-10.md](flows/C-10.md) |
+| C-11 | Checkout — delivery type | accepted | [flows/C-11.md](flows/C-11.md) |
+| C-12 | Checkout — phone / address / note | accepted | [flows/C-12.md](flows/C-12.md) |
+| C-13 | Payment — cash | accepted | [flows/C-13.md](flows/C-13.md) |
+| C-14 | Payment — PromptPay + slip | accepted | [flows/C-14.md](flows/C-14.md) |
+| C-15 | Payment — crypto | accepted | [flows/C-15.md](flows/C-15.md) |
+| C-16 | Bonus at checkout | accepted | [flows/C-16.md](flows/C-16.md) |
+| C-17 | My orders / reorder | accepted | [flows/C-17.md](flows/C-17.md) |
+| C-18 | Order status notifications | accepted | [flows/C-18.md](flows/C-18.md) |
+| C-19 | Delivery chat + live location | accepted | [flows/C-19.md](flows/C-19.md) |
+| C-20 | Reviews | accepted | [flows/C-20.md](flows/C-20.md) |
+| C-21 | Referrals | accepted | [flows/C-21.md](flows/C-21.md) |
+| C-22 | Support tickets | accepted | [flows/C-22.md](flows/C-22.md) |
+| C-23 | Customer AI | linked | [AI-CUSTOMER-ASSISTANT.md](AI-CUSTOMER-ASSISTANT.md) · [flows/C-23.md](flows/C-23.md) |
+| C-24 | Coupons | accepted | [flows/C-24.md](flows/C-24.md) |
 
 ---
 
-## Admin / ops flows (Telegram only)
+## Admin / ops (Telegram only)
 
-| ID | Name | Status | Spec path |
-|----|------|--------|-----------|
-| A-01 | Admin console entry | missing | |
-| A-02 | Shop / goods / categories CRUD | missing | |
-| A-03 | Stock / modifiers admin | missing | |
-| A-04 | Order management + status | missing | |
-| A-05 | Kitchen group buttons | missing | |
-| A-06 | Rider group / photo proof | missing | |
-| A-07 | Users ban / role / bonus | missing | |
-| A-08 | Broadcast | missing | |
-| A-09 | Coupons / accounting / settings / stores | missing | |
-| A-10 | Tickets admin | missing | |
-| A-11 | Admin Grok assistant | missing | |
-| A-12 | CLI ops vs in-bot | missing | |
+| ID | Name | Status | Spec |
+|----|------|--------|------|
+| A-01…A-12 | Ops inventory | accepted | [flows/A-ops-inventory.md](flows/A-ops-inventory.md) |
 
 ---
 
-## Driver flows (Telegram only)
+## Driver (Telegram only)
 
-| ID | Name | Status | Spec path |
-|----|------|--------|-----------|
-| D-01 | Registration / approval | missing | |
-| D-02 | Online / offline + live location | missing | |
-| D-03 | Job offer accept / decline | missing | |
-| D-04 | Picked up / delivered | missing | |
+| ID | Name | Status | Spec |
+|----|------|--------|------|
+| D-01…D-04 | Driver inventory | accepted | [flows/D-driver-inventory.md](flows/D-driver-inventory.md) |
 
 ---
 
-## Web storefront flows (auto-generated mobile site)
+## Web storefront
 
-| ID | Name | Status | Spec path |
-|----|------|--------|-----------|
-| W-01 | Browse Brand → Store → Menu → Item → Telegram handoff | draft | [WEB-INSTAGRAM-STYLE-STOREFRONT.md](WEB-INSTAGRAM-STYLE-STOREFRONT.md) §13 |
-| W-02 | Shared item deep link | draft | same §13 |
-| W-03 | Unavailable item display | draft | same §13 |
-
-**Implementation card:** [CARD-35](../later/CARD-35-instagram-style-web-storefront.md)  
-**Hierarchy:** Brand → Store → Menu (categories) → Items — data from Telegram backend; no separate CMS.
+| ID | Name | Status | Spec |
+|----|------|--------|------|
+| W-01…W-03 | Storefront | draft/linked | [flows/W-web-storefront.md](flows/W-web-storefront.md) · [WEB-INSTAGRAM-STYLE-STOREFRONT.md](WEB-INSTAGRAM-STYLE-STOREFRONT.md) |
 
 ---
 
@@ -110,34 +91,19 @@
 
 | Doc | Status |
 |-----|--------|
-| identity-and-locale | missing |
-| order-status-machine | missing |
-| payment-methods | missing |
-| error-and-back-navigation | missing |
-| platform-masks | missing |
+| [identity-and-locale](cross-cutting/identity-and-locale.md) | accepted |
+| [order-status-machine](cross-cutting/order-status-machine.md) | accepted |
+| [payment-methods](cross-cutting/payment-methods.md) | accepted |
+| [error-and-back-navigation](cross-cutting/error-and-back-navigation.md) | accepted |
+| [platform-masks](cross-cutting/platform-masks.md) | accepted |
 
 ---
 
-## Instagram Phase 2 package (CARD-33 gate)
+## Channel packages (hard gates)
 
-Fill during CARD-34; until then treat as draft intent:
+| Package | Status |
+|---------|--------|
+| [Instagram In/Out](flows/PACKAGE-instagram.md) | accepted |
+| [LINE In/Out](flows/PACKAGE-line.md) | accepted |
 
-| Flow IDs | On Instagram? |
-|----------|----------------|
-| C-01, C-06–C-08, C-10–C-18, C-22 | **In** (simplified where noted in each flow) |
-| C-19, C-23 (optional), all A-*, all D-* | **Out** |
-
-**CARD-33 must not implement flows outside the accepted In list.**
-
----
-
-## Writing order (recommended)
-
-1. Cross-cutting: order-status-machine, payment-methods  
-2. C-05 → C-18 (commerce core)  
-3. C-01–C-04, C-20–C-24  
-4. A-04–A-06, D-01–D-04  
-5. Remaining admin inventory  
-6. Accept Instagram package in this README  
-
-Use [`_TEMPLATE-FLOW.md`](_TEMPLATE-FLOW.md) for every new flow file under `flows/`.
+Last inventory pass: **2026-07-17** (CARD-34).
