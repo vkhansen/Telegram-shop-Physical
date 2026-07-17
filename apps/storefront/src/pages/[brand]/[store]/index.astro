@@ -19,39 +19,22 @@ if (!menu) return new Response(null, { status: 404, statusText: "Not Found" });
 const chips = buildNavChips(ctx, { active: "store", storeSlug: menu.store.slug });
 const cats = menu.categories || [];
 const t = ctx.theme;
-const editorial = t.isEditorial;
 ---
 
 <BrandShell ctx={ctx} title={menu.store.name} description={menu.store.address || ctx.brand.name} chips={chips}>
   <PageHeader brandSlug={ctx.slug} brandName={ctx.brand.name} title={menu.store.name}>
-    {
-      menu.store.address && (
-        <p class:list={[editorial ? "mt-1 text-sm text-[color:var(--brand-muted)]" : "mt-1 text-sm text-sand-200"]}>
-          {menu.store.address}
-        </p>
-      )
-    }
-    <div
-      class:list={[
-        "mt-2 flex flex-wrap gap-3 text-sm",
-        editorial ? "text-[color:var(--brand-muted)]" : "text-sand-200",
-      ]}
-    >
+    {menu.store.address && <p class="t-muted mt-1 text-sm">{menu.store.address}</p>}
+    <div class="t-muted mt-2 flex flex-wrap gap-3 text-sm">
       {
         menu.store.phone && (
-          <a class:list={[editorial ? "hover:text-[color:var(--brand-sea)]" : "hover:text-accent"]} href={`tel:${menu.store.phone}`}>
+          <a class="t-sea hover:underline" href={`tel:${menu.store.phone}`}>
             {menu.store.phone}
           </a>
         )
       }
       {
         menu.store.maps_url && (
-          <a
-            class:list={[editorial ? "hover:text-[color:var(--brand-sea)]" : "hover:text-accent"]}
-            href={menu.store.maps_url}
-            target="_blank"
-            rel="noopener"
-          >
+          <a class="t-sea hover:underline" href={menu.store.maps_url} target="_blank" rel="noopener">
             Maps
           </a>
         )
@@ -61,18 +44,8 @@ const editorial = t.isEditorial;
 
   {
     cats.map((cat) => (
-      <section
-        class:list={["mb-8 pt-6", editorial ? "border-t border-[color:var(--brand-line)]" : "border-t border-ink-800"]}
-        id={cat.slug}
-      >
-        <h2
-          class:list={[
-            "mb-3 text-sm font-semibold uppercase tracking-wider",
-            editorial ? "text-[color:var(--brand-muted)]" : "text-ink-500",
-          ]}
-        >
-          {cat.name}
-        </h2>
+      <section class="mb-8 border-t border-brand pt-6" id={cat.slug}>
+        <h2 class="t-muted mb-3 text-sm font-semibold uppercase tracking-wider">{cat.name}</h2>
         <ProductGrid
           items={cat.items}
           brandSlug={brandSlug}
@@ -85,7 +58,7 @@ const editorial = t.isEditorial;
   }
   {
     cats.every((c) => c.items.length === 0) && (
-      <p class="py-12 text-center text-[color:var(--brand-muted,#6b6b73)]">No listable items for this branch right now.</p>
+      <p class="t-muted py-12 text-center">No listable items for this branch right now.</p>
     )
   }
 </BrandShell>

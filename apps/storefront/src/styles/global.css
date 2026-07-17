@@ -17,7 +17,7 @@ body {
 }
 
 /* ── Theme shell (tokens injected as CSS vars on .brand-shell) ── */
-/* Always use brand tokens — never hardcode white text (breaks light themes). */
+/* Always use brand tokens — never hardcode white/sand text (breaks light themes). */
 .brand-shell {
   font-family: var(--font-body, system-ui, sans-serif);
   color: var(--brand-ink, #f4f2ef);
@@ -29,6 +29,79 @@ body {
 .brand-shell.theme-light {
   color: var(--brand-ink);
   background: var(--brand-paper);
+}
+
+/* Contrast-safe semantic utilities (prefer these over sand/ink hardcodes).
+   Rule: fg colors always pair with a defined surface. Never use near-white
+   text on light paper brands — it becomes invisible. */
+.t-fg {
+  color: var(--brand-ink);
+}
+.t-muted {
+  color: var(--brand-muted);
+}
+.t-accent {
+  color: var(--brand-accent);
+}
+.t-sea {
+  color: var(--brand-sea);
+}
+.t-on-ink {
+  color: var(--brand-on-ink);
+}
+.t-on-accent {
+  color: var(--brand-on-accent);
+}
+.t-on-footer {
+  color: var(--brand-on-footer, var(--brand-on-ink));
+}
+
+.bg-paper {
+  background-color: var(--brand-paper);
+}
+.bg-surface {
+  background-color: var(--brand-paper-warm);
+}
+.bg-ink-solid {
+  background-color: var(--brand-ink);
+  color: var(--brand-on-ink);
+}
+.bg-accent-solid {
+  background-color: var(--brand-sun, var(--brand-accent));
+  color: var(--brand-on-accent);
+}
+.bg-footer-solid {
+  background-color: var(--brand-footer);
+  color: var(--brand-on-footer, var(--brand-on-ink));
+}
+
+.border-brand {
+  border-color: var(--brand-line);
+}
+
+/* Card / panel on page paper — always readable */
+.panel-brand {
+  background-color: var(--brand-paper-warm);
+  color: var(--brand-ink);
+  border: 1px solid var(--brand-line);
+}
+
+/* Soft muted label */
+.label-brand {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--brand-accent);
+}
+
+/* Photo-tile overlay: force dark scrim + light text so names stay visible */
+.tile-scrim {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.82), transparent 55%);
+}
+.tile-scrim-text {
+  color: #f7f5f2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
 }
 
 .display {

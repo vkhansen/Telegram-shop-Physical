@@ -117,60 +117,51 @@ const showGate = Boolean(enabled) && !alreadyConfirmed;
     ) : (
       <div
         id="age-gate"
-        class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-ink-950 p-4 sm:p-8"
+        class="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 sm:p-8"
+        style="background:var(--brand-paper);color:var(--brand-ink);"
         role="dialog"
         aria-modal="true"
         aria-labelledby="age-gate-title"
         data-age-key={storageKey}
       >
         <div class="flex w-full max-w-md flex-col items-center text-center">
-          <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">
-            Restricted · {(minAge ?? 18)}+
-          </p>
+          <p class="label-brand">Restricted · {(minAge ?? 18)}+</p>
 
           {
             logoUrl ? (
               <img
                 src={logoUrl}
                 alt=""
-                class="mt-8 h-20 w-20 rounded-full border border-ink-700 object-cover sm:h-24 sm:w-24"
+                class="mt-8 h-20 w-20 rounded-full border border-brand object-cover sm:h-24 sm:w-24"
               />
             ) : (
-              <div class="mt-8 flex h-20 w-20 items-center justify-center rounded-full border border-ink-700 bg-ink-900 text-2xl font-bold text-accent sm:h-24 sm:w-24">
+              <div class="t-accent bg-surface mt-8 flex h-20 w-20 items-center justify-center rounded-full border border-brand text-2xl font-bold sm:h-24 sm:w-24">
                 {(brandName || "B").slice(0, 1)}
               </div>
             )
           }
 
-          {brandName && <p class="mt-4 text-sm font-medium tracking-wide text-sand-200">{brandName}</p>}
+          {brandName && <p class="t-muted mt-4 text-sm font-medium tracking-wide">{brandName}</p>}
 
-          <h1 id="age-gate-title" class="mt-6 text-3xl font-bold tracking-tight text-sand-50 sm:text-4xl">
+          <h1 id="age-gate-title" class="t-fg mt-6 text-3xl font-bold tracking-tight sm:text-4xl">
             {title}
           </h1>
-          <p class="mt-4 text-sm leading-relaxed text-sand-200 sm:text-base">{body}</p>
+          <p class="t-muted mt-4 text-sm leading-relaxed sm:text-base">{body}</p>
 
           <div class="mt-10 flex w-full flex-col gap-3 sm:flex-row">
-            <button
-              type="button"
-              id="age-confirm"
-              class="flex-1 cursor-pointer rounded-full bg-sand-50 px-5 py-3.5 text-sm font-semibold text-ink-950 transition hover:bg-accent"
-            >
+            <button type="button" id="age-confirm" class="btn-pill btn-pill-primary flex-1 cursor-pointer">
               {confirmLabel}
             </button>
-            <button
-              type="button"
-              id="age-deny"
-              class="flex-1 cursor-pointer rounded-full border border-ink-600 px-5 py-3.5 text-sm font-medium text-sand-200 transition hover:bg-ink-900"
-            >
+            <button type="button" id="age-deny" class="btn-pill btn-pill-ghost flex-1 cursor-pointer">
               {denyLabel}
             </button>
           </div>
 
-          <p class="mt-8 text-[11px] font-medium uppercase tracking-wider text-ink-500">{footerNote}</p>
+          <p class="t-muted mt-8 text-[11px] font-medium uppercase tracking-wider">{footerNote}</p>
 
           {
             lines.length > 0 && (
-              <div class="mt-4 max-w-sm space-y-2 text-[11px] leading-relaxed text-ink-500">
+              <div class="t-muted mt-4 max-w-sm space-y-2 text-[11px] leading-relaxed">
                 {lines.map((line) => (
                   <p>{line}</p>
                 ))}

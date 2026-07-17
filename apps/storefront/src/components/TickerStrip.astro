@@ -1,7 +1,7 @@
 ---
 /**
  * Optional top marquee / ticker — fully tenant-configured (web_profile ticker).
- * Hidden when no text is set.
+ * Hidden when no text is set. Uses brand tokens for static mode contrast.
  */
 interface Props {
   text?: string | null;
@@ -36,7 +36,7 @@ const marquee = variant === "marquee" && track.length > 0;
         </div>
       </div>
     ) : (
-      <div class="overflow-hidden border-b border-ink-800 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
+      <div class="t-muted border-b border-brand py-2 text-[10px] font-semibold uppercase tracking-[0.2em]">
         <p class="whitespace-nowrap text-center sm:tracking-[0.35em]">{line}</p>
       </div>
     ))

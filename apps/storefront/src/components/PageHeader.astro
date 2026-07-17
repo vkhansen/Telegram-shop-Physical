@@ -1,5 +1,5 @@
 ---
-/** Standardized back-link + title + optional lead for inner brand pages. */
+/** Standardized back-link + title — brand tokens only (light/dark safe). */
 interface Props {
   brandSlug: string;
   brandName: string;
@@ -22,11 +22,11 @@ const href = backHref || `/${brandSlug}`;
 const label = backLabel || `← ${brandName}`;
 ---
 
-<header class="border-b border-ink-800 py-6 lg:py-8">
-  <a href={href} class="text-xs font-medium uppercase tracking-wider text-accent hover:underline">
+<header class="border-b border-brand py-6 lg:py-8">
+  <a href={href} class="t-accent text-xs font-medium uppercase tracking-wider hover:underline">
     {label}
   </a>
-  <h1 class="mt-3 text-3xl font-bold tracking-tight text-sand-50 lg:text-4xl">{title}</h1>
-  {lead && <p class="mt-2 max-w-2xl text-sm leading-relaxed text-sand-200">{lead}</p>}
+  <h1 class="t-fg mt-3 text-3xl font-bold tracking-tight lg:text-4xl">{title}</h1>
+  {lead && <p class="t-muted mt-2 max-w-2xl text-sm leading-relaxed">{lead}</p>}
   <slot />
 </header>

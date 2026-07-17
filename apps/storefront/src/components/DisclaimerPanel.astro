@@ -1,7 +1,6 @@
 ---
 /**
- * Informational disclaimer panel for about / item / form pages.
- * Renders tenant-configured blocks only.
+ * Informational disclaimer panel — brand tokens only.
  */
 interface Block {
   id?: string;
@@ -11,7 +10,6 @@ interface Block {
 
 interface Props {
   blocks?: Block[];
-  /** Single free-form body (product_disclaimer_md). */
   body?: string | null;
   title?: string | null;
   compact?: boolean;
@@ -31,7 +29,7 @@ const list: Block[] = [
   list.length > 0 && (
     <aside
       class:list={[
-        "rounded-2xl border border-ink-700 bg-ink-900/50",
+        "panel-brand rounded-2xl",
         compact ? "px-3 py-2.5 text-[11px]" : "px-4 py-4 text-xs",
       ]}
       role="note"
@@ -40,10 +38,8 @@ const list: Block[] = [
       <div class="space-y-3">
         {list.map((b) => (
           <div>
-            {b.title && (
-              <p class="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">{b.title}</p>
-            )}
-            <p class="whitespace-pre-wrap leading-relaxed text-sand-200">{b.body}</p>
+            {b.title && <p class="label-brand mb-1">{b.title}</p>}
+            <p class="t-muted whitespace-pre-wrap leading-relaxed">{b.body}</p>
           </div>
         ))}
       </div>

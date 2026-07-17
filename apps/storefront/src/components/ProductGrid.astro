@@ -28,14 +28,13 @@ const vectorOnly = productMedia === "vector_only";
 
 {
   items.length === 0 ? (
-    <p class="py-12 text-center text-[color:var(--brand-muted,#6b6b73)]">No items to show.</p>
+    <p class="t-muted py-12 text-center">No items to show.</p>
   ) : flavor ? (
     <div class="flavor-grid">
       {items.map((item) => {
         const c1 = item.accent_hex || "#0a4ea2";
         const c2 = item.accent_hex_2 || "#062f63";
         const motif = item.visual_motif || "ice";
-        // vector_only never uses photos; photo_or_vector prefers photo when present
         const useVector = vectorOnly || !item.image_url;
         return (
           <a
@@ -47,7 +46,7 @@ const vectorOnly = productMedia === "vector_only";
               <div class="flex items-start justify-between gap-2">
                 <div>
                   {item.tag && (
-                    <p class="font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-white/80">
+                    <p class="font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-white/90 drop-shadow">
                       {item.tag}
                     </p>
                   )}
@@ -56,7 +55,7 @@ const vectorOnly = productMedia === "vector_only";
                   </p>
                 </div>
                 {item.strength != null && (
-                  <span class="rounded-full bg-white/90 px-2 py-0.5 font-mono text-[10px] font-semibold text-[color:var(--brand-ink,#06122e)]">
+                  <span class="rounded-full bg-white/90 px-2 py-0.5 font-mono text-[10px] font-semibold text-[color:#06122e]">
                     {item.strength}/7
                   </span>
                 )}
@@ -83,11 +82,11 @@ const vectorOnly = productMedia === "vector_only";
               <div class="flex items-end justify-between gap-2">
                 <StrengthPips strength={item.strength} accent="#fff" />
                 <div class="text-right">
-                  {item.price && <p class="text-xs font-semibold text-white/90">{item.price}</p>}
+                  {item.price && <p class="text-xs font-semibold text-white drop-shadow">{item.price}</p>}
                   {!item.available && (
-                    <span class="text-[9px] uppercase text-white/70">Sold out</span>
+                    <span class="text-[9px] uppercase text-white/90">Sold out</span>
                   )}
-                  <span class="block text-[9px] uppercase tracking-wide text-white/70">
+                  <span class="block text-[9px] uppercase tracking-wide text-white/90">
                     {ctaLabel(item.cta)}
                   </span>
                 </div>
@@ -102,7 +101,7 @@ const vectorOnly = productMedia === "vector_only";
       {items.map((item) => (
         <a
           href={`/${brandSlug}/${storeSlug}/i/${item.slug}`}
-          class="group relative aspect-square overflow-hidden bg-ink-800 focus:z-10"
+          class="group relative aspect-square overflow-hidden bg-surface focus:z-10"
         >
           {item.image_url ? (
             <img
@@ -126,20 +125,23 @@ const vectorOnly = productMedia === "vector_only";
               />
             </div>
           ) : (
-            <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-ink-800 to-ink-900 p-2 text-center text-xs text-sand-200">
+            <div class="t-muted flex h-full w-full items-center justify-center bg-surface p-2 text-center text-xs">
               {item.name}
             </div>
           )}
-          <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-950/80 via-transparent to-transparent opacity-90" />
+          {/* Always dark scrim + light label so text stays readable over any photo/placeholder */}
+          <div class="tile-scrim pointer-events-none absolute inset-0 opacity-95" />
           <div class="absolute bottom-0 left-0 right-0 p-1.5 sm:p-2">
-            <p class="truncate text-[10px] font-semibold text-sand-50 sm:text-xs">{item.name}</p>
+            <p class="tile-scrim-text truncate text-[10px] font-semibold sm:text-xs">{item.name}</p>
             <div class="mt-0.5 flex items-center justify-between gap-1">
-              {item.price && <span class="text-[10px] text-accent sm:text-xs">{item.price}</span>}
+              {item.price && (
+                <span class="tile-scrim-text text-[10px] font-medium sm:text-xs">{item.price}</span>
+              )}
               {!item.available && (
-                <span class="rounded bg-ink-950/80 px-1 text-[9px] uppercase text-sand-200">Sold out</span>
+                <span class="rounded bg-black/70 px-1 text-[9px] uppercase text-white">Sold out</span>
               )}
             </div>
-            <span class="mt-0.5 hidden text-[9px] uppercase tracking-wide text-sand-200 sm:inline">
+            <span class="tile-scrim-text mt-0.5 hidden text-[9px] uppercase tracking-wide sm:inline">
               {ctaLabel(item.cta)}
             </span>
           </div>

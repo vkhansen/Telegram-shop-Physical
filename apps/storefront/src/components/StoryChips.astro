@@ -21,10 +21,8 @@ const { chips } = Astro.props;
       <a
         href={c.href}
         class:list={[
-          "shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition",
-          c.active
-            ? "border-accent bg-accent/15 text-accent"
-            : "border-ink-700 text-sand-200 hover:border-ink-500 hover:bg-ink-800",
+          "shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition border-brand",
+          c.active ? "bg-accent-solid" : "t-fg bg-paper hover:bg-surface",
         ]}
       >
         {c.label}

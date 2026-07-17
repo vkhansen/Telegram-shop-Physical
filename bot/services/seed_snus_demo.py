@@ -12,6 +12,7 @@ from pathlib import Path
 
 from bot.database.main import Database
 from bot.database.models.main import Brand, Categories, Goods, Role, Store
+from bot.services.theme_contrast import enforce_theme_tokens
 
 logger = logging.getLogger(__name__)
 
@@ -326,6 +327,9 @@ def _snus_web_profile(mode: str) -> dict:
     import copy
 
     profile = copy.deepcopy(SNUS_WEB_PROFILE)
+    # Contrast law on theme tokens at seed time
+    if isinstance(profile.get("theme_tokens"), dict):
+        profile["theme_tokens"] = enforce_theme_tokens(profile["theme_tokens"])
     channels = profile.setdefault("channels", {})
     web = channels.setdefault("web", {"enabled": True})
     mask = dict(web.get("mask") or {})

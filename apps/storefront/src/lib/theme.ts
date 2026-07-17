@@ -200,12 +200,13 @@ function toHex(r: number, g: number, b: number): string {
   return `#${h(r)}${h(g)}${h(b)}`;
 }
 
-/** Pick black or white text for a solid background. */
+/** Pick near-black or near-white — whichever contrasts better with bg. */
 export function contrastingText(bg: string): string {
-  const L = relativeLuminance(bg);
-  if (L == null) return "#111111";
-  // Threshold ~0.4 keeps mid-tones getting dark text
-  return L > 0.4 ? "#14110a" : "#f7f5f2";
+  const black = "#14110a";
+  const white = "#f7f5f2";
+  const rb = contrastRatio(black, bg) ?? 0;
+  const rw = contrastRatio(white, bg) ?? 0;
+  return rb >= rw ? black : white;
 }
 
 /**

@@ -21,19 +21,19 @@ const pageDisclaimers = ctx.compliance.disclaimerBlocks.filter(
 
 <BrandShell ctx={ctx} title={ctx.about.title} chips={chips}>
   <PageHeader brandSlug={ctx.slug} brandName={ctx.brand.name} title={ctx.about.title} />
-  <div class="prose prose-invert mt-6 max-w-2xl whitespace-pre-wrap text-sm leading-relaxed text-sand-200 lg:text-base">
+  <div class="t-fg mt-6 max-w-2xl whitespace-pre-wrap text-sm leading-relaxed lg:text-base">
     {ctx.about.body}
   </div>
 
   {
     can(ctx, "faq") && ctx.faq.length > 0 && (
-      <section class="mt-12 max-w-2xl border-t border-ink-800 pt-8">
-        <h2 class="text-sm font-semibold uppercase tracking-wider text-ink-500">FAQ</h2>
+      <section class="mt-12 max-w-2xl border-t border-brand pt-8">
+        <h2 class="label-brand">FAQ</h2>
         <dl class="mt-4 space-y-4">
           {ctx.faq.map((f) => (
             <div>
-              <dt class="font-semibold text-sand-50">{f.q}</dt>
-              <dd class="mt-1 text-sm leading-relaxed text-sand-200 whitespace-pre-wrap">{f.a}</dd>
+              <dt class="t-fg font-semibold">{f.q}</dt>
+              <dd class="t-muted mt-1 text-sm leading-relaxed whitespace-pre-wrap">{f.a}</dd>
             </div>
           ))}
         </dl>

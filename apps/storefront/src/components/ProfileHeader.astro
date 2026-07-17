@@ -1,4 +1,7 @@
 ---
+/**
+ * Profile-style brand header — tokens only (works on light + dark paper).
+ */
 interface Action {
   href: string;
   label: string;
@@ -16,40 +19,34 @@ interface Props {
 const { name, description, logoUrl, tagline, actions = [] } = Astro.props;
 ---
 
-<header class="flex flex-col gap-4 border-b border-ink-800 py-6 sm:flex-row sm:items-center sm:gap-6 lg:py-8">
+<header class="flex flex-col gap-4 border-b border-brand py-6 sm:flex-row sm:items-center sm:gap-6 lg:py-8">
   <div
-    class="mx-auto h-24 w-24 shrink-0 overflow-hidden rounded-full border-2 border-ink-700 bg-ink-800 sm:mx-0 sm:h-28 sm:w-28"
+    class="mx-auto h-24 w-24 shrink-0 overflow-hidden rounded-full border-2 border-brand bg-surface sm:mx-0 sm:h-28 sm:w-28"
   >
     {
       logoUrl ? (
         <img src={logoUrl} alt="" class="h-full w-full object-cover" loading="eager" />
       ) : (
-        <div class="flex h-full w-full items-center justify-center text-2xl font-bold text-accent">
+        <div class="t-accent flex h-full w-full items-center justify-center text-2xl font-bold">
           {name.slice(0, 1)}
         </div>
       )
     }
   </div>
   <div class="flex-1 text-center sm:text-left">
-    <h1 class="text-2xl font-bold tracking-tight text-sand-50 sm:text-3xl lg:text-4xl">{name}</h1>
-    {tagline && <p class="mt-1 text-sm font-medium text-accent">{tagline}</p>}
-    {description && <p class="mt-2 max-w-2xl text-sm leading-relaxed text-sand-200 lg:text-base">{description}</p>}
+    <h1 class="t-fg text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">{name}</h1>
+    {tagline && <p class="t-accent mt-1 text-sm font-medium">{tagline}</p>}
+    {description && <p class="t-muted mt-2 max-w-2xl text-sm leading-relaxed lg:text-base">{description}</p>}
     {
       actions.length > 0 && (
         <div class="mt-4 flex flex-wrap justify-center gap-2 sm:justify-start">
           {actions.map((a) =>
             a.primary ? (
-              <a
-                href={a.href}
-                class="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-ink-950 hover:bg-accent-glow"
-              >
+              <a href={a.href} class="btn-pill btn-pill-primary">
                 {a.label}
               </a>
             ) : (
-              <a
-                href={a.href}
-                class="rounded-full border border-ink-700 px-4 py-2 text-sm font-medium text-sand-50 hover:bg-ink-800"
-              >
+              <a href={a.href} class="btn-pill btn-pill-ghost">
                 {a.label}
               </a>
             ),

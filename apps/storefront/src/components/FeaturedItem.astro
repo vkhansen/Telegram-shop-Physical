@@ -88,12 +88,12 @@ const useVector = vectorOnly || !item.image_url;
       </div>
     </section>
   ) : (
-    <section class="border-t border-ink-800 py-10">
-      <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">{eyebrow}</p>
+    <section class="border-t border-brand py-10">
+      <p class="label-brand">{eyebrow}</p>
       <div class="mt-4 grid items-center gap-6 md:grid-cols-2">
         <a
           href={`/${brandSlug}/${storeSlug}/i/${item.slug}`}
-          class="group relative aspect-square overflow-hidden rounded-2xl bg-ink-900 sm:aspect-[4/3]"
+          class="group relative aspect-square overflow-hidden rounded-2xl bg-surface sm:aspect-[4/3]"
         >
           {item.image_url && !vectorOnly ? (
             <img
@@ -116,22 +116,19 @@ const useVector = vectorOnly || !item.image_url;
               />
             </div>
           ) : (
-            <div class="flex h-full items-center justify-center text-sand-200">{item.name}</div>
+            <div class="t-muted flex h-full items-center justify-center">{item.name}</div>
           )}
         </a>
         <div>
-          <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">{badge}</p>
-          <h2 class="mt-3 text-3xl font-bold tracking-tight text-sand-50 sm:text-4xl">
+          <p class="label-brand">{badge}</p>
+          <h2 class="t-fg mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
             {item.name}
-            <span class="text-accent">.</span>
+            <span class="t-accent">.</span>
           </h2>
-          <p class="mt-3 max-w-md text-sm leading-relaxed text-sand-200">
+          <p class="t-muted mt-3 max-w-md text-sm leading-relaxed">
             {item.description || fallbackBody || ""}
           </p>
-          <a
-            class="mt-6 inline-flex rounded-full bg-sand-50 px-5 py-2.5 text-sm font-semibold text-ink-950 transition hover:bg-accent"
-            href={ctaHref}
-          >
+          <a class="btn-pill btn-pill-primary mt-6" href={ctaHref}>
             {ctaLabel}
           </a>
         </div>

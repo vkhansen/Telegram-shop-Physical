@@ -28,6 +28,7 @@ from typing import Any
 from bot.database.main import Database
 from bot.database.models.main import BranchInventory, Brand, Categories, Goods, Role, Store
 from bot.services.demo_placeholders import ensure_all_placeholders, local_ref
+from bot.services.theme_contrast import enforce_theme_tokens
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +145,8 @@ def _theme_pack(
         return "#14110a" if lum > 0.45 else "#f7f5f2"
 
     foot = footer or ("#14110a" if mode == "light" else "#050608")
-    return {
+    # Contrast law applied at generation time (also re-checked in storefront).
+    raw = {
         "mode": mode,
         "colors": {
             "ink": ink,
@@ -197,6 +199,7 @@ def _theme_pack(
             "featured": "split",
         },
     }
+    return enforce_theme_tokens(raw)
 
 
 # Distinct high-contrast brand palettes (paper vs ink always opposite ends of luminance)
@@ -954,6 +957,10 @@ def seed_vertical(spec: dict[str, Any], *, force: bool = False) -> dict[str, Any
     inquiry_only = set(spec.get("inquiry_only_items") or [])
     daily_limits = dict(spec.get("daily_limits") or {})
     branch_stock = dict(spec.get("branch_stock") or {})
+    # Always store contrast-safe theme tokens
+    web_profile = deepcopy(spec["web_profile"])
+    if isinstance(web_profile.get("theme_tokens"), dict):
+        web_profile["theme_tokens"] = enforce_theme_tokens(web_profile["theme_tokens"])
 
     with Database().session() as s:
         _ensure_role(s)
@@ -962,7 +969,7 @@ def seed_vertical(spec: dict[str, Any], *, force: bool = False) -> dict[str, Any
             n_goods = s.query(Goods).filter_by(brand_id=brand.id).count()
             n_stores = s.query(Store).filter_by(brand_id=brand.id).count()
             if n_goods and n_stores:
-                brand.web_profile = deepcopy(spec["web_profile"])
+                brand.web_profile = web_profile
                 brand.commerce_mode = spec["commerce_mode"]
                 brand.age_gate_enabled = bool(spec["age_gate_enabled"])
                 brand.min_age = spec.get("min_age")
@@ -990,7 +997,7 @@ def seed_vertical(spec: dict[str, Any], *, force: bool = False) -> dict[str, Any
                 age_gate_enabled=bool(spec["age_gate_enabled"]),
                 min_age=spec.get("min_age"),
                 timezone="Asia/Bangkok",
-                web_profile=deepcopy(spec["web_profile"]),
+                web_profile=web_profile,
                 logo_file_id=logo,
             )
             s.add(brand)
@@ -1005,7 +1012,7 @@ def seed_vertical(spec: dict[str, Any], *, force: bool = False) -> dict[str, Any
             brand.commerce_mode = spec["commerce_mode"]
             brand.age_gate_enabled = bool(spec["age_gate_enabled"])
             brand.min_age = spec.get("min_age")
-            brand.web_profile = deepcopy(spec["web_profile"])
+            brand.web_profile = web_profile
             if logo:
                 brand.logo_file_id = logo
             brand.timezone = brand.timezone or "Asia/Bangkok"
