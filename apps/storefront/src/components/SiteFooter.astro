@@ -53,11 +53,15 @@ const nav =
       ];
 ---
 
-<footer class="mt-12 border-t border-ink-800 py-8 text-sm text-ink-500">
+<footer
+  class="mt-12 border-t border-[color:var(--brand-line)] py-8 text-sm text-[color:var(--brand-muted)]"
+  style="background:var(--brand-footer);color:var(--brand-on-footer);"
+>
   {
     strips.length > 0 && (
       <div
-        class="mb-4 rounded-xl border border-amber-900/40 bg-amber-950/20 px-4 py-3 text-xs leading-relaxed text-sand-100"
+        class="mb-4 rounded-xl border border-[color:var(--brand-line)] px-4 py-3 text-xs leading-relaxed"
+        style="background:color-mix(in srgb, var(--brand-sun) 12%, var(--brand-footer));color:var(--brand-on-footer);"
         role="note"
         aria-label="Legal warnings"
       >
@@ -72,11 +76,14 @@ const nav =
     blocks.length > 0 && (
       <div class="mb-6 space-y-3">
         {blocks.map((d) => (
-          <div class="rounded-xl border border-ink-700 bg-ink-900/60 px-4 py-3 text-xs leading-relaxed text-sand-200">
+          <div
+            class="rounded-xl border border-[color:var(--brand-line)] px-4 py-3 text-xs leading-relaxed"
+            style="background:color-mix(in srgb, var(--brand-on-footer) 6%, var(--brand-footer));color:var(--brand-on-footer);"
+          >
             {d.title && (
-              <p class="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-500">{d.title}</p>
+              <p class="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] opacity-70">{d.title}</p>
             )}
-            <p class="whitespace-pre-wrap">{d.body}</p>
+            <p class="whitespace-pre-wrap opacity-90">{d.body}</p>
           </div>
         ))}
       </div>
@@ -85,11 +92,11 @@ const nav =
 
   <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
     <div class="space-y-1">
-      {legalName && <p class="font-medium text-sand-200">{legalName}</p>}
-      {showDbd && dbdNumber && <p>DBD / Reg. No. {dbdNumber}</p>}
-      <nav class="mt-2 flex flex-wrap gap-3 text-sand-200" aria-label="Footer">
+      {legalName && <p class="font-medium text-[color:var(--brand-on-footer)]">{legalName}</p>}
+      {showDbd && dbdNumber && <p class="opacity-80">DBD / Reg. No. {dbdNumber}</p>}
+      <nav class="mt-2 flex flex-wrap gap-3" aria-label="Footer">
         {nav.map((l) => (
-          <a class="hover:text-accent" href={l.href}>
+          <a class="text-[color:var(--brand-on-footer)] underline-offset-2 opacity-90 hover:opacity-100 hover:underline" href={l.href}>
             {l.label}
           </a>
         ))}
@@ -97,8 +104,8 @@ const nav =
     </div>
     {
       legalNote && (
-        <div class="max-w-md space-y-2 text-xs leading-relaxed">
-          <p class="text-ink-500">{legalNote}</p>
+        <div class="max-w-md space-y-2 text-xs leading-relaxed opacity-75">
+          <p>{legalNote}</p>
         </div>
       )
     }

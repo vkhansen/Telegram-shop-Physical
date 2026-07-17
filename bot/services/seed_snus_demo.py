@@ -54,7 +54,9 @@ SNUS_THEME_TOKENS = {
         "footer": "#02091b",
         "accent": "#ffd60a",
         "on_ink": "#fbf8f3",
-        "muted": "rgba(6,18,46,.55)",
+        "on_accent": "#06122e",
+        "on_footer": "#fbf8f3",
+        "muted": "rgba(6,18,46,.62)",
     },
     "type": {
         "display": "Archivo Black",
@@ -374,10 +376,10 @@ def seed_snus_demo(*, force: bool = False) -> dict:
 
         brand = s.query(Brand).filter_by(slug="snus-demo").one_or_none()
         if brand and not force:
-            # Still ensure store + goods exist
-            store = s.query(Store).filter_by(brand_id=brand.id, slug="bangkok").one_or_none()
+            # Still ensure store + goods exist (multi-branch)
+            n_stores = s.query(Store).filter_by(brand_id=brand.id).count()
             n_goods = s.query(Goods).filter_by(brand_id=brand.id).count()
-            if store and n_goods > 0:
+            if n_stores >= 1 and n_goods > 0:
                 # Refresh theme tokens + product visual DNA without full recreate
                 brand.web_profile = _snus_web_profile(commerce_mode)
                 brand.age_gate_enabled = True
@@ -450,30 +452,70 @@ def seed_snus_demo(*, force: bool = False) -> dict:
             if images:
                 brand.logo_file_id = local_file_id(images[0])
 
-        store = s.query(Store).filter_by(brand_id=brand.id, slug="bangkok").one_or_none()
-        if store is None:
-            store = Store(
-                name="Bangkok Flagship",
-                slug="bangkok",
-                brand_id=brand.id,
-                address="Sukhumvit Soi Demo, Khlong Toei, Bangkok 10110",
-                phone="+66812345678",
-                latitude=13.7367,
-                longitude=100.5600,
-                is_default=True,
-                is_active=True,
-                menu_image_file_id=local_file_id(images[1]) if len(images) > 1 else None,
-                web_profile={
-                    "schema_version": 1,
-                    "about_md": "Flagship demo branch for white-label previews.",
-                },
-            )
-            s.add(store)
-        else:
-            store.is_active = True
-            store.is_default = True
-            if images and len(images) > 1:
-                store.menu_image_file_id = local_file_id(images[1])
+        # Multi-branch Bangkok locations with real-style addresses
+        snus_branches = [
+            {
+                "name": "Bangkok Flagship",
+                "slug": "bangkok",
+                "address": "42/1 Sukhumvit Soi 11, Khlong Toei Nuea, Watthana, Bangkok 10110",
+                "phone": "+66812345678",
+                "lat": 13.7445,
+                "lng": 100.5565,
+                "is_default": True,
+                "about": "Flagship demo branch for white-label previews.",
+            },
+            {
+                "name": "Siam Discovery",
+                "slug": "siam",
+                "address": "989 Rama I Road, Pathum Wan, Pathum Wan, Bangkok 10330",
+                "phone": "+66812345679",
+                "lat": 13.7465,
+                "lng": 100.5320,
+                "is_default": False,
+                "about": "Siam mall kiosk demo branch.",
+            },
+            {
+                "name": "EmQuartier Pop-up",
+                "slug": "emquartier",
+                "address": "693 Sukhumvit Road, Khlong Tan Nuea, Watthana, Bangkok 10110",
+                "phone": "+66812345680",
+                "lat": 13.7308,
+                "lng": 100.5695,
+                "is_default": False,
+                "about": "EmQuartier pop-up counter demo.",
+            },
+        ]
+        for i, br in enumerate(snus_branches):
+            store = s.query(Store).filter_by(brand_id=brand.id, slug=br["slug"]).one_or_none()
+            if store is None:
+                store = Store(
+                    name=br["name"],
+                    slug=br["slug"],
+                    brand_id=brand.id,
+                    address=br["address"],
+                    phone=br["phone"],
+                    latitude=br["lat"],
+                    longitude=br["lng"],
+                    is_default=br["is_default"],
+                    is_active=True,
+                    menu_image_file_id=local_file_id(images[1]) if len(images) > 1 and br["is_default"] else None,
+                    web_profile={
+                        "schema_version": 1,
+                        "about_md": br["about"],
+                        "amenities": ["pickup", "adults_only"],
+                    },
+                )
+                s.add(store)
+            else:
+                store.name = br["name"]
+                store.address = br["address"]
+                store.phone = br["phone"]
+                store.latitude = br["lat"]
+                store.longitude = br["lng"]
+                store.is_default = br["is_default"]
+                store.is_active = True
+                if images and len(images) > 1 and br["is_default"]:
+                    store.menu_image_file_id = local_file_id(images[1])
 
         cat = s.query(Categories).filter_by(name="The Lineup", brand_id=brand.id).one_or_none()
         if cat is None:

@@ -26,7 +26,6 @@ const fullTitle = brandName ? `${title} · ${brandName}` : title;
 const styleInline = Object.entries(cssVars)
   .map(([k, v]) => `${k}:${v}`)
   .join(";");
-const bodyBg = themeMode === "light" ? "var(--brand-paper, #fbf8f3)" : undefined;
 ---
 
 <!doctype html>
@@ -42,8 +41,8 @@ const bodyBg = themeMode === "light" ? "var(--brand-paper, #fbf8f3)" : undefined
     {fontHref && <link rel="stylesheet" href={fontHref} />}
   </head>
   <body
-    class={themeMode === "light" ? "min-h-screen text-[color:var(--brand-ink)]" : "min-h-screen bg-ink-950 text-sand-50"}
-    style={bodyBg ? `background:${bodyBg};` : undefined}
+    class="min-h-screen text-[color:var(--brand-ink,#f4f2ef)]"
+    style="background:var(--brand-paper,#0c0c0e);"
   >
     <div class={containerClass}>
       <slot />

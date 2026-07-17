@@ -274,7 +274,16 @@ async def get_media_bytes(token: str) -> tuple[bytes, str] | None:
         if not path:
             return None
         data = path.read_bytes()
-        return data, "image/jpeg"
+        lower = path.name.lower()
+        if lower.endswith(".png"):
+            ctype = "image/png"
+        elif lower.endswith(".webp"):
+            ctype = "image/webp"
+        elif lower.endswith(".gif"):
+            ctype = "image/gif"
+        else:
+            ctype = "image/jpeg"
+        return data, ctype
     if not is_catalog_file_id(file_id, brand_id):
         logger.warning("Rejected non-catalog media token=%s", token[:16])
         return None

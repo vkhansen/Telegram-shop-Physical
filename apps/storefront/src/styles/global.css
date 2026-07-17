@@ -17,19 +17,18 @@ body {
 }
 
 /* ── Theme shell (tokens injected as CSS vars on .brand-shell) ── */
+/* Always use brand tokens — never hardcode white text (breaks light themes). */
 .brand-shell {
   font-family: var(--font-body, system-ui, sans-serif);
-  color: var(--brand-ink, #faf8f5);
-  background: var(--brand-paper, #0a0a0b);
+  color: var(--brand-ink, #f4f2ef);
+  background: var(--brand-paper, #0c0c0e);
   max-width: var(--container-max, 72rem);
 }
 
-.brand-shell.theme-dark {
-  color: #faf8f5;
-}
-
+.brand-shell.theme-dark,
 .brand-shell.theme-light {
   color: var(--brand-ink);
+  background: var(--brand-paper);
 }
 
 .display {
@@ -82,8 +81,9 @@ body {
 }
 
 .btn-pill-primary {
-  background: var(--brand-sun, #ffd60a);
-  color: var(--brand-ink, #06122e);
+  background: var(--brand-sun, #e8b84a);
+  /* on_accent is contrast-enforced against sun/accent — never raw ink */
+  color: var(--brand-on-accent, #14110a);
 }
 
 .btn-pill-primary:hover {
@@ -93,12 +93,13 @@ body {
 
 .btn-pill-ghost {
   border: var(--brand-border-w, 1.5px) solid var(--brand-line, rgba(6, 18, 46, 0.12));
-  color: var(--brand-ink, #06122e);
+  color: var(--brand-ink, #f4f2ef);
   background: transparent;
 }
 
 .btn-pill-ghost:hover {
-  background: var(--brand-paper-warm, #f3ecdf);
+  background: var(--brand-paper-warm, #161618);
+  color: var(--brand-ink);
 }
 
 /* Marquee ticker */

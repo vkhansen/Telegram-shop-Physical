@@ -49,11 +49,15 @@ const stickyNav = theme.chrome.nav === "sticky_full";
   cssVars={cssVars}
   fontHref={fontHref}
   themeMode={theme.mode}
-  containerClass={
-    editorial
-      ? "brand-shell theme-light mx-auto min-h-screen w-full px-3 sm:px-4 lg:px-6"
-      : "brand-shell theme-dark mx-auto min-h-screen w-full max-w-site px-3 sm:px-4 lg:px-6"
-  }
+  containerClass={[
+    "brand-shell",
+    theme.mode === "light" ? "theme-light" : "theme-dark",
+    editorial ? "theme-editorial" : "",
+    "mx-auto min-h-screen w-full px-3 sm:px-4 lg:px-6",
+    editorial ? "" : "max-w-site",
+  ]
+    .filter(Boolean)
+    .join(" ")}
 >
   {
     gateOn && (

@@ -29,15 +29,19 @@ logger = logging.getLogger("public_api")
 
 
 def seed_demo_if_empty() -> None:
-    """Ensure NOVA-style snus demo (tests/test-data images) is present.
+    """Ensure multi-vertical white-label demos are present.
 
-    Set SEED_SNUS_FORCE=1 to refresh web_profile, lineup, and local media paths.
+    snus-demo + food / coffee / herb / bakery / grocery (placeholders + stock).
+
+    Set SEED_SNUS_FORCE=1 or SEED_TEMPLATES_FORCE=1 to force refresh.
     """
-    from bot.services.seed_snus_demo import seed_snus_demo
+    from bot.services.seed_demo_verticals import seed_all_demos
 
-    force = os.getenv("SEED_SNUS_FORCE", "").lower() in ("1", "true", "yes")
-    summary = seed_snus_demo(force=force)
-    logger.info("Snus demo seed: %s", summary)
+    force = os.getenv("SEED_SNUS_FORCE", "").lower() in ("1", "true", "yes") or os.getenv(
+        "SEED_TEMPLATES_FORCE", ""
+    ).lower() in ("1", "true", "yes")
+    for summary in seed_all_demos(force=force, snus=True):
+        logger.info("Demo seed: %s", summary)
 
 
 async def main() -> None:

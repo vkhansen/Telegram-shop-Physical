@@ -344,3 +344,158 @@ def parse_utm_from_mapping(data: dict[str, Any] | None) -> dict[str, str] | None
         if data.get(k)
     }
     return _normalize_utm(flat) if flat else None
+
+
+# ---------------------------------------------------------------------------
+# Admin / ops — list + status transitions (Telegram/web harness surface)
+# ---------------------------------------------------------------------------
+
+VALID_LEAD_STATUSES = frozenset({"new", "contacted", "qualified", "ordered", "closed", "spam"})
+VALID_BOOKING_STATUSES = frozenset(
+    {"requested", "confirmed", "completed", "cancelled", "no_show"}
+)
+
+
+def _lead_dto(lead: Lead, *, brand_slug: str | None = None) -> dict[str, Any]:
+    return {
+        "id": int(lead.id),
+        "brand_id": int(lead.brand_id),
+        "brand_slug": brand_slug,
+        "store_id": lead.store_id,
+        "user_id": lead.user_id,
+        "name": lead.name,
+        "phone": lead.phone,
+        "email": lead.email,
+        "preferred_channel": lead.preferred_channel,
+        "channel_handle": lead.channel_handle,
+        "interest_type": lead.interest_type,
+        "item_slug": lead.item_slug,
+        "message": lead.message,
+        "source": lead.source,
+        "utm": lead.utm_json if isinstance(lead.utm_json, dict) else None,
+        "status": lead.status,
+        "age_confirmed": bool(lead.age_confirmed),
+        "consent_at": lead.consent_at.isoformat() if lead.consent_at else None,
+        "created_at": lead.created_at.isoformat() if lead.created_at else None,
+    }
+
+
+def list_leads(
+    *,
+    brand_slug: str | None = None,
+    brand_id: int | None = None,
+    status: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[dict[str, Any]]:
+    """Staff lead inbox — newest first. Filter by brand and/or status."""
+    limit = max(1, min(int(limit or 50), 200))
+    offset = max(0, int(offset or 0))
+    with Database().session() as s:
+        slug_map: dict[int, str] = {}
+        q = s.query(Lead)
+        if brand_id is not None:
+            q = q.filter(Lead.brand_id == brand_id)
+        elif brand_slug:
+            brand = s.query(Brand).filter_by(slug=brand_slug).one_or_none()
+            if not brand:
+                return []
+            q = q.filter(Lead.brand_id == brand.id)
+            slug_map[int(brand.id)] = brand.slug
+        if status:
+            st = status.strip().lower()
+            if st in VALID_LEAD_STATUSES:
+                q = q.filter(Lead.status == st)
+        rows = q.order_by(Lead.created_at.desc()).offset(offset).limit(limit).all()
+        if not slug_map and rows:
+            ids = {int(r.brand_id) for r in rows}
+            for b in s.query(Brand).filter(Brand.id.in_(ids)).all():
+                slug_map[int(b.id)] = b.slug
+        return [_lead_dto(r, brand_slug=slug_map.get(int(r.brand_id))) for r in rows]
+
+
+def get_lead(lead_id: int) -> dict[str, Any] | None:
+    with Database().session() as s:
+        lead = s.query(Lead).filter_by(id=lead_id).one_or_none()
+        if not lead:
+            return None
+        brand = s.query(Brand).filter_by(id=lead.brand_id).one_or_none()
+        return _lead_dto(lead, brand_slug=brand.slug if brand else None)
+
+
+def update_lead_status(lead_id: int, status: str) -> dict[str, Any]:
+    """Admin status transition for a lead (new → contacted → …)."""
+    st = (status or "").strip().lower()
+    if st not in VALID_LEAD_STATUSES:
+        raise ValueError("invalid_status")
+    with Database().session() as s:
+        lead = s.query(Lead).filter_by(id=lead_id).one_or_none()
+        if not lead:
+            raise ValueError("lead_not_found")
+        lead.status = st
+        s.commit()
+        brand = s.query(Brand).filter_by(id=lead.brand_id).one_or_none()
+        return _lead_dto(lead, brand_slug=brand.slug if brand else None)
+
+
+def list_bookings(
+    *,
+    brand_slug: str | None = None,
+    brand_id: int | None = None,
+    status: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[dict[str, Any]]:
+    limit = max(1, min(int(limit or 50), 200))
+    offset = max(0, int(offset or 0))
+    with Database().session() as s:
+        q = s.query(Booking)
+        if brand_id is not None:
+            q = q.filter(Booking.brand_id == brand_id)
+        elif brand_slug:
+            brand = s.query(Brand).filter_by(slug=brand_slug).one_or_none()
+            if not brand:
+                return []
+            q = q.filter(Booking.brand_id == brand.id)
+        if status:
+            st = status.strip().lower()
+            if st in VALID_BOOKING_STATUSES:
+                q = q.filter(Booking.status == st)
+        rows = q.order_by(Booking.created_at.desc()).offset(offset).limit(limit).all()
+        out: list[dict[str, Any]] = []
+        for b in rows:
+            out.append(
+                {
+                    "id": int(b.id),
+                    "brand_id": int(b.brand_id),
+                    "store_id": b.store_id,
+                    "name": b.name,
+                    "phone": b.phone,
+                    "email": b.email,
+                    "meeting_type": b.meeting_type,
+                    "preferred_slots": b.preferred_slots,
+                    "status": b.status,
+                    "notes": b.notes,
+                    "created_at": b.created_at.isoformat() if b.created_at else None,
+                }
+            )
+        return out
+
+
+def update_booking_status(booking_id: int, status: str) -> dict[str, Any]:
+    st = (status or "").strip().lower()
+    if st not in VALID_BOOKING_STATUSES:
+        raise ValueError("invalid_status")
+    with Database().session() as s:
+        booking = s.query(Booking).filter_by(id=booking_id).one_or_none()
+        if not booking:
+            raise ValueError("booking_not_found")
+        booking.status = st
+        s.commit()
+        return {
+            "id": int(booking.id),
+            "status": booking.status,
+            "meeting_type": booking.meeting_type,
+            "brand_id": int(booking.brand_id),
+            "name": booking.name,
+        }
