@@ -86,9 +86,46 @@ async def test_auth_config_endpoint():
             assert res.status == 200
             data = await res.json()
             assert "google_enabled" in data
-            assert "dev_login_enabled" in data
+            assert data["google_enabled"] is False
+            assert data.get("dev_login_enabled") is True
     finally:
         await client.close()
+
+
+@pytest.mark.asyncio
+async def test_auth_config_google_enabled(monkeypatch):
+    monkeypatch.setenv("OAUTH_GOOGLE_CLIENT_ID", "cid.apps.googleusercontent.com")
+    monkeypatch.setenv("OAUTH_GOOGLE_CLIENT_SECRET", "secret")
+    monkeypatch.delenv("OAUTH_DEV_LOGIN", raising=False)
+    app = web.Application()
+    auth_api.register_auth_and_ticket_routes(app)
+    client = await _client_for(app)
+    try:
+        res = await client.get("/api/public/auth/config")
+        assert res.status == 200
+        data = await res.json()
+        assert data["google_enabled"] is True
+    finally:
+        await client.close()
+
+
+def test_google_redirect_uri_prefers_public_site(monkeypatch):
+    monkeypatch.setenv("PUBLIC_SITE_URL", "https://shop.example.ts.net")
+    monkeypatch.delenv("OAUTH_GOOGLE_REDIRECT_URI", raising=False)
+    # Minimal fake request (only used if PUBLIC_SITE_URL missing)
+    class _Req:
+        url = type("U", (), {"with_path": lambda self, p: type("U2", (), {"with_query": lambda self, q: "http://x/api"})()})()
+
+    uri = auth_api._google_redirect_uri(_Req())
+    assert uri == "https://shop.example.ts.net/api/public/auth/google/callback"
+
+
+def test_oauth_error_redirect_goes_to_login(monkeypatch):
+    monkeypatch.setenv("PUBLIC_SITE_URL", "https://shop.example.ts.net")
+    resp = auth_api._oauth_error_redirect(error="invalid_state", brand="snus-demo")
+    assert resp.status == 302
+    assert "snus-demo/login" in resp.headers["Location"]
+    assert "error=invalid_state" in resp.headers["Location"]
 
 
 @pytest.mark.asyncio

@@ -205,18 +205,45 @@ async def auth_dev_login(request: web.Request) -> web.Response:
     return resp
 
 
+def _storefront_base() -> str:
+    return os.getenv("PUBLIC_SITE_URL", "http://127.0.0.1:4321").rstrip("/")
+
+
+def _oauth_error_redirect(*, error: str, brand: str = "") -> web.Response:
+    """Browser-friendly OAuth failures → storefront login (not JSON)."""
+    brand = (brand or "").strip()
+    path = f"/{brand}/login" if brand else "/"
+    q = urlencode({"error": error})
+    return web.HTTPFound(f"{_storefront_base()}{path}?{q}")
+
+
+def _google_redirect_uri(request: web.Request) -> str:
+    """Canonical callback URL — must match Google Cloud Console exactly."""
+    explicit = (os.getenv("OAUTH_GOOGLE_REDIRECT_URI") or "").strip()
+    if explicit:
+        return explicit
+    # Prefer PUBLIC_SITE_URL same-origin path when Funnel/Caddy proxies /api/*
+    site = (os.getenv("PUBLIC_SITE_URL") or "").rstrip("/")
+    if site and not site.startswith("http://127.0.0.1") and not site.startswith("http://localhost"):
+        return f"{site}/api/public/auth/google/callback"
+    return str(request.url.with_path("/api/public/auth/google/callback").with_query({}))
+
+
 async def google_start(request: web.Request) -> web.Response:
-    if not web_auth.google_enabled():
-        return web.json_response(
-            {"error": "google_oauth_not_configured", "error_key": "auth.google_not_configured"},
-            status=503,
-        )
     brand = (request.query.get("brand") or "").strip()
+    if not web_auth.google_enabled():
+        # Browser login links navigate here — send them back to the portal.
+        # Pure API clients can send Accept: application/json.
+        accept = (request.headers.get("Accept") or "").lower()
+        if "application/json" in accept and "text/html" not in accept:
+            return web.json_response(
+                {"error": "google_oauth_not_configured", "error_key": "auth.google_not_configured"},
+                status=503,
+            )
+        return _oauth_error_redirect(error="google_not_configured", brand=brand)
     default_next = f"/{brand}/tickets" if brand else "/"
     next_path = web_auth.safe_next_path(request.query.get("next"), default=default_next)
-    redirect_uri = os.getenv("OAUTH_GOOGLE_REDIRECT_URI") or str(
-        request.url.with_path("/api/public/auth/google/callback").with_query({})
-    )
+    redirect_uri = _google_redirect_uri(request)
     state = secrets.token_urlsafe(24)
     url = web_auth.google_authorize_url(redirect_uri=redirect_uri, state=state)
     resp = web.HTTPFound(url)
@@ -225,24 +252,22 @@ async def google_start(request: web.Request) -> web.Response:
 
 
 async def google_callback(request: web.Request) -> web.Response:
+    brand = (request.cookies.get("oauth_brand") or request.query.get("brand") or "").strip()
     if not web_auth.google_enabled():
-        return web.json_response(
-            {"error": "google_oauth_not_configured", "error_key": "auth.google_not_configured"},
-            status=503,
-        )
+        return _oauth_error_redirect(error="google_not_configured", brand=brand)
     state = request.query.get("state", "")
     cookie_state = request.cookies.get("oauth_state", "")
     if not state or state != cookie_state:
-        return web.json_response({"error": "invalid_state", "error_key": "auth.invalid_state"}, status=400)
+        return _oauth_error_redirect(error="invalid_state", brand=brand)
+    if request.query.get("error"):
+        return _oauth_error_redirect(error=str(request.query.get("error")), brand=brand)
     code = request.query.get("code")
     if not code:
-        return web.json_response({"error": "missing_code", "error_key": "auth.missing_code"}, status=400)
-    redirect_uri = os.getenv("OAUTH_GOOGLE_REDIRECT_URI") or str(
-        request.url.with_path("/api/public/auth/google/callback").with_query({})
-    )
+        return _oauth_error_redirect(error="missing_code", brand=brand)
+    redirect_uri = _google_redirect_uri(request)
     info = await web_auth.google_exchange_code(code=code, redirect_uri=redirect_uri)
     if not info or not info.get("sub"):
-        return web.json_response({"error": "oauth_failed", "error_key": "auth.oauth_failed"}, status=400)
+        return _oauth_error_redirect(error="oauth_failed", brand=brand)
     user = web_auth.upsert_oauth_user(
         provider="google",
         subject=str(info["sub"]),
@@ -259,11 +284,9 @@ async def google_callback(request: web.Request) -> web.Response:
         name=user.get("name"),
         avatar=user.get("avatar"),
     )
-    brand = (request.cookies.get("oauth_brand") or "").strip()
     default_next = f"/{brand}/tickets" if brand else "/"
     next_path = web_auth.safe_next_path(request.cookies.get("oauth_next"), default=default_next)
-    storefront = os.getenv("PUBLIC_SITE_URL", "http://127.0.0.1:4321").rstrip("/")
-    dest = storefront + next_path
+    dest = _storefront_base() + next_path
     resp = web.HTTPFound(dest)
     _set_session_cookie(resp, token)
     resp.del_cookie("oauth_state", path="/")

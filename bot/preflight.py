@@ -87,25 +87,69 @@ class PreflightReport:
         logger.info("=" * 60)
 
 
+def _web_api_only() -> bool:
+    """When set, only the HTTP public API / monitoring surface is required (no Telegram)."""
+    return os.getenv("WEB_API_ONLY", "").lower() in ("1", "true", "yes")
+
+
 def _check_env_vars(report: PreflightReport):
     """Check required and optional environment variables."""
 
-    # Required
+    api_only = _web_api_only()
+    if api_only:
+        report.add(
+            "WEB_API_ONLY",
+            "pass",
+            "Enabled — Telegram token/polling not required; HTTP API only",
+            required=False,
+        )
+
+    # Required for full bot; optional when WEB_API_ONLY=1 (Funnel / storefront testing)
     if not EnvKeys.TOKEN:
-        report.add("TOKEN", "fail", "Not set — bot cannot start without a Telegram token")
+        report.add(
+            "TOKEN",
+            "warn" if api_only else "fail",
+            "Not set — bot cannot poll Telegram without a token",
+            required=not api_only,
+        )
     elif EnvKeys.TOKEN == "your_bot_token_here":  # noqa: S105 — placeholder/marker string, not a secret
-        report.add("TOKEN", "fail", "Still set to placeholder value from .env.example")
+        report.add(
+            "TOKEN",
+            "warn" if api_only else "fail",
+            "Still set to placeholder value from .env.example",
+            required=not api_only,
+        )
     else:
-        report.add("TOKEN", "pass", f"Set ({len(EnvKeys.TOKEN)} chars)")
+        # Telegram tokens are "<numeric_bot_id>:<secret>"
+        parts = EnvKeys.TOKEN.split(":", 1)
+        if len(parts) != 2 or not parts[0].isdigit() or not parts[1]:
+            report.add(
+                "TOKEN",
+                "warn" if api_only else "fail",
+                "Invalid format — expected <numeric_bot_id>:<secret> from @BotFather",
+                required=not api_only,
+            )
+        else:
+            report.add("TOKEN", "pass", f"Set ({len(EnvKeys.TOKEN)} chars)")
 
     if not EnvKeys.OWNER_ID:
-        report.add("OWNER_ID", "fail", "Not set — no admin can manage the bot")
+        report.add(
+            "OWNER_ID",
+            "warn" if api_only else "fail",
+            "Not set — no admin can manage the bot",
+            required=not api_only,
+        )
     else:
         try:
             int(EnvKeys.OWNER_ID)
             report.add("OWNER_ID", "pass", f"Set ({EnvKeys.OWNER_ID})")
         except ValueError:
-            report.add("OWNER_ID", "fail", f"Invalid — must be a number, got '{EnvKeys.OWNER_ID}'")
+            report.add(
+                "OWNER_ID",
+                "warn" if api_only else "fail",
+                f"Invalid — must be a number, got '{EnvKeys.OWNER_ID}'",
+                required=not api_only,
+            )
 
     # Database
     if os.getenv("POSTGRES_HOST") or os.path.exists("/.dockerenv"):
@@ -197,9 +241,11 @@ async def _check_telegram_api(report: PreflightReport):
     if not EnvKeys.TOKEN or EnvKeys.TOKEN == "your_bot_token_here":  # noqa: S105 — placeholder/marker string, not a secret
         return  # Already reported in env check
 
+    api_only = _web_api_only()
     try:
         from aiogram import Bot
         from aiogram.client.default import DefaultBotProperties
+        from aiogram.utils.token import TokenValidationError
 
         bot = Bot(token=EnvKeys.TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
         try:
@@ -207,14 +253,27 @@ async def _check_telegram_api(report: PreflightReport):
             report.add("Telegram API", "pass", f"Bot: @{me.username} (ID: {me.id})")
         finally:
             await bot.session.close()
+    except TokenValidationError:
+        report.add(
+            "Telegram API",
+            "warn" if api_only else "fail",
+            "TOKEN format is invalid — expected <numeric_bot_id>:<secret> from @BotFather",
+            required=not api_only,
+        )
     except Exception as e:
         err = str(e)[:100]
+        status: Status = "warn" if api_only else "fail"
         if "Unauthorized" in err:
-            report.add("Telegram API", "fail", "Token is invalid (401 Unauthorized)")
+            report.add("Telegram API", status, "Token is invalid (401 Unauthorized)", required=not api_only)
         elif "Network" in err or "Cannot connect" in err:
-            report.add("Telegram API", "fail", f"Cannot reach api.telegram.org: {err}")
+            report.add(
+                "Telegram API",
+                status,
+                f"Cannot reach api.telegram.org: {err}",
+                required=not api_only,
+            )
         else:
-            report.add("Telegram API", "fail", f"Error: {err}")
+            report.add("Telegram API", status, f"Error: {err}", required=not api_only)
 
 
 def _check_database(report: PreflightReport):
@@ -321,11 +380,27 @@ async def _check_telegram_groups(report: PreflightReport):
     """Verify kitchen/rider groups are accessible (if configured)."""
     if not EnvKeys.TOKEN or EnvKeys.TOKEN == "your_bot_token_here":  # noqa: S105 — placeholder/marker string, not a secret
         return
+    if not EnvKeys.KITCHEN_GROUP_ID and not EnvKeys.RIDER_GROUP_ID:
+        return
 
     from aiogram import Bot
     from aiogram.client.default import DefaultBotProperties
+    from aiogram.utils.token import TokenValidationError
 
-    bot = Bot(token=EnvKeys.TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
+    try:
+        bot = Bot(token=EnvKeys.TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
+    except TokenValidationError:
+        # Token format already failed (or will fail) Telegram API check — don't crash preflight
+        report.add(
+            "Telegram Groups",
+            "warn",
+            "Skipped — TOKEN format is invalid (expected <numeric_bot_id>:<secret>)",
+            required=False,
+        )
+        return
+    except Exception as e:
+        report.add("Telegram Groups", "warn", f"Skipped — cannot init Bot: {str(e)[:80]}", required=False)
+        return
 
     try:
         for name, group_id in [("Kitchen Group", EnvKeys.KITCHEN_GROUP_ID), ("Rider Group", EnvKeys.RIDER_GROUP_ID)]:
@@ -341,6 +416,87 @@ async def _check_telegram_groups(report: PreflightReport):
         await bot.session.close()
 
 
+def _check_web_oauth(report: PreflightReport) -> None:
+    """CARD-39: optional Google OAuth + session secrets for white-label portal."""
+    site = (os.getenv("PUBLIC_SITE_URL") or "").strip()
+    if site:
+        report.add("PUBLIC_SITE_URL", "pass", site, required=False)
+    else:
+        report.add(
+            "PUBLIC_SITE_URL",
+            "warn",
+            "Not set — OAuth callback redirects default to http://127.0.0.1:4321",
+            required=False,
+        )
+
+    secret = (os.getenv("WEB_SESSION_SECRET") or "").strip()
+    if not secret:
+        report.add(
+            "WEB_SESSION_SECRET",
+            "warn",
+            "Not set — sessions fall back to TOKEN (rotate before production)",
+            required=False,
+        )
+    elif secret in ("change-me", "local-dev-session-secret", "dev-insecure-session-secret"):
+        report.add(
+            "WEB_SESSION_SECRET",
+            "warn",
+            "Using weak/dev placeholder — set a long random secret for production",
+            required=False,
+        )
+    else:
+        report.add("WEB_SESSION_SECRET", "pass", f"Set ({len(secret)} chars)", required=False)
+
+    g_id = (os.getenv("OAUTH_GOOGLE_CLIENT_ID") or "").strip()
+    g_sec = (os.getenv("OAUTH_GOOGLE_CLIENT_SECRET") or "").strip()
+    redir = (os.getenv("OAUTH_GOOGLE_REDIRECT_URI") or "").strip()
+    if g_id and g_sec:
+        msg = "Google OAuth client configured"
+        if redir:
+            msg += f" · redirect {redir}"
+        elif site:
+            msg += f" · redirect defaults to {site.rstrip('/')}/api/public/auth/google/callback"
+        else:
+            msg += " · set OAUTH_GOOGLE_REDIRECT_URI for production"
+        report.add("OAUTH_GOOGLE", "pass", msg, required=False)
+    elif g_id or g_sec:
+        report.add(
+            "OAUTH_GOOGLE",
+            "warn",
+            "Partial Google OAuth env (need both CLIENT_ID and CLIENT_SECRET)",
+            required=False,
+        )
+    else:
+        report.add(
+            "OAUTH_GOOGLE",
+            "warn",
+            "Not configured — storefront login uses dev login only (OAUTH_DEV_LOGIN)",
+            required=False,
+        )
+
+    dev = os.getenv("OAUTH_DEV_LOGIN", "").lower() in ("1", "true", "yes")
+    if dev and g_id and g_sec:
+        report.add(
+            "OAUTH_DEV_LOGIN",
+            "warn",
+            "true while Google is configured — disable in production",
+            required=False,
+        )
+    elif dev:
+        report.add("OAUTH_DEV_LOGIN", "pass", "Enabled (local/dev only)", required=False)
+
+    secure = os.getenv("WEB_COOKIE_SECURE", "").lower() in ("1", "true", "yes")
+    if site.startswith("https://") and not secure:
+        report.add(
+            "WEB_COOKIE_SECURE",
+            "warn",
+            "PUBLIC_SITE_URL is HTTPS but WEB_COOKIE_SECURE is off — set true for Funnel/prod",
+            required=False,
+        )
+    elif secure:
+        report.add("WEB_COOKIE_SECURE", "pass", "Session cookies marked Secure", required=False)
+
+
 async def run_preflight() -> PreflightReport:
     """
     Run all preflight checks and return a report.
@@ -354,6 +510,7 @@ async def run_preflight() -> PreflightReport:
 
     # Sync checks
     _check_env_vars(report)
+    _check_web_oauth(report)
     _check_database(report)
     _check_data_integrity(report)
     _check_redis(report)

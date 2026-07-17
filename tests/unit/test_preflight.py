@@ -8,6 +8,7 @@ from bot.preflight import (
     _check_env_vars,
     _check_monitoring_port,
     _check_redis,
+    _check_web_oauth,
 )
 
 
@@ -47,6 +48,31 @@ class TestPreflightReport:
         report.add("A", "pass", "good")
         report.add("B", "fail", "broken", required=False)
         assert report.ok is True  # Optional failures don't block
+
+
+@pytest.mark.unit
+class TestWebOauthChecks:
+    def test_google_configured(self, monkeypatch):
+        monkeypatch.setenv("OAUTH_GOOGLE_CLIENT_ID", "x.apps.googleusercontent.com")
+        monkeypatch.setenv("OAUTH_GOOGLE_CLIENT_SECRET", "secret")
+        monkeypatch.setenv("PUBLIC_SITE_URL", "https://shop.example")
+        monkeypatch.setenv("WEB_SESSION_SECRET", "a-long-enough-random-secret-value")
+        monkeypatch.setenv("WEB_COOKIE_SECURE", "true")
+        monkeypatch.setenv("OAUTH_DEV_LOGIN", "false")
+        report = PreflightReport()
+        _check_web_oauth(report)
+        names = {c.name: c for c in report.checks}
+        assert names["OAUTH_GOOGLE"].status == "pass"
+        assert names["WEB_SESSION_SECRET"].status == "pass"
+        assert names["WEB_COOKIE_SECURE"].status == "pass"
+
+    def test_google_missing_is_warn(self, monkeypatch):
+        monkeypatch.delenv("OAUTH_GOOGLE_CLIENT_ID", raising=False)
+        monkeypatch.delenv("OAUTH_GOOGLE_CLIENT_SECRET", raising=False)
+        report = PreflightReport()
+        _check_web_oauth(report)
+        g = next(c for c in report.checks if c.name == "OAUTH_GOOGLE")
+        assert g.status == "warn"
 
 
 @pytest.mark.unit

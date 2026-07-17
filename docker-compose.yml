@@ -1,17 +1,26 @@
 version: '3.8'
 
 services:
-  # ── Tailscale VPN Gateway ───────────────────────────────────────────
-  # All admin-facing services (DB, Redis, monitoring) are reachable ONLY
-  # through the Tailscale network.  No ports are published to 0.0.0.0.
+  # ── Tailscale VPN Gateway + Serve/Funnel ────────────────────────────
+  # Host ports stay closed (nothing published to 0.0.0.0).
+  #
+  # Private (tailnet / MagicDNS):
+  #   psql / redis-cli / pgweb / raw :9090 via Tailscale IP or
+  #   telegram-shop.<tailnet>.ts.net (see deploy/tailscale/README.md)
+  #
+  # Public HTTPS (Funnel — default serve config):
+  #   https://telegram-shop.<tailnet>.ts.net/  → edge :8080 (Caddy)
+  #     /                 → Astro storefront (pretty site)
+  #     /api/*, /media/*  → bot public API
+  #     /health           → bot
   #
   # Setup:
-  #   1. Create an auth key at https://login.tailscale.com/admin/settings/keys
-  #      (reusable + ephemeral recommended)
-  #   2. Set TS_AUTHKEY in your .env file
-  #   3. After `docker compose up`, find this node in your Tailscale admin
-  #      console — it will appear as "telegram-shop"
-  #   4. Connect via Tailscale IP:  psql -h <tailscale-ip> -p 5432
+  #   1. MagicDNS + HTTPS certs ON in Tailscale DNS admin
+  #   2. Allow Funnel in ACLs (nodeAttrs attr "funnel") — see deploy/tailscale/
+  #   3. Create auth key: https://login.tailscale.com/admin/settings/keys
+  #   4. Set TS_AUTHKEY (+ strong MONITORING_API_KEY) in .env
+  #   5. docker compose up -d --build
+  #   6. Node name: telegram-shop  |  check: docker exec telegram_shop_tailscale tailscale funnel status
   #
   tailscale:
     image: tailscale/tailscale:latest
@@ -20,10 +29,14 @@ services:
     environment:
       TS_AUTHKEY: ${TS_AUTHKEY:-}
       TS_STATE_DIR: /var/lib/tailscale
-      TS_USERSPACE: true
+      TS_USERSPACE: "true"
       TS_EXTRA_ARGS: "--hostname=telegram-shop"
+      # Mount is ./deploy/tailscale → /config; file chosen via TS_SERVE_CONFIG_FILE
+      TS_SERVE_CONFIG: /config/${TS_SERVE_CONFIG_FILE:-serve-funnel.json}
     volumes:
       - tailscale_state:/var/lib/tailscale
+      # Directory mount required so Tailscale can watch config updates (fsnotify)
+      - ./deploy/tailscale:/config:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "tailscale", "status", "--json"]
@@ -40,7 +53,7 @@ services:
 
   # ── pgweb — Read-Only Database Explorer ────────────────────────────
   # Password-protected web UI for browsing the database schema and data.
-  # Access via Tailscale IP on port 8081.  Read-only mode prevents writes.
+  # Access via Tailscale only (NOT funnelled).
   pgweb:
     image: sosedoff/pgweb
     container_name: telegram_shop_pgweb
@@ -58,9 +71,10 @@ services:
       - bot_network
 
   # ── Tailscale TCP Proxy ─────────────────────────────────────────────
-  # Forwards Tailscale-accessible ports to internal Docker services.
-  # This lets you reach DB/Redis/monitoring via the Tailscale IP without
-  # exposing anything on the host's public interface.
+  # Forwards ports into the Tailscale network namespace:
+  #   8080 — Funnel edge (Caddy → storefront + API)
+  #   5432/6379/8081/9090 — tailnet-only admin / direct API
+  # Does not publish anything on the host's public interface.
   tailscale-proxy:
     image: alpine/socat:latest
     container_name: telegram_shop_ts_proxy
@@ -71,18 +85,73 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      bot:
+        condition: service_started
+      edge:
+        condition: service_started
     network_mode: "service:tailscale"
-    # Forward four ports from Tailscale interface → internal services
     entrypoint: /bin/sh
     command:
       - -c
       - |
+        socat TCP-LISTEN:8080,fork,reuseaddr TCP:edge:8080 &
         socat TCP-LISTEN:5432,fork,reuseaddr TCP:db:5432 &
         socat TCP-LISTEN:6379,fork,reuseaddr TCP:redis:6379 &
         socat TCP-LISTEN:9090,fork,reuseaddr TCP:bot:9090 &
         socat TCP-LISTEN:8081,fork,reuseaddr TCP:pgweb:8081 &
         wait
     restart: unless-stopped
+
+  # ── Edge reverse proxy (Funnel target) ──────────────────────────────
+  # Pretty storefront on / + public API/media/health on bot paths.
+  edge:
+    image: caddy:2-alpine
+    container_name: telegram_shop_edge
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      bot:
+        condition: service_started
+      storefront:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - bot_network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Astro white-label storefront (pretty site) ─────────────────────
+  storefront:
+    build:
+      context: ./apps/storefront
+      dockerfile: Dockerfile
+      args:
+        PUBLIC_API_BASE: ""
+        PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://telegram-shop-1.tail31319c.ts.net}
+    container_name: telegram_shop_storefront
+    environment:
+      HOST: 0.0.0.0
+      PORT: 4321
+      # SSR catalog fetches inside Docker network
+      API_INTERNAL_BASE: http://bot:9090
+      PUBLIC_API_BASE: ""
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://telegram-shop-1.tail31319c.ts.net}
+    depends_on:
+      bot:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - bot_network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4321/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
   redis:
     image: redis:7-alpine
@@ -148,6 +217,21 @@ services:
       # Logging configuration
       LOG_TO_STDOUT: 1
       LOG_TO_FILE: 1
+      # WEB_API_ONLY=1 → public HTTP API only (no Telegram). Use when TOKEN is
+      # missing/invalid so Tailscale Funnel /health and catalog still work.
+      WEB_API_ONLY: ${WEB_API_ONLY:-0}
+      # Absolute media URLs for catalog images on the Funnel site (optional;
+      # empty → relative /media/... which works via Caddy same-origin)
+      PUBLIC_MEDIA_BASE_URL: ${PUBLIC_MEDIA_BASE_URL:-}
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://telegram-shop-1.tail31319c.ts.net}
+      # CARD-39 web OAuth + session (also loaded via env_file; explicit for clarity)
+      WEB_SESSION_SECRET: ${WEB_SESSION_SECRET:-}
+      WEB_COOKIE_SECURE: ${WEB_COOKIE_SECURE:-true}
+      OAUTH_DEV_LOGIN: ${OAUTH_DEV_LOGIN:-false}
+      OAUTH_GOOGLE_CLIENT_ID: ${OAUTH_GOOGLE_CLIENT_ID:-}
+      OAUTH_GOOGLE_CLIENT_SECRET: ${OAUTH_GOOGLE_CLIENT_SECRET:-}
+      OAUTH_GOOGLE_REDIRECT_URI: ${OAUTH_GOOGLE_REDIRECT_URI:-}
+      OAUTH_LINK_BY_EMAIL: ${OAUTH_LINK_BY_EMAIL:-true}
     # No public ports — monitoring accessible via Tailscale only
     volumes:
       - ./data:/app/data
