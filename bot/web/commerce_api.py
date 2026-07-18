@@ -192,16 +192,26 @@ async def customer_delivery(request: web.Request) -> web.Response:
     sess = _session(request) or {}
     res = checkout_svc.ensure_delivery_profile(
         user_id,
-        username=sess.get("name") or sess.get("email") or "",
+        display_name=sess.get("name") or sess.get("email") or "",
         phone_number=body.get("phone") or body.get("phone_number"),
         delivery_address=body.get("address") or body.get("delivery_address"),
         delivery_note=body.get("note") or body.get("delivery_note"),
         latitude=body.get("latitude"),
         longitude=body.get("longitude"),
+        maps_url=body.get("maps_url") or body.get("google_maps_link"),
+        location_text=body.get("location_text"),
     )
     if not res.ok:
         return _fail(res)
-    return web.json_response({"ok": True})
+    return web.json_response(
+        {
+            "ok": True,
+            "has_gps": bool((res.data or {}).get("has_gps")),
+            "latitude": (res.data or {}).get("latitude"),
+            "longitude": (res.data or {}).get("longitude"),
+            "delivery_address": (res.data or {}).get("delivery_address"),
+        }
+    )
 
 
 async def checkout_create(request: web.Request) -> web.Response:
@@ -252,15 +262,25 @@ async def checkout_create(request: web.Request) -> web.Response:
     phone = body.get("phone") or body.get("phone_number")
     address = body.get("address") or body.get("delivery_address")
     note = body.get("note") or body.get("delivery_note")
-    if phone or address or note or body.get("latitude") is not None:
+    maps_url = body.get("maps_url") or body.get("google_maps_link")
+    if (
+        phone
+        or address
+        or note
+        or maps_url
+        or body.get("latitude") is not None
+        or body.get("longitude") is not None
+    ):
         prof = checkout_svc.ensure_delivery_profile(
             user_id,
-            username=sess.get("name") or sess.get("email") or "",
+            display_name=sess.get("name") or sess.get("email") or "",
             phone_number=phone,
             delivery_address=address,
             delivery_note=note,
             latitude=body.get("latitude"),
             longitude=body.get("longitude"),
+            maps_url=maps_url,
+            location_text=body.get("location_text"),
         )
         if not prof.ok:
             return _fail(prof)

@@ -459,38 +459,61 @@ def start_crypto_order(
 def ensure_delivery_profile(
     user_id: int,
     *,
+    display_name: str | None = None,
     username: str | None = None,
     phone_number: str | None = None,
     delivery_address: str | None = None,
     delivery_note: str | None = None,
     latitude: float | None = None,
     longitude: float | None = None,
+    maps_url: str | None = None,
+    location_text: str | None = None,
 ) -> ServiceResult:
     """
     Create/update CustomerInfo used by ``create_pending_order``.
 
-    Web and TG adapters both call this so checkout reads the same profile row.
+    All adapters (web, TG, IG, LINE) call this so checkout reads the same profile.
+    Optional *maps_url* / *location_text* are normalized via ``bot.utils.location``
+    (GPS preferred over free-text for dispatch).
     """
     from bot.export.customer_csv import create_or_update_customer_info
+    from bot.utils.location import normalize_delivery_input
+
+    label = display_name if display_name is not None else username
+    addr = delivery_address
+    lat, lng = latitude, longitude
+
+    # Normalize Maps URL / bare coords / free text when adapters pass raw channel input
+    if maps_url or location_text or (addr and latitude is None and longitude is None):
+        loc = normalize_delivery_input(
+            text=location_text or addr,
+            latitude=latitude,
+            longitude=longitude,
+            maps_url=maps_url,
+            landmark=delivery_address if location_text else None,
+        )
+        if loc is not None:
+            addr = loc.delivery_address
+            lat = loc.latitude if loc.latitude is not None else lat
+            lng = loc.longitude if loc.longitude is not None else lng
 
     try:
         create_or_update_customer_info(
-            telegram_id=user_id,
-            username=username or "",
+            user_id=user_id,
+            display_name=label or "",
             phone_number=phone_number,
-            delivery_address=delivery_address,
+            delivery_address=addr,
             delivery_note=delivery_note,
+            latitude=lat,
+            longitude=lng,
         )
-        if latitude is not None or longitude is not None:
-            with Database().session() as session:
-                row = session.query(CustomerInfo).filter_by(telegram_id=user_id).first()
-                if row:
-                    if latitude is not None:
-                        row.latitude = latitude
-                    if longitude is not None:
-                        row.longitude = longitude
-                    session.commit()
-        return ServiceResult.success(user_id=user_id)
+        return ServiceResult.success(
+            user_id=user_id,
+            latitude=lat,
+            longitude=lng,
+            delivery_address=addr,
+            has_gps=lat is not None and lng is not None,
+        )
     except Exception as e:
         logger.exception("ensure_delivery_profile failed user_id=%s", user_id)
         return ServiceResult.fail("order.customer.profile_error", error_detail=str(e))

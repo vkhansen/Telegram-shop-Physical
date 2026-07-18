@@ -332,3 +332,25 @@ def test_checkout_missing_customer_fails(test_user, test_goods, db_engine):
     )
     assert not result.ok
     assert result.error_key == "order.payment.customer_not_found"
+
+
+def test_ensure_delivery_profile_normalizes_maps_url(test_user, db_engine):
+    """GPS extracted from Maps URL — same path for web/IG/LINE/TG adapters."""
+    from bot.database.models.main import CustomerInfo
+
+    res = checkout_svc.ensure_delivery_profile(
+        test_user.telegram_id,
+        display_name="web:tester",
+        phone_number="+66812345678",
+        maps_url="https://www.google.com/maps?q=13.7563,100.5018",
+        delivery_note="note",
+    )
+    assert res.ok
+    assert res.data.get("has_gps") is True
+    assert abs(float(res.data["latitude"]) - 13.7563) < 1e-6
+    assert abs(float(res.data["longitude"]) - 100.5018) < 1e-6
+
+    with Database().session() as s:
+        row = s.query(CustomerInfo).filter_by(telegram_id=test_user.telegram_id).one()
+        assert abs(float(row.latitude) - 13.7563) < 1e-6
+        assert abs(float(row.longitude) - 100.5018) < 1e-6

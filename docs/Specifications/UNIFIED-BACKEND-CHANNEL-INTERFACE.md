@@ -47,6 +47,9 @@ Every customer-facing capability (catalog, cart, checkout, tickets, leads, booki
 
 If a PR adds a feature only reachable from Telegram handlers without a service, **reject or extract first**.
 
+**Gap analysis & location/identity enforcement (2026-07-18):**  
+[`PLATFORM-ABSTRACTION-GAP-ANALYSIS.md`](PLATFORM-ABSTRACTION-GAP-ANALYSIS.md) · shared `bot/utils/location.py` · `user_id` + `display_name` on delivery profile · boundary tests under `tests/unit/platform/test_abstraction_boundaries.py`.
+
 ---
 
 ## 3. Target architecture

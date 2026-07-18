@@ -17,13 +17,14 @@ from bot.channels.line.messenger import LineMessenger
 from bot.channels.line.qr_host import store_qr_png
 from bot.channels.line.session import LineSession, SessionStore, default_session_store
 from bot.platform.capabilities import can, cap_enabled, resolve_capabilities
-from bot.platform.identity import ensure_line_user
+from bot.platform.identity import PLATFORM_LINE, display_name, ensure_line_user
 from bot.platform.messaging import ButtonSpec
 from bot.services import cart as cart_svc
 from bot.services import catalog_public as catalog
 from bot.services import checkout as checkout_svc
 from bot.services import order_query
 from bot.services import tickets as tickets_svc
+from bot.utils.location import normalize_delivery_input
 
 logger = logging.getLogger(__name__)
 
@@ -531,15 +532,28 @@ class LineAdapter:
                 return
             sess.data["phone"] = phone
             sess.state = "checkout_address"
-            await self._reply(line_uid, "Send your delivery address (text):")
+            await self._reply(
+                line_uid,
+                "Send delivery location:\n"
+                "• Google Maps link, or\n"
+                "• coordinates (e.g. 13.7563,100.5018), or\n"
+                "• address + landmark (GPS preferred in Thailand).",
+            )
             return
 
         if sess.state == "checkout_address":
-            addr = (text or "").strip()
-            if len(addr) < 5:
-                await self._reply(line_uid, "Please send a fuller delivery address.")
+            loc = normalize_delivery_input(text=(text or "").strip())
+            if loc is None:
+                await self._reply(
+                    line_uid,
+                    "Please send a Maps link, lat,lng, or a fuller address (5+ chars).",
+                )
                 return
-            sess.data["address"] = addr
+            sess.data["address"] = loc.delivery_address
+            sess.data["latitude"] = loc.latitude
+            sess.data["longitude"] = loc.longitude
+            sess.data["google_maps_link"] = loc.google_maps_link
+            sess.data["location_source"] = loc.source
             sess.state = "checkout_pay"
             pays = []
             if can(_CHANNEL, "payment_cash") and cap_enabled(caps, "payment_cash"):
@@ -547,7 +561,12 @@ class LineAdapter:
             if can(_CHANNEL, "payment_promptpay") and cap_enabled(caps, "payment_promptpay"):
                 pays.append(R.postback_item("PromptPay", "LN_PAY_PROMPTPAY", "PromptPay"))
             pays.append(R.postback_item("Cancel", "LN_CANCEL", "Cancel"))
-            await self._reply(line_uid, "Choose payment method:", quick_items=pays or R.payment_items())
+            gps_note = "📍 GPS saved. " if loc.has_gps else "⚠️ No GPS — pin/Maps link preferred. "
+            await self._reply(
+                line_uid,
+                f"{gps_note}Choose payment method:",
+                quick_items=pays or R.payment_items(),
+            )
             return
 
         if sess.state == "checkout_pay":
@@ -585,12 +604,16 @@ class LineAdapter:
             return
         items = cart.data.get("items") or []
         total = cart.data.get("total_decimal") or Decimal(str(cart.data.get("total") or 0))
+        label = display_name(PLATFORM_LINE, line_uid)
         checkout_svc.ensure_delivery_profile(
             user_id,
-            username=f"line:{line_uid[:24]}",
+            display_name=label,
             phone_number=sess.data.get("phone"),
             delivery_address=sess.data.get("address"),
             delivery_note="line",
+            latitude=sess.data.get("latitude"),
+            longitude=sess.data.get("longitude"),
+            maps_url=sess.data.get("google_maps_link"),
         )
         brand_id = (ctx or {}).get("brand_id")
         store_id = (ctx or {}).get("store_id")
@@ -609,7 +632,7 @@ class LineAdapter:
                 user_id,
                 plain_items,
                 total_amount=total,
-                username=f"line:{line_uid[:24]}",
+                username=label,
                 brand_id=brand_id,
                 store_id=store_id,
             )
@@ -618,7 +641,7 @@ class LineAdapter:
                 user_id,
                 plain_items,
                 total_amount=total,
-                username=f"line:{line_uid[:24]}",
+                username=label,
                 brand_id=brand_id,
                 store_id=store_id,
             )

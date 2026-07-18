@@ -1,6 +1,5 @@
 import contextlib
 import html
-import re
 from datetime import UTC
 from decimal import Decimal
 from urllib.parse import quote_plus
@@ -40,25 +39,13 @@ router = Router()
 
 
 # ---------------------------------------------------------------------------
-# Helper: extract lat/lng from Google Maps URLs
+# Location helpers — re-export shared channel-agnostic util (do not reimplement)
 # ---------------------------------------------------------------------------
-_MAPS_COORD_PATTERNS = [
-    re.compile(r"@(-?\d+\.\d+),(-?\d+\.\d+)"),  # maps/@lat,lng
-    re.compile(r"q=(-?\d+\.\d+),(-?\d+\.\d+)"),  # maps?q=lat,lng
-    re.compile(r"ll=(-?\d+\.\d+),(-?\d+\.\d+)"),  # ll=lat,lng
-    re.compile(r"/(-?\d+\.\d+),(-?\d+\.\d+)"),  # generic /lat,lng in path
-]
-
-
-def _extract_coords_from_url(url: str):
-    """Return (lat, lng) floats or None if no coords found."""
-    for pat in _MAPS_COORD_PATTERNS:
-        m = pat.search(url)
-        if m:
-            lat, lng = float(m.group(1)), float(m.group(2))
-            if -90 <= lat <= 90 and -180 <= lng <= 180:
-                return lat, lng
-    return None
+from bot.utils.location import (  # noqa: E402
+    extract_coords_from_url as _extract_coords_from_url,
+    looks_like_maps_url,
+    normalize_delivery_input,
+)
 
 
 async def show_location_method_choice(target, state: FSMContext, *, edit: bool = False):
@@ -133,16 +120,12 @@ async def loc_method_type_address(call: CallbackQuery, state: FSMContext):
 @router.message(OrderStates.waiting_location, F.location)
 async def process_location(message: Message, state: FSMContext):
     """Process shared GPS location"""
-    lat = message.location.latitude
-    lng = message.location.longitude
-    maps_link = f"https://www.google.com/maps?q={lat},{lng}"
-
-    await state.update_data(
-        latitude=lat,
-        longitude=lng,
-        google_maps_link=maps_link,
-        delivery_address=maps_link,
+    loc = normalize_delivery_input(
+        latitude=message.location.latitude,
+        longitude=message.location.longitude,
     )
+    assert loc is not None
+    await state.update_data(**loc.as_state_dict())
 
     await message.answer(localize("order.delivery.location_saved"), reply_markup=ReplyKeyboardRemove())
 
@@ -179,16 +162,14 @@ async def location_not_shared(message: Message, state: FSMContext):
 @router.message(OrderStates.waiting_live_location, F.location)
 async def process_live_location(message: Message, state: FSMContext):
     """Process shared live location"""
-    lat = message.location.latitude
-    lng = message.location.longitude
-    maps_link = f"https://www.google.com/maps?q={lat},{lng}"
+    loc = normalize_delivery_input(
+        latitude=message.location.latitude,
+        longitude=message.location.longitude,
+    )
+    assert loc is not None
     is_live = bool(message.location.live_period)
-
     await state.update_data(
-        latitude=lat,
-        longitude=lng,
-        google_maps_link=maps_link,
-        delivery_address=maps_link,
+        **loc.as_state_dict(),
         live_location_message_id=message.message_id if is_live else None,
         live_location_shared=is_live,
     )
@@ -215,36 +196,20 @@ async def live_location_not_shared(message: Message, state: FSMContext):
 
 @router.message(OrderStates.waiting_google_maps_link)
 async def process_google_maps_link(message: Message, state: FSMContext):
-    """Parse coordinates from a Google Maps link"""
+    """Parse coordinates from a Google Maps link (shared location util)."""
     text = (message.text or "").strip()
 
-    # Basic URL validation
-    if not text or not any(
-        domain in text.lower() for domain in ["google.com/maps", "maps.google", "goo.gl/maps", "maps.app.goo.gl"]
-    ):
+    if not text or not looks_like_maps_url(text):
         await message.answer(localize("order.delivery.google_link_invalid"), reply_markup=back("view_cart"))
         return
 
-    coords = _extract_coords_from_url(text)
-    if coords:
-        lat, lng = coords
-        maps_link = f"https://www.google.com/maps?q={lat},{lng}"
-        await state.update_data(
-            latitude=lat,
-            longitude=lng,
-            google_maps_link=maps_link,
-            delivery_address=maps_link,
-        )
-        await message.answer(localize("order.delivery.location_saved"))
-        await ask_delivery_type(message, state)
-    else:
-        # Could not extract coords — save the link as-is and ask user to confirm
-        await state.update_data(
-            google_maps_link=text,
-            delivery_address=text,
-        )
-        await message.answer(localize("order.delivery.location_saved"))
-        await ask_delivery_type(message, state)
+    loc = normalize_delivery_input(maps_url=text, text=text)
+    if loc is None:
+        await message.answer(localize("order.delivery.google_link_invalid"), reply_markup=back("view_cart"))
+        return
+    await state.update_data(**loc.as_state_dict())
+    await message.answer(localize("order.delivery.location_saved"))
+    await ask_delivery_type(message, state)
 
 
 # ---------------------------------------------------------------------------

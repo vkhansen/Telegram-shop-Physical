@@ -181,6 +181,25 @@ def ensure_line_user(line_user_id: str, *, locale: str | None = None) -> int:
     return ensure_platform_user(PLATFORM_LINE, line_user_id, locale=locale)
 
 
+def display_name(platform: str, external_id: str, *, handle: str | None = None) -> str:
+    """
+    Staff-facing label for a channel identity — **not** an auth key.
+
+    Prefer *handle* (public username) when known; otherwise ``platform:external_id``.
+    Never use this string as cart/order/ticket ownership.
+    """
+    platform = (platform or "").strip().lower() or "user"
+    ext = str(external_id or "").strip()
+    h = (handle or "").strip().lstrip("@")
+    if h:
+        return f"{platform}:@{h}"[:120]
+    if not ext:
+        return platform
+    # Keep labels short for CSV / admin UI
+    short = ext if len(ext) <= 32 else f"{ext[:12]}…{ext[-8:]}"
+    return f"{platform}:{short}"[:120]
+
+
 def backfill_telegram_identities(*, session: Any | None = None) -> int:
     """
     Create missing ``platform=telegram`` rows for all users.

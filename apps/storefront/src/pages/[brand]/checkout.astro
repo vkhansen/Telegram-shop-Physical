@@ -70,16 +70,40 @@ const cartUrl = `/${brandSlug}/cart`;
           />
         </label>
         <label class="block text-sm">
-          <span class="text-ink-500">Address</span>
+          <span class="text-ink-500">Address / landmark</span>
           <textarea
             name="address"
             required
             rows="2"
-            placeholder="Street, soi, district, Bangkok"
+            placeholder="Street, soi, district, Bangkok — or paste GPS"
             class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
             data-testid="checkout-address"
           ></textarea>
         </label>
+        <label class="block text-sm">
+          <span class="text-ink-500">Google Maps link (preferred)</span>
+          <input
+            name="maps_url"
+            type="url"
+            inputmode="url"
+            placeholder="https://maps.google.com/… or maps.app.goo.gl/…"
+            class="mt-1 w-full rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 outline-none focus:border-accent"
+            data-testid="checkout-maps"
+          />
+        </label>
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            id="use-gps"
+            class="rounded-xl border border-ink-700 px-3 py-2 text-xs font-medium text-sand-200 hover:border-accent"
+            data-testid="checkout-use-gps"
+          >
+            Use my GPS
+          </button>
+          <span id="gps-status" class="text-xs text-ink-500" data-testid="checkout-gps-status"></span>
+        </div>
+        <input type="hidden" name="latitude" id="latitude" data-testid="checkout-lat" />
+        <input type="hidden" name="longitude" id="longitude" data-testid="checkout-lng" />
         <label class="block text-sm">
           <span class="text-ink-500">Note (optional)</span>
           <input
@@ -248,34 +272,74 @@ const cartUrl = `/${brandSlug}/cart`;
     if (summaryTotal) summaryTotal.textContent = `Total ${cart.data.total}`;
   })();
 
+  const latInput = document.getElementById("latitude");
+  const lngInput = document.getElementById("longitude");
+  const gpsStatus = document.getElementById("gps-status");
+  document.getElementById("use-gps")?.addEventListener("click", () => {
+    if (!navigator.geolocation) {
+      if (gpsStatus) gpsStatus.textContent = "Geolocation not supported.";
+      return;
+    }
+    if (gpsStatus) gpsStatus.textContent = "Getting location…";
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (latInput) latInput.value = String(pos.coords.latitude);
+        if (lngInput) lngInput.value = String(pos.coords.longitude);
+        if (gpsStatus) {
+          gpsStatus.textContent = `GPS ${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
+        }
+      },
+      () => {
+        if (gpsStatus) gpsStatus.textContent = "GPS denied — paste a Maps link instead.";
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  });
+
   form?.addEventListener("submit", async (e) => {
     e.preventDefault();
     clearErr();
     const fd = new FormData(form);
     const phone = String(fd.get("phone") || "").trim();
     const address = String(fd.get("address") || "").trim();
+    const maps_url = String(fd.get("maps_url") || "").trim();
     const note = String(fd.get("note") || "").trim();
     const delivery_type = String(fd.get("delivery_type") || "door");
     const payment_method = String(fd.get("payment_method") || "cash");
+    const latRaw = String(fd.get("latitude") || "").trim();
+    const lngRaw = String(fd.get("longitude") || "").trim();
+    const latitude = latRaw ? Number(latRaw) : undefined;
+    const longitude = lngRaw ? Number(lngRaw) : undefined;
 
-    if (!phone || !address) {
-      showErr("Phone and address are required.");
+    if (!phone || (!address && !maps_url && latitude == null)) {
+      showErr("Phone and a location (address, Maps link, or GPS) are required.");
       return;
     }
 
     submitBtn && (submitBtn.disabled = true);
     if (submitBtn) submitBtn.textContent = "Placing order…";
 
-    // C-12: ensure delivery profile (same as TG customer info)
+    // C-12: ensure delivery profile (same CustomerInfo all channels write)
+    const delivBody = {
+      phone,
+      address: address || undefined,
+      note: note || undefined,
+      maps_url: maps_url || undefined,
+      latitude: Number.isFinite(latitude) ? latitude : undefined,
+      longitude: Number.isFinite(longitude) ? longitude : undefined,
+    };
     const deliv = await api("/api/public/customer/delivery", {
       method: "POST",
-      body: JSON.stringify({ phone, address, note }),
+      body: JSON.stringify(delivBody),
     });
     if (!deliv.res.ok) {
       showErr(human(deliv.data, deliv.res.status));
       submitBtn && (submitBtn.disabled = false);
       if (submitBtn) submitBtn.textContent = "Place order";
       return;
+    }
+    if (deliv.data?.has_gps && gpsStatus) {
+      gpsStatus.textContent = `GPS saved · ${deliv.data.latitude}, ${deliv.data.longitude}`;
     }
 
     // C-13 / C-14
@@ -285,8 +349,11 @@ const cartUrl = `/${brandSlug}/cart`;
       payment_method,
       delivery_type,
       phone,
-      address,
+      address: address || deliv.data?.delivery_address || undefined,
+      maps_url: maps_url || undefined,
       note: note || undefined,
+      latitude: Number.isFinite(latitude) ? latitude : deliv.data?.latitude,
+      longitude: Number.isFinite(longitude) ? longitude : deliv.data?.longitude,
     };
     const co = await api("/api/public/checkout", {
       method: "POST",

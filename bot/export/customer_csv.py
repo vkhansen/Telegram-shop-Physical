@@ -98,27 +98,38 @@ def get_username_by_telegram_id(telegram_id: int) -> str | None:
 
 
 def create_or_update_customer_info(
-    telegram_id: int,
-    username: str,
+    user_id: int | None = None,
+    display_name: str = "",
     phone_number: str | None = None,
     delivery_address: str | None = None,
     delivery_note: str | None = None,
+    latitude: float | None = None,
+    longitude: float | None = None,
+    *,
+    telegram_id: int | None = None,
+    username: str | None = None,
 ) -> bool:
     """
-    Create or update customer information in database
+    Create or update customer delivery profile (channel-agnostic).
 
     Args:
-        telegram_id: Telegram ID
-        username: Telegram username
-        phone_number: Phone number
-        delivery_address: Delivery address
-        delivery_note: Delivery note
+        user_id: Internal user id (physical column ``users.telegram_id`` / CustomerInfo PK).
+        display_name: Staff-facing label only — not an identity key.
+        phone_number / delivery_address / delivery_note: profile fields.
+        latitude / longitude: GPS when known (preferred for dispatch).
+        telegram_id: Deprecated alias for *user_id*.
+        username: Deprecated alias for *display_name*.
 
     Returns:
         True if created, False if updated
     """
+    uid = user_id if user_id is not None else telegram_id
+    if uid is None:
+        raise TypeError("user_id is required")
+    label = display_name if display_name else (username or "")
+
     with Database().session() as session:
-        customer = session.query(CustomerInfo).filter_by(telegram_id=telegram_id).first()
+        customer = session.query(CustomerInfo).filter_by(telegram_id=int(uid)).first()
 
         if customer:
             # Update existing customer
@@ -142,26 +153,37 @@ def create_or_update_customer_info(
                 changes.append(("NOTE", old_note, delivery_note))
                 customer.delivery_note = delivery_note
 
+            if latitude is not None and customer.latitude != latitude:
+                changes.append(("LAT", str(customer.latitude), str(latitude)))
+                customer.latitude = latitude
+            if longitude is not None and customer.longitude != longitude:
+                changes.append(("LNG", str(customer.longitude), str(longitude)))
+                customer.longitude = longitude
+
             session.commit()
 
             # Log changes
             for attr, old_val, new_val in changes:
-                log_customer_info_change(telegram_id, username, attr, old_val, new_val)
+                log_customer_info_change(int(uid), label, attr, old_val, new_val)
 
         else:
             # Create new customer
             is_new = True
             customer = CustomerInfo(
-                telegram_id=telegram_id,
+                telegram_id=int(uid),
                 phone_number=phone_number,
                 delivery_address=delivery_address,
                 delivery_note=delivery_note,
             )
+            if latitude is not None:
+                customer.latitude = latitude
+            if longitude is not None:
+                customer.longitude = longitude
             session.add(customer)
             session.commit()
 
     # Sync to CSV
-    sync_customer_to_csv(telegram_id, username)
+    sync_customer_to_csv(int(uid), label)
 
     return is_new
 

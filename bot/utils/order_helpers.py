@@ -33,9 +33,9 @@ class CustomerInfoLike(Protocol):
 
 def build_google_maps_link(latitude: float | None, longitude: float | None) -> str | None:
     """Generate Google Maps link from coordinates, or None if no GPS data."""
-    if latitude is not None and longitude is not None:
-        return f"https://www.google.com/maps?q={latitude},{longitude}"
-    return None
+    from bot.utils.location import build_maps_link
+
+    return build_maps_link(latitude, longitude)
 
 
 def create_order_from_customer(

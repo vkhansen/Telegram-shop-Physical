@@ -28,7 +28,8 @@
 | **CARD-33 Instagram** | **~55% open** — foundation in `bot/channels/instagram/`; Meta + slip polish · [PACKAGE-instagram](Specifications/flows/PACKAGE-instagram.md) |
 | **CARD-16 LINE** | **✅ code done** — Flex/QR host/Redis/multi-OA; **ops:** live tokens + HTTPS media base · [done/CARD-16](done/CARD-16-line-api-integration.md) |
 | **CARD-34 specs** | **✅ done** — flows C-01–C-24 + cross-cutting + IG/LINE packages · [done/CARD-34](done/CARD-34-conversation-workflow-specifications.md) |
-| **Next slice** | **Paste Google secrets** ([CARD-42](done/CARD-42-google-oauth-credentials-runbook.md)) · or CARD-33 · or LINE go-live |
+| **Platform abstraction** | Gap analysis + location/delivery profile enforcement — [PLATFORM-ABSTRACTION-GAP-ANALYSIS.md](Specifications/PLATFORM-ABSTRACTION-GAP-ANALYSIS.md) · `bot/utils/location.py` |
+| **Next slice** | Meta IG go-live tokens · remaining G7 TG handler→service migration · or Google OAuth paste |
 | **Git** | `master` @ `8b110dc` pushed to `origin` |
 | **Runtime** | **Docker + Tailscale Funnel only** — not local :9090/:4321 |
 | **Funnel URL** | https://telegram-shop-1.tail31319c.ts.net/ · demos `/snus-demo` `/coffee-demo` `/food-demo` `/herb-demo` `/bakery-demo` `/grocery-demo` |
