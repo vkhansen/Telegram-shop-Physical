@@ -5,6 +5,7 @@ from decimal import Decimal
 import pytest
 
 from bot.database.models.main import BranchInventory, Brand, Categories, Goods, Store
+from bot.platform.capabilities import resolve_capabilities
 from bot.services.catalog_public import (
     get_brand_public,
     get_store_item,
@@ -14,7 +15,7 @@ from bot.services.catalog_public import (
     resolve_item_cta,
     slugify,
 )
-from bot.services.web_profile import normalize_commerce_mode, validate_brand_web_profile
+from bot.services.web_profile import effective_commerce_mode, normalize_commerce_mode, validate_brand_web_profile
 
 
 @pytest.fixture
@@ -132,6 +133,8 @@ def test_slugify():
 
 def test_commerce_mode_normalize():
     assert normalize_commerce_mode("PORTFOLIO") == "portfolio"
+    assert normalize_commerce_mode("online_store_only") == "online_store_only"
+    assert normalize_commerce_mode("shipping_only") == "shipping_only"
     assert normalize_commerce_mode("nope") == "full_store"
 
 
@@ -140,6 +143,16 @@ def test_resolve_cta():
     assert resolve_item_cta(commerce_mode="full_store", web_orderable=True, inquiry_only=False) == "order"
     assert resolve_item_cta(commerce_mode="hybrid", web_orderable=False, inquiry_only=False) == "inquire"
     assert resolve_item_cta(commerce_mode="full_store", web_orderable=True, inquiry_only=True) == "inquire"
+
+
+def test_effective_shipping_only_mode(monkeypatch):
+    monkeypatch.setenv("SHOP_MODE", "shipping_only")
+    assert effective_commerce_mode("full_store") == "full_store"
+    assert effective_commerce_mode(None) == "shipping_only"
+    caps = resolve_capabilities(commerce_mode="full_store", age_gate_enabled=False, web_profile={}, channel="web")
+    assert caps["checkout"] is True
+    assert caps["delivery_chat"] is False
+    assert caps["location_live"] is False
 
 
 def test_web_profile_validate():

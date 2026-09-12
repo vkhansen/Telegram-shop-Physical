@@ -26,6 +26,11 @@ class EnvKeys:
     LOG_TO_FILE: Final = os.getenv("LOG_TO_FILE", "1")
     DEBUG: Final = os.getenv("DEBUG", "0")
 
+    # Deployment / store mode
+    DEPLOY_REGION: Final = os.getenv("DEPLOY_REGION", "singapore").strip().lower() or "singapore"
+    SHOP_MODE: Final = os.getenv("SHOP_MODE", "full_store").strip().lower() or "full_store"
+    SHOP_IS_SHIPPING_ONLY: Final = SHOP_MODE in {"shipping_only", "online_store_only"}
+
     # Redis
     REDIS_HOST: Final = os.getenv("REDIS_HOST")
     REDIS_PORT: Final = int(os.getenv("REDIS_PORT", 6379))

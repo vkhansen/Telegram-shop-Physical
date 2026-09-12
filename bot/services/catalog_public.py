@@ -17,7 +17,7 @@ from bot.database.main import Database
 from bot.database.models.main import BranchInventory, Brand, Categories, Goods, Store
 from bot.platform.capabilities import channel_status, resolve_capabilities
 from bot.platform.media_ref import media_url_for_ref
-from bot.services.web_profile import normalize_commerce_mode
+from bot.services.web_profile import effective_commerce_mode
 
 
 def slugify(text: str, *, max_len: int = 70) -> str:
@@ -71,7 +71,7 @@ def resolve_item_cta(
     inquiry_only: bool,
 ) -> str:
     """Return primary CTA key for storefront UI."""
-    mode = normalize_commerce_mode(commerce_mode)
+    mode = effective_commerce_mode(commerce_mode)
     if inquiry_only or mode == "portfolio":
         return "inquire"
     if mode == "hybrid" and not web_orderable:

@@ -35,7 +35,7 @@ from __future__ import annotations
 from typing import Any
 
 from bot.platform.channels import DEFAULT_CHANNEL_ENABLED, normalize_channel
-from bot.services.web_profile import normalize_commerce_mode
+from bot.services.web_profile import effective_commerce_mode, normalize_commerce_mode
 
 # ---------------------------------------------------------------------------
 # Unified capability catalog (CARD-31 + CARD-40)
@@ -405,17 +405,23 @@ def base_capabilities_from_brand(
     web_profile: dict[str, Any] | None,
 ) -> dict[str, bool]:
     """Channel-agnostic base mask from brand columns + modules."""
-    mode = normalize_commerce_mode(commerce_mode)
+    mode = effective_commerce_mode(commerce_mode)
     web = _as_dict(web_profile)
     modules = _as_dict(web.get("modules"))
 
     caps: dict[str, bool] = {k: True for k in CAPABILITY_KEYS}
     caps["age_gate"] = bool(age_gate_enabled)
-    caps["checkout"] = mode in ("full_store", "hybrid")
+    caps["checkout"] = mode in ("full_store", "hybrid", "shipping_only", "online_store_only")
     caps["portfolio"] = mode in ("portfolio", "hybrid")
-    # Portfolio-first: still show catalog but not checkout when pure portfolio
+    # Portfolio-first: still show catalog but not checkout when pure portfolio.
+    # Shipping-only / online-store-only remain orderable storefronts, but they are 
+    # shipping-only (no pickup or local dispatch mask).
     if mode == "portfolio":
         caps["checkout"] = False
+    if mode in ("shipping_only", "online_store_only"):
+        caps["delivery_chat"] = False
+        caps["location_live"] = False
+        caps["driver_dispatch"] = False
 
     # Cart + payments follow checkout for brand base
     caps["cart"] = caps["checkout"]
@@ -509,6 +515,16 @@ def resolve_capabilities(
             caps[ck] = ck in allowed
         else:
             caps[ck] = False
+
+    # Deployment-level mask: shipping-only storefronts remain orderable, but they
+    # must not expose pickup/local dispatch features even if the brand data says
+    # otherwise. This is a capability mask only; it does not rewrite the brand's
+    # own commerce_mode.
+    config_mode = normalize_commerce_mode(os.getenv("SHOP_MODE"))
+    if config_mode in {"shipping_only", "online_store_only"}:
+        for key in ("delivery_chat", "location_live", "driver_dispatch"):
+            if key in caps:
+                caps[key] = False
 
     return caps
 

@@ -98,6 +98,14 @@ pending → reserved → confirmed → preparing → ready → out_for_delivery 
 
 ### Option 1: Docker (Recommended)
 
+For Singapore deployments, set:
+
+```env
+DEPLOY_REGION=singapore
+SHOP_MODE=full_store
+# or: SHOP_MODE=shipping_only   # online storefront + shipping only (no pickup/local dispatch mask)
+```
+
 ```bash
 git clone https://github.com/yourusername/telegram_shop.git
 cd telegram_shop

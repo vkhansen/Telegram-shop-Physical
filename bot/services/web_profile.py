@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -72,8 +73,8 @@ class StoreWebProfileV1(BaseModel):
     gallery_file_ids: list[str] | None = None
 
 
-CommerceMode = Literal["full_store", "portfolio", "hybrid"]
-VALID_COMMERCE_MODES = frozenset({"full_store", "portfolio", "hybrid"})
+CommerceMode = Literal["full_store", "portfolio", "hybrid", "shipping_only", "online_store_only"]
+VALID_COMMERCE_MODES = frozenset({"full_store", "portfolio", "hybrid", "shipping_only", "online_store_only"})
 
 
 def validate_brand_web_profile(data: dict | None) -> dict:
@@ -90,7 +91,26 @@ def validate_store_web_profile(data: dict | None) -> dict:
 
 
 def normalize_commerce_mode(mode: str | None) -> str:
-    m = (mode or "full_store").strip().lower()
+    m = (mode or "full_store").strip().lower().replace(" ", "_")
+    aliases = {
+        "online-store-only": "online_store_only",
+        "online_store_only": "online_store_only",
+        "shipping-only": "shipping_only",
+        "shipping_only": "shipping_only",
+    }
+    m = aliases.get(m, m)
     if m not in VALID_COMMERCE_MODES:
         return "full_store"
     return m
+
+
+def effective_commerce_mode(mode: str | None = None) -> str:
+    """Return the explicit mode when provided; otherwise use the deployment default.
+
+    The deployment ``SHOP_MODE`` is a fallback default for environments without an
+    explicit brand mode, not a global override of every storefront's commerce mode.
+    """
+    if mode is not None:
+        return normalize_commerce_mode(mode)
+    config_mode = os.getenv("SHOP_MODE")
+    return normalize_commerce_mode(config_mode)
